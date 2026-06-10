@@ -6,14 +6,15 @@ dotenv.config();
 const { Pool } = pg;
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  host: 'localhost',
+  port: 5432,
+  database: 'hrms',
+  user: 'postgres',
+  password: 'Thangamani@',
 });
 
 pool.on('error', (err) => {
-  console.error('PostgreSQL pool error:', err.message);
+  console.error('PostgreSQL pool error:', err);
 });
 
 export default pool;
