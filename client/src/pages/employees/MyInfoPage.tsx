@@ -21,7 +21,7 @@ const STATUS_INACTIVE_BG = '#f8fafc';
 const STATUS_INACTIVE_COLOR = '#94a3b8';
 
 export default function MyInfoPage() {
-  const [emp, setEmp] = useState<Employee | null>(null);
+  const [employee, setEmp] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showEdit, setShowEdit] = useState(false);
@@ -55,7 +55,7 @@ export default function MyInfoPage() {
     </Layout>
   );
 
-  if (error || !emp) return (
+  if (error || !employee) return (
     <Layout title="Employee Management" tabs={TABS} activeTab="My Info">
       <div style={{ padding: '14px 18px', background: '#fef2f2', borderLeft: '3px solid #f87171', borderRadius: 10, color: '#b91c1c', fontSize: 13, maxWidth: 480 }}>
         <strong>Could not load profile</strong><br />
@@ -67,7 +67,7 @@ export default function MyInfoPage() {
     </Layout>
   );
 
-  const displayName = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Employee';
+  const displayName = employee.name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || 'Employee';
   const initials = displayName.split(' ').map((word: string) => word[0]).slice(0, 2).join('').toUpperCase();
 
   const formatDate = (dateStr?: string | null) => dateStr ? new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
@@ -96,27 +96,27 @@ export default function MyInfoPage() {
                 <div style={{
                   width: 68, height: 68, borderRadius: '50%',
                   border: '3px solid #fff', boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
-                  background: emp.avatar ? 'transparent' : GRAD,
+                  background: employee.avatar ? 'transparent' : GRAD,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   overflow: 'hidden', fontSize: 22, fontWeight: 700, color: '#fff',
                 }}>
-                  {emp.avatar
-                    ? <img src={`/uploads/${emp.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                  {employee.avatar
+                    ? <img src={`/uploads/${employee.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                     : initials}
                 </div>
               </div>
 
               <div style={{ fontWeight: 700, fontSize: 15.5, color: '#1e293b' }}>{displayName}</div>
-              <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 3 }}>{emp.job_title || 'Employee'}</div>
+              <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 3 }}>{employee.job_title || 'Employee'}</div>
 
               {/* Status badge */}
               <div style={{ marginTop: 8 }}>
                 <span style={{
                   fontSize: 11.5, fontWeight: 600, padding: '3px 14px', borderRadius: 20,
-                  background: emp.status === 'Active' ? STATUS_ACTIVE_BG : STATUS_INACTIVE_BG,
-                  color: emp.status === 'Active' ? STATUS_ACTIVE_COLOR : STATUS_INACTIVE_COLOR,
+                  background: employee.status === 'Active' ? STATUS_ACTIVE_BG : STATUS_INACTIVE_BG,
+                  color: employee.status === 'Active' ? STATUS_ACTIVE_COLOR : STATUS_INACTIVE_COLOR,
                 }}>
-                  {emp.status || 'Active'}
+                  {employee.status || 'Active'}
                 </span>
               </div>
               {/* Edit button */}
@@ -133,12 +133,12 @@ export default function MyInfoPage() {
           {/* Quick Info */}
           <Card title="Quick Info">
             {[
-              ['Employee ID', emp.employee_id],
-              ['Username', emp.username],
-              ['Role', emp.role],
-              ['Sub Unit', emp.sub_unit],
-              ['Location', emp.location],
-              ['Joined', formatDate(emp.joined_date)],
+              ['Employee ID', employee.employee_id],
+              ['Username', employee.username],
+              ['Role', employee.role],
+              ['Sub Unit', employee.sub_unit],
+              ['Location', employee.location],
+              ['Joined', formatDate(employee.joined_date)],
             ].filter(([, value]) => value).map(([label, value]) => (
               <QuickRow key={label as string} label={label as string} value={value as string} />
             ))}
@@ -171,37 +171,37 @@ export default function MyInfoPage() {
           <DetailCard title="Personal Information" icon="👤">
             <TwoColGrid rows={[
               ['Full Name', displayName],
-              ['Employee ID', emp.employee_id],
-              ['Gender', emp.gender],
-              ['Date of Birth', fmt(emp.dob)],
-              ['Real DOB', fmt(emp.real_dob)],
-              ['Nationality', emp.nationality],
-              ['Marital Status', emp.marital_status],
-              ['Blood Group', emp.blood_group],
-              ["Driver's License", emp.license_number],
-              ['License Expiry', fmt(emp.license_expiry)],
+              ['Employee ID', employee.employee_id],
+              ['Gender', employee.gender],
+              ['Date of Birth', fmt(employee.dob)],
+              ['Real DOB', fmt(employee.real_dob)],
+              ['Nationality', employee.nationality],
+              ['Marital Status', employee.marital_status],
+              ['Blood Group', employee.blood_group],
+              ["Driver's License", employee.license_number],
+              ['License Expiry', fmt(employee.license_expiry)],
             ]} />
           </DetailCard>
 
           {/* Job Details */}
           <DetailCard title="Job Details" icon="💼">
             <TwoColGrid rows={[
-              ['Job Title', emp.job_title],
-              ['Employment Status', emp.employment_status],
-              ['Job Category', emp.job_category],
-              ['Job Specification', emp.job_specification],
-              ['Sub Unit', emp.sub_unit],
-              ['Location', emp.location],
-              ['Attendance Calc', emp.attendance_calc],
-              ['Joined Date', fmt(emp.joined_date)],
-              ['Probation End', fmt(emp.probation_end_date)],
-              ['Date of Permanence', fmt(emp.date_of_permanence)],
-              ['Contract Start', fmt(emp.contract_start_date)],
-              ['Contract End', fmt(emp.contract_end_date)],
+              ['Job Title', employee.job_title],
+              ['Employment Status', employee.employment_status],
+              ['Job Category', employee.job_category],
+              ['Job Specification', employee.job_specification],
+              ['Sub Unit', employee.sub_unit],
+              ['Location', employee.location],
+              ['Attendance Calc', employee.attendance_calc],
+              ['Joined Date', fmt(employee.joined_date)],
+              ['Probation End', fmt(employee.probation_end_date)],
+              ['Date of Permanence', fmt(employee.date_of_permanence)],
+              ['Contract Start', fmt(employee.contract_start_date)],
+              ['Contract End', fmt(employee.contract_end_date)],
             ]} />
-            {emp.comments && (
+            {employee.comments && (
               <div style={{ marginTop: 12, padding: '10px 14px', background: '#f8fafc', borderRadius: 8, fontSize: 13, color: '#475569', borderLeft: '3px solid #e2e8f0' }}>
-                <strong>Comments:</strong> {emp.comments}
+                <strong>Comments:</strong> {employee.comments}
               </div>
             )}
           </DetailCard>
@@ -209,17 +209,17 @@ export default function MyInfoPage() {
           {/* Contact Information */}
           <DetailCard title="Contact Information" icon="📞">
             <TwoColGrid rows={[
-              ['Work Email', emp.email],
-              ['Other Email', emp.other_email],
-              ['Mobile', emp.mobile],
-              ['Work Tel', emp.work_tel],
-              ['Home Tel', emp.home_tel],
-              ['Address Line 1', emp.address1],
-              ['Address Line 2', emp.address2],
-              ['City', emp.city],
-              ['State', emp.state],
-              ['Country', emp.country],
-              ['ZIP Code', emp.zip],
+              ['Work Email', employee.email],
+              ['Other Email', employee.other_email],
+              ['Mobile', employee.mobile],
+              ['Work Tel', employee.work_tel],
+              ['Home Tel', employee.home_tel],
+              ['Address Line 1', employee.address1],
+              ['Address Line 2', employee.address2],
+              ['City', employee.city],
+              ['State', employee.state],
+              ['Country', employee.country],
+              ['ZIP Code', employee.zip],
             ]} />
           </DetailCard>
 
@@ -229,7 +229,7 @@ export default function MyInfoPage() {
       {/* Edit Modal */}
       {showEdit && (
         <AddEmployeeModal
-          employee={emp}
+          employee={employee}
           onClose={() => setShowEdit(false)}
           onSaved={() => { loadProfile(); flash('Profile updated successfully.'); }}
         />
