@@ -18,7 +18,7 @@ interface Props {
 
 export default function Layout({ children, title, tabs, activeTab, onFab }: Props) {
   const dispatch = useAppDispatch();
-  const user = useAppSelector(s => s.auth.user);
+  const user = useAppSelector(state => state.auth.user);
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);

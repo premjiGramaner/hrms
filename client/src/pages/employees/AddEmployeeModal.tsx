@@ -36,7 +36,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   useEffect(() => {
-    getSupervisors().then(r => setSupervisors(r.data)).catch(() => {});
+    getSupervisors().then(res => setSupervisors(res.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
     if (errors[k]) setErrors(er => { const n = { ...er }; delete n[k]; return n; });
   };
 
-  const validate: Record<number, () => boolean> = {
+  const validators: Record<number, () => boolean> = {
     1: () => validateCurrentStep(1),
     2: () => validateCurrentStep(2),
     3: () => validateCurrentStep(3),
@@ -109,23 +109,23 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
   }
 
   const handleNext = () => {
-    if (validate[step] && !validate[step]()) return;
+    if (validators[step] && !validators[step]()) return;
     setStep(s => s + 1);
   };
 
   const handleSubmit = async () => {
-    if (!validate[5]()) return;
+    if (!validators[5]()) return;
     setSaving(true);
     try {
-      const fd = new FormData();
+      const formData = new FormData();
       Object.entries(formRef.current).forEach(([k, v]) => {
         const value = String(v).trim();
-        if (value) fd.append(k, value);
+        if (value) formData.append(k, value);
       });
-      if (avatarFile) fd.append('avatar', avatarFile);
-      fd.append('supervisors', JSON.stringify(selectedSupervisors));
-      if (employee?.id) await updateEmployee(employee.id, fd);
-      else await createEmployee(fd);
+      if (avatarFile) formData.append('avatar', avatarFile);
+      formData.append('supervisors', JSON.stringify(selectedSupervisors));
+      if (employee?.id) await updateEmployee(employee.id, formData);
+      else await createEmployee(formData);
       onSaved();
       onClose();
     } catch (err: unknown) {
@@ -263,7 +263,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       const f = e.target.files?.[0]; if (!f) return;
                       setAvatarFile(f);
-                      const r = new FileReader(); r.onload = ev => setAvatarPreview(ev.target?.result as string); r.readAsDataURL(f);
+                      const reader = new FileReader(); reader.onload = ev => setAvatarPreview(ev.target?.result as string); reader.readAsDataURL(f);
                     }}
                   />
                 </div>
