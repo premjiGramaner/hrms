@@ -1,6 +1,6 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAppSelector } from '../app/hooks';
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAppSelector } from "../app/hooks";
 
 interface Props {
   children: React.ReactNode;
@@ -8,10 +8,11 @@ interface Props {
 }
 
 export default function ProtectedRoute({ children, roles }: Props) {
-  const { token, user } = useAppSelector(state => state.auth);
+  const { token, user } = useAppSelector((state) => state.auth);
 
   if (!token) return <Navigate to="/login" replace />;
-  if (roles && user && !roles.includes(user.role)) return <Navigate to="/employees" replace />;
+  if (roles && user && !roles.includes(user.role))
+    return <Navigate to="/employees" replace />;
 
   return <>{children}</>;
 }

@@ -1,10 +1,14 @@
 import pool from '../config/db.js';
 
+const SPACE_REGEX = /\s+/g;
+const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
+const TRIM_UNDERSCORE_REGEX = /^_+|_+$/g;
+
 async function createUniqueUsername(email, name) {
   let base = name
-    ? name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+    ? name.toLowerCase().replace(SPACE_REGEX, '_').replace(INVALID_CHAR_REGEX, '')
     : email.split('@')[0];
-  base = base.replace(/^_+|_+$/g, '') || email.split('@')[0];
+  base = base.replace(TRIM_UNDERSCORE_REGEX, '') || email.split('@')[0];
 
   let username = base;
   let counter = 1;

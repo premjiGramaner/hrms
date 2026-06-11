@@ -8,11 +8,11 @@ if (isProduction && !process.env.JWT_SECRET) {
   throw new Error('Missing required environment variable: JWT_SECRET');
 }
 
-export const nodeEnv = process.env.NODE_ENV || 'development';
-export const port = Number(process.env.PORT || 5000);
-export const jwtSecret = process.env.JWT_SECRET || 'development-only-change-me';
-export const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '8h';
-export const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174')
+export const nodeEnv = process.env.NODE_ENV ;
+export const port = Number(process.env.PORT);
+export const jwtSecret = process.env.JWT_SECRET ;
+export const jwtExpiresIn = process.env.JWT_EXPIRES_IN;
+export const corsOrigins = (process.env.CORS_ORIGINS )
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);

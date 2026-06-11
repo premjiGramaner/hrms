@@ -1,6 +1,6 @@
-import axios from 'axios';
-import { env } from '../config/env';
-import { STORAGE_KEYS } from '../constants/storage';
+import axios from "axios";
+import { env } from "../config/env";
+import { STORAGE_KEYS } from "../constants/storage";
 
 const api = axios.create({
   baseURL: env.apiBaseUrl,
@@ -19,10 +19,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem(STORAGE_KEYS.token);
       localStorage.removeItem(STORAGE_KEYS.user);
-      if (window.location.pathname !== '/login') window.location.href = '/login';
+      if (window.location.pathname !== "/login")
+        window.location.href = "/login";
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
