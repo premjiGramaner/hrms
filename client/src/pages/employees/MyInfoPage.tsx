@@ -3,6 +3,7 @@ import Layout, { TabItem } from '../../components/Layout';
 import { getMyInfo } from '../../api/employee.api';
 import { Employee } from '../../types';
 import AddEmployeeModal from './AddEmployeeModal';
+import { COLOR_NAV, COLOR_GRADIENT } from '../../constants/styles';
 
 const TABS: TabItem[] = [
   { label: 'Employee List', path: '/employees' },
@@ -11,9 +12,13 @@ const TABS: TabItem[] = [
   { label: 'Buzz', path: '#' },
 ];
 
-const NAV = '#1b2a6b';
-const TEAL = '#16a085';
-const GRAD = `linear-gradient(135deg, ${NAV}, ${TEAL})`;
+const NAV = COLOR_NAV;
+const GRAD = COLOR_GRADIENT;
+
+const STATUS_ACTIVE_BG = '#f0fdf4';
+const STATUS_ACTIVE_COLOR = '#16a34a';
+const STATUS_INACTIVE_BG = '#f8fafc';
+const STATUS_INACTIVE_COLOR = '#94a3b8';
 
 export default function MyInfoPage() {
   const [emp, setEmp] = useState<Employee | null>(null);
@@ -108,13 +113,12 @@ export default function MyInfoPage() {
               <div style={{ marginTop: 8 }}>
                 <span style={{
                   fontSize: 11.5, fontWeight: 600, padding: '3px 14px', borderRadius: 20,
-                  background: emp.status === 'Active' ? '#f0fdf4' : '#f8fafc',
-                  color: emp.status === 'Active' ? '#16a34a' : '#94a3b8',
+                  background: emp.status === 'Active' ? STATUS_ACTIVE_BG : STATUS_INACTIVE_BG,
+                  color: emp.status === 'Active' ? STATUS_ACTIVE_COLOR : STATUS_INACTIVE_COLOR,
                 }}>
                   {emp.status || 'Active'}
                 </span>
               </div>
-
               {/* Edit button */}
               <button onClick={() => setShowEdit(true)} style={{
                 marginTop: 14, width: '100%', padding: '9px', borderRadius: 10,

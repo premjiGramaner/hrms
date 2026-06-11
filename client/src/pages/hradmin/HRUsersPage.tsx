@@ -92,7 +92,7 @@ export default function HRUsersPage() {
 }
 
 /* ── Add User Modal ── */
-function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+export function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
     employee_name: '', username: '',
     ess_role: 'Default ESS', supervisor_role: 'Default Supervisor',
@@ -100,16 +100,16 @@ function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   });
   const [saving, setSaving] = useState(false);
 
-  const inp = (value: string, onChange: (searchValue: string) => void, placeholder = '') => (
+  const renderInput = (value: string, onChange: (newValue: string) => void, placeholder = '') => (
     <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
       style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13.5, outline: 'none', background: '#fff', boxSizing: 'border-box' }} />
   );
 
-  const sel = (value: string, onChange: (selectedValue: string) => void, opts: string[]) => (
+  const renderSelect = (value: string, onChange: (selectedValue: string) => void, opts: string[]) => (
     <div style={{ position: 'relative' }}>
       <select value={value} onChange={e => onChange(e.target.value)}
         style={{ width: '100%', padding: '10px 32px 10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13.5, outline: 'none', appearance: 'none', background: '#fff', boxSizing: 'border-box' }}>
-        {opts.map(o => <option key={o} value={o}>{o || '-- Select --'}</option>)}
+        {opts.map(option => <option key={option} value={option}>{option || '-- Select --'}</option>)}
       </select>
       <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8', fontSize: 11 }}>▼</span>
     </div>
@@ -128,15 +128,15 @@ function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
         {/* Body */}
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Row>
-            <Field label="Employee Name" required>{inp(form.employee_name, value => setForm(formState => ({ ...formState, employee_name: value })), 'Type for hints…')}</Field>
-            <Field label="Username" required>{inp(form.username, value => setForm(formState => ({ ...formState, username: value })))}</Field>
+            <Field label="Employee Name" required>{renderInput(form.employee_name, value => setForm(formState => ({ ...formState, employee_name: value })), 'Type for hints…')}</Field>
+            <Field label="Username" required>{renderInput(form.username, value => setForm(formState => ({ ...formState, username: value })))}</Field>
           </Row>
           <Row>
-            <Field label="ESS Role" required>{sel(form.ess_role, value => setForm(formState => ({ ...formState, ess_role: value })), ['Default ESS', 'Custom ESS'])}</Field>
-            <Field label="Supervisor Role" required>{sel(form.supervisor_role, value => setForm(formState => ({ ...formState, supervisor_role: value })), ['Default Supervisor', 'Custom Supervisor'])}</Field>
+            <Field label="ESS Role" required>{renderSelect(form.ess_role, value => setForm(formState => ({ ...formState, ess_role: value })), ['Default ESS', 'Custom ESS'])}</Field>
+            <Field label="Supervisor Role" required>{renderSelect(form.supervisor_role, value => setForm(formState => ({ ...formState, supervisor_role: value })), ['Default Supervisor', 'Custom Supervisor'])}</Field>
           </Row>
           <Row>
-            <Field label="Admin Role">{sel(form.admin_role, value => setForm(formState => ({ ...formState, admin_role: value })), ['', 'Global Admin', 'HR Admin'])}</Field>
+            <Field label="Admin Role">{renderSelect(form.admin_role, value => setForm(formState => ({ ...formState, admin_role: value })), ['', 'Global Admin', 'HR Admin'])}</Field>
             <Field label="Status">
               <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 6 }}>
                 {['Enabled', 'Disabled'].map(status => (

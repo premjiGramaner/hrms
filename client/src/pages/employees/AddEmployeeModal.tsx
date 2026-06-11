@@ -7,9 +7,12 @@ import { validateEmployeeStep } from '../../validations/employee.validation';
 interface Props { employee: Employee | null; onClose: () => void; onSaved: () => void; }
 interface Supervisor { id: number; name: string; job_title: string; }
 
+/** Matches ISO date strings in YYYY-MM-DD format */
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
 function toDateStr(val?: string | null): string {
   if (!val) return '';
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  if (ISO_DATE_PATTERN.test(val)) return val;
   try { return new Date(val).toISOString().slice(0, 10); } catch { return ''; }
 }
 
@@ -110,7 +113,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
 
   const handleNext = () => {
     if (validators[step] && !validators[step]()) return;
-    setStep(s => s + 1);
+    setStep(currentStep => currentStep + 1);
   };
 
   const handleSubmit = async () => {
@@ -118,9 +121,9 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
     setSaving(true);
     try {
       const formData = new FormData();
-      Object.entries(formRef.current).forEach(([k, v]) => {
-        const value = String(v).trim();
-        if (value) formData.append(k, value);
+      Object.entries(formRef.current).forEach(([key, val]) => {
+        const value = String(val).trim();
+        if (value) formData.append(key, value);
       });
       if (avatarFile) formData.append('avatar', avatarFile);
       formData.append('supervisors', JSON.stringify(selectedSupervisors));
@@ -161,7 +164,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
         }`}
       >
         <option value="">{placeholder}</option>
-        {opts.map(o => <option key={o} value={o}>{o}</option>)}
+        {opts.map(option => <option key={option} value={option}>{option}</option>)}
       </select>
       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▼</span>
       {errors[name] && <span className="text-xs text-red-600 mt-1 block">{errors[name]}</span>}
@@ -178,7 +181,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
     <div key={label}>{lbl(label, req)}{element}</div>
   );
 
-  const G2 = ({ children }: { children: React.ReactNode }) => (
+  const TwoColumnGrid = ({ children }: { children: React.ReactNode }) => (
     <div className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</div>
   );
 
@@ -268,26 +271,26 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
                   />
                 </div>
                 <div className="flex-1">
-                  <G2>
+                  <TwoColumnGrid>
                     {FormField('First Name', inp('first_name', 'First Name'), true)}
                     {FormField('Last Name', inp('last_name', 'Last Name'), true)}
                     {FormField('Middle Name', inp('middle_name', 'Optional'))}
                     {FormField('Employee ID', inp('employee_id', 'e.g. EMP-001'))}
                     {FormField('Joined Date', inp('joined_date', '', 'date'), true)}
                     {FormField('Location', sel('location', LOCATIONS, '-- Select Location --'), true)}
-                  </G2>
+                  </TwoColumnGrid>
                 </div>
               </div>
-              <G2>
+              <TwoColumnGrid>
                 {FormField('Role', sel('role', ['employee', 'empmanager', 'hradmin']))}
-              </G2>
+              </TwoColumnGrid>
             </Sec>
           )}
 
           {/* ══ STEP 2: Personal ══ */}
           {step === 2 && (
             <Sec title="Personal Details">
-              <G2>
+              <TwoColumnGrid>
                 {FormField('Gender', sel('gender', ['Male', 'Female', 'Prefer not to say'], '-- Select --'), true)}
                 {FormField('Date of Birth', inp('dob', '', 'date'))}
                 {FormField('Nationality', sel('nationality', NATIONALITIES))}
@@ -296,14 +299,14 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
                 {FormField('Real DOB', inp('real_dob', '', 'date'))}
                 {FormField("Driver's License No.", inp('license_number', 'License number'))}
                 {FormField('License Expiry', inp('license_expiry', '', 'date'))}
-              </G2>
+              </TwoColumnGrid>
             </Sec>
           )}
 
           {/* ══ STEP 3: Job Details ══ */}
           {step === 3 && (
             <Sec title="Job Details">
-              <G2>
+              <TwoColumnGrid>
                 {FormField('Job Title', sel('job_title', JOB_TITLES, '-- Select Job Title --'), true)}
                 {FormField('Employment Status', sel('employment_status', EMP_STATUS, '-- Select --'), true)}
                 {FormField('Job Category', sel('job_category', JOB_CATS))}
@@ -314,7 +317,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
                 {FormField('Date of Permanence', inp('date_of_permanence', '', 'date'))}
                 {FormField('Contract Start', inp('contract_start_date', '', 'date'))}
                 {FormField('Contract End', inp('contract_end_date', '', 'date'))}
-              </G2>
+              </TwoColumnGrid>
               <div className="mt-3">
                 {FormField('Comments',
                   <textarea
@@ -331,7 +334,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
           {/* ══ STEP 4: Contact ══ */}
           {step === 4 && (
             <Sec title="Contact Information">
-              <G2>
+              <TwoColumnGrid>
                 {FormField('Work Email', inp('work_email', 'work@company.com', 'email'), true)}
                 {FormField('Other Email', inp('other_email', 'personal@email.com', 'email'))}
                 {FormField('Mobile', inp('mobile', '+91 99999 00000', 'tel'), true)}
@@ -343,7 +346,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
                 {FormField('State', inp('state', 'State / Province'))}
                 {FormField('Country', sel('country', COUNTRIES))}
                 {FormField('ZIP Code', inp('zip', 'Postal code'))}
-              </G2>
+              </TwoColumnGrid>
             </Sec>
           )}
 
@@ -417,7 +420,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
               Cancel
             </button>
             {step > 1 && (
-              <button onClick={() => setStep(s => s - 1)} className="px-5 py-2 rounded-full border border-blue-900 bg-white text-sm font-semibold cursor-pointer text-blue-900 hover:bg-blue-50 transition">
+              <button onClick={() => setStep(currentStep => currentStep - 1)} className="px-5 py-2 rounded-full border border-blue-900 bg-white text-sm font-semibold cursor-pointer text-blue-900 hover:bg-blue-50 transition">
                 ← Back
               </button>
             )}

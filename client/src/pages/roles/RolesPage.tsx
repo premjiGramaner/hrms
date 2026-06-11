@@ -13,6 +13,8 @@ const TABS: TabItem[] = [
   { label: 'More', path: '#' },
 ];
 
+const ROLE_TABLE_HEADERS = ['', '#', 'Role Name', 'Role Type', 'Description', 'Status', ''];
+
 export default function RolesPage() {
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function RolesPage() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-100">
-              {['', '#', 'Role Name', 'Role Type', 'Description', 'Status', ''].map((header, i) => (
+              {ROLE_TABLE_HEADERS.map((header, i) => (
                 <th key={i} className="px-4 py-3 text-left text-xs font-semibold text-slate-400 text-nowrap">
                   {i === 0 ? <input type="checkbox" className="w-3.5 h-3.5 accent-blue-900" /> : header}
                 </th>
@@ -49,7 +51,7 @@ export default function RolesPage() {
                 <td className="px-4 py-3 font-semibold text-blue-900">{role.role_name}</td>
                 <td className="px-4 py-3">
                   <span style={typeBadge(role.role_type)} className="rounded-full px-2.5 py-0.5 text-xs font-semibold inline-block">
-                    {role.role_type || '—'}
+                    {role.role_type}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-slate-600 text-sm">{role.description || '—'}</td>

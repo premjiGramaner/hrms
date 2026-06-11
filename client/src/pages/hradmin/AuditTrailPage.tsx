@@ -10,7 +10,13 @@ const TABS: TabItem[] = [
   { label: 'Audit Trail', path: '/hradmin/audit-trail' },
 ];
 
-interface Rec { id: number; name?: string; username: string; created_on: string; updated_on: string; }
+interface Rec {
+  id: number;
+  name?: string;
+  username: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function AuditTrailPage() {
   const [records, setRecords] = useState<Rec[]>([]);
@@ -46,17 +52,44 @@ export default function AuditTrailPage() {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={5} className="text-center py-12 text-gray-400">Loading…</td></tr>}
-            {!loading && filtered.map(record => (
-              <tr key={record.id} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="px-4 py-3 text-gray-500 text-xs">{new Date(record.created_on).toLocaleString()}</td>
-                <td className="px-4 py-3 font-medium text-gray-800">{record.username}</td>
-                <td className="px-4 py-3 text-gray-700">{record.name || '—'}</td>
-                <td className="px-4 py-3"><span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-yellow-50 text-yellow-700">UPDATE</span></td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{new Date(record.updated_on).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
+  {loading && (
+    <tr>
+      <td colSpan={5} className="text-center py-12 text-gray-400">
+        Loading...
+      </td>
+    </tr>
+  )}
+
+  {!loading &&
+    filtered.map((record) => (
+      <tr
+        key={record.id}
+        className="border-b border-gray-50 hover:bg-gray-50"
+      >
+        <td className="px-4 py-3 text-gray-500 text-xs">
+          {new Date(record.created_at).toLocaleString()}
+        </td>
+
+        <td className="px-4 py-3 font-medium text-gray-800">
+          {record.username}
+        </td>
+
+        <td className="px-4 py-3 text-gray-700">
+          {record.name || "—"}
+        </td>
+
+        <td className="px-4 py-3">
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-yellow-50 text-yellow-700">
+            UPDATE
+          </span>
+        </td>
+
+        <td className="px-4 py-3 text-gray-500 text-xs">
+          {new Date(record.updated_at).toLocaleString()}
+        </td>
+      </tr>
+    ))}
+</tbody>
         </table>
       </div>
     </Layout>
