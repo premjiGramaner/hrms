@@ -6,4 +6,4 @@ export const login = async (username: string, password: string) => {
   return { data: response.data.data };
 };
 
-export const getMe = () => api.get<AuthUser>('/auth/me');
+export const self = () => api.get<AuthUser>('/auth/me');

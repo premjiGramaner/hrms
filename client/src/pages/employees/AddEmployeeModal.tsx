@@ -103,7 +103,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
   };
 
   function validateCurrentStep(stepNumber: number) {
-    const nextErrors = validateEmployeeStep(stepNumber, formRef.current, selectedSupervisors);
+    const nextErrors = validateEmployeeStep(stepNumber, formRef.current, selectedSupervisors, supervisors.length);
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }

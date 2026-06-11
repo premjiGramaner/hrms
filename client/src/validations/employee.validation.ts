@@ -6,6 +6,7 @@ export function validateEmployeeStep(
   step: number,
   form: EmployeeFormValues,
   selectedSupervisors: number[],
+  availableSupervisorsCount = 0,
 ): Record<string, string> {
   const errors: Record<string, string> = {};
 
@@ -31,7 +32,7 @@ export function validateEmployeeStep(
     if (!form.mobile?.trim()) errors.mobile = 'Mobile number is required';
   }
 
-  if (step === 5 && selectedSupervisors.length === 0) {
+  if (step === 5 && availableSupervisorsCount > 0 && selectedSupervisors.length === 0) {
     errors.supervisors = 'Please assign at least one supervisor';
   }
 

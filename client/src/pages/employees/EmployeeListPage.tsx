@@ -53,13 +53,13 @@ export default function EmployeeListPage() {
     setShowModal(true);
   };
 
-  const rows = data?.data.filter(u => 
+  const rows = (data?.data || []).filter(u => 
     !search ||
     (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
     (u.username || '').toLowerCase().includes(search.toLowerCase()) ||
     (u.email || '').toLowerCase().includes(search.toLowerCase()) ||
     (u.job_title || '').toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  );
 
   const getSupervisorLabel = (emp: Employee): string => {
     if (!emp.supervisors || !Array.isArray(emp.supervisors) || emp.supervisors.length === 0) return '—';

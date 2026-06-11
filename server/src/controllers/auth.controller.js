@@ -47,7 +47,7 @@ const login = async (req, res, next) => {
       return error(res, 'Invalid username or password', 401);
     }
 
-    if (!user.is_active) {
+    if (!user.is_active) {    
       return error(res, 'This account has been deactivated', 403);
     }
 
@@ -68,7 +68,7 @@ const login = async (req, res, next) => {
   }
 };
 
-const getMe = async (req, res, next) => {
+const self = async (req, res, next) => {
   try {
     if (!req.user) return error(res, 'Unauthorized', 401);
 
@@ -87,4 +87,4 @@ const getMe = async (req, res, next) => {
   }
 };
 
-export { login, getMe };
+export { login, self };
