@@ -21,14 +21,14 @@ export default function HRUsersPage() {
 
   const fetchUsers = () => {
     setLoading(true);
-    getHRUsers().then(r => { setUsers(r.data); setFiltered(r.data); }).finally(() => setLoading(false));
+    getHRUsers().then(response => { setUsers(response.data); setFiltered(response.data); }).finally(() => setLoading(false));
   };
   useEffect(fetchUsers, []);
 
-  const handleSearch = (v: string) => {
-    setSearch(v);
-    const t = v.toLowerCase();
-    setFiltered(users.filter(u => u.username.toLowerCase().includes(t) || (u.name || '').toLowerCase().includes(t)));
+  const handleSearch = (searchValue: string) => {
+    setSearch(searchValue);
+    const searchTerm = (searchValue || '').toLowerCase();
+    setFiltered(users.filter(user => (user.username || '').toLowerCase().includes(searchTerm) || ((user.name || '') as string).toLowerCase().includes(searchTerm)));
   };
 
   return (
@@ -100,12 +100,12 @@ function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   });
   const [saving, setSaving] = useState(false);
 
-  const inp = (value: string, onChange: (v: string) => void, placeholder = '') => (
+  const inp = (value: string, onChange: (searchValue: string) => void, placeholder = '') => (
     <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
       style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13.5, outline: 'none', background: '#fff', boxSizing: 'border-box' }} />
   );
 
-  const sel = (value: string, onChange: (v: string) => void, opts: string[]) => (
+  const sel = (value: string, onChange: (selectedValue: string) => void, opts: string[]) => (
     <div style={{ position: 'relative' }}>
       <select value={value} onChange={e => onChange(e.target.value)}
         style={{ width: '100%', padding: '10px 32px 10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13.5, outline: 'none', appearance: 'none', background: '#fff', boxSizing: 'border-box' }}>
@@ -128,23 +128,23 @@ function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
         {/* Body */}
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Row>
-            <Field label="Employee Name" required>{inp(form.employee_name, v => setForm(f => ({ ...f, employee_name: v })), 'Type for hints…')}</Field>
-            <Field label="Username" required>{inp(form.username, v => setForm(f => ({ ...f, username: v })))}</Field>
+            <Field label="Employee Name" required>{inp(form.employee_name, value => setForm(formState => ({ ...formState, employee_name: value })), 'Type for hints…')}</Field>
+            <Field label="Username" required>{inp(form.username, value => setForm(formState => ({ ...formState, username: value })))}</Field>
           </Row>
           <Row>
-            <Field label="ESS Role" required>{sel(form.ess_role, v => setForm(f => ({ ...f, ess_role: v })), ['Default ESS', 'Custom ESS'])}</Field>
-            <Field label="Supervisor Role" required>{sel(form.supervisor_role, v => setForm(f => ({ ...f, supervisor_role: v })), ['Default Supervisor', 'Custom Supervisor'])}</Field>
+            <Field label="ESS Role" required>{sel(form.ess_role, value => setForm(formState => ({ ...formState, ess_role: value })), ['Default ESS', 'Custom ESS'])}</Field>
+            <Field label="Supervisor Role" required>{sel(form.supervisor_role, value => setForm(formState => ({ ...formState, supervisor_role: value })), ['Default Supervisor', 'Custom Supervisor'])}</Field>
           </Row>
           <Row>
-            <Field label="Admin Role">{sel(form.admin_role, v => setForm(f => ({ ...f, admin_role: v })), ['', 'Global Admin', 'HR Admin'])}</Field>
+            <Field label="Admin Role">{sel(form.admin_role, value => setForm(formState => ({ ...formState, admin_role: value })), ['', 'Global Admin', 'HR Admin'])}</Field>
             <Field label="Status">
               <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 6 }}>
-                {['Enabled', 'Disabled'].map(v => (
-                  <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, cursor: 'pointer', color: '#374151' }}>
-                    <input type="radio" name="add_status" value={v} checked={form.status === v}
-                      onChange={() => setForm(f => ({ ...f, status: v }))}
+                {['Enabled', 'Disabled'].map(status => (
+                  <label key={status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, cursor: 'pointer', color: '#374151' }}>
+                    <input type="radio" name="add_status" value={status} checked={form.status === status}
+                      onChange={() => setForm(formState => ({ ...formState, status: status }))}
                       style={{ accentColor: '#1b2a6b', width: 15, height: 15 }} />
-                    {v}
+                    {status}
                   </label>
                 ))}
               </div>

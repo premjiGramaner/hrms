@@ -18,12 +18,12 @@ export default function RolesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  const fetchRoles = () => { setLoading(true); getRoles().then(r => setRoles(r.data)).finally(() => setLoading(false)); };
+  const fetchRoles = () => { setLoading(true); getRoles().then(response => setRoles(response.data)).finally(() => setLoading(false)); };
   useEffect(fetchRoles, []);
 
-  const typeBadge = (t?: string): React.CSSProperties =>
-    t === 'System' ? { background: '#fef2f2', color: '#b91c1c' } :
-    t === 'Management' ? { background: '#fefce8', color: '#92400e' } :
+  const typeBadge = (roleType?: string): React.CSSProperties =>
+    roleType === 'System' ? { background: '#fef2f2', color: '#b91c1c' } :
+    roleType === 'Management' ? { background: '#fefce8', color: '#92400e' } :
     { background: '#f0fdf4', color: '#15803d' };
 
   return (
@@ -32,9 +32,9 @@ export default function RolesPage() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-100">
-              {['', '#', 'Role Name', 'Role Type', 'Description', 'Status', ''].map((h, i) => (
+              {['', '#', 'Role Name', 'Role Type', 'Description', 'Status', ''].map((header, i) => (
                 <th key={i} className="px-4 py-3 text-left text-xs font-semibold text-slate-400 text-nowrap">
-                  {i === 0 ? <input type="checkbox" className="w-3.5 h-3.5 accent-blue-900" /> : h}
+                  {i === 0 ? <input type="checkbox" className="w-3.5 h-3.5 accent-blue-900" /> : header}
                 </th>
               ))}
             </tr>
@@ -48,7 +48,7 @@ export default function RolesPage() {
                 <td className="px-4 py-3 text-slate-400 text-xs">{role.id}</td>
                 <td className="px-4 py-3 font-semibold text-blue-900">{role.role_name}</td>
                 <td className="px-4 py-3">
-                  <span className={`${typeBadge(role.role_type)} rounded-full px-2.5 py-0.5 text-xs font-semibold inline-block`}>
+                  <span style={typeBadge(role.role_type)} className="rounded-full px-2.5 py-0.5 text-xs font-semibold inline-block">
                     {role.role_type || '—'}
                   </span>
                 </td>
@@ -110,7 +110,7 @@ function AddRoleModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
               className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none bg-white focus:border-teal-600 focus:shadow-sm focus:shadow-teal-600/20 transition"
               placeholder="e.g. HR Admin"
               value={form.role_name}
-              onChange={e => setForm(f => ({ ...f, role_name: e.target.value }))}
+              onChange={e => setForm(formState => ({ ...formState, role_name: e.target.value }))}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -120,7 +120,7 @@ function AddRoleModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
                 <select
                   className="w-full px-3 py-2.5 pr-7 border border-slate-200 rounded-lg text-sm outline-none bg-white appearance-none focus:border-teal-600 focus:shadow-sm focus:shadow-teal-600/20 transition"
                   value={form.role_type}
-                  onChange={e => setForm(f => ({ ...f, role_type: e.target.value }))}
+                  onChange={e => setForm(formState => ({ ...formState, role_type: e.target.value }))}
                 >
                   <option value="">-- Select --</option>
                   <option>System</option>
@@ -135,7 +135,7 @@ function AddRoleModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
               <input
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none bg-white focus:border-teal-600 focus:shadow-sm focus:shadow-teal-600/20 transition"
                 value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                onChange={e => setForm(formState => ({ ...formState, description: e.target.value }))}
               />
             </div>
           </div>

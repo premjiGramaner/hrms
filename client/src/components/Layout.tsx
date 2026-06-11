@@ -144,19 +144,19 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
               <IconHome size={15} color="#64748b" />
             </Link>
 
-            {tabs.map(t => {
-              const isActiveTab = activeTab === t.label || location.pathname === t.path;
+            {tabs.map(tab => {
+              const isActiveTab = activeTab === tab.label || location.pathname === tab.path;
               return (
                 <Link
-                  key={t.label}
-                  to={t.path}
+                  key={tab.label}
+                  to={tab.path}
                   className={`px-4 py-1.75 rounded-full text-sm font-${isActiveTab ? '600' : '500'} no-underline whitespace-nowrap flex-shrink-0 transition ${
                     isActiveTab
                       ? 'text-amber-700 bg-orange-100'
                       : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {t.label}
+                  {tab.label}
                 </Link>
               );
             })}

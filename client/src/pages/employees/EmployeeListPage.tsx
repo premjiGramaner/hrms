@@ -14,11 +14,11 @@ const TABS: TabItem[] = [
   { label: 'Buzz', path: '#' },
 ];
 
-const COLS = ['', 'Profile','Emp ID', , 'Job Title', 'Status', 'Sub Unit', 'Location', 'Supervisor', ''];
+const COLS = ['', 'Profile', 'Emp ID', 'Job Title', 'Status', 'Sub Unit', 'Location', 'Supervisor', ''];
 
 export default function EmployeeListPage() {
   const dispatch = useAppDispatch();
-  const { data, loading, page } = useAppSelector(s => s.employees);
+  const { data, loading, page } = useAppSelector(state => state.employees);
   const [success, setSuccess] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
@@ -39,7 +39,7 @@ export default function EmployeeListPage() {
     }
   };
 
-  const fetchData = (p: number) => dispatch(fetchEmployees(p));
+  const fetchData = (pageNum: number) => dispatch(fetchEmployees(pageNum));
 
   const openAdd  = () => { setEditEmployee(null); setShowModal(true); };
 
@@ -53,12 +53,12 @@ export default function EmployeeListPage() {
     setShowModal(true);
   };
 
-  const rows = (data?.data || []).filter(u => 
+  const rows = (data?.data || []).filter(user => 
     !search ||
-    (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
-    (u.username || '').toLowerCase().includes(search.toLowerCase()) ||
-    (u.email || '').toLowerCase().includes(search.toLowerCase()) ||
-    (u.job_title || '').toLowerCase().includes(search.toLowerCase())
+    (user.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (user.username || '').toLowerCase().includes(search.toLowerCase()) ||
+    (user.email || '').toLowerCase().includes(search.toLowerCase()) ||
+    (user.job_title || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const getSupervisorLabel = (emp: Employee): string => {
@@ -67,8 +67,8 @@ export default function EmployeeListPage() {
   };
 
   const initials = (emp: Employee) => {
-    const n = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
-    return n ? n.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : 'EE';
+    const fullName = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
+    return fullName ? fullName.split(' ').map(word => word[0]).slice(0, 2).join('').toUpperCase() : 'EE';
   };
 
   return (
@@ -103,7 +103,7 @@ export default function EmployeeListPage() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-slate-100 bg-slate-50">
-              {COLS.map((h, i) => (
+              {COLS.map((header, i) => (
                 <th
                   key={i}
                   className={`px-3.5 py-2.75 text-left text-xs font-bold text-slate-600 whitespace-nowrap ${
@@ -112,7 +112,7 @@ export default function EmployeeListPage() {
                 >
                   {i === 0
                     ? <input type="checkbox" className="w-3.5 h-3.5 accent-blue-900" />
-                    : h}
+                    : header}
                 </th>
               ))}
             </tr>

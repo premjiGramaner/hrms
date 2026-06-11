@@ -19,12 +19,12 @@ export default function AuditTrailPage() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    getAuditTrail().then(r => { setRecords(r.data); setFiltered(r.data); }).finally(() => setLoading(false));
+    getAuditTrail().then(response => { setRecords(response.data); setFiltered(response.data); }).finally(() => setLoading(false));
   }, []);
 
-  const handleSearch = (v: string) => {
-    setSearch(v); const t = v.toLowerCase();
-    setFiltered(records.filter(r => (r.name || '').toLowerCase().includes(t) || r.username.toLowerCase().includes(t)));
+  const handleSearch = (searchValue: string) => {
+    setSearch(searchValue); const searchTerm = searchValue.toLowerCase();
+    setFiltered(records.filter(record => (record.name || '').toLowerCase().includes(searchTerm) || record.username.toLowerCase().includes(searchTerm)));
   };
 
   return (
@@ -40,20 +40,20 @@ export default function AuditTrailPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100">
-              {['Date & Time','Username','Employee Name','Action','Updated On'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{h}</th>
+              {['Date & Time','Username','Employee Name','Action','Updated On'].map(header => (
+                <th key={header} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{header}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading && <tr><td colSpan={5} className="text-center py-12 text-gray-400">Loading…</td></tr>}
-            {!loading && filtered.map(r => (
-              <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="px-4 py-3 text-gray-500 text-xs">{new Date(r.created_on).toLocaleString()}</td>
-                <td className="px-4 py-3 font-medium text-gray-800">{r.username}</td>
-                <td className="px-4 py-3 text-gray-700">{r.name || '—'}</td>
+            {!loading && filtered.map(record => (
+              <tr key={record.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="px-4 py-3 text-gray-500 text-xs">{new Date(record.created_on).toLocaleString()}</td>
+                <td className="px-4 py-3 font-medium text-gray-800">{record.username}</td>
+                <td className="px-4 py-3 text-gray-700">{record.name || '—'}</td>
                 <td className="px-4 py-3"><span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-yellow-50 text-yellow-700">UPDATE</span></td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{new Date(r.updated_on).toLocaleString()}</td>
+                <td className="px-4 py-3 text-gray-500 text-xs">{new Date(record.updated_on).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>

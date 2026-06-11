@@ -27,8 +27,8 @@ export default function MyInfoPage() {
     setError('');
     getMyInfo()
       .then(r => setEmp(r.data))
-      .catch(err => {
-        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      .catch(error => {
+        const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
         setError(msg || 'Could not load your profile. Please try again.');
       })
       .finally(() => setLoading(false));
@@ -63,9 +63,10 @@ export default function MyInfoPage() {
   );
 
   const displayName = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Employee';
-  const initials = displayName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
+  const initials = displayName.split(' ').map((word: string) => word[0]).slice(0, 2).join('').toUpperCase();
 
-  const fmt = (d?: string | null) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
+  const formatDate = (dateStr?: string | null) => dateStr ? new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
+  const fmt = formatDate;
 
   return (
     <Layout title="Employee Management" tabs={TABS} activeTab="My Info">
@@ -133,9 +134,9 @@ export default function MyInfoPage() {
               ['Role', emp.role],
               ['Sub Unit', emp.sub_unit],
               ['Location', emp.location],
-              ['Joined', fmt(emp.joined_date)],
-            ].filter(([, v]) => v).map(([l, v]) => (
-              <QuickRow key={l as string} label={l as string} value={v as string} />
+              ['Joined', formatDate(emp.joined_date)],
+            ].filter(([, value]) => value).map(([label, value]) => (
+              <QuickRow key={label as string} label={label as string} value={value as string} />
             ))}
           </Card>
 
@@ -268,7 +269,7 @@ function DetailCard({ title, icon, children }: { title: string; icon: string; ch
 }
 
 function TwoColGrid({ rows }: { rows: [string, string | null | undefined][] }) {
-  const filled = rows.filter(([, v]) => v && String(v).trim());
+  const filled = rows.filter(([, value]) => value && String(value).trim());
   if (!filled.length) return (
     <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>No information available.</p>
   );

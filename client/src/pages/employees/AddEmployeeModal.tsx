@@ -91,7 +91,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     formRef.current[k] = e.target.value;
-    if (errors[k]) setErrors(er => { const n = { ...er }; delete n[k]; return n; });
+    if (errors[k]) setErrors(errors => { const newErrors = { ...errors }; delete newErrors[k]; return newErrors; });
   };
 
   const validators: Record<number, () => boolean> = {
@@ -174,8 +174,8 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
     </label>
   );
 
-  const F = (label: string, el: React.ReactNode, req = false) => (
-    <div key={label}>{lbl(label, req)}{el}</div>
+  const FormField = (label: string, element: React.ReactNode, req = false) => (
+    <div key={label}>{lbl(label, req)}{element}</div>
   );
 
   const G2 = ({ children }: { children: React.ReactNode }) => (
@@ -209,10 +209,10 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
         {/* Stepper */}
         <div className="flex p-3 pb-2.5 bg-blue-50 border-b border-slate-100">
           {STEPS.map((label, i) => {
-            const n = i + 1;
-            const done = n < step, active = n === step;
+            const stepNumber = i + 1;
+            const done = stepNumber < step, active = stepNumber === step;
             return (
-              <div key={n} className="flex flex-col items-center flex-1 relative">
+              <div key={stepNumber} className="flex flex-col items-center flex-1 relative">
                 {i < STEPS.length - 1 && (
                   <div className={`absolute top-3.5 left-1/2 w-full h-0.5 -z-0 ${done ? 'bg-teal-600' : 'bg-slate-200'}`} />
                 )}
@@ -221,7 +221,7 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
                     : active ? 'bg-blue-900 border-blue-900 text-white'
                     : 'bg-white border-slate-200 text-slate-400'
                 }`}>
-                  {done ? '✓' : n}
+                  {done ? '✓' : stepNumber}
                 </div>
                 <span className={`text-xs font-semibold mt-1.5 whitespace-nowrap ${
                   active ? 'text-blue-900' : done ? 'text-teal-600' : 'text-slate-400'
@@ -261,25 +261,25 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
                   <input
                     ref={avatarRef} type="file" accept="image/*" className="hidden"
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      const f = e.target.files?.[0]; if (!f) return;
-                      setAvatarFile(f);
-                      const reader = new FileReader(); reader.onload = ev => setAvatarPreview(ev.target?.result as string); reader.readAsDataURL(f);
+                      const file = e.target.files?.[0]; if (!file) return;
+                      setAvatarFile(file);
+                      const reader = new FileReader(); reader.onload = ev => setAvatarPreview(ev.target?.result as string); reader.readAsDataURL(file);
                     }}
                   />
                 </div>
                 <div className="flex-1">
                   <G2>
-                    {F('First Name', inp('first_name', 'First Name'), true)}
-                    {F('Last Name', inp('last_name', 'Last Name'), true)}
-                    {F('Middle Name', inp('middle_name', 'Optional'))}
-                    {F('Employee ID', inp('employee_id', 'e.g. EMP-001'))}
-                    {F('Joined Date', inp('joined_date', '', 'date'), true)}
-                    {F('Location', sel('location', LOCATIONS, '-- Select Location --'), true)}
+                    {FormField('First Name', inp('first_name', 'First Name'), true)}
+                    {FormField('Last Name', inp('last_name', 'Last Name'), true)}
+                    {FormField('Middle Name', inp('middle_name', 'Optional'))}
+                    {FormField('Employee ID', inp('employee_id', 'e.g. EMP-001'))}
+                    {FormField('Joined Date', inp('joined_date', '', 'date'), true)}
+                    {FormField('Location', sel('location', LOCATIONS, '-- Select Location --'), true)}
                   </G2>
                 </div>
               </div>
               <G2>
-                {F('Role', sel('role', ['employee', 'empmanager', 'hradmin']))}
+                {FormField('Role', sel('role', ['employee', 'empmanager', 'hradmin']))}
               </G2>
             </Sec>
           )}
@@ -288,14 +288,14 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
           {step === 2 && (
             <Sec title="Personal Details">
               <G2>
-                {F('Gender', sel('gender', ['Male', 'Female', 'Prefer not to say'], '-- Select --'), true)}
-                {F('Date of Birth', inp('dob', '', 'date'))}
-                {F('Nationality', sel('nationality', NATIONALITIES))}
-                {F('Marital Status', sel('marital_status', ['Single', 'Married', 'Common Law', 'Separated', 'Divorced', 'Widowed', 'Other']))}
-                {F('Blood Group', sel('blood_group', BLOOD_GROUPS))}
-                {F('Real DOB', inp('real_dob', '', 'date'))}
-                {F("Driver's License No.", inp('license_number', 'License number'))}
-                {F('License Expiry', inp('license_expiry', '', 'date'))}
+                {FormField('Gender', sel('gender', ['Male', 'Female', 'Prefer not to say'], '-- Select --'), true)}
+                {FormField('Date of Birth', inp('dob', '', 'date'))}
+                {FormField('Nationality', sel('nationality', NATIONALITIES))}
+                {FormField('Marital Status', sel('marital_status', ['Single', 'Married', 'Common Law', 'Separated', 'Divorced', 'Widowed', 'Other']))}
+                {FormField('Blood Group', sel('blood_group', BLOOD_GROUPS))}
+                {FormField('Real DOB', inp('real_dob', '', 'date'))}
+                {FormField("Driver's License No.", inp('license_number', 'License number'))}
+                {FormField('License Expiry', inp('license_expiry', '', 'date'))}
               </G2>
             </Sec>
           )}
@@ -304,19 +304,19 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
           {step === 3 && (
             <Sec title="Job Details">
               <G2>
-                {F('Job Title', sel('job_title', JOB_TITLES, '-- Select Job Title --'), true)}
-                {F('Employment Status', sel('employment_status', EMP_STATUS, '-- Select --'), true)}
-                {F('Job Category', sel('job_category', JOB_CATS))}
-                {F('Sub Unit', sel('sub_unit', SUB_UNITS))}
-                {F('Job Specification', sel('job_specification', ['Technical', 'Non-Technical'], 'Not Defined'))}
-                {F('Attendance Calc', sel('attendance_calc', ['Work Schedule', 'Clock In/Out', 'Manual Entry']))}
-                {F('Probation End Date', inp('probation_end_date', '', 'date'))}
-                {F('Date of Permanence', inp('date_of_permanence', '', 'date'))}
-                {F('Contract Start', inp('contract_start_date', '', 'date'))}
-                {F('Contract End', inp('contract_end_date', '', 'date'))}
+                {FormField('Job Title', sel('job_title', JOB_TITLES, '-- Select Job Title --'), true)}
+                {FormField('Employment Status', sel('employment_status', EMP_STATUS, '-- Select --'), true)}
+                {FormField('Job Category', sel('job_category', JOB_CATS))}
+                {FormField('Sub Unit', sel('sub_unit', SUB_UNITS))}
+                {FormField('Job Specification', sel('job_specification', ['Technical', 'Non-Technical'], 'Not Defined'))}
+                {FormField('Attendance Calc', sel('attendance_calc', ['Work Schedule', 'Clock In/Out', 'Manual Entry']))}
+                {FormField('Probation End Date', inp('probation_end_date', '', 'date'))}
+                {FormField('Date of Permanence', inp('date_of_permanence', '', 'date'))}
+                {FormField('Contract Start', inp('contract_start_date', '', 'date'))}
+                {FormField('Contract End', inp('contract_end_date', '', 'date'))}
               </G2>
               <div className="mt-3">
-                {F('Comments',
+                {FormField('Comments',
                   <textarea
                     defaultValue={formRef.current.comments}
                     onChange={set('comments')}
@@ -332,17 +332,17 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
           {step === 4 && (
             <Sec title="Contact Information">
               <G2>
-                {F('Work Email', inp('work_email', 'work@company.com', 'email'), true)}
-                {F('Other Email', inp('other_email', 'personal@email.com', 'email'))}
-                {F('Mobile', inp('mobile', '+91 99999 00000', 'tel'), true)}
-                {F('Work Tel', inp('work_tel', 'Work telephone', 'tel'))}
-                {F('Home Tel', inp('home_tel', 'Home telephone', 'tel'))}
-                {F('Address Line 1', inp('address1', 'Street address'))}
-                {F('Address Line 2', inp('address2', 'Apt, suite, etc.'))}
-                {F('City', inp('city', 'City'))}
-                {F('State', inp('state', 'State / Province'))}
-                {F('Country', sel('country', COUNTRIES))}
-                {F('ZIP Code', inp('zip', 'Postal code'))}
+                {FormField('Work Email', inp('work_email', 'work@company.com', 'email'), true)}
+                {FormField('Other Email', inp('other_email', 'personal@email.com', 'email'))}
+                {FormField('Mobile', inp('mobile', '+91 99999 00000', 'tel'), true)}
+                {FormField('Work Tel', inp('work_tel', 'Work telephone', 'tel'))}
+                {FormField('Home Tel', inp('home_tel', 'Home telephone', 'tel'))}
+                {FormField('Address Line 1', inp('address1', 'Street address'))}
+                {FormField('Address Line 2', inp('address2', 'Apt, suite, etc.'))}
+                {FormField('City', inp('city', 'City'))}
+                {FormField('State', inp('state', 'State / Province'))}
+                {FormField('Country', sel('country', COUNTRIES))}
+                {FormField('ZIP Code', inp('zip', 'Postal code'))}
               </G2>
             </Sec>
           )}
@@ -373,12 +373,12 @@ export default function AddEmployeeModal({ employee, onClose, onSaved }: Props) 
                               checked ? prev.filter(id => id !== sup.id)
                                 : prev.length < 3 ? [...prev, sup.id] : prev
                             );
-                            if (errors.supervisors) setErrors(e => { const n = { ...e }; delete n.supervisors; return n; });
+                            if (errors.supervisors) setErrors(errors => { const newErrors = { ...errors }; delete newErrors.supervisors; return newErrors; });
                           }}
                           className="w-4 h-4 accent-blue-900 flex-shrink-0"
                         />
                         <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                          {(sup.name || 'S').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+                          {(sup.name || 'S').split(' ').map(word => word[0]).slice(0, 2).join('').toUpperCase()}
                         </div>
                         <div className="flex-1">
                           <div className="text-sm font-semibold text-slate-900">{sup.name}</div>

@@ -11,10 +11,10 @@ export default function JobTitlesPage() {
           <tr><th style={thStyle}>#</th><th style={thStyle}>Job Title</th></tr>
         </thead>
         <tbody>
-          {JOB_TITLES.map((t, i) => (
-            <tr key={t} style={{ borderBottom: '1px solid #eee' }}>
+          {JOB_TITLES.map((title, i) => (
+            <tr key={title} style={{ borderBottom: '1px solid #eee' }}>
               <td style={tdStyle}>{i + 1}</td>
-              <td style={tdStyle}>{t}</td>
+              <td style={tdStyle}>{title}</td>
             </tr>
           ))}
         </tbody>
