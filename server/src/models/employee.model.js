@@ -200,7 +200,7 @@ async function softDeleteEmployee(id, deletedBy) {
 
 async function getSupervisors() {
   const { rows } = await pool.query(
-    `SELECT id, name, job_title FROM tbl_appusers
+    `SELECT id, employee_id, name, job_title FROM tbl_appusers
      WHERE is_deleted = false AND is_active = true
      AND role IN ('empmanager', 'hradmin')
      ORDER BY name`

@@ -26,7 +26,7 @@ export const getMyInfo = async () => {
 export const getSupervisors = async () => {
   const response = await api.get<{
     success: boolean;
-    data: { id: number; name: string; job_title: string }[];
+    data: { id: number; employee_id?: string; name: string; job_title: string }[];
   }>("/employees/supervisors");
   return { data: response.data.data };
 };

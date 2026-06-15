@@ -2,9 +2,6 @@ export const LOCATIONS = [
   "Bangalore",
   "Coimbatore",
   "Hyderabad",
-  "Chennai",
-  "Mumbai",
-  "Delhi",
 ] as const;
 
 export const JOB_TITLES = [
@@ -95,3 +92,5 @@ export const ATTENDANCE_CALCULATION_TYPES = [
   "Clock In/Out",
   "Manual Entry",
 ] as const;
+
+export const STEPS = ["Basic Info", "Personal", "Job Details", "Contact", "Report To"];

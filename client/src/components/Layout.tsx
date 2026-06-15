@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { logout as logoutAction } from "../store/authSlice";
+import cannyforeLogo from "../assets/cannyfore_title_logo.png";
 
 import {
   IconBuilding,
@@ -87,11 +88,11 @@ export default function Layout({
           collapsed ? "w-0 min-w-0" : "w-52 min-w-52"
         }`}
       >
-        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center">
+        <div className="px-6 py-3 border-b border-slate-100 flex items-center justify-center">
           <img
-            src="/"
+            src={cannyforeLogo}
             alt="Cannyfore"
-            className="h-9.5 max-w-40 object-contain"
+            className="h-10 max-w-[9rem] object-contain"
           />
         </div>
 
@@ -225,6 +226,7 @@ export default function Layout({
           <button
             onClick={onFab}
             className="fixed bottom-8 right-8 w-13 h-13 rounded-full bg-blue-900 text-white border-none text-3xl cursor-pointer shadow-2xl z-50 flex items-center justify-center hover:bg-blue-800 transition"
+            aria-label="Add"
           >
             +
           </button>
@@ -304,6 +306,7 @@ function TabIconBtn({
 }) {
   return (
     <button
+      type="button"
       className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${
         dark
           ? "bg-blue-900 text-white hover:bg-blue-800"

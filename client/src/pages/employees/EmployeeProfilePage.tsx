@@ -44,12 +44,7 @@ const PROFILE_TABS = [
   "Profile",
   "Personal Details",
   "Job",
-  "Salary",
   "Contact Details",
-  "Social Media Details",
-  "Created Documents",
-  "Emergency Contacts",
-  "More",
 ];
 
 export default function EmployeeProfilePage() {

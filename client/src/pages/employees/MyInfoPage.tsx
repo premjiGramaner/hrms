@@ -1,562 +1,475 @@
-import React, { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
-import { getMyInfo } from "../../api/employee.api";
+import { getMyInfo, updateEmployee } from "../../api/employee.api";
 import { Employee } from "../../types";
-import AddEmployeeModal from "./AddEmployeeModal";
-import { COLOR_NAV, COLOR_GRADIENT } from "../../constants/styles";
+import {
+  ATTENDANCE_CALCULATION_TYPES,
+  BLOOD_GROUPS,
+  COUNTRIES,
+  EMPLOYMENT_STATUSES,
+  GENDERS,
+  JOB_CATEGORIES,
+  JOB_SPECIFICATIONS,
+  JOB_TITLES,
+  LOCATIONS,
+  MARITAL_STATUSES,
+  NATIONALITIES,
+  SUB_UNITS,
+} from "../../constants/employeeOptions";
+import {
+  EditableEmployeeProfileForm,
+  employeeToEditableProfileForm,
+} from "../../types/employeeProfile";
+import { getApiErrorMessage } from "../../utils/errors";
+import EmployeeProfileCard from "./components/EmployeeProfileCard";
+import {
+  EditableProfileField,
+  ProfileDetailPanel,
+} from "./components/EmployeeProfileForm";
+import LeaveBalance from "./components/LeaveBalance";
+import LeaveList from "./components/LeaveList";
+import QuickAccess from "./components/QuickAccess";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
   { label: "My Info", path: "/my-info" },
-  { label: "Directory", path: "#" },
-  { label: "Buzz", path: "#" },
 ];
 
-const NAV = COLOR_NAV;
-const GRAD = COLOR_GRADIENT;
-
-const STATUS_ACTIVE_BG = "#f0fdf4";
-const STATUS_ACTIVE_COLOR = "#16a34a";
-const STATUS_INACTIVE_BG = "#f8fafc";
-const STATUS_INACTIVE_COLOR = "#94a3b8";
+const PROFILE_TABS = [
+  "Profile",
+  "Personal Details",
+  "Job",
+  "Contact Details",
+];
 
 export default function MyInfoPage() {
-  const [employee, setEmp] = useState<Employee | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [form, setForm] = useState<EditableEmployeeProfileForm | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [showEdit, setShowEdit] = useState(false);
-  const [success, setSuccess] = useState("");
 
-  const loadProfile = () => {
-    setLoading(true);
-    setError("");
-    getMyInfo()
-      .then((r) => setEmp(r.data))
-      .catch((error) => {
-        const msg = (error as { response?: { data?: { message?: string } } })
-          ?.response?.data?.message;
-        setError(msg || "Could not load your profile. Please try again.");
-      })
-      .finally(() => setLoading(false));
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const { data } = await getMyInfo();
+      setEmployee(data);
+      setForm(employeeToEditableProfileForm(data));
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Could not load your profile."));
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadProfile();
   }, []);
 
-  const flash = (msg: string) => {
-    setSuccess(msg);
-    setTimeout(() => setSuccess(""), 3000);
+  const handleFieldChange = (
+    event: ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+  ) => {
+    const { name, value } = event.target;
+    setForm((current) => (current ? { ...current, [name]: value } : current));
   };
 
-  if (loading)
+  const handleSave = async () => {
+    if (!employee?.id || !form || saving) return;
+
+    try {
+      setSaving(true);
+      setMessage("");
+      const formData = new FormData();
+
+      Object.entries(form).forEach(([key, value]) => {
+        formData.append(key, value.trim());
+      });
+      formData.append("role", employee.role || "employee");
+      formData.append(
+        "supervisors",
+        JSON.stringify(employee.supervisors || []),
+      );
+
+      await updateEmployee(employee.id, formData);
+      const { data } = await getMyInfo();
+      setEmployee(data);
+      setForm(employeeToEditableProfileForm(data));
+      setMessage("Profile updated successfully.");
+    } catch (err: unknown) {
+      setMessage(getApiErrorMessage(err, "Failed to update profile."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveFooter = (
+    <div className="flex justify-end">
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving || !employee?.id}
+        className="rounded-full bg-blue-950 px-8 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {saving ? "Saving..." : "Save"}
+      </button>
+    </div>
+  );
+
+  const renderTabContent = () => {
+    const activeLabel = PROFILE_TABS[activeTab];
+
+    if (!employee || !form) return null;
+
+    if (activeLabel === "Personal Details") {
+      return (
+        <ProfileDetailPanel title="Personal Details" footer={saveFooter}>
+          <EditableProfileField
+            label="Employee ID"
+            name="employee_id"
+            value={form.employee_id}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="First Name"
+            name="first_name"
+            value={form.first_name}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Middle Name"
+            name="middle_name"
+            value={form.middle_name}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Last Name"
+            name="last_name"
+            value={form.last_name}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Gender"
+            name="gender"
+            value={form.gender}
+            onChange={handleFieldChange}
+            options={GENDERS}
+          />
+          <EditableProfileField
+            label="Date of Birth"
+            name="dob"
+            type="date"
+            value={form.dob}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Real Date of Birth"
+            name="real_dob"
+            type="date"
+            value={form.real_dob}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Nationality"
+            name="nationality"
+            value={form.nationality}
+            onChange={handleFieldChange}
+            options={NATIONALITIES}
+          />
+          <EditableProfileField
+            label="Marital Status"
+            name="marital_status"
+            value={form.marital_status}
+            onChange={handleFieldChange}
+            options={MARITAL_STATUSES}
+          />
+          <EditableProfileField
+            label="Blood Group"
+            name="blood_group"
+            value={form.blood_group}
+            onChange={handleFieldChange}
+            options={BLOOD_GROUPS}
+          />
+          <EditableProfileField
+            label="License Number"
+            name="license_number"
+            value={form.license_number}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="License Expiry"
+            name="license_expiry"
+            type="date"
+            value={form.license_expiry}
+            onChange={handleFieldChange}
+          />
+        </ProfileDetailPanel>
+      );
+    }
+
+    if (activeLabel === "Job") {
+      return (
+        <ProfileDetailPanel title="Employment Details" footer={saveFooter}>
+          <EditableProfileField
+            label="Job Title"
+            name="job_title"
+            value={form.job_title}
+            onChange={handleFieldChange}
+            options={JOB_TITLES}
+          />
+          <EditableProfileField
+            label="Joined Date"
+            name="joined_date"
+            type="date"
+            value={form.joined_date}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Employment Status"
+            name="employment_status"
+            value={form.employment_status}
+            onChange={handleFieldChange}
+            options={EMPLOYMENT_STATUSES}
+          />
+          <EditableProfileField
+            label="Job Category"
+            name="job_category"
+            value={form.job_category}
+            onChange={handleFieldChange}
+            options={JOB_CATEGORIES}
+          />
+          <EditableProfileField
+            label="Job Specification"
+            name="job_specification"
+            value={form.job_specification}
+            onChange={handleFieldChange}
+            options={JOB_SPECIFICATIONS}
+          />
+          <EditableProfileField
+            label="Sub Unit"
+            name="sub_unit"
+            value={form.sub_unit}
+            onChange={handleFieldChange}
+            options={SUB_UNITS}
+          />
+          <EditableProfileField
+            label="Location"
+            name="location"
+            value={form.location}
+            onChange={handleFieldChange}
+            options={LOCATIONS}
+          />
+          <EditableProfileField
+            label="Probation End Date"
+            name="probation_end_date"
+            type="date"
+            value={form.probation_end_date}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Date of Permanence"
+            name="date_of_permanence"
+            type="date"
+            value={form.date_of_permanence}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Attendance Calculation"
+            name="attendance_calc"
+            value={form.attendance_calc}
+            onChange={handleFieldChange}
+            options={ATTENDANCE_CALCULATION_TYPES}
+          />
+          <EditableProfileField
+            label="Contract Start Date"
+            name="contract_start_date"
+            type="date"
+            value={form.contract_start_date}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Contract End Date"
+            name="contract_end_date"
+            type="date"
+            value={form.contract_end_date}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Comments"
+            name="comments"
+            type="textarea"
+            value={form.comments}
+            onChange={handleFieldChange}
+            wide
+          />
+        </ProfileDetailPanel>
+      );
+    }
+
+    if (activeLabel === "Contact Details") {
+      return (
+        <ProfileDetailPanel title="Contact Details" footer={saveFooter}>
+          <EditableProfileField
+            label="Work Email"
+            name="work_email"
+            type="email"
+            value={form.work_email}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Other Email"
+            name="other_email"
+            type="email"
+            value={form.other_email}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Mobile"
+            name="mobile"
+            value={form.mobile}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Home Telephone"
+            name="home_tel"
+            value={form.home_tel}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Work Telephone"
+            name="work_tel"
+            value={form.work_tel}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Address Line 1"
+            name="address1"
+            value={form.address1}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Address Line 2"
+            name="address2"
+            value={form.address2}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="City"
+            name="city"
+            value={form.city}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="State"
+            name="state"
+            value={form.state}
+            onChange={handleFieldChange}
+          />
+          <EditableProfileField
+            label="Country"
+            name="country"
+            value={form.country}
+            onChange={handleFieldChange}
+            options={COUNTRIES}
+          />
+          <EditableProfileField
+            label="Zip Code"
+            name="zip"
+            value={form.zip}
+            onChange={handleFieldChange}
+          />
+        </ProfileDetailPanel>
+      );
+    }
+
+    if (activeLabel !== "Profile") {
+      return (
+        <ProfileDetailPanel title={activeLabel}>
+          <div className="md:col-span-2 xl:col-span-3 text-sm text-slate-500">
+            No details available for this section yet.
+          </div>
+        </ProfileDetailPanel>
+      );
+    }
+
     return (
-      <Layout title="Employee Management" tabs={TABS} activeTab="My Info">
-        <div
-          style={{
-            textAlign: "center",
-            padding: 80,
-            color: "#94a3b8",
-            fontSize: 14,
-          }}
-        >
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-          Loading your profile…
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          <QuickAccess />
+          <LeaveBalance employee={employee} />
+        </div>
+
+        <div className="lg:col-span-2 space-y-6">
+          <EmployeeProfileCard employee={employee} />
+          <LeaveList employee={employee} />
+        </div>
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
+        <div className="text-center py-14 text-slate-400">
+          <div className="text-sm">Loading your profile...</div>
         </div>
       </Layout>
     );
+  }
 
-  if (error || !employee)
+  if (error || !employee) {
     return (
-      <Layout title="Employee Management" tabs={TABS} activeTab="My Info">
-        <div
-          style={{
-            padding: "14px 18px",
-            background: "#fef2f2",
-            borderLeft: "3px solid #f87171",
-            borderRadius: 10,
-            color: "#b91c1c",
-            fontSize: 13,
-            maxWidth: 480,
-          }}
-        >
-          <strong>Could not load profile</strong>
-          <br />
-          {error || "No profile data found for your account."}
-          <br />
-          <br />
+      <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
+        <div className="rounded-xl border-l-4 border-red-400 bg-red-50 p-4 text-sm text-red-800">
+          <div className="font-semibold">Could not load profile</div>
+          <div className="mt-1">{error || "No profile data found."}</div>
           <button
+            type="button"
             onClick={loadProfile}
-            style={{
-              padding: "6px 16px",
-              borderRadius: 8,
-              border: "none",
-              background: NAV,
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: 13,
-            }}
+            className="mt-4 rounded-lg bg-blue-950 px-4 py-2 text-sm font-semibold text-white"
           >
             Retry
           </button>
         </div>
       </Layout>
     );
-
-  const displayName =
-    employee.name ||
-    `${employee.first_name || ""} ${employee.last_name || ""}`.trim() ||
-    "Employee";
-  const initials = displayName
-    .split(" ")
-    .map((word: string) => word[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  const formatDate = (dateStr?: string | null) =>
-    dateStr
-      ? new Date(dateStr).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })
-      : null;
-  const fmt = formatDate;
+  }
 
   return (
-    <Layout title="Employee Management" tabs={TABS} activeTab="My Info">
-      {success && (
+    <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
+      {message && (
         <div
-          style={{
-            marginBottom: 14,
-            padding: "10px 16px",
-            background: "#f0fff4",
-            borderLeft: "3px solid #48bb78",
-            borderRadius: 8,
-            color: "#276749",
-            fontSize: 13,
-          }}
+          className={`mb-3.5 p-2.5 border-l-4 rounded text-sm ${
+            message.toLowerCase().includes("failed")
+              ? "bg-red-50 border-red-400 text-red-800"
+              : "bg-green-50 border-green-400 text-green-900"
+          }`}
         >
-          ✓ {success}
+          {message}
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "280px 1fr",
-          gap: 20,
-          alignItems: "start",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 16,
-              boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-              overflow: "hidden",
-            }}
+      <div className="mb-6 bg-white rounded-lg shadow-sm p-2 flex overflow-x-auto gap-2">
+        {PROFILE_TABS.map((tab, idx) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(idx)}
+            className={`px-6 py-2 text-sm font-medium whitespace-nowrap rounded-full transition ${
+              activeTab === idx
+                ? "bg-[#fff3e0] text-[#ff9800]"
+                : "text-[#757575] hover:bg-gray-50"
+            }`}
           >
-            <div style={{ height: 64, background: GRAD }} />
-            <div style={{ padding: "0 20px 20px", textAlign: "center" }}>
-              <div
-                style={{
-                  marginTop: -34,
-                  marginBottom: 10,
-                  display: "inline-block",
-                }}
-              >
-                <div
-                  style={{
-                    width: 68,
-                    height: 68,
-                    borderRadius: "50%",
-                    border: "3px solid #fff",
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
-                    background: employee.avatar ? "transparent" : GRAD,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "hidden",
-                    fontSize: 22,
-                    fontWeight: 700,
-                    color: "#fff",
-                  }}
-                >
-                  {employee.avatar ? (
-                    <img
-                      src={`/uploads/${employee.avatar}`}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                      alt=""
-                    />
-                  ) : (
-                    initials
-                  )}
-                </div>
-              </div>
-
-              <div
-                style={{ fontWeight: 700, fontSize: 15.5, color: "#1e293b" }}
-              >
-                {displayName}
-              </div>
-              <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 3 }}>
-                {employee.job_title || "Employee"}
-              </div>
-
-              <div style={{ marginTop: 8 }}>
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    padding: "3px 14px",
-                    borderRadius: 20,
-                    background:
-                      employee.status === "Active"
-                        ? STATUS_ACTIVE_BG
-                        : STATUS_INACTIVE_BG,
-                    color:
-                      employee.status === "Active"
-                        ? STATUS_ACTIVE_COLOR
-                        : STATUS_INACTIVE_COLOR,
-                  }}
-                >
-                  {employee.status || "Active"}
-                </span>
-              </div>
-              <button
-                onClick={() => setShowEdit(true)}
-                style={{
-                  marginTop: 14,
-                  width: "100%",
-                  padding: "9px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: GRAD,
-                  color: "#fff",
-                  fontWeight: 700,
-                  fontSize: 13.5,
-                  cursor: "pointer",
-                }}
-              >
-                ✎ Edit My Profile
-              </button>
-            </div>
-          </div>
-
-          <Card title="Quick Info">
-            {[
-              ["Employee ID", employee.employee_id],
-              ["Username", employee.username],
-              ["Role", employee.role],
-              ["Sub Unit", employee.sub_unit],
-              ["Location", employee.location],
-              ["Joined", formatDate(employee.joined_date)],
-            ]
-              .filter(([, value]) => value)
-              .map(([label, value]) => (
-                <QuickRow
-                  key={label as string}
-                  label={label as string}
-                  value={value as string}
-                />
-              ))}
-          </Card>
-
-          <Card title="Leave Balance">
-            {[
-              {
-                label: "Privilege Leave",
-                value: 4,
-                maxValue: 5,
-                color: "#3b82f6",
-              },
-              {
-                label: "Carry Forward",
-                value: 1,
-                maxValue: 4,
-                color: "#06b6d4",
-              },
-              { label: "Sick Leave", value: 0, maxValue: 10, color: "#ef4444" },
-            ].map((item) => (
-              <div key={item.label} style={{ marginBottom: 12 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 4,
-                  }}
-                >
-                  <span style={{ fontSize: 12.5, color: "#475569" }}>
-                    {item.label}
-                  </span>
-                  <span style={{ fontSize: 12.5, fontWeight: 700 }}>
-                    {item.value.toFixed(2)}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    height: 6,
-                    background: "#f1f5f9",
-                    borderRadius: 999,
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      borderRadius: 999,
-                      background: item.color,
-                      width: `${(item.value / item.maxValue) * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </Card>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <DetailCard title="Personal Information" icon="👤">
-            <TwoColGrid
-              rows={[
-                ["Full Name", displayName],
-                ["Employee ID", employee.employee_id],
-                ["Gender", employee.gender],
-                ["Date of Birth", fmt(employee.dob)],
-                ["Real DOB", fmt(employee.real_dob)],
-                ["Nationality", employee.nationality],
-                ["Marital Status", employee.marital_status],
-                ["Blood Group", employee.blood_group],
-                ["Driver's License", employee.license_number],
-                ["License Expiry", fmt(employee.license_expiry)],
-              ]}
-            />
-          </DetailCard>
-
-          <DetailCard title="Job Details" icon="💼">
-            <TwoColGrid
-              rows={[
-                ["Job Title", employee.job_title],
-                ["Employment Status", employee.employment_status],
-                ["Job Category", employee.job_category],
-                ["Job Specification", employee.job_specification],
-                ["Sub Unit", employee.sub_unit],
-                ["Location", employee.location],
-                ["Attendance Calc", employee.attendance_calc],
-                ["Joined Date", fmt(employee.joined_date)],
-                ["Probation End", fmt(employee.probation_end_date)],
-                ["Date of Permanence", fmt(employee.date_of_permanence)],
-                ["Contract Start", fmt(employee.contract_start_date)],
-                ["Contract End", fmt(employee.contract_end_date)],
-              ]}
-            />
-            {employee.comments && (
-              <div
-                style={{
-                  marginTop: 12,
-                  padding: "10px 14px",
-                  background: "#f8fafc",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  color: "#475569",
-                  borderLeft: "3px solid #e2e8f0",
-                }}
-              >
-                <strong>Comments:</strong> {employee.comments}
-              </div>
-            )}
-          </DetailCard>
-
-          <DetailCard title="Contact Information" icon="📞">
-            <TwoColGrid
-              rows={[
-                ["Work Email", employee.email],
-                ["Other Email", employee.other_email],
-                ["Mobile", employee.mobile],
-                ["Work Tel", employee.work_tel],
-                ["Home Tel", employee.home_tel],
-                ["Address Line 1", employee.address1],
-                ["Address Line 2", employee.address2],
-                ["City", employee.city],
-                ["State", employee.state],
-                ["Country", employee.country],
-                ["ZIP Code", employee.zip],
-              ]}
-            />
-          </DetailCard>
-        </div>
+            {tab}
+          </button>
+        ))}
       </div>
 
-      {showEdit && (
-        <AddEmployeeModal
-          employee={employee}
-          onClose={() => setShowEdit(false)}
-          onSaved={() => {
-            loadProfile();
-            flash("Profile updated successfully.");
-          }}
-        />
-      )}
+      {renderTabContent()}
     </Layout>
-  );
-}
-
-function Card({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 16,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ padding: "11px 16px", borderBottom: "1px solid #f1f5f9" }}>
-        <span
-          style={{
-            fontSize: 11.5,
-            fontWeight: 700,
-            color: NAV,
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-          }}
-        >
-          {title}
-        </span>
-      </div>
-      <div style={{ padding: 16 }}>{children}</div>
-    </div>
-  );
-}
-
-function QuickRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "7px 0",
-        borderBottom: "1px solid #f8fafc",
-      }}
-    >
-      <span style={{ fontSize: 12, color: "#94a3b8" }}>{label}</span>
-      <span
-        style={{
-          fontSize: 12.5,
-          fontWeight: 600,
-          color: "#1e293b",
-          maxWidth: 160,
-          textAlign: "right",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function DetailCard({
-  title,
-  icon,
-  children,
-}: {
-  title: string;
-  icon: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 16,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "13px 18px",
-          borderBottom: "1px solid #f1f5f9",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        <span style={{ fontSize: 16 }}>{icon}</span>
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: "#1e293b" }}>
-          {title}
-        </span>
-      </div>
-      <div style={{ padding: "16px 18px" }}>{children}</div>
-    </div>
-  );
-}
-
-function TwoColGrid({ rows }: { rows: [string, string | null | undefined][] }) {
-  const filled = rows.filter(([, value]) => value && String(value).trim());
-  if (!filled.length)
-    return (
-      <p
-        style={{
-          margin: 0,
-          fontSize: 13,
-          color: "#94a3b8",
-          fontStyle: "italic",
-        }}
-      >
-        No information available.
-      </p>
-    );
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "12px 32px",
-      }}
-    >
-      {filled.map(([label, value]) => (
-        <div key={label}>
-          <div
-            style={{
-              fontSize: 11.5,
-              color: "#94a3b8",
-              marginBottom: 2,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-            }}
-          >
-            {label}
-          </div>
-          <div
-            style={{
-              fontSize: 13.5,
-              fontWeight: 600,
-              color: "#1e293b",
-              wordBreak: "break-word",
-            }}
-          >
-            {value}
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }
