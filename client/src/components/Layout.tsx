@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { logout as logoutAction } from "../store/authSlice";
+
 import {
   IconBuilding,
   IconPeople,
@@ -88,7 +89,7 @@ export default function Layout({
       >
         <div className="px-5 py-3.5 border-b border-slate-100 flex items-center">
           <img
-            src="/logo.png"
+            src="/"
             alt="Cannyfore"
             className="h-9.5 max-w-40 object-contain"
           />

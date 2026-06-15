@@ -1,3 +1,9 @@
+type IconProps = {
+  size?: number;
+  color?: string;
+};
+
+
 export function IconBuilding() {
   return (
     <svg
@@ -94,7 +100,9 @@ export function IconBriefcase() {
   );
 }
 
-export function IconSearch({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+
+
+export function IconSearch({ size = 16, color = "currentColor" }: IconProps ) {
   return (
     <svg
       width={size}
@@ -112,7 +120,7 @@ export function IconSearch({ size = 16, color = "currentColor" }: { size?: numbe
   );
 }
 
-export function IconGear({ size = 14, color = "currentColor" }: { size?: number; color?: string }) {
+export function IconGear({ size = 14, color = "currentColor" }: IconProps) {
   return (
     <svg
       width={size}
@@ -130,7 +138,7 @@ export function IconGear({ size = 14, color = "currentColor" }: { size?: number;
   );
 }
 
-export function IconLogout({ size = 16 }: { size?: number }) {
+export function IconLogout({ size = 16 }: IconProps) {
   return (
     <svg
       width={size}
@@ -149,7 +157,7 @@ export function IconLogout({ size = 16 }: { size?: number }) {
   );
 }
 
-export function IconHome({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+export function IconHome({ size = 16, color = "currentColor" }: IconProps) {
   return (
     <svg
       width={size}
@@ -167,7 +175,7 @@ export function IconHome({ size = 16, color = "currentColor" }: { size?: number;
   );
 }
 
-export function IconFilter({ size = 14 }: { size?: number }) {
+export function IconFilter({ size = 14 }: IconProps) {
   return (
     <svg
       width={size}
@@ -184,7 +192,7 @@ export function IconFilter({ size = 14 }: { size?: number }) {
   );
 }
 
-export function IconShare({ size = 14 }: { size?: number }) {
+export function IconShare({ size = 14 }: IconProps) {
   return (
     <svg
       width={size}

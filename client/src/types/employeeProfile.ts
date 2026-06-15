@@ -1,5 +1,5 @@
 import { Employee } from "./index";
-import { toDateInputValue } from "../utils/date";
+import { toInputDate } from "../utils/date";
 
 export interface EditableEmployeeProfileForm {
   first_name: string;
@@ -49,25 +49,25 @@ export function employeeToEditableProfileForm(
     last_name: employee.last_name || "",
     employee_id: employee.employee_id || "",
     gender: employee.gender || "",
-    dob: toDateInputValue(employee.dob),
-    real_dob: toDateInputValue(employee.real_dob),
+    dob: toInputDate(employee.dob),
+    real_dob: toInputDate(employee.real_dob),
     nationality: employee.nationality || "",
     marital_status: employee.marital_status || "",
     blood_group: employee.blood_group || "",
     license_number: employee.license_number || "",
-    license_expiry: toDateInputValue(employee.license_expiry),
+    license_expiry: toInputDate(employee.license_expiry),
     job_title: employee.job_title || "",
-    joined_date: toDateInputValue(employee.joined_date),
+    joined_date: toInputDate(employee.joined_date),
     employment_status: employee.employment_status || "",
     job_category: employee.job_category || "",
     job_specification: employee.job_specification || "",
     sub_unit: employee.sub_unit || "",
     location: employee.location || "",
-    probation_end_date: toDateInputValue(employee.probation_end_date),
-    date_of_permanence: toDateInputValue(employee.date_of_permanence),
+    probation_end_date: toInputDate(employee.probation_end_date),
+    date_of_permanence: toInputDate(employee.date_of_permanence),
     attendance_calc: employee.attendance_calc || "",
-    contract_start_date: toDateInputValue(employee.contract_start_date),
-    contract_end_date: toDateInputValue(employee.contract_end_date),
+    contract_start_date: toInputDate(employee.contract_start_date),
+    contract_end_date: toInputDate(employee.contract_end_date),
     comments: employee.comments || "",
     work_email: employee.email || "",
     other_email: employee.other_email || "",

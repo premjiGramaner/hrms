@@ -124,7 +124,9 @@ export default function EmployeeProfilePage() {
         state: { message: "Employee terminated successfully." },
       });
     } catch (err: unknown) {
-      setActionMessage(getApiErrorMessage(err, "Failed to terminate employee."));
+      setActionMessage(
+        getApiErrorMessage(err, "Failed to terminate employee."),
+      );
       setTerminating(false);
     }
   };
@@ -146,17 +148,22 @@ export default function EmployeeProfilePage() {
       setActionMessage("");
       const formData = new FormData();
       Object.entries(form).forEach(([key, value]) => {
-        if (value.trim()) formData.append(key, value.trim());
+        formData.append(key, value.trim());
       });
       formData.append("role", employee.role || "employee");
-      formData.append("supervisors", JSON.stringify(employee.supervisors || []));
+      formData.append(
+        "supervisors",
+        JSON.stringify(employee.supervisors || []),
+      );
       await updateEmployee(employee.id, formData);
       const { data } = await getEmployee(employee.id);
       setEmployee(data);
       setForm(employeeToEditableProfileForm(data));
       setActionMessage("Employee details saved successfully.");
     } catch (err: unknown) {
-      setActionMessage(getApiErrorMessage(err, "Failed to save employee details."));
+      setActionMessage(
+        getApiErrorMessage(err, "Failed to save employee details."),
+      );
     } finally {
       setSaving(false);
     }

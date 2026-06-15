@@ -1,14 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
 import { getEmployee } from "../../api/employee.api";
 import { Employee } from "../../types";
 import AddEmployeeModal from "./AddEmployeeModal";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import {
-  fetchEmployees,
-  setPage,
-} from "../../store/employeeSlice";
+import { fetchEmployees, setPage } from "../../store/employeeSlice";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -38,10 +35,29 @@ export default function EmployeeListPage() {
   const [showModal, setShowModal] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [search, setSearch] = useState("");
+  const clearSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const flash = useCallback((msg: string) => {
     setSuccess(msg);
-    setTimeout(() => setSuccess(""), 3000);
+
+    if (clearSuccessTimeoutRef.current) {
+      clearTimeout(clearSuccessTimeoutRef.current);
+    }
+
+    clearSuccessTimeoutRef.current = setTimeout(() => {
+      setSuccess("");
+      clearSuccessTimeoutRef.current = null;
+    }, 3000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (clearSuccessTimeoutRef.current) {
+        clearTimeout(clearSuccessTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
