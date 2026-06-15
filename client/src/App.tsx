@@ -1,9 +1,9 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
-
 import LoginPage from "./pages/LoginPage";
 import EmployeeListPage from "./pages/employees/EmployeeListPage";
+import EmployeeProfilePage from "./pages/employees/EmployeeProfilePage";
 import MyInfoPage from "./pages/employees/MyInfoPage";
 import RolesPage from "./pages/roles/RolesPage";
 import HRUsersPage from "./pages/hradmin/HRUsersPage";
@@ -26,6 +26,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <EmployeeListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/:id/profile"
+          element={
+            <ProtectedRoute>
+              <EmployeeProfilePage />
             </ProtectedRoute>
           }
         />

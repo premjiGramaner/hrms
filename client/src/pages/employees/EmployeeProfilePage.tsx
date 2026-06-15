@@ -1,6 +1,11 @@
 import { ChangeEvent, useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
-import { getMyInfo, updateEmployee } from "../../api/employee.api";
+import {
+  deleteEmployee,
+  getEmployee,
+  updateEmployee,
+} from "../../api/employee.api";
 import { Employee } from "../../types";
 import {
   ATTENDANCE_CALCULATION_TYPES,
@@ -42,32 +47,84 @@ const PROFILE_TABS = [
   "Contact Details",
 ];
 
-export default function MyInfoPage() {
+export default function EmployeeProfilePage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [employee, setEmployee] = useState<Employee | null>(null);
-  const [form, setForm] = useState<EditableEmployeeProfileForm | null>(null);
-  const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
-  const loadProfile = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const { data } = await getMyInfo();
-      setEmployee(data);
-      setForm(employeeToEditableProfileForm(data));
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, "Could not load your profile."));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [activeTab, setActiveTab] = useState(0);
+  const [actionMessage, setActionMessage] = useState("");
+  const [terminating, setTerminating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<EditableEmployeeProfileForm | null>(null);
 
   useEffect(() => {
-    loadProfile();
-  }, []);
+    const fetchEmployee = async () => {
+      try {
+        if (!id) {
+          setError("Employee ID not provided");
+          setLoading(false);
+          return;
+        }
+        const { data } = await getEmployee(parseInt(id));
+        setEmployee(data);
+        setForm(employeeToEditableProfileForm(data));
+      } catch {
+        setError("Employee not found");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployee();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Layout title="Employee Profile" tabs={TABS} activeTab="Employee List">
+        <div className="text-center py-14 text-[#757575]">
+          <div className="text-sm">Loading employee profile…</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !employee) {
+    return (
+      <Layout title="Employee Profile" tabs={TABS} activeTab="Employee List">
+        <div className="text-center py-14">
+          <div className="text-4xl mb-2">⚠️</div>
+          <div className="text-sm text-[#757575]">{error}</div>
+          <button
+            onClick={() => navigate("/employees")}
+            className="mt-4 px-4 py-2 bg-[#00897b] text-white rounded-lg hover:bg-[#00bfa5]"
+          >
+            Back to Employee List
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  const handleTerminateEmployment = async () => {
+    if (!employee.id || terminating) return;
+    if (!confirm("Terminate this employee?")) return;
+
+    try {
+      setTerminating(true);
+      await deleteEmployee(employee.id);
+      navigate("/employees", {
+        replace: true,
+        state: { message: "Employee terminated successfully." },
+      });
+    } catch (err: unknown) {
+      setActionMessage(
+        getApiErrorMessage(err, "Failed to terminate employee."),
+      );
+      setTerminating(false);
+    }
+  };
 
   const handleFieldChange = (
     event: ChangeEvent<
@@ -79,13 +136,12 @@ export default function MyInfoPage() {
   };
 
   const handleSave = async () => {
-    if (!employee?.id || !form || saving) return;
+    if (!employee.id || !form || saving) return;
 
     try {
       setSaving(true);
-      setMessage("");
+      setActionMessage("");
       const formData = new FormData();
-
       Object.entries(form).forEach(([key, value]) => {
         formData.append(key, value.trim());
       });
@@ -94,40 +150,42 @@ export default function MyInfoPage() {
         "supervisors",
         JSON.stringify(employee.supervisors || []),
       );
-
       await updateEmployee(employee.id, formData);
-      const { data } = await getMyInfo();
+      const { data } = await getEmployee(employee.id);
       setEmployee(data);
       setForm(employeeToEditableProfileForm(data));
-      setMessage("Profile updated successfully.");
+      setActionMessage("Employee details saved successfully.");
     } catch (err: unknown) {
-      setMessage(getApiErrorMessage(err, "Failed to update profile."));
+      setActionMessage(
+        getApiErrorMessage(err, "Failed to save employee details."),
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const saveFooter = (
-    <div className="flex justify-end">
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={saving || !employee?.id}
-        className="rounded-full bg-blue-950 px-8 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {saving ? "Saving..." : "Save"}
-      </button>
-    </div>
-  );
-
   const renderTabContent = () => {
     const activeLabel = PROFILE_TABS[activeTab];
 
-    if (!employee || !form) return null;
+    if (!form) return null;
 
     if (activeLabel === "Personal Details") {
       return (
-        <ProfileDetailPanel title="Personal Details" footer={saveFooter}>
+        <ProfileDetailPanel
+          title="Personal Details"
+          footer={
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-full bg-blue-950 px-8 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          }
+        >
           <EditableProfileField
             label="Employee ID"
             name="employee_id"
@@ -213,7 +271,42 @@ export default function MyInfoPage() {
 
     if (activeLabel === "Job") {
       return (
-        <ProfileDetailPanel title="Employment Details" footer={saveFooter}>
+        <ProfileDetailPanel
+          title="Employment Details"
+          footer={
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={handleTerminateEmployment}
+                disabled={terminating}
+                className="inline-flex items-center gap-2 text-sm font-medium text-blue-800 underline underline-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  aria-hidden="true"
+                >
+                  <circle cx="9" cy="7" r="3" />
+                  <path d="M3.5 20a5.5 5.5 0 0 1 8.8-4.4" />
+                  <path d="M16 12v8" />
+                  <path d="M12 16h8" />
+                </svg>
+                {terminating ? "Terminating..." : "Terminate Employment"}
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-full bg-blue-950 px-8 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          }
+        >
           <EditableProfileField
             label="Job Title"
             name="job_title"
@@ -312,7 +405,21 @@ export default function MyInfoPage() {
 
     if (activeLabel === "Contact Details") {
       return (
-        <ProfileDetailPanel title="Contact Details" footer={saveFooter}>
+        <ProfileDetailPanel
+          title="Contact Details"
+          footer={
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-full bg-blue-950 px-8 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          }
+        >
           <EditableProfileField
             label="Work Email"
             name="work_email"
@@ -411,48 +518,21 @@ export default function MyInfoPage() {
     );
   };
 
-  if (loading) {
-    return (
-      <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
-        <div className="text-center py-14 text-slate-400">
-          <div className="text-sm">Loading your profile...</div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error || !employee) {
-    return (
-      <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
-        <div className="rounded-xl border-l-4 border-red-400 bg-red-50 p-4 text-sm text-red-800">
-          <div className="font-semibold">Could not load profile</div>
-          <div className="mt-1">{error || "No profile data found."}</div>
-          <button
-            type="button"
-            onClick={loadProfile}
-            className="mt-4 rounded-lg bg-blue-950 px-4 py-2 text-sm font-semibold text-white"
-          >
-            Retry
-          </button>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
-    <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
-      {message && (
+    <Layout title="Employee Profile" tabs={TABS} activeTab="Employee List">
+      {actionMessage && (
         <div
           className={`mb-3.5 p-2.5 border-l-4 rounded text-sm ${
-            message.toLowerCase().includes("failed")
+            actionMessage.toLowerCase().includes("failed")
               ? "bg-red-50 border-red-400 text-red-800"
               : "bg-green-50 border-green-400 text-green-900"
           }`}
         >
-          {message}
+          {actionMessage}
         </div>
       )}
 
+      {/* Profile Tabs */}
       <div className="mb-6 bg-white rounded-lg shadow-sm p-2 flex overflow-x-auto gap-2">
         {PROFILE_TABS.map((tab, idx) => (
           <button

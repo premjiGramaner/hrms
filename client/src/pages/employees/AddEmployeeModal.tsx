@@ -13,6 +13,21 @@ import {
 } from "../../api/employee.api";
 import { getApiErrorMessage } from "../../utils/errors";
 import { validateEmployeeStep } from "../../validations/employee.validation";
+import {
+  ATTENDANCE_CALCULATION_TYPES,
+  BLOOD_GROUPS,
+  COUNTRIES,
+  EMPLOYMENT_STATUSES,
+  GENDERS,
+  JOB_CATEGORIES,
+  JOB_SPECIFICATIONS,
+  JOB_TITLES,
+  LOCATIONS,
+  MARITAL_STATUSES,
+  NATIONALITIES,
+  SUB_UNITS,
+  STEPS,
+} from "../../constants/employeeOptions";
 
 interface Props {
   employee: Employee | null;
@@ -21,8 +36,49 @@ interface Props {
 }
 interface Supervisor {
   id: number;
+  employee_id?: string;
   name: string;
   job_title: string;
+}
+
+interface EmployeeModalForm {
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  employee_id: string;
+  joined_date: string;
+  location: string;
+  role: string;
+  gender: string;
+  dob: string;
+  nationality: string;
+  marital_status: string;
+  blood_group: string;
+  real_dob: string;
+  license_number: string;
+  license_expiry: string;
+  job_title: string;
+  employment_status: string;
+  job_category: string;
+  sub_unit: string;
+  job_specification: string;
+  attendance_calc: string;
+  probation_end_date: string;
+  date_of_permanence: string;
+  contract_start_date: string;
+  contract_end_date: string;
+  comments: string;
+  work_email: string;
+  other_email: string;
+  mobile: string;
+  home_tel: string;
+  work_tel: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  country: string;
+  zip: string;
 }
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -37,63 +93,6 @@ function toDateStr(val?: string | null): string {
   }
 }
 
-const STEPS = ["Basic Info", "Personal", "Job Details", "Contact", "Report To"];
-const LOCATIONS = [
-  "Bangalore",
-  "Coimbatore",
-  "Hyderabad",
-  "Chennai",
-  "Mumbai",
-  "Delhi",
-];
-const JOB_TITLES = [
-  "Software Consultant",
-  "HR Manager",
-  "Accountant",
-  "Team Lead",
-  "Director",
-  "Talent Acquisition Specialist",
-  "Business Analyst",
-];
-const EMP_STATUS = ["Full-Time Permanent", "Part-Time", "Contract", "Intern"];
-const JOB_CATS = [
-  "Delivery Team",
-  "Officials & Managers",
-  "Professionals",
-  "Sales Team",
-  "Support Function",
-];
-const SUB_UNITS = [
-  "Networking- IT Services",
-  "Finance- IT Services",
-  "Admin- IT Services",
-  "HR- IT Services",
-  "Delivery- IT Services",
-  "Sales- IT Services",
-];
-const COUNTRIES = [
-  "India",
-  "Malaysia",
-  "Singapore",
-  "Indonesia",
-  "United States",
-  "United Kingdom",
-  "Other",
-];
-const NATIONALITIES = [
-  "Indian",
-  "Malaysian",
-  "Singaporean",
-  "Indonesian",
-  "American",
-  "British",
-  "Australian",
-  "Canadian",
-  "Chinese",
-  "Japanese",
-  "Other",
-];
-const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 export default function AddEmployeeModal({
   employee,
@@ -108,7 +107,6 @@ export default function AddEmployeeModal({
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
   const [selectedSupervisors, setSelectedSupervisors] = useState<number[]>([]);
   const avatarRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<Record<keyof typeof initialForm, string>>({} as any);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   useEffect(() => {
@@ -123,7 +121,7 @@ export default function AddEmployeeModal({
     }
   }, [employee?.id]);
 
-  const initialForm = useMemo(
+  const initialForm = useMemo<EmployeeModalForm>(
     () => ({
       first_name: employee?.first_name || "",
       middle_name: employee?.middle_name || "",
@@ -165,13 +163,14 @@ export default function AddEmployeeModal({
     }),
     [employee, today],
   );
+  const formRef = useRef<EmployeeModalForm>(initialForm);
 
   useEffect(() => {
     formRef.current = initialForm;
   }, [initialForm]);
 
   const set =
-    (k: keyof typeof initialForm) =>
+    (k: keyof EmployeeModalForm) =>
     (
       e: ChangeEvent<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -233,7 +232,7 @@ export default function AddEmployeeModal({
   };
 
   const renderInput = (
-    name: keyof typeof initialForm,
+    name: keyof EmployeeModalForm,
     placeholder = "",
     type = "text",
   ) => (
@@ -256,8 +255,8 @@ export default function AddEmployeeModal({
   );
 
   const renderSelect = (
-    name: keyof typeof initialForm,
-    opts: string[],
+    name: keyof EmployeeModalForm,
+    opts: readonly string[],
     placeholder = "-- Select --",
   ) => (
     <div className="relative">
@@ -301,7 +300,9 @@ export default function AddEmployeeModal({
   );
 
   const TwoColumnGrid = ({ children }: { children: React.ReactNode }) => (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</div>
+    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+      {children}
+    </div>
   );
 
   const Section = ({
@@ -388,7 +389,7 @@ export default function AddEmployeeModal({
 
           {step === 1 && (
             <Section title="Basic Information">
-              <div className="flex gap-4 mb-3">
+              <div className="flex flex-col gap-4 mb-3 sm:flex-row">
                 <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
                   <div
                     onClick={() => avatarRef.current?.click()}
@@ -436,7 +437,7 @@ export default function AddEmployeeModal({
                     }}
                   />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <TwoColumnGrid>
                     {FormField(
                       "First Name",
@@ -489,7 +490,7 @@ export default function AddEmployeeModal({
                   "Gender",
                   renderSelect(
                     "gender",
-                    ["Male", "Female", "Prefer not to say"],
+                    GENDERS,
                     "-- Select --",
                   ),
                   true,
@@ -501,15 +502,7 @@ export default function AddEmployeeModal({
                 )}
                 {FormField(
                   "Marital Status",
-                  renderSelect("marital_status", [
-                    "Single",
-                    "Married",
-                    "Common Law",
-                    "Separated",
-                    "Divorced",
-                    "Widowed",
-                    "Other",
-                  ]),
+                  renderSelect("marital_status", MARITAL_STATUSES),
                 )}
                 {FormField(
                   "Blood Group",
@@ -542,29 +535,32 @@ export default function AddEmployeeModal({
                 )}
                 {FormField(
                   "Employment Status",
-                  renderSelect("employment_status", EMP_STATUS, "-- Select --"),
+                  renderSelect(
+                    "employment_status",
+                    EMPLOYMENT_STATUSES,
+                    "-- Select --",
+                  ),
                   true,
                 )}
                 {FormField(
                   "Job Category",
-                  renderSelect("job_category", JOB_CATS),
+                  renderSelect("job_category", JOB_CATEGORIES),
                 )}
                 {FormField("Sub Unit", renderSelect("sub_unit", SUB_UNITS))}
                 {FormField(
                   "Job Specification",
                   renderSelect(
                     "job_specification",
-                    ["Technical", "Non-Technical"],
+                    JOB_SPECIFICATIONS,
                     "Not Defined",
                   ),
                 )}
                 {FormField(
                   "Attendance Calc",
-                  renderSelect("attendance_calc", [
-                    "Work Schedule",
-                    "Clock In/Out",
-                    "Manual Entry",
-                  ]),
+                  renderSelect(
+                    "attendance_calc",
+                    ATTENDANCE_CALCULATION_TYPES,
+                  ),
                 )}
                 {FormField(
                   "Probation End Date",
@@ -642,6 +638,9 @@ export default function AddEmployeeModal({
             <Section title="Report To — Assign Supervisors (max 3)">
               <p className="text-sm text-slate-600 mb-3.5">
                 Select up to 3 supervisors this employee reports to.
+                {supervisors.length > 0 && (
+                  <span className="text-red-600 ml-0.5">*</span>
+                )}
               </p>
               {supervisors.length === 0 ? (
                 <p className="text-sm text-slate-400 italic">
@@ -693,8 +692,15 @@ export default function AddEmployeeModal({
                             .toUpperCase()}
                         </div>
                         <div className="flex-1">
-                          <div className="text-sm font-semibold text-slate-900">
-                            {supervis.name}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-900">
+                              {supervis.name}
+                            </span>
+                            {supervis.employee_id && (
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                                {supervis.employee_id}
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs text-slate-600">
                             {supervis.job_title || "Employee"}
@@ -730,6 +736,7 @@ export default function AddEmployeeModal({
                         className="flex items-center gap-1.5 bg-blue-100 text-blue-700 rounded-full py-1 px-3 text-xs font-semibold"
                       >
                         {supervis.name}
+                        {supervis.employee_id ? ` (${supervis.employee_id})` : ""}
                         <button
                           onClick={() =>
                             setSelectedSupervisors((previous) =>

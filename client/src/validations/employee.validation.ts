@@ -1,6 +1,16 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type EmployeeFormValues = Record<string, string>;
+export interface EmployeeFormValues {
+  first_name?: string;
+  last_name?: string;
+  joined_date?: string;
+  location?: string;
+  gender?: string;
+  job_title?: string;
+  employment_status?: string;
+  work_email?: string;
+  mobile?: string;
+}
 
 export function validateEmployeeStep(
   step: number,

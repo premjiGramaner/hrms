@@ -1,7 +1,8 @@
-interface IconProps {
+type IconProps = {
   size?: number;
   color?: string;
-}
+};
+
 
 export function IconBuilding() {
   return (
@@ -99,26 +100,9 @@ export function IconBriefcase() {
   );
 }
 
-export function IconDots() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
-      <circle cx="5" cy="12" r="1" />
-    </svg>
-  );
-}
 
-export function IconSearch({ size = 16, color = "currentColor" }: IconProps) {
+
+export function IconSearch({ size = 16, color = "currentColor" }: IconProps ) {
   return (
     <svg
       width={size}
