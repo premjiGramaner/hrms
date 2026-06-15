@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
 import { getEmployee } from "../../api/employee.api";
 import { Employee } from "../../types";
@@ -6,10 +7,8 @@ import AddEmployeeModal from "./AddEmployeeModal";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchEmployees,
-  removeEmployee,
   setPage,
 } from "../../store/employeeSlice";
-import { getApiErrorMessage } from "../../utils/errors";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -32,31 +31,30 @@ const COLS = [
 
 export default function EmployeeListPage() {
   const dispatch = useAppDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { data, loading, page } = useAppSelector((state) => state.employees);
   const [success, setSuccess] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    dispatch(fetchEmployees(page));
-  }, [page]);
-
-  const flash = (msg: string) => {
+  const flash = useCallback((msg: string) => {
     setSuccess(msg);
     setTimeout(() => setSuccess(""), 3000);
-  };
+  }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this employee?")) return;
-    try {
-      await dispatch(removeEmployee(id)).unwrap();
-      flash("Employee deleted successfully.");
-      dispatch(fetchEmployees(page));
-    } catch (err: unknown) {
-      flash(getApiErrorMessage(err, "Failed to delete employee."));
-    }
-  };
+  useEffect(() => {
+    dispatch(fetchEmployees(page));
+  }, [dispatch, page]);
+
+  useEffect(() => {
+    const message = (location.state as { message?: string } | null)?.message;
+    if (!message) return;
+
+    flash(message);
+    navigate(location.pathname, { replace: true });
+  }, [flash, location.pathname, location.state, navigate]);
 
   const fetchData = (pageNum: number) => dispatch(fetchEmployees(pageNum));
 
@@ -73,6 +71,12 @@ export default function EmployeeListPage() {
       setEditEmployee(emp);
     }
     setShowModal(true);
+  };
+
+  const openProfile = (emp: Employee) => {
+    if (emp.id) {
+      navigate(`/employees/${emp.id}/profile`);
+    }
   };
 
   const rows = (data?.data || []).filter(
@@ -204,13 +208,15 @@ export default function EmployeeListPage() {
                 return (
                   <tr
                     key={emp.id}
-                    className={`border-b border-slate-100 transition-colors hover:bg-emerald-50 ${
+                    onClick={() => openProfile(emp)}
+                    className={`border-b border-slate-100 transition-colors hover:bg-emerald-50 cursor-pointer ${
                       i % 2 === 0 ? "bg-white" : "bg-slate-50"
                     }`}
                   >
                     <td className="px-3.5 py-2.5">
                       <input
                         type="checkbox"
+                        onClick={(event) => event.stopPropagation()}
                         className="w-3.5 h-3.5 accent-blue-900"
                       />
                     </td>
@@ -284,18 +290,14 @@ export default function EmployeeListPage() {
                     <td className="px-3.5 py-2.5">
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => openEdit(emp)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openEdit(emp);
+                          }}
                           title="Edit employee"
                           className="bg-blue-50 border border-blue-200 rounded px-2.5 py-1 cursor-pointer text-blue-700 text-xs font-semibold hover:bg-blue-100 transition"
                         >
                           Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(emp.id!)}
-                          title="Delete employee"
-                          className="bg-red-50 border border-red-200 rounded px-2.5 py-1 cursor-pointer text-red-600 text-xs font-semibold hover:bg-red-100 transition"
-                        >
-                          Del
                         </button>
                       </div>
                     </td>
