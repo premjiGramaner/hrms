@@ -47,11 +47,7 @@ export default function Layout({
   const role = user?.role || "employee";
   const username = user?.name || user?.username || "User";
   const roleLabel =
-    role === "empmanager"
-      ? "Employee Manager"
-      : role === "hradmin"
-        ? "HR Administrator"
-        : "Employee";
+    role === "empmanager"? "Employee Manager": role === "hradmin"? "HR Administrator": "Employee";
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -61,9 +57,11 @@ export default function Layout({
       ? "Employee Management"
       : isActive("/hradmin") || isActive("/roles")
         ? "HR Administration"
-        : isActive("/goals")
-          ? "Goals"
-          : "HRMS");
+        : isActive("/leave")
+          ? "Leave"
+          : isActive("/goals")
+            ? "Goals"
+            : "HRMS");
 
   const navItems = [
     ...(role === "hradmin" || role === "empmanager"
@@ -77,7 +75,7 @@ export default function Layout({
       : []),
     { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
     { to: "#", label: "Reports and Analytics", icon: <IconChart /> },
-    { to: "#", label: "Leave", icon: <IconCalendar /> },
+    { to: "/leave/view_leave_list", label: "Leave", icon: <IconCalendar /> },
     { to: "#", label: "Performance", icon: <IconBriefcase /> },
   ];
 
