@@ -184,7 +184,6 @@ export default function EmployeeListPage() {
                     className="px-5 py-5 text-left text-xs font-bold text-slate-700 whitespace-nowrap"
                   >
                     {header}
-                    
                   </th>
                 ))}
               </tr>
