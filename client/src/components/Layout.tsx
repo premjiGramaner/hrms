@@ -30,6 +30,8 @@ interface Props {
   onFab?: () => void;
 }
 
+const HR_ADMIN_SUB_ITEMS: { label: string; path: string }[] = [];
+
 export default function Layout({
   children,
   title,
@@ -55,6 +57,8 @@ export default function Layout({
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
+  const isHrAdminActive = isActive("/hradmin");
+
   const pageTitle =
     title ||
     (isActive("/employees") || isActive("/my-info")
@@ -69,9 +73,10 @@ export default function Layout({
     ...(role === "hradmin" || role === "empmanager"
       ? [
           {
-            to: "/hradmin/users",
+            to: "/hradmin/job-titles",
             label: "HR Administration",
             icon: <IconBuilding />,
+            subItems: HR_ADMIN_SUB_ITEMS,
           },
         ]
       : []),
@@ -136,19 +141,55 @@ export default function Layout({
 
         <nav className="flex-1 px-2 py-1 pb-6 overflow-y-auto">
           {navItems.map((item) => {
-            const active = item.to !== "#" && isActive(item.to);
+            const hasSubItems = !!(item.subItems && item.subItems.length > 0);
+            const isHrAdminItem = item.to.startsWith("/hradmin");
+            const parentActive = isHrAdminItem
+              ? isActive("/hradmin")
+              : item.to !== "#" && isActive(item.to);
+            const parentExpanded = hasSubItems && isHrAdminActive;
             const hovered = hoveredNav === item.label;
+
             return (
-              <NavItem
-                key={item.label}
-                to={item.to}
-                icon={item.icon}
-                label={item.label}
-                active={active}
-                hovered={hovered}
-                onMouseEnter={() => setHoveredNav(item.label)}
-                onMouseLeave={() => setHoveredNav("")}
-              />
+              <div key={item.label}>
+                <NavItem
+                  to={item.to}
+                  icon={item.icon}
+                  label={item.label}
+                  active={parentActive}
+                  expanded={parentExpanded}
+                  hovered={hovered}
+                  hasSubItems={hasSubItems}
+                  subExpanded={parentExpanded}
+                  onMouseEnter={() => setHoveredNav(item.label)}
+                  onMouseLeave={() => setHoveredNav("")}
+                />
+
+                {hasSubItems && isHrAdminActive && (
+                  <div className="ml-4 mb-1 border-l-2 border-slate-100 pl-2">
+                    {item.subItems!.map((sub) => {
+                      const subActive = location.pathname === sub.path;
+                      return (
+                        <Link
+                          key={sub.path}
+                          to={sub.path}
+                          className={`flex items-center gap-2 px-2.5 py-1.75 rounded-xl text-xs no-underline mb-0.5 transition ${
+                            subActive
+                              ? "font-semibold text-blue-900 bg-blue-50"
+                              : "font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${
+                              subActive ? "bg-blue-900" : "bg-slate-300"
+                            }`}
+                          />
+                          {sub.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
@@ -241,7 +282,10 @@ function NavItem({
   icon,
   label,
   active,
+  expanded,
   hovered,
+  hasSubItems,
+  subExpanded,
   onMouseEnter,
   onMouseLeave,
 }: {
@@ -249,29 +293,47 @@ function NavItem({
   icon: React.ReactNode;
   label: string;
   active: boolean;
+  expanded?: boolean;
   hovered: boolean;
+  hasSubItems?: boolean;
+  subExpanded?: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }) {
   const content = (
     <>
       <span
-        className={`flex items-center flex-shrink-0 ${active ? "opacity-100" : "opacity-70"}`}
+        className={`flex items-center flex-shrink-0 ${
+          active || expanded ? "opacity-100" : "opacity-70"
+        }`}
       >
         {icon}
       </span>
-      <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+      <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
         {label}
       </span>
+      {hasSubItems && (
+        <span
+          className={`text-xs flex-shrink-0 transition-transform duration-200 ${
+            subExpanded ? "rotate-90" : ""
+          } ${active ? "text-white/70" : "text-slate-400"}`}
+        >
+          ›
+        </span>
+      )}
     </>
   );
+
   const baseClass =
     "flex items-center gap-2.5 px-3 py-2.75 rounded-2xl text-sm transition no-underline mb-0.5 cursor-pointer";
+
   const classes = active
     ? `${baseClass} font-semibold bg-gradient-to-r from-blue-900 to-teal-600 text-white shadow-md`
-    : hovered
-      ? `${baseClass} font-medium text-slate-900 bg-emerald-50`
-      : `${baseClass} font-medium text-slate-700 hover:bg-slate-50`;
+    : expanded
+      ? `${baseClass} font-semibold text-blue-900 bg-blue-50`
+      : hovered
+        ? `${baseClass} font-medium text-slate-900 bg-emerald-50`
+        : `${baseClass} font-medium text-slate-700 hover:bg-slate-50`;
 
   if (to === "#")
     return (

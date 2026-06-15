@@ -94,3 +94,8 @@ export const ATTENDANCE_CALCULATION_TYPES = [
 ] as const;
 
 export const STEPS = ["Basic Info", "Personal", "Job Details", "Contact", "Report To"];
+
+export const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+
+

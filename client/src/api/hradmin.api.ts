@@ -1,36 +1,258 @@
 import api from "./axios";
 
-export const getHRUsers = async () => {
-  const response = await api.get<{ success: boolean; data: any }>(
+
+export interface HRUser {
+  id: number;
+  username: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  is_active: boolean;
+}
+
+export interface HRUsersPaginatedResponse {
+  users: HRUser[];
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface HRUsersQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface CreateHRUserPayload {
+  employee_name: string;
+  email: string;
+  role: string;
+  status: string;
+}
+
+export interface UpdateHRUserPayload {
+  employee_name: string;
+  email: string;
+  role: string;
+  status: string;
+}
+
+
+export const getHRUsers = async (
+  params: HRUsersQueryParams = {},
+): Promise<{ data: HRUsersPaginatedResponse }> => {
+  const { page = 1, limit = 10, search = "" } = params;
+  const queryString = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    ...(search ? { search } : {}),
+  }).toString();
+
+  const response = await api.get<{
+    success: boolean;
+    data: HRUsersPaginatedResponse;
+  }>(`/hradmin/users?${queryString}`);
+
+  return { data: response.data.data };
+};
+
+export const createHRUser = async (
+  payload: CreateHRUserPayload,
+): Promise<{ data: HRUser }> => {
+  const response = await api.post<{ success: boolean; data: HRUser }>(
     "/hradmin/users",
+    payload,
   );
   return { data: response.data.data };
 };
 
-export const getJobTitles = async () => {
-  const response = await api.get<{ success: boolean; data: string[] }>(
+export const updateHRUser = async (
+  userId: number,
+  payload: UpdateHRUserPayload,
+): Promise<{ data: HRUser }> => {
+  const response = await api.put<{ success: boolean; data: HRUser }>(
+    `/hradmin/users/${userId}`,
+    payload,
+  );
+  return { data: response.data.data };
+};
+
+export const deleteHRUser = async (userId: number): Promise<void> => {
+  await api.delete(`/hradmin/users/${userId}`);
+};
+
+export const toggleHRUserStatus = async (
+  userId: number,
+): Promise<{ data: { id: number; is_active: boolean } }> => {
+  const response = await api.post<{
+    success: boolean;
+    data: { id: number; is_active: boolean };
+  }>(`/hradmin/users/${userId}/toggle-status`);
+  return { data: response.data.data };
+};
+
+
+export interface JobTitle {
+  id: number;
+  title: string;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface CreateJobTitlePayload {
+  title: string;
+  description?: string;
+}
+
+export interface UpdateJobTitlePayload {
+  title: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export const getJobTitles = async (): Promise<{ data: JobTitle[] }> => {
+  const response = await api.get<{ success: boolean; data: JobTitle[] }>(
     "/hradmin/job-titles",
   );
   return { data: response.data.data };
 };
 
-export const getJobCategories = async () => {
-  const response = await api.get<{ success: boolean; data: string[] }>(
+export const createJobTitle = async (
+  payload: CreateJobTitlePayload,
+): Promise<{ data: JobTitle }> => {
+  const response = await api.post<{ success: boolean; data: JobTitle }>(
+    "/hradmin/job-titles",
+    payload,
+  );
+  return { data: response.data.data };
+};
+
+export const updateJobTitle = async (
+  jobTitleId: number,
+  payload: UpdateJobTitlePayload,
+): Promise<{ data: JobTitle }> => {
+  const response = await api.put<{ success: boolean; data: JobTitle }>(
+    `/hradmin/job-titles/${jobTitleId}`,
+    payload,
+  );
+  return { data: response.data.data };
+};
+
+export const deleteJobTitle = async (jobTitleId: number): Promise<void> => {
+  await api.delete(`/hradmin/job-titles/${jobTitleId}`);
+};
+
+
+export interface JobCategory {
+  id: number;
+  category: string;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface CreateJobCategoryPayload {
+  category: string;
+  description?: string;
+}
+
+export interface UpdateJobCategoryPayload {
+  category: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export const getJobCategories = async (): Promise<{ data: JobCategory[] }> => {
+  const response = await api.get<{ success: boolean; data: JobCategory[] }>(
     "/hradmin/job-categories",
   );
   return { data: response.data.data };
 };
 
-export const getAuditTrail = async () => {
-  const response = await api.get<{ success: boolean; data: any }>(
-    "/hradmin/audit-trail",
+export const createJobCategory = async (
+  payload: CreateJobCategoryPayload,
+): Promise<{ data: JobCategory }> => {
+  const response = await api.post<{ success: boolean; data: JobCategory }>(
+    "/hradmin/job-categories",
+    payload,
   );
   return { data: response.data.data };
 };
 
-export const deactivateUser = async (id: number) => {
-  const response = await api.post<{ success: boolean; data: any }>(
-    `/hradmin/users/${id}/deactivate`,
+export const updateJobCategory = async (
+  jobCategoryId: number,
+  payload: UpdateJobCategoryPayload,
+): Promise<{ data: JobCategory }> => {
+  const response = await api.put<{ success: boolean; data: JobCategory }>(
+    `/hradmin/job-categories/${jobCategoryId}`,
+    payload,
+  );
+  return { data: response.data.data };
+};
+
+export const deleteJobCategory = async (jobCategoryId: number): Promise<void> => {
+  await api.delete(`/hradmin/job-categories/${jobCategoryId}`);
+};
+
+
+export interface SubUnit {
+  id: number;
+  sub_unit_name: string;
+  supervisor_name: string | null;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface CreateSubUnitPayload {
+  sub_unit_name: string;
+  supervisor_name?: string | null;
+  description?: string;
+}
+
+export interface UpdateSubUnitPayload {
+  sub_unit_name: string;
+  supervisor_name?: string | null;
+  description?: string;
+  is_active?: boolean;
+}
+
+export const getSubUnits = async (): Promise<{ data: SubUnit[] }> => {
+  const response = await api.get<{ success: boolean; data: SubUnit[] }>(
+    "/hradmin/sub-units",
+  );
+  return { data: response.data.data };
+};
+
+export const createSubUnit = async (
+  payload: CreateSubUnitPayload,
+): Promise<{ data: SubUnit }> => {
+  const response = await api.post<{ success: boolean; data: SubUnit }>(
+    "/hradmin/sub-units",
+    payload,
+  );
+  return { data: response.data.data };
+};
+
+export const updateSubUnit = async (
+  subUnitId: number,
+  payload: UpdateSubUnitPayload,
+): Promise<{ data: SubUnit }> => {
+  const response = await api.put<{ success: boolean; data: SubUnit }>(
+    `/hradmin/sub-units/${subUnitId}`,
+    payload,
+  );
+  return { data: response.data.data };
+};
+
+export const deleteSubUnit = async (subUnitId: number): Promise<void> => {
+  await api.delete(`/hradmin/sub-units/${subUnitId}`);
+};
+
+
+export const getAuditTrail = async (): Promise<{ data: any[] }> => {
+  const response = await api.get<{ success: boolean; data: any[] }>(
+    "/hradmin/audit-trail",
   );
   return { data: response.data.data };
 };

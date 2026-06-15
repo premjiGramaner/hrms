@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import {
-  getJobTitles,
-  createJobTitle,
-  updateJobTitle,
-  deleteJobTitle,
-  JobTitle,
-  CreateJobTitlePayload,
-  UpdateJobTitlePayload,
+  getSubUnits,
+  createSubUnit,
+  updateSubUnit,
+  deleteSubUnit,
+  SubUnit,
+  CreateSubUnitPayload,
+  UpdateSubUnitPayload,
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 
@@ -20,44 +20,48 @@ const TABS: TabItem[] = [
   { label: "More", path: "#" },
 ];
 
-const TABLE_COLUMNS = ["#", "Job Title", "Description", "Status", "Actions"];
+const TABLE_COLUMNS = [
+  "#",
+  "Sub Unit Name",
+  "Supervisor",
+  "Description",
+  "Status",
+  "Actions",
+];
 
-export default function JobTitlesPage() {
-  const [jobTitleList, setJobTitleList] = useState<JobTitle[]>([]);
-  const [filteredList, setFilteredList] = useState<JobTitle[]>([]);
+export default function SubUnitsPage() {
+  const [subUnitList, setSubUnitList] = useState<SubUnit[]>([]);
+  const [filteredList, setFilteredList] = useState<SubUnit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [titleToEdit, setTitleToEdit] = useState<JobTitle | null>(null);
-  const [titleToDelete, setTitleToDelete] = useState<JobTitle | null>(null);
+  const [subUnitToEdit, setSubUnitToEdit] = useState<SubUnit | null>(null);
+  const [subUnitToDelete, setSubUnitToDelete] = useState<SubUnit | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [pageError, setPageError] = useState("");
 
-
-  console.log("job list ",jobTitleList)
-  console.log("Filtered list ",filteredList)
-
-  const fetchJobTitles = () => {
+  const fetchSubUnits = () => {
     setIsLoading(true);
-    getJobTitles()
+    getSubUnits()
       .then((res) => {
-        setJobTitleList(res.data);
+        setSubUnitList(res.data);
         setFilteredList(res.data);
         setSearchQuery("");
       })
-      .catch(() => setPageError("Failed to load job titles. Please refresh."))
+      .catch(() => setPageError("Failed to load sub units. Please refresh."))
       .finally(() => setIsLoading(false));
   };
 
-  useEffect(fetchJobTitles, []);
+  useEffect(fetchSubUnits, []);
 
   const debouncedFilter = useDebounce((value: string) => {
     const term = value.toLowerCase();
     setFilteredList(
-      jobTitleList.filter(
-        (jt) =>
-          jt.title.toLowerCase().includes(term) ||
-          (jt.description || "").toLowerCase().includes(term),
+      subUnitList.filter(
+        (su) =>
+          su.sub_unit_name.toLowerCase().includes(term) ||
+          (su.supervisor_name || "").toLowerCase().includes(term) ||
+          (su.description || "").toLowerCase().includes(term),
       ),
     );
   }, 300);
@@ -68,14 +72,14 @@ export default function JobTitlesPage() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!titleToDelete) return;
+    if (!subUnitToDelete) return;
     setIsDeleting(true);
     try {
-      await deleteJobTitle(titleToDelete.id);
-      setTitleToDelete(null);
-      fetchJobTitles();
+      await deleteSubUnit(subUnitToDelete.id);
+      setSubUnitToDelete(null);
+      fetchSubUnits();
     } catch {
-      setPageError("Failed to delete job title. Please try again.");
+      setPageError("Failed to delete sub unit. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -83,15 +87,15 @@ export default function JobTitlesPage() {
 
   const handleSaved = () => {
     setShowAddModal(false);
-    setTitleToEdit(null);
-    fetchJobTitles();
+    setSubUnitToEdit(null);
+    fetchSubUnits();
   };
 
   return (
     <Layout
       title="HR Administration"
       tabs={TABS}
-      activeTab="Job Titles"
+      activeTab="Sub Units"
       onFab={() => setShowAddModal(true)}
     >
       {pageError && (
@@ -160,7 +164,7 @@ export default function JobTitlesPage() {
           </span>
           <input
             type="text"
-            placeholder="Search job titles…"
+            placeholder="Search by name or supervisor…"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             style={{
@@ -177,7 +181,7 @@ export default function JobTitlesPage() {
         </div>
 
         <span style={{ fontSize: 13, color: "#64748b" }}>
-          {filteredList.length} title{filteredList.length !== 1 ? "s" : ""}
+          {filteredList.length} sub unit{filteredList.length !== 1 ? "s" : ""}
         </span>
       </div>
 
@@ -233,15 +237,15 @@ export default function JobTitlesPage() {
                 >
                   {searchQuery
                     ? `No results for "${searchQuery}"`
-                    : "No job titles found. Click + to add one."}
+                    : "No sub units found. Click + to add one."}
                 </td>
               </tr>
             )}
 
             {!isLoading &&
-              filteredList.map((jobTitle, rowIndex) => (
+              filteredList.map((subUnit, rowIndex) => (
                 <tr
-                  key={jobTitle.id}
+                  key={subUnit.id}
                   style={{
                     borderBottom: "1px solid #f8fafc",
                     background: rowIndex % 2 === 0 ? "#fff" : "#fafbff",
@@ -272,7 +276,51 @@ export default function JobTitlesPage() {
                       color: "#1e293b",
                     }}
                   >
-                    {jobTitle.title}
+                    {subUnit.sub_unit_name}
+                  </td>
+                  <td
+                    style={{
+                      padding: "12px 16px",
+                      color: "#374151",
+                      fontSize: 13,
+                    }}
+                  >
+                    {subUnit.supervisor_name ? (
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 7,
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: "50%",
+                            background:
+                              "linear-gradient(135deg,#1b2a6b,#16a085)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {subUnit.supervisor_name
+                            .split(" ")
+                            .map((w) => w[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase()}
+                        </span>
+                        {subUnit.supervisor_name}
+                      </span>
+                    ) : (
+                      <span style={{ color: "#cbd5e1" }}>—</span>
+                    )}
                   </td>
                   <td
                     style={{
@@ -281,7 +329,7 @@ export default function JobTitlesPage() {
                       fontSize: 12.5,
                     }}
                   >
-                    {jobTitle.description || (
+                    {subUnit.description || (
                       <span style={{ color: "#cbd5e1" }}>—</span>
                     )}
                   </td>
@@ -292,18 +340,18 @@ export default function JobTitlesPage() {
                         fontWeight: 600,
                         padding: "3px 10px",
                         borderRadius: 999,
-                        background: jobTitle.is_active ? "#dcfce7" : "#f1f5f9",
-                        color: jobTitle.is_active ? "#16a34a" : "#94a3b8",
+                        background: subUnit.is_active ? "#dcfce7" : "#f1f5f9",
+                        color: subUnit.is_active ? "#16a34a" : "#94a3b8",
                       }}
                     >
-                      {jobTitle.is_active ? "Active" : "Inactive"}
+                      {subUnit.is_active ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button
-                        onClick={() => setTitleToEdit(jobTitle)}
-                        title="Edit job title"
+                        onClick={() => setSubUnitToEdit(subUnit)}
+                        title="Edit sub unit"
                         style={{
                           background: "#eff6ff",
                           border: "none",
@@ -321,8 +369,8 @@ export default function JobTitlesPage() {
                         ✎ Edit
                       </button>
                       <button
-                        onClick={() => setTitleToDelete(jobTitle)}
-                        title="Delete job title"
+                        onClick={() => setSubUnitToDelete(subUnit)}
+                        title="Delete sub unit"
                         style={{
                           background: "#fff1f2",
                           border: "none",
@@ -348,7 +396,7 @@ export default function JobTitlesPage() {
       </div>
 
       {showAddModal && (
-        <JobTitleFormModal
+        <SubUnitFormModal
           mode="add"
           onClose={() => setShowAddModal(false)}
           onSaved={handleSaved}
@@ -356,76 +404,81 @@ export default function JobTitlesPage() {
         />
       )}
 
-      {titleToEdit && (
-        <JobTitleFormModal
+      {subUnitToEdit && (
+        <SubUnitFormModal
           mode="edit"
-          jobTitle={titleToEdit}
-          onClose={() => setTitleToEdit(null)}
+          subUnit={subUnitToEdit}
+          onClose={() => setSubUnitToEdit(null)}
           onSaved={handleSaved}
           onError={(msg) => setPageError(msg)}
         />
       )}
 
-      {titleToDelete && (
+      {subUnitToDelete && (
         <DeleteConfirmModal
-          titleName={titleToDelete.title}
+          subUnitName={subUnitToDelete.sub_unit_name}
           isLoading={isDeleting}
           onConfirm={handleDeleteConfirm}
-          onCancel={() => setTitleToDelete(null)}
+          onCancel={() => setSubUnitToDelete(null)}
         />
       )}
     </Layout>
   );
 }
 
-interface JobTitleFormModalProps {
+interface SubUnitFormModalProps {
   mode: "add" | "edit";
-  jobTitle?: JobTitle;
+  subUnit?: SubUnit;
   onClose: () => void;
   onSaved: () => void;
   onError: (message: string) => void;
 }
 
-function JobTitleFormModal({
+function SubUnitFormModal({
   mode,
-  jobTitle,
+  subUnit,
   onClose,
   onSaved,
   onError,
-}: JobTitleFormModalProps) {
-  const [title, setTitle] = useState(jobTitle?.title || "");
-  const [description, setDescription] = useState(jobTitle?.description || "");
-  const [isActive, setIsActive] = useState(jobTitle?.is_active !== false);
+}: SubUnitFormModalProps) {
+  const [subUnitName, setSubUnitName] = useState(subUnit?.sub_unit_name || "");
+  const [supervisorName, setSupervisorName] = useState(
+    subUnit?.supervisor_name || "",
+  );
+  const [description, setDescription] = useState(subUnit?.description || "");
+  const [isActive, setIsActive] = useState(subUnit?.is_active !== false);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
   const handleSubmit = async () => {
-    if (!title.trim()) {
-      setFormError("Job title name is required.");
+    if (!subUnitName.trim()) {
+      setFormError("Sub unit name is required.");
       return;
     }
 
     setIsSaving(true);
     try {
       if (mode === "add") {
-        const payload: CreateJobTitlePayload = {
-          title: title.trim(),
+        const payload: CreateSubUnitPayload = {
+          sub_unit_name: subUnitName.trim(),
+          supervisor_name: supervisorName.trim() || null,
           description: description.trim() || undefined,
         };
-        await createJobTitle(payload);
-      } else if (mode === "edit" && jobTitle) {
-        const payload: UpdateJobTitlePayload = {
-          title: title.trim(),
+        await createSubUnit(payload);
+      } else if (mode === "edit" && subUnit) {
+        const payload: UpdateSubUnitPayload = {
+          sub_unit_name: subUnitName.trim(),
+          supervisor_name: supervisorName.trim() || null,
           description: description.trim() || undefined,
           is_active: isActive,
         };
-        await updateJobTitle(jobTitle.id, payload);
+        await updateSubUnit(subUnit.id, payload);
       }
       onSaved();
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
-        `Failed to ${mode === "add" ? "create" : "update"} job title. Please try again.`;
+        `Failed to ${mode === "add" ? "create" : "update"} sub unit. Please try again.`;
       setFormError(message);
       onError(message);
     } finally {
@@ -452,7 +505,7 @@ function JobTitleFormModal({
           background: "#fff",
           borderRadius: 20,
           width: "100%",
-          maxWidth: 480,
+          maxWidth: 520,
           boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
           overflow: "hidden",
         }}
@@ -473,7 +526,7 @@ function JobTitleFormModal({
               color: "#1b2a6b",
             }}
           >
-            {mode === "add" ? "Add Job Title" : "Edit Job Title"}
+            {mode === "add" ? "Add Sub Unit" : "Edit Sub Unit"}
           </h2>
           <button
             onClick={onClose}
@@ -492,7 +545,6 @@ function JobTitleFormModal({
           </button>
         </div>
 
-        {/* Body */}
         <div
           style={{
             padding: "20px 24px",
@@ -520,15 +572,15 @@ function JobTitleFormModal({
             <label
               style={{ fontSize: 12.5, fontWeight: 600, color: "#4a5568" }}
             >
-              Job Title Name <span style={{ color: "#ef4444" }}>*</span>
+              Sub Unit Name <span style={{ color: "#ef4444" }}>*</span>
             </label>
             <input
-              value={title}
+              value={subUnitName}
               onChange={(e) => {
-                setTitle(e.target.value);
+                setSubUnitName(e.target.value);
                 setFormError("");
               }}
-              placeholder="e.g. Software Engineer"
+              placeholder="e.g. Delivery- IT Services"
               style={{
                 padding: "10px 12px",
                 border: "1.5px solid #e2e8f0",
@@ -544,6 +596,34 @@ function JobTitleFormModal({
             <label
               style={{ fontSize: 12.5, fontWeight: 600, color: "#4a5568" }}
             >
+              Supervisor{" "}
+              <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>
+                (optional)
+              </span>
+            </label>
+            <input
+              value={supervisorName}
+              onChange={(e) => setSupervisorName(e.target.value)}
+              placeholder="e.g. John Smith"
+              style={{
+                padding: "10px 12px",
+                border: "1.5px solid #e2e8f0",
+                borderRadius: 10,
+                fontSize: 13.5,
+                outline: "none",
+                background: "#fff",
+              }}
+            />
+            <span style={{ fontSize: 11.5, color: "#94a3b8", marginTop: 2 }}>
+              This name will appear in the employee list under the Supervisor
+              column.
+            </span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <label
+              style={{ fontSize: 12.5, fontWeight: 600, color: "#4a5568" }}
+            >
               Description{" "}
               <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>
                 (optional)
@@ -552,7 +632,7 @@ function JobTitleFormModal({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of this role…"
+              placeholder="Brief description of this sub unit…"
               rows={3}
               style={{
                 padding: "10px 12px",
@@ -596,7 +676,7 @@ function JobTitleFormModal({
                   >
                     <input
                       type="radio"
-                      name="job_title_status"
+                      name="sub_unit_status"
                       checked={isActive === (statusOption === "Active")}
                       onChange={() => setIsActive(statusOption === "Active")}
                       style={{ accentColor: "#1b2a6b", width: 15, height: 15 }}
@@ -656,7 +736,7 @@ function JobTitleFormModal({
               {isSaving
                 ? "Saving…"
                 : mode === "add"
-                  ? "Add Title"
+                  ? "Add Sub Unit"
                   : "Save Changes"}
             </button>
           </div>
@@ -667,14 +747,14 @@ function JobTitleFormModal({
 }
 
 interface DeleteConfirmModalProps {
-  titleName: string;
+  subUnitName: string;
   isLoading: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 function DeleteConfirmModal({
-  titleName,
+  subUnitName,
   isLoading,
   onConfirm,
   onCancel,
@@ -726,7 +806,7 @@ function DeleteConfirmModal({
             color: "#1e293b",
           }}
         >
-          Delete Job Title
+          Delete Sub Unit
         </h3>
         <p
           style={{
@@ -737,9 +817,9 @@ function DeleteConfirmModal({
           }}
         >
           Are you sure you want to delete{" "}
-          <strong style={{ color: "#1e293b" }}>"{titleName}"</strong>? Employees
-          assigned this title will keep it, but it won't appear in the dropdown
-          for new records.
+          <strong style={{ color: "#1e293b" }}>"{subUnitName}"</strong>?{" "}
+          Employees assigned to this sub unit will keep their records, but it
+          won't appear in the dropdown for new entries.
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
           <button

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import {
-  getJobTitles,
-  createJobTitle,
-  updateJobTitle,
-  deleteJobTitle,
-  JobTitle,
-  CreateJobTitlePayload,
-  UpdateJobTitlePayload,
+  getJobCategories,
+  createJobCategory,
+  updateJobCategory,
+  deleteJobCategory,
+  JobCategory,
+  CreateJobCategoryPayload,
+  UpdateJobCategoryPayload,
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 
@@ -20,44 +20,52 @@ const TABS: TabItem[] = [
   { label: "More", path: "#" },
 ];
 
-const TABLE_COLUMNS = ["#", "Job Title", "Description", "Status", "Actions"];
+const TABLE_COLUMNS = [
+  "#",
+  "Category Name",
+  "Description",
+  "Status",
+  "Actions",
+];
 
-export default function JobTitlesPage() {
-  const [jobTitleList, setJobTitleList] = useState<JobTitle[]>([]);
-  const [filteredList, setFilteredList] = useState<JobTitle[]>([]);
+export default function JobCategoriesPage() {
+  const [categoryList, setCategoryList] = useState<JobCategory[]>([]);
+  const [filteredList, setFilteredList] = useState<JobCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [titleToEdit, setTitleToEdit] = useState<JobTitle | null>(null);
-  const [titleToDelete, setTitleToDelete] = useState<JobTitle | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<JobCategory | null>(
+    null,
+  );
+  const [categoryToDelete, setCategoryToDelete] = useState<JobCategory | null>(
+    null,
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const [pageError, setPageError] = useState("");
 
-
-  console.log("job list ",jobTitleList)
-  console.log("Filtered list ",filteredList)
-
-  const fetchJobTitles = () => {
+  const fetchCategories = () => {
     setIsLoading(true);
-    getJobTitles()
+    getJobCategories()
       .then((res) => {
-        setJobTitleList(res.data);
+        setCategoryList(res.data);
         setFilteredList(res.data);
         setSearchQuery("");
       })
-      .catch(() => setPageError("Failed to load job titles. Please refresh."))
+      .catch(() =>
+        setPageError("Failed to load job categories. Please refresh."),
+      )
       .finally(() => setIsLoading(false));
   };
 
-  useEffect(fetchJobTitles, []);
+  useEffect(fetchCategories, []);
 
   const debouncedFilter = useDebounce((value: string) => {
     const term = value.toLowerCase();
     setFilteredList(
-      jobTitleList.filter(
-        (jt) =>
-          jt.title.toLowerCase().includes(term) ||
-          (jt.description || "").toLowerCase().includes(term),
+      categoryList.filter(
+        (jc) =>
+          jc.category.toLowerCase().includes(term) ||
+          (jc.description || "").toLowerCase().includes(term),
       ),
     );
   }, 300);
@@ -68,14 +76,14 @@ export default function JobTitlesPage() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!titleToDelete) return;
+    if (!categoryToDelete) return;
     setIsDeleting(true);
     try {
-      await deleteJobTitle(titleToDelete.id);
-      setTitleToDelete(null);
-      fetchJobTitles();
+      await deleteJobCategory(categoryToDelete.id);
+      setCategoryToDelete(null);
+      fetchCategories();
     } catch {
-      setPageError("Failed to delete job title. Please try again.");
+      setPageError("Failed to delete job category. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -83,15 +91,15 @@ export default function JobTitlesPage() {
 
   const handleSaved = () => {
     setShowAddModal(false);
-    setTitleToEdit(null);
-    fetchJobTitles();
+    setCategoryToEdit(null);
+    fetchCategories();
   };
 
   return (
     <Layout
       title="HR Administration"
       tabs={TABS}
-      activeTab="Job Titles"
+      activeTab="Job Categories"
       onFab={() => setShowAddModal(true)}
     >
       {pageError && (
@@ -160,7 +168,7 @@ export default function JobTitlesPage() {
           </span>
           <input
             type="text"
-            placeholder="Search job titles…"
+            placeholder="Search job categories…"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             style={{
@@ -177,7 +185,8 @@ export default function JobTitlesPage() {
         </div>
 
         <span style={{ fontSize: 13, color: "#64748b" }}>
-          {filteredList.length} title{filteredList.length !== 1 ? "s" : ""}
+          {filteredList.length}{" "}
+          {filteredList.length !== 1 ? "categories" : "category"}
         </span>
       </div>
 
@@ -233,15 +242,15 @@ export default function JobTitlesPage() {
                 >
                   {searchQuery
                     ? `No results for "${searchQuery}"`
-                    : "No job titles found. Click + to add one."}
+                    : "No job categories found. Click + to add one."}
                 </td>
               </tr>
             )}
 
             {!isLoading &&
-              filteredList.map((jobTitle, rowIndex) => (
+              filteredList.map((jobCategory, rowIndex) => (
                 <tr
-                  key={jobTitle.id}
+                  key={jobCategory.id}
                   style={{
                     borderBottom: "1px solid #f8fafc",
                     background: rowIndex % 2 === 0 ? "#fff" : "#fafbff",
@@ -272,7 +281,7 @@ export default function JobTitlesPage() {
                       color: "#1e293b",
                     }}
                   >
-                    {jobTitle.title}
+                    {jobCategory.category}
                   </td>
                   <td
                     style={{
@@ -281,7 +290,7 @@ export default function JobTitlesPage() {
                       fontSize: 12.5,
                     }}
                   >
-                    {jobTitle.description || (
+                    {jobCategory.description || (
                       <span style={{ color: "#cbd5e1" }}>—</span>
                     )}
                   </td>
@@ -292,18 +301,20 @@ export default function JobTitlesPage() {
                         fontWeight: 600,
                         padding: "3px 10px",
                         borderRadius: 999,
-                        background: jobTitle.is_active ? "#dcfce7" : "#f1f5f9",
-                        color: jobTitle.is_active ? "#16a34a" : "#94a3b8",
+                        background: jobCategory.is_active
+                          ? "#dcfce7"
+                          : "#f1f5f9",
+                        color: jobCategory.is_active ? "#16a34a" : "#94a3b8",
                       }}
                     >
-                      {jobTitle.is_active ? "Active" : "Inactive"}
+                      {jobCategory.is_active ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button
-                        onClick={() => setTitleToEdit(jobTitle)}
-                        title="Edit job title"
+                        onClick={() => setCategoryToEdit(jobCategory)}
+                        title="Edit category"
                         style={{
                           background: "#eff6ff",
                           border: "none",
@@ -321,8 +332,8 @@ export default function JobTitlesPage() {
                         ✎ Edit
                       </button>
                       <button
-                        onClick={() => setTitleToDelete(jobTitle)}
-                        title="Delete job title"
+                        onClick={() => setCategoryToDelete(jobCategory)}
+                        title="Delete category"
                         style={{
                           background: "#fff1f2",
                           border: "none",
@@ -348,7 +359,7 @@ export default function JobTitlesPage() {
       </div>
 
       {showAddModal && (
-        <JobTitleFormModal
+        <JobCategoryFormModal
           mode="add"
           onClose={() => setShowAddModal(false)}
           onSaved={handleSaved}
@@ -356,76 +367,78 @@ export default function JobTitlesPage() {
         />
       )}
 
-      {titleToEdit && (
-        <JobTitleFormModal
+      {categoryToEdit && (
+        <JobCategoryFormModal
           mode="edit"
-          jobTitle={titleToEdit}
-          onClose={() => setTitleToEdit(null)}
+          jobCategory={categoryToEdit}
+          onClose={() => setCategoryToEdit(null)}
           onSaved={handleSaved}
           onError={(msg) => setPageError(msg)}
         />
       )}
 
-      {titleToDelete && (
+      {categoryToDelete && (
         <DeleteConfirmModal
-          titleName={titleToDelete.title}
+          categoryName={categoryToDelete.category}
           isLoading={isDeleting}
           onConfirm={handleDeleteConfirm}
-          onCancel={() => setTitleToDelete(null)}
+          onCancel={() => setCategoryToDelete(null)}
         />
       )}
     </Layout>
   );
 }
 
-interface JobTitleFormModalProps {
+interface JobCategoryFormModalProps {
   mode: "add" | "edit";
-  jobTitle?: JobTitle;
+  jobCategory?: JobCategory;
   onClose: () => void;
   onSaved: () => void;
   onError: (message: string) => void;
 }
 
-function JobTitleFormModal({
+function JobCategoryFormModal({
   mode,
-  jobTitle,
+  jobCategory,
   onClose,
   onSaved,
   onError,
-}: JobTitleFormModalProps) {
-  const [title, setTitle] = useState(jobTitle?.title || "");
-  const [description, setDescription] = useState(jobTitle?.description || "");
-  const [isActive, setIsActive] = useState(jobTitle?.is_active !== false);
+}: JobCategoryFormModalProps) {
+  const [categoryName, setCategoryName] = useState(jobCategory?.category || "");
+  const [description, setDescription] = useState(
+    jobCategory?.description || "",
+  );
+  const [isActive, setIsActive] = useState(jobCategory?.is_active !== false);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
   const handleSubmit = async () => {
-    if (!title.trim()) {
-      setFormError("Job title name is required.");
+    if (!categoryName.trim()) {
+      setFormError("Category name is required.");
       return;
     }
 
     setIsSaving(true);
     try {
       if (mode === "add") {
-        const payload: CreateJobTitlePayload = {
-          title: title.trim(),
+        const payload: CreateJobCategoryPayload = {
+          category: categoryName.trim(),
           description: description.trim() || undefined,
         };
-        await createJobTitle(payload);
-      } else if (mode === "edit" && jobTitle) {
-        const payload: UpdateJobTitlePayload = {
-          title: title.trim(),
+        await createJobCategory(payload);
+      } else if (mode === "edit" && jobCategory) {
+        const payload: UpdateJobCategoryPayload = {
+          category: categoryName.trim(),
           description: description.trim() || undefined,
           is_active: isActive,
         };
-        await updateJobTitle(jobTitle.id, payload);
+        await updateJobCategory(jobCategory.id, payload);
       }
       onSaved();
     } catch (err: any) {
       const message =
         err?.response?.data?.message ||
-        `Failed to ${mode === "add" ? "create" : "update"} job title. Please try again.`;
+        `Failed to ${mode === "add" ? "create" : "update"} job category. Please try again.`;
       setFormError(message);
       onError(message);
     } finally {
@@ -473,7 +486,7 @@ function JobTitleFormModal({
               color: "#1b2a6b",
             }}
           >
-            {mode === "add" ? "Add Job Title" : "Edit Job Title"}
+            {mode === "add" ? "Add Job Category" : "Edit Job Category"}
           </h2>
           <button
             onClick={onClose}
@@ -492,7 +505,6 @@ function JobTitleFormModal({
           </button>
         </div>
 
-        {/* Body */}
         <div
           style={{
             padding: "20px 24px",
@@ -520,15 +532,15 @@ function JobTitleFormModal({
             <label
               style={{ fontSize: 12.5, fontWeight: 600, color: "#4a5568" }}
             >
-              Job Title Name <span style={{ color: "#ef4444" }}>*</span>
+              Category Name <span style={{ color: "#ef4444" }}>*</span>
             </label>
             <input
-              value={title}
+              value={categoryName}
               onChange={(e) => {
-                setTitle(e.target.value);
+                setCategoryName(e.target.value);
                 setFormError("");
               }}
-              placeholder="e.g. Software Engineer"
+              placeholder="e.g. Delivery Team"
               style={{
                 padding: "10px 12px",
                 border: "1.5px solid #e2e8f0",
@@ -552,7 +564,7 @@ function JobTitleFormModal({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of this role…"
+              placeholder="Brief description of this category…"
               rows={3}
               style={{
                 padding: "10px 12px",
@@ -596,7 +608,7 @@ function JobTitleFormModal({
                   >
                     <input
                       type="radio"
-                      name="job_title_status"
+                      name="job_category_status"
                       checked={isActive === (statusOption === "Active")}
                       onChange={() => setIsActive(statusOption === "Active")}
                       style={{ accentColor: "#1b2a6b", width: 15, height: 15 }}
@@ -656,7 +668,7 @@ function JobTitleFormModal({
               {isSaving
                 ? "Saving…"
                 : mode === "add"
-                  ? "Add Title"
+                  ? "Add Category"
                   : "Save Changes"}
             </button>
           </div>
@@ -667,14 +679,14 @@ function JobTitleFormModal({
 }
 
 interface DeleteConfirmModalProps {
-  titleName: string;
+  categoryName: string;
   isLoading: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 function DeleteConfirmModal({
-  titleName,
+  categoryName,
   isLoading,
   onConfirm,
   onCancel,
@@ -726,7 +738,7 @@ function DeleteConfirmModal({
             color: "#1e293b",
           }}
         >
-          Delete Job Title
+          Delete Job Category
         </h3>
         <p
           style={{
@@ -737,9 +749,9 @@ function DeleteConfirmModal({
           }}
         >
           Are you sure you want to delete{" "}
-          <strong style={{ color: "#1e293b" }}>"{titleName}"</strong>? Employees
-          assigned this title will keep it, but it won't appear in the dropdown
-          for new records.
+          <strong style={{ color: "#1e293b" }}>"{categoryName}"</strong>?{" "}
+          Employees assigned this category will keep it, but it won't appear in
+          the dropdown for new records.
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
           <button
