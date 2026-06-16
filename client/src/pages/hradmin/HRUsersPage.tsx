@@ -10,6 +10,7 @@ import {
   UpdateHRUserPayload,
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
+import { EMAIL_REGEX } from "../../validations/employee.validation";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
 const DEFAULT_PAGE_SIZE = 10;
@@ -686,10 +687,7 @@ function UserFormModal({
       setFormError("Employee name is required.");
       return;
     }
-    if (
-      !formData.email.trim() ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
-    ) {
+    if (!formData.email.trim() || !EMAIL_REGEX.test(formData.email)) {
       setFormError("A valid email address is required.");
       return;
     }

@@ -662,7 +662,7 @@ export default function AddEmployeeModal({
                           onChange={() => {
                             setSelectedSupervisors((prev) =>
                               checked
-                                ? prev.filter((n) => n !== supervis.name)
+                                ? prev.filter((setSelectedSupervisor) => setSelectedSupervisor !== supervis.name)
                                 : prev.length < 3
                                   ? [...prev, supervis.name]
                                   : prev,
@@ -725,7 +725,7 @@ export default function AddEmployeeModal({
                       <button
                         onClick={() =>
                           setSelectedSupervisors((prev) =>
-                            prev.filter((n) => n !== supervisorName),
+                            prev.filter((name) => name !== supervisorName),
                           )
                         }
                         className="bg-none border-0 cursor-pointer text-blue-700 text-base leading-none pl-1"
