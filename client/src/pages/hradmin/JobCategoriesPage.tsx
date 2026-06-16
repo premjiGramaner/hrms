@@ -16,6 +16,7 @@ import DataTable, {
   ActionDef,
   StatCard,
 } from "../../components/DataTable";
+import { inputStyle, labelStyle } from "../../constants/styles";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -326,22 +327,6 @@ export default function JobCategoriesPage() {
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  padding: "11px 14px",
-  border: "1.5px solid #e2e8f0",
-  borderRadius: 10,
-  fontSize: 13.5,
-  outline: "none",
-  background: "#fff",
-  width: "100%",
-  boxSizing: "border-box",
-  transition: "border-color 0.2s",
-};
-const labelStyle: React.CSSProperties = {
-  fontSize: 12.5,
-  fontWeight: 600,
-  color: "#374151",
-};
 
 interface JobCategoryFormModalProps {
   mode: "add" | "edit";

@@ -140,20 +140,22 @@ export default function AuditTrailPage() {
   const applyFilters = (search: string, action: string, section: string) => {
     const term = search.toLowerCase();
     setFilteredRecords(
-      allRecords.filter((r) => {
+      allRecords.filter((allRecord) => {
         const matchesSearch =
           !term ||
-          r.action_owner.toLowerCase().includes(term) ||
-          r.employee.toLowerCase().includes(term) ||
-          (r.action_owner_username || "").toLowerCase().includes(term) ||
-          (r.employee_username || "").toLowerCase().includes(term) ||
-          r.section.toLowerCase().includes(term) ||
-          r.action_description.toLowerCase().includes(term) ||
-          r.performed_screen.toLowerCase().includes(term);
+          allRecord.action_owner.toLowerCase().includes(term) ||
+          allRecord.employee.toLowerCase().includes(term) ||
+          (allRecord.action_owner_username || "")
+            .toLowerCase()
+            .includes(term) ||
+          (allRecord.employee_username || "").toLowerCase().includes(term) ||
+          allRecord.section.toLowerCase().includes(term) ||
+          allRecord.action_description.toLowerCase().includes(term) ||
+          allRecord.performed_screen.toLowerCase().includes(term);
         return (
           matchesSearch &&
-          (action === "all" || r.action === action) &&
-          (section === "all" || r.section === section)
+          (action === "all" || allRecord.action === action) &&
+          (section === "all" || allRecord.section === section)
         );
       }),
     );

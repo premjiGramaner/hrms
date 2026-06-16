@@ -154,9 +154,9 @@ export default function Pagination({
               backgroundPosition: "right 7px center",
             }}
           >
-            {pageSizeOptions.map((s) => (
-              <option key={s} value={s}>
-                {s}
+            {pageSizeOptions.map((dropdownvalues) => (
+              <option key={dropdownvalues} value={dropdownvalues}>
+                {dropdownvalues}
               </option>
             ))}
           </select>
