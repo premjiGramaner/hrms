@@ -251,8 +251,8 @@ export default function AuditTrailPage() {
             }}
           >
             <option value="all">All Sections</option>
-            {uniqueSections.map((s) => (
-              <option key={s} value={s}>{s}</option>
+            {uniqueSections.map((uniqueSection) => (
+              <option key={uniqueSection} value={uniqueSection}>{uniqueSection}</option>
             ))}
           </select>
           <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "#94a3b8", fontSize: 11 }}>▼</span>
