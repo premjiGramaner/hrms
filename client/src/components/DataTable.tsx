@@ -1,24 +1,19 @@
 import React from "react";
 import Pagination from "./Pagination";
 
-/* ─── Column definition ──────────────────────────────────────────────────── */
 export interface ColumnDef<T> {
-  /** Column header label */
   key: string;
   header: string;
-  /** Width hint (optional) */
   width?: number | string;
-  /** Render a custom cell; receives the row, its index in the FULL filtered list,
-   *  and the page-relative index (0-based within current page). */
+
   render?: (row: T, absIndex: number, relIndex: number) => React.ReactNode;
 }
 
-/* ─── Action button definition ───────────────────────────────────────────── */
 export interface ActionDef<T> {
   label: string;
   icon?: React.ReactNode;
-  color?: string;          // text colour
-  bg?: string;             // normal background
+  color?: string;          
+  bg?: string;             
   bgHover?: string;
   borderColor?: string;
   borderColorHover?: string;
@@ -26,7 +21,6 @@ export interface ActionDef<T> {
   title?: string;
 }
 
-/* ─── Stat card definition ───────────────────────────────────────────────── */
 export interface StatCard {
   label: string;
   value: number | string;
@@ -36,30 +30,22 @@ export interface StatCard {
   border: string;
 }
 
-/* ─── Main props ─────────────────────────────────────────────────────────── */
 export interface DataTableProps<T> {
-  /* Table metadata */
   title: string;
   subtitle?: string;
   icon?: string;
 
-  /* Data */
   rows: T[];
   isLoading?: boolean;
 
-  /* Column definitions */
   columns: ColumnDef<T>[];
 
-  /* Action buttons rendered in the last "Actions" column.
-     Pass an empty array to hide the Actions column. */
   actions?: ActionDef<T>[];
 
-  /* Empty-state copy */
   emptyIcon?: string;
   emptyTitle?: string;
   emptySubtitle?: string;
 
-  /* Pagination */
   currentPage: number;
   totalPages: number;
   totalRecords: number;
@@ -69,46 +55,23 @@ export interface DataTableProps<T> {
   onPageSizeChange: (size: number) => void;
   itemLabel?: string;
 
-  /* Optional stats row above the table */
   stats?: StatCard[];
 
-  /* Toolbar */
   searchQuery?: string;
   searchPlaceholder?: string;
   onSearchChange?: (value: string) => void;
   addLabel?: string;
   onAdd?: () => void;
-  /** Extra toolbar nodes rendered between search and add button */
   extraToolbar?: React.ReactNode;
 
-  /**
-   * Sortable columns map: key → { dir: "asc"|"desc"; onToggle: () => void }
-   * When provided, the matching column header renders ▲▼ sort arrows.
-   */
+
   sortableColumns?: Record<string, { dir: "asc" | "desc"; onToggle: () => void }>;
 
-  /** getKey – uniquely identify each row (defaults to `(row as any).id`) */
   getKey?: (row: T, relIndex: number) => string | number;
 }
 
-/* ─── Edit / Delete SVG icons (shared) ──────────────────────────────────── */
-export const EditIcon = (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-  </svg>
-);
 
-export const DeleteIcon = (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <polyline points="3 6 5 6 21 6"/>
-    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-    <path d="M10 11v6M14 11v6"/>
-    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-  </svg>
-);
 
-/* ─── Cell border helpers ────────────────────────────────────────────────── */
 const tdBase: React.CSSProperties = {
   background: "#fff",
   borderTop: "1px solid #e2e8f0",
@@ -129,7 +92,6 @@ const tdLast: React.CSSProperties = {
   borderRadius: "0 10px 10px 0",
 };
 
-/* ─── Component ──────────────────────────────────────────────────────────── */
 export default function DataTable<T>({
   title,
   subtitle,
@@ -175,7 +137,6 @@ export default function DataTable<T>({
 
   return (
     <>
-      {/* ── Stats cards ── */}
       {stats && stats.length > 0 && (
         <div style={{ display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
           {stats.map((s) => (
@@ -197,13 +158,11 @@ export default function DataTable<T>({
         </div>
       )}
 
-      {/* ── Toolbar ── */}
       {(onSearchChange || onAdd || extraToolbar) && (
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           marginBottom: 16, flexWrap: "wrap", gap: 10,
         }}>
-          {/* Left: search */}
           {onSearchChange && (
             <div style={{ position: "relative", width: 300 }}>
               <span style={{
@@ -241,10 +200,8 @@ export default function DataTable<T>({
             </div>
           )}
 
-          {/* Middle: extra controls (dropdowns, filters…) */}
           {extraToolbar}
 
-          {/* Right: result count + add button */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: "auto" }}>
             {searchQuery && (
               <span style={{
@@ -271,13 +228,11 @@ export default function DataTable<T>({
         </div>
       )}
 
-      {/* ── Table card ── */}
       <div style={{
         background: "#fff", borderRadius: 16,
         boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
         overflow: "hidden", border: "1px solid #f1f5f9",
       }}>
-        {/* Header band */}
         <div style={{
           padding: "14px 20px",
           background: "linear-gradient(70deg,#f0fdf4,#f0fdf1)",
@@ -295,7 +250,6 @@ export default function DataTable<T>({
           {subtitle && <span style={{ fontSize: 12, color: "#94a3b8" }}>{subtitle}</span>}
         </div>
 
-        {/* Scrollable table */}
         <div style={{
           overflowX: "auto", border: "1px solid #e2e8f0",
           borderRadius: 14, background: "#fff", padding: 8,
@@ -306,7 +260,6 @@ export default function DataTable<T>({
           }}>
             <thead>
               <tr style={{ background: "linear-gradient(135deg,#1b2a6b 0%,#16a085 100%)" }}>
-                {/* # serial column */}
                 <th style={{
                   padding: "13px 20px", textAlign: "left",
                   fontSize: 12, fontWeight: 700, color: "#fff",
@@ -346,7 +299,6 @@ export default function DataTable<T>({
             </thead>
 
             <tbody>
-              {/* Loading */}
               {isLoading && (
                 <tr>
                   <td colSpan={allColumns.length + 1} style={{ ...tdFirst, ...tdLast, borderRight: "1px solid #e2e8f0", borderRadius: 10, textAlign: "center", padding: 56 }}>
@@ -362,7 +314,6 @@ export default function DataTable<T>({
                 </tr>
               )}
 
-              {/* Empty */}
               {!isLoading && rows.length === 0 && (
                 <tr>
                   <td colSpan={allColumns.length + 1} style={{ ...tdFirst, ...tdLast, borderRight: "1px solid #e2e8f0", borderRadius: 10, textAlign: "center", padding: 60 }}>
@@ -375,7 +326,6 @@ export default function DataTable<T>({
                 </tr>
               )}
 
-              {/* Data rows */}
               {!isLoading && rows.map((row, relIdx) => {
                 const absIdx = (currentPage - 1) * pageSize + relIdx;
                 return (
@@ -385,7 +335,6 @@ export default function DataTable<T>({
                     onMouseEnter={(e) => hoverRow(e, "#f8faff")}
                     onMouseLeave={(e) => hoverRow(e, "#fff")}
                   >
-                    {/* Serial number */}
                     <td style={tdFirst}>
                       <span style={{
                         display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -396,7 +345,6 @@ export default function DataTable<T>({
                       </span>
                     </td>
 
-                    {/* Data columns */}
                     {columns.map((col, cIdx) => {
                       const isLastDataCol = !hasActions && cIdx === columns.length - 1;
                       return (
@@ -406,7 +354,6 @@ export default function DataTable<T>({
                       );
                     })}
 
-                    {/* Actions column */}
                     {hasActions && (
                       <td style={tdLast}>
                         <div style={{ display: "flex", gap: 6 }}>
