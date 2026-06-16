@@ -7,7 +7,11 @@ import EmployeeProfilePage from "./pages/employees/EmployeeProfilePage";
 import MyInfoPage from "./pages/employees/MyInfoPage";
 import RolesPage from "./pages/roles/RolesPage";
 import HRUsersPage from "./pages/hradmin/HRUsersPage";
+import JobTitlesPage from "./pages/hradmin/JobTitlesPage";
+import JobCategoriesPage from "./pages/hradmin/JobCategoriesPage";
+import SubUnitsPage from "./pages/hradmin/SubUnitsPage";
 import AuditTrailPage from "./pages/hradmin/AuditTrailPage";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -58,6 +62,30 @@ export default function App() {
           element={
             <ProtectedRoute roles={["empmanager", "hradmin"]}>
               <HRUsersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hradmin/job-titles"
+          element={
+            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+              <JobTitlesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hradmin/job-categories"
+          element={
+            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+              <JobCategoriesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hradmin/sub-units"
+          element={
+            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+              <SubUnitsPage />
             </ProtectedRoute>
           }
         />

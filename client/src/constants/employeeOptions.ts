@@ -1,8 +1,4 @@
-export const LOCATIONS = [
-  "Bangalore",
-  "Coimbatore",
-  "Hyderabad",
-] as const;
+export const LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"] as const;
 
 export const JOB_TITLES = [
   "Software Consultant",
@@ -93,4 +89,12 @@ export const ATTENDANCE_CALCULATION_TYPES = [
   "Manual Entry",
 ] as const;
 
-export const STEPS = ["Basic Info", "Personal", "Job Details", "Contact", "Report To"];
+export const STEPS = [
+  "Basic Info",
+  "Personal",
+  "Job Details",
+  "Contact",
+  "Report To",
+];
+
+export const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
