@@ -42,7 +42,6 @@ export default function Layout({
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const [hoveredNav, setHoveredNav] = useState("");
 
   const role = user?.role || "employee";
   const username = user?.name || user?.username || "User";
@@ -65,99 +64,125 @@ export default function Layout({
 
   const navItems = [
     ...(role === "hradmin" || role === "empmanager"
-      ? [
-          {
-            to: "/hradmin/users",
-            label: "HR Administration",
-            icon: <IconBuilding />,
-          },
-        ]
+      ? [{ to: "/hradmin/users", label: "HR Administration", icon: <IconBuilding /> }]
       : []),
-    { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
-    { to: "#", label: "Reports and Analytics", icon: <IconChart /> },
-    { to: "/leave/view_leave_list", label: "Leave", icon: <IconCalendar /> },
-    { to: "#", label: "Performance", icon: <IconBriefcase /> },
+    { to: "/employees",           label: "Employee Management",  icon: <IconPeople /> },
+    { to: "#",                    label: "Reports and Analytics", icon: <IconChart /> },
+    { to: "/leave/view_leave_list", label: "Leave",              icon: <IconCalendar /> },
+    { to: "#",                    label: "Performance",          icon: <IconBriefcase /> },
   ];
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
-      <aside
-        className={`transition-all duration-250 flex flex-col bg-white shadow-lg relative z-10 flex-shrink-0 overflow-hidden ${
-          collapsed ? "w-0 min-w-0" : "w-52 min-w-52"
-        }`}
-      >
-        <div className="px-6 py-3 border-b border-slate-100 flex items-center justify-center">
-          <img
-            src={cannyforeLogo}
-            alt="Cannyfore"
-            className="h-10 max-w-[9rem] object-contain"
-          />
-        </div>
+      {/* ── Sidebar ───────────────────────────────────────────── */}
+      <div className="relative">
+        <aside
+          style={{ 
+            width: collapsed ? 72 : 230,
+            transition: "width 250ms ease-in-out"
+          }}
+          className="flex flex-col bg-white shadow-lg relative z-10 flex-shrink-0 h-screen overflow-hidden"
+        >
+          {/* Logo - Fixed at top */}
+          <div className="px-6 py-3 border-b border-slate-100 flex items-center justify-center flex-shrink-0 min-h-[80px]">
+            <img 
+              src={cannyforeLogo} 
+              alt="Cannyfore" 
+              className="h-10 max-w-[9rem] object-contain" 
+              style={{
+                opacity: collapsed ? 0 : 1,
+                transition: "opacity 250ms ease-in-out"
+              }}
+            />
+          </div>
 
-        <div className="px-4 py-5 pb-3 flex flex-col items-center text-center">
-          <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-yellow-300 to-orange-400 flex items-center justify-center border-4 border-white shadow-md mb-2">
-            {user?.avatar ? (
-              <img
-                src={`/uploads/${user.avatar}`}
-                className="w-full h-full object-cover"
-                alt=""
+          {/* Profile */}
+          <div 
+            className="px-4 flex flex-col items-center text-center flex-shrink-0 border-b border-slate-100 overflow-hidden"
+            style={{
+              maxHeight: collapsed ? 0 : "180px",
+              paddingTop: collapsed ? 0 : "20px",
+              paddingBottom: collapsed ? 0 : "12px",
+              opacity: collapsed ? 0 : 1,
+              transition: "max-height 250ms ease-in-out, opacity 250ms ease-in-out, padding 250ms ease-in-out",
+            }}
+          >
+            <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden bg-gradient-to-br from-yellow-300 to-orange-400 flex items-center justify-center border-[3px] border-white shadow-md mb-2 flex-shrink-0">
+              {user?.avatar ? (
+                <img src={`/uploads/${user.avatar}`} className="w-full h-full object-cover" alt="" />
+              ) : (
+                <span className="text-white text-2xl font-bold">{username.charAt(0).toUpperCase()}</span>
+              )}
+              <div className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center">
+                <IconGear size={10} color="#888" />
+              </div>
+            </div>
+            <p className="text-sm font-bold text-slate-900 mt-1 mb-0 leading-tight truncate w-full">{username}</p>
+            <p className="text-xs text-slate-500 mt-0.5 truncate w-full">{roleLabel}</p>
+          </div>
+
+          {/* Search */}
+          <div 
+            className="px-3 flex-shrink-0 border-b border-slate-100 overflow-hidden"
+            style={{
+              maxHeight: collapsed ? 0 : "56px",
+              paddingTop: collapsed ? 0 : "0px",
+              paddingBottom: collapsed ? 0 : "12px",
+              opacity: collapsed ? 0 : 1,
+              transition: "max-height 250ms ease-in-out, opacity 250ms ease-in-out, padding 250ms ease-in-out",
+            }}
+          >
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search"
+                className="w-full pl-3.5 pr-8 py-[7px] border border-slate-200 rounded-full text-xs text-slate-600 bg-slate-50 outline-none"
               />
-            ) : (
-              <span className="text-white text-2xl font-bold">
-                {username.charAt(0).toUpperCase()}
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                <IconSearch size={13} color="#94a3b8" />
               </span>
-            )}
-            <div className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center">
-              <IconGear size={10} color="#888" />
             </div>
           </div>
-          <p className="text-sm font-bold text-slate-900 mt-1 mb-0.5 truncate w-full">
-            {username}
-          </p>
-          <p className="text-xs text-slate-600 m-0 truncate w-full">
-            {roleLabel}
-          </p>
-        </div>
 
-        <div className="px-3 pb-2.5">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search"
-              className="w-full pl-3.5 pr-8 py-2 border border-slate-200 rounded-full text-xs text-slate-600 bg-slate-50 outline-none"
-            />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2">
-              <IconSearch size={13} color="#94a3b8" />
-            </span>
-          </div>
-        </div>
+          {/* Nav */}
+          <nav className="flex-1 px-2 py-1 pb-6 overflow-y-auto min-w-0">
+            {navItems.map((item) => {
+              const active = item.to !== "#" && isActive(item.to);
+              return (
+                <NavItem
+                  key={item.label}
+                  to={item.to}
+                  icon={item.icon}
+                  label={item.label}
+                  active={active}
+                  collapsed={collapsed}
+                />
+              );
+            })}
+          </nav>
+        </aside>
 
-        <nav className="flex-1 px-2 py-1 pb-6 overflow-y-auto">
-          {navItems.map((item) => {
-            const active = item.to !== "#" && isActive(item.to);
-            const hovered = hoveredNav === item.label;
-            return (
-              <NavItem
-                key={item.label}
-                to={item.to}
-                icon={item.icon}
-                label={item.label}
-                active={active}
-                hovered={hovered}
-                onMouseEnter={() => setHoveredNav(item.label)}
-                onMouseLeave={() => setHoveredNav("")}
-              />
-            );
-          })}
-        </nav>
-
+        {/* Toggle Button - Always visible */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute top-1/2 -translate-y-1/2 -right-3.5 w-7 h-7 rounded-full bg-blue-900 border-none text-white cursor-pointer z-20 flex items-center justify-center shadow-md text-sm font-bold hover:bg-blue-800 transition"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="absolute w-7 h-7 rounded-full bg-[#233B86] border-none text-white cursor-pointer z-50 flex items-center justify-center shadow-md text-sm font-bold hover:bg-[#1a2d6b] active:scale-95"
+          style={{
+            right: "-14px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            transition: "background-color 250ms ease-in-out"
+          }}
         >
-          {collapsed ? "›" : "‹"}
+          <span style={{ 
+            display: "inline-block",
+            transition: "transform 250ms ease-in-out",
+            transform: collapsed ? "rotate(180deg)" : "rotate(0deg)"
+          }}>
+            {collapsed ? "›" : "‹"}
+          </span>
         </button>
-      </aside>
+      </div>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-between px-6 flex-shrink-0 shadow-md">
@@ -239,56 +264,84 @@ function NavItem({
   icon,
   label,
   active,
-  hovered,
-  onMouseEnter,
-  onMouseLeave,
+  collapsed,
 }: {
   to: string;
   icon: React.ReactNode;
   label: string;
   active: boolean;
-  hovered: boolean;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
+  collapsed?: boolean;
 }) {
+  const baseClass =
+    "flex items-center gap-3 px-3 py-[10px] rounded-[22px] text-[13.5px] font-medium transition-all no-underline mb-[3px] cursor-pointer";
+
+  const activeStyle: React.CSSProperties = {
+    background: "linear-gradient(90deg, #233B86 0%, #12C7A5 100%)",
+    color: "#ffffff",
+    fontWeight: 600,
+    boxShadow: "0 2px 8px rgba(35,59,134,0.18)",
+  };
+  const inactiveStyle: React.CSSProperties = {
+    color: "#6B7BA4",
+    background: "transparent",
+  };
+
+  // Collapsed state styles
+  const collapsedStyle: React.CSSProperties = collapsed ? {
+    width: "44px",
+    height: "44px",
+    padding: "0",
+    margin: "3px auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  } : {};
+
   const content = (
     <>
-      <span
-        className={`flex items-center flex-shrink-0 ${active ? "opacity-100" : "opacity-70"}`}
+      <span className="flex items-center flex-shrink-0 min-w-fit">{icon}</span>
+      <span 
+        className="whitespace-nowrap overflow-hidden text-ellipsis leading-snug"
+        style={{
+          opacity: collapsed ? 0 : 1,
+          width: collapsed ? 0 : "auto",
+          transition: "opacity 250ms ease-in-out, width 250ms ease-in-out"
+        }}
       >
-        {icon}
-      </span>
-      <span className="whitespace-nowrap overflow-hidden text-ellipsis">
         {label}
       </span>
     </>
   );
-  const baseClass =
-    "flex items-center gap-2.5 px-3 py-2.75 rounded-2xl text-sm transition no-underline mb-0.5 cursor-pointer";
-  const classes = active
-    ? `${baseClass} font-semibold bg-gradient-to-r from-blue-900 to-teal-600 text-white shadow-md`
-    : hovered
-      ? `${baseClass} font-medium text-slate-900 bg-emerald-50`
-      : `${baseClass} font-medium text-slate-700 hover:bg-slate-50`;
 
-  if (to === "#")
+  if (to === "#") {
     return (
       <a
         href="#"
-        className={classes}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
+        className={baseClass}
+        style={{ 
+          ...collapsedStyle,
+          ...(active ? activeStyle : inactiveStyle)
+        }}
         onClick={(e) => e.preventDefault()}
+        onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "#f1f5f9"; }}
+        onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+        title={collapsed ? label : undefined}
       >
         {content}
       </a>
     );
+  }
   return (
     <Link
       to={to}
-      className={classes}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      className={baseClass}
+      style={{ 
+        ...collapsedStyle,
+        ...(active ? activeStyle : inactiveStyle)
+      }}
+      onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "#f1f5f9"; }}
+      onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+      title={collapsed ? label : undefined}
     >
       {content}
     </Link>

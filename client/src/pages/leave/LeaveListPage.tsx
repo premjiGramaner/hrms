@@ -415,7 +415,7 @@ export default function LeaveListPage() {
                   onChange={(e) => setForm((p) => ({ ...p, only_subordinates: e.target.checked }))}
                   className="w-4 h-4 accent-blue-900"
                 />
-                Only Show My Subordinates' Leave
+                Only Show My Subordinate's Leave
               </label>
             )}
           </div>

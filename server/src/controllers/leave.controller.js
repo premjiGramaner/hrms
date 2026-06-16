@@ -164,14 +164,23 @@ const approveLeave = async (req, res, next) => {
     const id = parseInt(req.params.id);
     const leave = await LeaveModel.findLeaveById(id);
     if (!leave) return error(res, 'Leave request not found', 404);
-    
+
+    const requesterId = leave.employee_id;
+    const actorId = req.user.id;
+    const actorRole = req.user.role;
+
+    if (actorRole === 'employee') {
+      return error(res, 'Employees cannot approve leave requests', 403);
+    }
+    if (actorId > 0 && requesterId === actorId) {
+      return error(res, 'You cannot approve your own leave request', 403);
+    }
     if (leave.status === 'Cancelled') {
       return error(res, 'Cannot approve a cancelled leave', 400);
     }
 
     const wasApproved = ['Approved', 'Taken'].includes(leave.status);
-
-    const approved = await LeaveModel.approveLeave(id, req.user.id);
+    const approved = await LeaveModel.approveLeave(id, actorId);
     if (!approved) return error(res, 'Failed to approve leave', 500);
 
     if (!wasApproved) {
@@ -182,8 +191,7 @@ const approveLeave = async (req, res, next) => {
           approved.leave_year,
           approved.requested_days
         );
-      } catch {
-      }
+      } catch {}
     }
 
     return success(res, { message: 'Leave approved successfully' });
@@ -199,7 +207,16 @@ const rejectLeave = async (req, res, next) => {
 
     const leave = await LeaveModel.findLeaveById(id);
     if (!leave) return error(res, 'Leave request not found', 404);
-    
+
+    const actorId = req.user.id;
+    const actorRole = req.user.role;
+
+    if (actorRole === 'employee') {
+      return error(res, 'Employees cannot reject leave requests', 403);
+    }
+    if (actorId > 0 && leave.employee_id === actorId) {
+      return error(res, 'You cannot reject your own leave request', 403);
+    }
     if (leave.status === 'Cancelled') {
       return error(res, 'Cannot reject a cancelled leave', 400);
     }
@@ -207,17 +224,11 @@ const rejectLeave = async (req, res, next) => {
     if (['Approved', 'Taken'].includes(leave.status)) {
       try {
         const year = new Date(leave.start_date).getFullYear();
-        await LeaveModel.restoreLeaveBalance(
-          leave.employee_id,
-          leave.leave_type_id,
-          year,
-          leave.requested_days
-        );
-      } catch {
-      }
+        await LeaveModel.restoreLeaveBalance(leave.employee_id, leave.leave_type_id, year, leave.requested_days);
+      } catch {}
     }
 
-    await LeaveModel.rejectLeave(id, req.user.id, rejection_reason);
+    await LeaveModel.rejectLeave(id, actorId, rejection_reason);
     return success(res, { message: 'Leave rejected successfully' });
   } catch (err) {
     next(err);

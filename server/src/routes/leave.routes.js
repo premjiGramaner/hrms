@@ -1,10 +1,11 @@
 ﻿import { Router } from 'express';
-import { authenticate, requireRole } from '../middleware/auth.middleware.js';
+import { authenticate } from '../middleware/auth.middleware.js';
 import validate from '../middleware/validate.middleware.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { requireRole } from '../middleware/auth.middleware.js';
 import { leaveRequestSchema, rejectLeaveSchema } from '../validators/leave.validator.js';
 import {
   getLeaveTypes,
@@ -35,7 +36,7 @@ const attachmentUpload = multer({
       cb(null, `leave-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
     },
   }),
-  limits: { fileSize: 5 * 1024 * 1024 },   // 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = /\.(jpg|jpeg|png|gif|pdf|doc|docx|xlsx|xls)$/i;
     if (allowed.test(file.originalname)) return cb(null, true);
@@ -57,13 +58,11 @@ router.get('/',  listLeaves);
 router.post('/', validate(leaveRequestSchema), createLeave);
 
 router.get('/:id/details', getLeaveDetails);
-
 router.post('/:id/attachment', attachmentUpload.single('file'), uploadLeaveAttachment);
-
 router.get('/:id', getLeave);
 
-router.post('/:id/approve', requireRole('empmanager', 'hradmin'), approveLeave);
-router.post('/:id/reject',  requireRole('empmanager', 'hradmin'), validate(rejectLeaveSchema), rejectLeave);
+router.post('/:id/approve', approveLeave);
+router.post('/:id/reject',  validate(rejectLeaveSchema), rejectLeave);
 router.post('/:id/cancel',  cancelLeave);
 
 export default router;
