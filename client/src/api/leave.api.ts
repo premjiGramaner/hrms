@@ -33,13 +33,6 @@ export const getLeaveBalance = async (employeeId?: number, year?: number) => {
   return res.data.data;
 };
 
-export const searchEmployeesSuggestions = async (q: string) => {
-  const res = await api.get<{
-    success: boolean;
-    data: { id: number; employee_id: string; name: string }[];
-  }>(`/leaves/employees/search?q=${encodeURIComponent(q)}`);
-  return res.data.data;
-};
 
 export const getLeaves = async (filters: LeaveFilters = {}) => {
   const qs = toQueryString(filters as Record<string, unknown>);

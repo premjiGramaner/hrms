@@ -367,18 +367,6 @@ async function getLeavesDetailForExport(filters = {}) {
   return rows;
 }
 
-async function searchEmployees(q) {
-  const { rows } = await pool.query(
-    `SELECT id, employee_id, name, job_title, sub_unit, location
-     FROM tbl_appusers
-     WHERE is_deleted = FALSE AND is_active = TRUE
-       AND (name ILIKE $1 OR employee_id ILIKE $1)
-     ORDER BY name
-     LIMIT 10`,
-    [`%${q}%`]
-  );
-  return rows;
-}
 
 export {
   findAllLeaveTypes,
@@ -396,5 +384,4 @@ export {
   cancelLeave,
   getLeavesSummaryForExport,
   getLeavesDetailForExport,
-  searchEmployees,
 };

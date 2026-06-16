@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchLeaves, setFilters, resetFilters } from "../../store/leaveSlice";
+import { fetchLeaves, setFilters } from "../../store/leaveSlice";
 import {
   getLeaveTypes,
   approveLeave,

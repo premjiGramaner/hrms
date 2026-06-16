@@ -10,7 +10,6 @@ import { leaveRequestSchema, rejectLeaveSchema } from '../validators/leave.valid
 import {
   getLeaveTypes,
   getLeaveBalance,
-  searchEmployees,
   listLeaves,
   getLeave,
   getLeaveDetails,
@@ -47,9 +46,8 @@ const attachmentUpload = multer({
 const router = Router();
 router.use(authenticate);
 
-router.get('/types',             getLeaveTypes);
-router.get('/balance',           getLeaveBalance);
-router.get('/employees/search',  searchEmployees);
+router.get('/types',   getLeaveTypes);
+router.get('/balance', getLeaveBalance);
 
 router.get('/export/summary', requireRole('empmanager', 'hradmin'), exportSummary);
 router.get('/export/detail',  requireRole('empmanager', 'hradmin'), exportDetail);

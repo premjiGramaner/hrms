@@ -27,16 +27,6 @@ const getLeaveBalance = async (req, res, next) => {
   }
 };
 
-const searchEmployees = async (req, res, next) => {
-  try {
-    const q = String(req.query.q || '').trim();
-    if (!q) return success(res, []);
-    const employees = await LeaveModel.searchEmployees(q);
-    return success(res, employees);
-  } catch (err) {
-    next(err);
-  }
-};
 
 const listLeaves = async (req, res, next) => {
   try {
@@ -490,7 +480,6 @@ const exportDetail = async (req, res, next) => {
 export {
   getLeaveTypes,
   getLeaveBalance,
-  searchEmployees,
   listLeaves,
   getLeave,
   getLeaveDetails,
