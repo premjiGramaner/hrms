@@ -48,13 +48,13 @@ function EmployeeAutocomplete({
   }, [query]);
 
   useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   const handleSelect = (emp: EmployeeOption) => {
@@ -69,7 +69,7 @@ function EmployeeAutocomplete({
         <input
           type="text"
           value={query}
-          onChange={(e) => { setQuery(e.target.value); if (!e.target.value) onClear(); }}
+          onChange={(event) => { setQuery(event.target.value); if (!event.target.value) onClear(); }}
           placeholder="Type for hints…"
           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition pr-8"
         />
@@ -133,7 +133,7 @@ export default function EntitlementListPage() {
   const [searched, setSearched] = useState(false); // true after first Search click
 
   useEffect(() => {
-    getEntitlementLeaveTypes().then(setLeaveTypes).catch(() => {});
+    getEntitlementLeaveTypes().then(setLeaveTypes).catch(() => { });
   }, []);
 
   const fetchRecords = async (p: number) => {
@@ -149,8 +149,8 @@ export default function EntitlementListPage() {
       setTotal(res.total);
       setTotalPages(res.totalPages);
       setPage(p);
-    } catch (e) {
-      addToast(getApiErrorMessage(e, "Failed to load entitlements."), "error");
+    } catch (err) {
+      addToast(getApiErrorMessage(err, "Failed to load entitlements."), "error");
       setRecords([]);
       setTotal(0);
     } finally {
@@ -214,7 +214,7 @@ export default function EntitlementListPage() {
               <div className="relative">
                 <select
                   value={leaveTypeId}
-                  onChange={(e) => setLeaveTypeId(e.target.value)}
+                  onChange={(event) => setLeaveTypeId(event.target.value)}
                   className={selectCls}
                 >
                   <option value="">All</option>
@@ -260,8 +260,8 @@ export default function EntitlementListPage() {
             {!searched
               ? "Use the filters above and click Search"
               : loading
-              ? "Loading…"
-              : `${total} record${total !== 1 ? "s" : ""} found`}
+                ? "Loading…"
+                : `${total} record${total !== 1 ? "s" : ""} found`}
           </span>
         </div>
 
@@ -270,20 +270,11 @@ export default function EntitlementListPage() {
             <thead>
               <tr className="bg-slate-50 border-b-2 border-slate-100">
                 {[
-                  "Employee ID",
-                  "Employee Name",
-                  "Leave Type",
-                  "Leave Period (Year)",
-                  "Total Days",
-                  "Used Days",
-                  "Carried Days",
-                  "Available Balance",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-2.5 text-left text-xs font-bold text-slate-600 whitespace-nowrap"
-                  >
-                    {h}
+                  "Employee ID", "Employee Name", "Leave Type",
+                  "Leave Period (Year)", "Total Days", "Used Days", "Carried Days", "Available Balance",
+                ].map((heading) => (
+                  <th key={heading} className="px-4 py-2.5 text-left text-xs font-bold text-slate-600 whitespace-nowrap">
+                    {heading}
                   </th>
                 ))}
               </tr>
@@ -322,38 +313,37 @@ export default function EntitlementListPage() {
               )}
 
               {!loading &&
-                records.map((r, i) => (
+                records.map((record, rowIndex) => (
                   <tr
-                    key={r.id}
-                    className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors ${
-                      i % 2 === 0 ? "bg-white" : "bg-slate-50"
-                    }`}
+                    key={record.id}
+                    className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors ${rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
+                      }`}
                   >
                     <td className="px-4 py-3 text-xs font-mono text-slate-600">
-                      {r.emp_code || "—"}
+                      {record.emp_code || "—"}
                     </td>
                     <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
-                      {r.employee_name}
+                      {record.employee_name}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-700">{r.leave_type_name}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600 text-center">{r.year}</td>
+                    <td className="px-4 py-3 text-xs text-slate-700">{record.leave_type_name}</td>
+                    <td className="px-4 py-3 text-xs text-slate-600 text-center">{record.year}</td>
                     <td className="px-4 py-3 text-xs font-semibold text-blue-700 text-center">
-                      {Number(r.total_days).toFixed(1)}
+                      {Number(record.total_days).toFixed(1)}
                     </td>
                     <td className="px-4 py-3 text-xs text-amber-700 text-center">
-                      {Number(r.used_days).toFixed(1)}
+                      {Number(record.used_days).toFixed(1)}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-600 text-center">
-                      {Number(r.carried_days).toFixed(1)}
+                      {Number(record.carried_days).toFixed(1)}
                     </td>
                     <td className="px-4 py-3 text-xs text-center">
                       <span
                         className={`inline-block font-bold px-2.5 py-0.5 rounded-full text-xs
-                          ${Number(r.net_balance) > 0
+                          ${Number(record.net_balance) > 0
                             ? "bg-green-50 text-green-700 border border-green-200"
                             : "bg-red-50 text-red-600 border border-red-200"}`}
                       >
-                        {Number(r.net_balance).toFixed(1)}
+                        {Number(record.net_balance).toFixed(1)}
                       </span>
                     </td>
                   </tr>
@@ -365,7 +355,7 @@ export default function EntitlementListPage() {
         {searched && totalPages > 1 && (
           <div className="px-5 py-3 border-t border-slate-100 flex items-center gap-3 text-sm text-slate-600">
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page <= 1 || loading}
               className="px-4 py-1.5 rounded border border-slate-200 bg-white cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
             >
@@ -375,7 +365,7 @@ export default function EntitlementListPage() {
               Page {page} of {totalPages} · {total} records
             </span>
             <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page >= totalPages || loading}
               className="px-4 py-1.5 rounded border border-slate-200 bg-white cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
             >

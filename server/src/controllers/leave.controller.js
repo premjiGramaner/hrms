@@ -30,32 +30,32 @@ const getLeaveBalance = async (req, res, next) => {
 
 const listLeaves = async (req, res, next) => {
   try {
-    const page  = Math.max(1, parseInt(req.query.page) || 1);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
-    const role  = req.user.role;
+    const role = req.user.role;
 
     const filters = {
-      from_date:         req.query.from_date         || null,
-      to_date:           req.query.to_date           || null,
-      employee_id:       req.query.employee_id       || null,
-      employee_name:     req.query.employee_name     || null,
-      sub_unit:          req.query.sub_unit          || null,
-      location:          req.query.location          || null,
-      leave_type_id:     req.query.leave_type_id     ? parseInt(req.query.leave_type_id) : null,
-      job_title:         req.query.job_title         || null,
+      from_date: req.query.from_date || null,
+      to_date: req.query.to_date || null,
+      employee_id: req.query.employee_id || null,
+      employee_name: req.query.employee_name || null,
+      sub_unit: req.query.sub_unit || null,
+      location: req.query.location || null,
+      leave_type_id: req.query.leave_type_id ? parseInt(req.query.leave_type_id) : null,
+      job_title: req.query.job_title || null,
       employment_status: req.query.employment_status || null,
-      job_category:      req.query.job_category      || null,
+      job_category: req.query.job_category || null,
       attachment_status: req.query.attachment_status || null,
-      include_past:      req.query.include_past === 'true',
+      include_past: req.query.include_past === 'true',
       only_subordinates: req.query.only_subordinates === 'true',
-      supervisor_id:     req.user.id,
+      supervisor_id: req.user.id,
     };
 
     const rawStatuses = req.query.statuses;
     if (rawStatuses) {
       filters.statuses = Array.isArray(rawStatuses)
         ? rawStatuses
-        : String(rawStatuses).split(',').map(s => s.trim()).filter(Boolean);
+        : String(rawStatuses).split(',').map(statusItem => statusItem.trim()).filter(Boolean);
     }
 
     if (role === 'employee') {
@@ -181,7 +181,7 @@ const approveLeave = async (req, res, next) => {
           approved.leave_year,
           approved.requested_days
         );
-      } catch {}
+      } catch { }
     }
 
     return success(res, { message: 'Leave approved successfully' });
@@ -215,7 +215,7 @@ const rejectLeave = async (req, res, next) => {
       try {
         const year = new Date(leave.start_date).getFullYear();
         await LeaveModel.restoreLeaveBalance(leave.employee_id, leave.leave_type_id, year, leave.requested_days);
-      } catch {}
+      } catch { }
     }
 
     await LeaveModel.rejectLeave(id, actorId, rejection_reason);
@@ -261,21 +261,21 @@ const cancelLeave = async (req, res, next) => {
 
 function buildExportFilters(query, userId, role) {
   const filters = {
-    from_date:         query.from_date         || null,
-    to_date:           query.to_date           || null,
-    sub_unit:          query.sub_unit          || null,
-    location:          query.location          || null,
-    leave_type_id:     query.leave_type_id     ? parseInt(query.leave_type_id) : null,
-    job_title:         query.job_title         || null,
+    from_date: query.from_date || null,
+    to_date: query.to_date || null,
+    sub_unit: query.sub_unit || null,
+    location: query.location || null,
+    leave_type_id: query.leave_type_id ? parseInt(query.leave_type_id) : null,
+    job_title: query.job_title || null,
     employment_status: query.employment_status || null,
-    job_category:      query.job_category      || null,
+    job_category: query.job_category || null,
     attachment_status: query.attachment_status || null,
-    include_past:      query.include_past === 'true',
+    include_past: query.include_past === 'true',
   };
   if (query.statuses) {
     filters.statuses = Array.isArray(query.statuses)
       ? query.statuses
-      : String(query.statuses).split(',').map(s => s.trim()).filter(Boolean);
+      : String(query.statuses).split(',').map(statusItem => statusItem.trim()).filter(Boolean);
   }
   if (role === 'employee') {
     filters.own_employee_id = userId;
@@ -324,13 +324,13 @@ const exportSummary = async (req, res, next) => {
     headerRow.height = 20;
 
     ws.columns = [
-      { key: 'employee_id',   width: 14 },
+      { key: 'employee_id', width: 14 },
       { key: 'employee_name', width: 24 },
-      { key: 'leave_type',    width: 22 },
-      { key: 'total_requests',width: 14 },
-      { key: 'total_days',    width: 12 },
+      { key: 'leave_type', width: 22 },
+      { key: 'total_requests', width: 14 },
+      { key: 'total_days', width: 12 },
       { key: 'approved_days', width: 14 },
-      { key: 'pending_days',  width: 13 },
+      { key: 'pending_days', width: 13 },
       { key: 'rejected_days', width: 13 },
     ];
 
@@ -414,24 +414,24 @@ const exportDetail = async (req, res, next) => {
     headerRow.height = 20;
 
     ws.columns = [
-      { key: 'employee_id',   width: 14 },
+      { key: 'employee_id', width: 14 },
       { key: 'employee_name', width: 24 },
-      { key: 'leave_type',    width: 22 },
-      { key: 'start_date',    width: 13 },
-      { key: 'end_date',      width: 13 },
-      { key: 'days',          width: 8  },
-      { key: 'applied_on',    width: 14 },
-      { key: 'status',        width: 18 },
-      { key: 'reason',        width: 30 },
+      { key: 'leave_type', width: 22 },
+      { key: 'start_date', width: 13 },
+      { key: 'end_date', width: 13 },
+      { key: 'days', width: 8 },
+      { key: 'applied_on', width: 14 },
+      { key: 'status', width: 18 },
+      { key: 'reason', width: 30 },
     ];
 
     const statusColors = {
-      'Approved':        'FF16A085',
-      'Pending Approval':'FFD97706',
-      'Rejected':        'FFE53E3E',
-      'Cancelled':       'FF94A3B8',
-      'Scheduled':       'FF3B82F6',
-      'Taken':           'FF7C3AED',
+      'Approved': 'FF16A085',
+      'Pending Approval': 'FFD97706',
+      'Rejected': 'FFE53E3E',
+      'Cancelled': 'FF94A3B8',
+      'Scheduled': 'FF3B82F6',
+      'Taken': 'FF7C3AED',
     };
 
     rows.forEach((row, idx) => {

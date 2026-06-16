@@ -84,7 +84,7 @@ export default function HRUsersPage() {
             type="text"
             placeholder="Search users…"
             value={search}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(event) => handleSearch(event.target.value)}
             style={{
               width: "100%",
               padding: "9px 12px 9px 34px",
@@ -113,18 +113,9 @@ export default function HRUsersPage() {
         >
           <thead>
             <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
-              {[
-                "",
-                "",
-                "Username ↑",
-                "User Role(s)",
-                "Employee Name",
-                "Status",
-                "Regions",
-                "",
-              ].map((h, i) => (
+              {["", "", "Username ↑", "User Role(s)", "Employee Name", "Status", "Regions", ""].map((heading, index) => (
                 <th
-                  key={i}
+                  key={index}
                   style={{
                     padding: "12px 16px",
                     textAlign: "left",
@@ -134,13 +125,13 @@ export default function HRUsersPage() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {i === 1 ? (
+                  {index === 1 ? (
                     <input
                       type="checkbox"
                       style={{ accentColor: "#1b2a6b", width: 14, height: 14 }}
                     />
                   ) : (
-                    h
+                    heading
                   )}
                 </th>
               ))}
@@ -168,12 +159,12 @@ export default function HRUsersPage() {
               </tr>
             )}
             {!loading &&
-              filtered.map((user, i) => (
+              filtered.map((user, rowIndex) => (
                 <tr
                   key={user.id}
                   style={{
                     borderBottom: "1px solid #f8fafc",
-                    background: i % 2 === 0 ? "#fff" : "#fafbff",
+                    background: rowIndex % 2 === 0 ? "#fff" : "#fafbff",
                   }}
                 >
                   <td style={{ padding: "12px 16px" }}></td>
@@ -284,7 +275,7 @@ export function AddUserModal({
   ) => (
     <input
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       style={{
         width: "100%",
@@ -307,7 +298,7 @@ export function AddUserModal({
     <div style={{ position: "relative" }}>
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         style={{
           width: "100%",
           padding: "10px 32px 10px 12px",
@@ -354,7 +345,7 @@ export function AddUserModal({
         zIndex: 200,
         padding: 16,
       }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(event) => event.target === event.currentTarget && onClose()}
     >
       <div
         style={{
@@ -512,8 +503,8 @@ export function AddUserModal({
             <input
               type="checkbox"
               checked={form.set_password}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, set_password: e.target.checked }))
+              onChange={(event) =>
+                setForm((formState) => ({ ...formState, set_password: event.target.checked }))
               }
               style={{ accentColor: "#1b2a6b", width: 15, height: 15 }}
             />

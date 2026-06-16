@@ -46,7 +46,7 @@ export default function Layout({
   const role = user?.role || "employee";
   const username = user?.name || user?.username || "User";
   const roleLabel =
-    role === "empmanager"? "Employee Manager": role === "hradmin"? "HR Administrator": "Employee";
+    role === "empmanager" ? "Employee Manager" : role === "hradmin" ? "HR Administrator" : "Employee";
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -66,10 +66,10 @@ export default function Layout({
     ...(role === "hradmin" || role === "empmanager"
       ? [{ to: "/hradmin/users", label: "HR Administration", icon: <IconBuilding /> }]
       : []),
-    { to: "/employees",           label: "Employee Management",  icon: <IconPeople /> },
-    { to: "#",                    label: "Reports and Analytics", icon: <IconChart /> },
-    { to: "/leave/view_leave_list", label: "Leave",              icon: <IconCalendar /> },
-    { to: "#",                    label: "Performance",          icon: <IconBriefcase /> },
+    { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
+    { to: "#", label: "Reports and Analytics", icon: <IconChart /> },
+    { to: "/leave/view_leave_list", label: "Leave", icon: <IconCalendar /> },
+    { to: "#", label: "Performance", icon: <IconBriefcase /> },
   ];
 
   return (
@@ -77,7 +77,7 @@ export default function Layout({
       {/* ── Sidebar ───────────────────────────────────────────── */}
       <div className="relative">
         <aside
-          style={{ 
+          style={{
             width: collapsed ? 72 : 230,
             transition: "width 250ms ease-in-out"
           }}
@@ -85,10 +85,10 @@ export default function Layout({
         >
           {/* Logo - Fixed at top */}
           <div className="px-6 py-3 border-b border-slate-100 flex items-center justify-center flex-shrink-0 min-h-[80px]">
-            <img 
-              src={cannyforeLogo} 
-              alt="Cannyfore" 
-              className="h-10 max-w-[9rem] object-contain" 
+            <img
+              src={cannyforeLogo}
+              alt="Cannyfore"
+              className="h-10 max-w-[9rem] object-contain"
               style={{
                 opacity: collapsed ? 0 : 1,
                 transition: "opacity 250ms ease-in-out"
@@ -97,7 +97,7 @@ export default function Layout({
           </div>
 
           {/* Profile */}
-          <div 
+          <div
             className="px-4 flex flex-col items-center text-center flex-shrink-0 border-b border-slate-100 overflow-hidden"
             style={{
               maxHeight: collapsed ? 0 : "180px",
@@ -122,7 +122,7 @@ export default function Layout({
           </div>
 
           {/* Search */}
-          <div 
+          <div
             className="px-3 flex-shrink-0 border-b border-slate-100 overflow-hidden"
             style={{
               maxHeight: collapsed ? 0 : "56px",
@@ -174,7 +174,7 @@ export default function Layout({
             transition: "background-color 250ms ease-in-out"
           }}
         >
-          <span style={{ 
+          <span style={{
             display: "inline-block",
             transition: "transform 250ms ease-in-out",
             transform: collapsed ? "rotate(180deg)" : "rotate(0deg)"
@@ -211,20 +211,19 @@ export default function Layout({
               <IconHome size={15} color="#64748b" />
             </Link>
 
-            {tabs.map((t) => {
+            {tabs.map((tab) => {
               const isActiveTab =
-                activeTab === t.label || location.pathname === t.path;
+                activeTab === tab.label || location.pathname === tab.path;
               return (
                 <Link
-                  key={t.label}
-                  to={t.path}
-                  className={`px-4 py-1.75 rounded-full text-sm no-underline whitespace-nowrap flex-shrink-0 transition ${
-                    isActiveTab
+                  key={tab.label}
+                  to={tab.path}
+                  className={`px-4 py-1.75 rounded-full text-sm no-underline whitespace-nowrap flex-shrink-0 transition ${isActiveTab
                       ? "font-semibold text-amber-700 bg-orange-100"
                       : "font-medium text-slate-600 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
-                  {t.label}
+                  {tab.label}
                 </Link>
               );
             })}
@@ -300,7 +299,7 @@ function NavItem({
   const content = (
     <>
       <span className="flex items-center flex-shrink-0 min-w-fit">{icon}</span>
-      <span 
+      <span
         className="whitespace-nowrap overflow-hidden text-ellipsis leading-snug"
         style={{
           opacity: collapsed ? 0 : 1,
@@ -318,13 +317,13 @@ function NavItem({
       <a
         href="#"
         className={baseClass}
-        style={{ 
+        style={{
           ...collapsedStyle,
           ...(active ? activeStyle : inactiveStyle)
         }}
-        onClick={(e) => e.preventDefault()}
-        onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "#f1f5f9"; }}
-        onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+        onClick={(event) => event.preventDefault()}
+        onMouseEnter={(event) => { if (!active) (event.currentTarget as HTMLElement).style.background = "#f1f5f9"; }}
+        onMouseLeave={(event) => { if (!active) (event.currentTarget as HTMLElement).style.background = "transparent"; }}
         title={collapsed ? label : undefined}
       >
         {content}
@@ -335,12 +334,12 @@ function NavItem({
     <Link
       to={to}
       className={baseClass}
-      style={{ 
+      style={{
         ...collapsedStyle,
         ...(active ? activeStyle : inactiveStyle)
       }}
-      onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "#f1f5f9"; }}
-      onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+      onMouseEnter={(event) => { if (!active) (event.currentTarget as HTMLElement).style.background = "#f1f5f9"; }}
+      onMouseLeave={(event) => { if (!active) (event.currentTarget as HTMLElement).style.background = "transparent"; }}
       title={collapsed ? label : undefined}
     >
       {content}
@@ -358,11 +357,10 @@ function TabIconBtn({
   return (
     <button
       type="button"
-      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${
-        dark
+      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${dark
           ? "bg-blue-900 text-white hover:bg-blue-800"
           : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
-      }`}
+        }`}
     >
       {children}
     </button>

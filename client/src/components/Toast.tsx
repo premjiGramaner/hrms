@@ -16,8 +16,8 @@ interface Props {
 export default function Toast({ toasts, onRemove }: Props) {
   return (
     <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
-      {toasts.map((t) => (
-        <ToastItem key={t.id} toast={t} onRemove={onRemove} />
+      {toasts.map((toast) => (
+        <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
     </div>
   );
@@ -62,7 +62,6 @@ function ToastItem({
   );
 }
 
-// Simple hook for toast management
 export function useToast() {
   const [toasts, setToasts] = React.useState<ToastMessage[]>([]);
   let nextId = React.useRef(0);
@@ -73,7 +72,7 @@ export function useToast() {
   };
 
   const removeToast = (id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
   return { toasts, addToast, removeToast };

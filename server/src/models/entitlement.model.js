@@ -1,7 +1,7 @@
 ﻿import pool from '../config/db.js';
 
-async function findActiveEmployees(q = '') {
-  const trimmed = q.trim();
+async function findActiveEmployees(searchQuery = '') {
+  const trimmed = searchQuery.trim();
   if (trimmed === '') {
     const { rows } = await pool.query(
       `SELECT id, employee_id, name, job_title, sub_unit, location
@@ -117,11 +117,11 @@ async function findMyEntitlements(employeeId) {
 async function findEntitlements({ employee_id, leave_type_id, year, page = 1, limit = 20 }) {
   const conditions = ['e.is_deleted = FALSE'];
   const values = [];
-  let i = 1;
+  let paramIndex = 1;
 
-  if (employee_id) { conditions.push(`e.employee_id = $${i++}`); values.push(employee_id); }
-  if (leave_type_id) { conditions.push(`e.leave_type_id = $${i++}`); values.push(leave_type_id); }
-  if (year) { conditions.push(`e.year = $${i++}`); values.push(year); }
+  if (employee_id) { conditions.push(`e.employee_id = $${paramIndex++}`); values.push(employee_id); }
+  if (leave_type_id) { conditions.push(`e.leave_type_id = $${paramIndex++}`); values.push(leave_type_id); }
+  if (year) { conditions.push(`e.year = $${paramIndex++}`); values.push(year); }
 
   const clause = conditions.join(' AND ');
   const offset = (page - 1) * limit;
@@ -138,7 +138,7 @@ async function findEntitlements({ employee_id, leave_type_id, year, page = 1, li
        JOIN tbl_leave_types lt ON lt.id = e.leave_type_id
        WHERE ${clause}
        ORDER BY u.name, lt.name
-       LIMIT $${i++} OFFSET $${i++}`,
+       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
       [...values, limit, offset]
     ),
     pool.query(

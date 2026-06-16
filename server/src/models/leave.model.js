@@ -36,8 +36,8 @@ async function getNetBalance(employeeId, leaveTypeId, year) {
 }
 
 async function deductLeaveBalance(employeeId, leaveTypeId, year, days, client) {
-  const q = client || pool;
-  await q.query(
+  const db = client || pool;
+  await db.query(
     `UPDATE tbl_leave_entitlements
      SET used_days = used_days + $1, updated_at = NOW()
      WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4 AND is_deleted = FALSE`,
@@ -46,8 +46,8 @@ async function deductLeaveBalance(employeeId, leaveTypeId, year, days, client) {
 }
 
 async function restoreLeaveBalance(employeeId, leaveTypeId, year, days, client) {
-  const q = client || pool;
-  await q.query(
+  const db = client || pool;
+  await db.query(
     `UPDATE tbl_leave_entitlements
      SET used_days = GREATEST(0, used_days - $1), updated_at = NOW()
      WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4 AND is_deleted = FALSE`,
@@ -58,70 +58,70 @@ async function restoreLeaveBalance(employeeId, leaveTypeId, year, days, client) 
 function buildFilters(filters, startIndex = 1) {
   const conditions = ['lr.is_deleted = FALSE'];
   const values = [];
-  let i = startIndex;
+  let paramIndex = startIndex;
 
   if (filters.from_date) {
-    conditions.push(`lr.end_date >= $${i++}`);
+    conditions.push(`lr.end_date >= $${paramIndex++}`);
     values.push(filters.from_date);
   }
   if (filters.to_date) {
-    conditions.push(`lr.start_date <= $${i++}`);
+    conditions.push(`lr.start_date <= $${paramIndex++}`);
     values.push(filters.to_date);
   }
   if (filters.employee_id) {
-    conditions.push(`u.employee_id ILIKE $${i++}`);
+    conditions.push(`u.employee_id ILIKE $${paramIndex++}`);
     values.push(`%${filters.employee_id}%`);
   }
   if (filters.employee_name) {
-    conditions.push(`u.name ILIKE $${i++}`);
+    conditions.push(`u.name ILIKE $${paramIndex++}`);
     values.push(`%${filters.employee_name}%`);
   }
   if (filters.sub_unit) {
-    conditions.push(`u.sub_unit = $${i++}`);
+    conditions.push(`u.sub_unit = $${paramIndex++}`);
     values.push(filters.sub_unit);
   }
   if (filters.location) {
-    conditions.push(`u.location = $${i++}`);
+    conditions.push(`u.location = $${paramIndex++}`);
     values.push(filters.location);
   }
   if (filters.leave_type_id) {
-    conditions.push(`lr.leave_type_id = $${i++}`);
+    conditions.push(`lr.leave_type_id = $${paramIndex++}`);
     values.push(filters.leave_type_id);
   }
   if (filters.job_title) {
-    conditions.push(`u.job_title = $${i++}`);
+    conditions.push(`u.job_title = $${paramIndex++}`);
     values.push(filters.job_title);
   }
   if (filters.employment_status) {
-    conditions.push(`u.employment_status = $${i++}`);
+    conditions.push(`u.employment_status = $${paramIndex++}`);
     values.push(filters.employment_status);
   }
   if (filters.job_category) {
-    conditions.push(`u.job_category = $${i++}`);
+    conditions.push(`u.job_category = $${paramIndex++}`);
     values.push(filters.job_category);
   }
   if (filters.attachment_status) {
-    conditions.push(`lr.attachment_status = $${i++}`);
+    conditions.push(`lr.attachment_status = $${paramIndex++}`);
     values.push(filters.attachment_status);
   }
   if (filters.include_past === false || filters.include_past === 'false') {
     conditions.push(`u.is_active = TRUE`);
   }
   if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
-    const placeholders = filters.statuses.map(() => `$${i++}`).join(', ');
+    const placeholders = filters.statuses.map(() => `$${paramIndex++}`).join(', ');
     conditions.push(`lr.status IN (${placeholders})`);
     values.push(...filters.statuses);
   }
   if (filters.only_subordinates && filters.supervisor_id) {
-    conditions.push(`u.supervisors @> $${i++}::jsonb`);
+    conditions.push(`u.supervisors @> $${paramIndex++}::jsonb`);
     values.push(JSON.stringify([filters.supervisor_id]));
   }
   if (filters.own_employee_id) {
-    conditions.push(`lr.employee_id = $${i++}`);
+    conditions.push(`lr.employee_id = $${paramIndex++}`);
     values.push(filters.own_employee_id);
   }
 
-  return { clause: conditions.join(' AND '), values, nextIndex: i };
+  return { clause: conditions.join(' AND '), values, nextIndex: paramIndex };
 }
 
 async function findLeaveRequests(filters = {}, page = 1, limit = 15) {

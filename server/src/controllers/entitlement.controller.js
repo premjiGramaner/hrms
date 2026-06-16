@@ -3,8 +3,8 @@ import { success, created, error } from '../utils/response.js';
 
 const getEmployees = async (req, res, next) => {
   try {
-    const q = String(req.query.q || '').trim();
-    const employees = await EntitlementModel.findActiveEmployees(q);
+    const searchQuery = String(req.query.q || '').trim();
+    const employees = await EntitlementModel.findActiveEmployees(searchQuery);
     return success(res, employees);
   } catch (err) {
     next(err);

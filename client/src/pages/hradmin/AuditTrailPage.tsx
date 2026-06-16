@@ -65,7 +65,7 @@ export default function AuditTrailPage() {
           type="text"
           placeholder="Search audit trail…"
           value={search}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(event) => handleSearch(event.target.value)}
           className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm outline-none focus:border-teal-400"
         />
       </div>

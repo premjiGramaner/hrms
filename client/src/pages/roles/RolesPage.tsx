@@ -54,12 +54,12 @@ export default function RolesPage() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-100">
-              {ROLE_TABLE_HEADERS.map((header, i) => (
+            {ROLE_TABLE_HEADERS.map((header, index) => (
                 <th
-                  key={i}
+                  key={index}
                   className="px-4 py-3 text-left text-xs font-semibold text-slate-400 text-nowrap"
                 >
-                  {i === 0 ? (
+                  {index === 0 ? (
                     <input
                       type="checkbox"
                       className="w-3.5 h-3.5 accent-blue-900"
@@ -87,10 +87,10 @@ export default function RolesPage() {
               </tr>
             )}
             {!loading &&
-              roles.map((role, i) => (
+              roles.map((role, rowIndex) => (
                 <tr
                   key={role.id}
-                  className={`border-b border-slate-100 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
+                  className={`border-b border-slate-100 ${rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
                 >
                   <td className="px-4 py-3">
                     <input
@@ -178,8 +178,8 @@ function AddRoleModal({
       await createRole(form);
       onSaved();
       onClose();
-    } catch (e: unknown) {
-      setError(getApiErrorMessage(e, "Failed."));
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Failed."));
     } finally {
       setSaving(false);
     }
@@ -188,7 +188,7 @@ function AddRoleModal({
   return (
     <div
       className="fixed inset-0 bg-black/45 flex items-center justify-center z-50"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(event) => event.target === event.currentTarget && onClose()}
     >
       <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden">
         <div className="px-6 pt-5 pb-0 flex items-center justify-between">
@@ -214,10 +214,10 @@ function AddRoleModal({
               className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none bg-white focus:border-teal-600 focus:shadow-sm focus:shadow-teal-600/20 transition"
               placeholder="e.g. HR Admin"
               value={form.role_name}
-              onChange={(e) =>
+              onChange={(event) =>
                 setForm((formState) => ({
                   ...formState,
-                  role_name: e.target.value,
+                  role_name: event.target.value,
                 }))
               }
             />
@@ -231,10 +231,10 @@ function AddRoleModal({
                 <select
                   className="w-full px-3 py-2.5 pr-7 border border-slate-200 rounded-lg text-sm outline-none bg-white appearance-none focus:border-teal-600 focus:shadow-sm focus:shadow-teal-600/20 transition"
                   value={form.role_type}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setForm((formState) => ({
                       ...formState,
-                      role_type: e.target.value,
+                      role_type: event.target.value,
                     }))
                   }
                 >
@@ -255,10 +255,10 @@ function AddRoleModal({
               <input
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none bg-white focus:border-teal-600 focus:shadow-sm focus:shadow-teal-600/20 transition"
                 value={form.description}
-                onChange={(e) =>
+                onChange={(event) =>
                   setForm((formState) => ({
                     ...formState,
-                    description: e.target.value,
+                    description: event.target.value,
                   }))
                 }
               />

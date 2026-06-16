@@ -23,14 +23,14 @@ import {
 } from '../controllers/leave.controller.js';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const attachmentUpload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-    filename:    (_req, file, cb) => {
+    filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase().replace(/[^a-z0-9.]/g, '');
       cb(null, `leave-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
     },
@@ -46,13 +46,13 @@ const attachmentUpload = multer({
 const router = Router();
 router.use(authenticate);
 
-router.get('/types',   getLeaveTypes);
+router.get('/types', getLeaveTypes);
 router.get('/balance', getLeaveBalance);
 
 router.get('/export/summary', requireRole('empmanager', 'hradmin'), exportSummary);
-router.get('/export/detail',  requireRole('empmanager', 'hradmin'), exportDetail);
+router.get('/export/detail', requireRole('empmanager', 'hradmin'), exportDetail);
 
-router.get('/',  listLeaves);
+router.get('/', listLeaves);
 router.post('/', validate(leaveRequestSchema), createLeave);
 
 router.get('/:id/details', getLeaveDetails);
@@ -60,7 +60,7 @@ router.post('/:id/attachment', attachmentUpload.single('file'), uploadLeaveAttac
 router.get('/:id', getLeave);
 
 router.post('/:id/approve', approveLeave);
-router.post('/:id/reject',  validate(rejectLeaveSchema), rejectLeave);
-router.post('/:id/cancel',  cancelLeave);
+router.post('/:id/reject', validate(rejectLeaveSchema), rejectLeave);
+router.post('/:id/cancel', cancelLeave);
 
 export default router;

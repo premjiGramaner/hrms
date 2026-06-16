@@ -78,8 +78,8 @@ export const getEntitlementList = async (params: {
   limit?: number;
 }) => {
   const parts: string[] = [];
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== 0) parts.push(`${k}=${encodeURIComponent(String(v))}`);
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== 0) parts.push(`${key}=${encodeURIComponent(String(value))}`);
   }
   const qs = parts.length ? `?${parts.join("&")}` : "";
   const res = await api.get<{

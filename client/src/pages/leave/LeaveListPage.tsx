@@ -24,7 +24,7 @@ const ATTACH_STATUSES = ["Available", "Pending"];
 const STATUS_OPTIONS = ["Cancelled", "Pending Approval", "Scheduled", "Taken", "Rejected"];
 
 const YEAR_START = `${new Date().getFullYear()}-01-01`;
-const YEAR_END   = `${new Date().getFullYear()}-12-31`;
+const YEAR_END = `${new Date().getFullYear()}-12-31`;
 
 const EMPTY_FORM: LeaveFilters = {
   from_date: YEAR_START,
@@ -60,7 +60,7 @@ function RejectModal({ leaveId, onConfirm, onCancel }: RejectModalProps) {
         </label>
         <textarea
           value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          onChange={(event) => setReason(event.target.value)}
           rows={4}
           placeholder="Enter reason for rejection…"
           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-blue-400 transition"
@@ -88,11 +88,11 @@ function RejectModal({ leaveId, onConfirm, onCancel }: RejectModalProps) {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     "Pending Approval": "bg-amber-50 text-amber-700 border-amber-200",
-    "Approved":         "bg-green-50 text-green-700 border-green-200",
-    "Scheduled":        "bg-blue-50 text-blue-700 border-blue-200",
-    "Taken":            "bg-purple-50 text-purple-700 border-purple-200",
-    "Rejected":         "bg-red-50 text-red-700 border-red-200",
-    "Cancelled":        "bg-slate-100 text-slate-500 border-slate-200",
+    "Approved": "bg-green-50 text-green-700 border-green-200",
+    "Scheduled": "bg-blue-50 text-blue-700 border-blue-200",
+    "Taken": "bg-purple-50 text-purple-700 border-purple-200",
+    "Rejected": "bg-red-50 text-red-700 border-red-200",
+    "Cancelled": "bg-slate-100 text-slate-500 border-slate-200",
   };
   return (
     <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${map[status] || "bg-slate-50 text-slate-500 border-slate-200"}`}>
@@ -104,8 +104,8 @@ function StatusBadge({ status }: { status: string }) {
 export default function LeaveListPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { data, loading, filters } = useAppSelector((s) => s.leaves);
-  const user = useAppSelector((s) => s.auth.user);
+  const { data, loading, filters } = useAppSelector((state) => state.leaves);
+  const user = useAppSelector((state) => state.auth.user);
   const isManager = user?.role === "empmanager" || user?.role === "hradmin";
 
   const { toasts, addToast, removeToast } = useToast();
@@ -120,7 +120,7 @@ export default function LeaveListPage() {
 
   const [searchTriggered, setSearchTriggered] = useState(false);
   useEffect(() => {
-    getLeaveTypes().then(setLeaveTypes).catch(() => {});
+    getLeaveTypes().then(setLeaveTypes).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -131,9 +131,9 @@ export default function LeaveListPage() {
   }, []);
 
   const handleSearch = () => {
-    const f = { ...form, page: 1 };
-    dispatch(setFilters(f));
-    dispatch(fetchLeaves(f));
+    const nextFilters = { ...form, page: 1 };
+    dispatch(setFilters(nextFilters));
+    dispatch(fetchLeaves(nextFilters));
     setSearchTriggered(true);
   };
 
@@ -146,9 +146,9 @@ export default function LeaveListPage() {
   };
 
   const handlePageChange = (newPage: number) => {
-    const f = { ...filters, page: newPage };
-    dispatch(setFilters(f));
-    dispatch(fetchLeaves(f));
+    const nextFilters = { ...filters, page: newPage };
+    dispatch(setFilters(nextFilters));
+    dispatch(fetchLeaves(nextFilters));
     setForm((prev) => ({ ...prev, page: newPage }));
   };
 
@@ -161,7 +161,7 @@ export default function LeaveListPage() {
       return {
         ...prev,
         statuses: statuses.includes(status)
-          ? statuses.filter((s) => s !== status)
+          ? statuses.filter((item) => item !== status)
           : [...statuses, status],
       };
     });
@@ -177,8 +177,8 @@ export default function LeaveListPage() {
       await approveLeave(id);
       addToast("Leave approved successfully.", "success");
       dispatch(fetchLeaves({ ...filters }));
-    } catch (e) {
-      addToast(getApiErrorMessage(e, "Failed to approve leave."), "error");
+    } catch (err) {
+      addToast(getApiErrorMessage(err, "Failed to approve leave."), "error");
     } finally {
       setActionLoading(null);
     }
@@ -192,8 +192,8 @@ export default function LeaveListPage() {
       await rejectLeave(rejectTarget, reason);
       addToast("Leave rejected.", "success");
       dispatch(fetchLeaves({ ...filters }));
-    } catch (e) {
-      addToast(getApiErrorMessage(e, "Failed to reject leave."), "error");
+    } catch (err) {
+      addToast(getApiErrorMessage(err, "Failed to reject leave."), "error");
     } finally {
       setActionLoading(null);
     }
@@ -206,8 +206,8 @@ export default function LeaveListPage() {
       await cancelLeave(id);
       addToast("Leave cancelled.", "success");
       dispatch(fetchLeaves({ ...filters }));
-    } catch (e) {
-      addToast(getApiErrorMessage(e, "Failed to cancel leave."), "error");
+    } catch (err) {
+      addToast(getApiErrorMessage(err, "Failed to cancel leave."), "error");
     } finally {
       setActionLoading(null);
     }
@@ -220,8 +220,8 @@ export default function LeaveListPage() {
       } else {
         await exportDetailExcel(filters);
       }
-    } catch (e) {
-      addToast(getApiErrorMessage(e, "Export failed. Please try again."), "error");
+    } catch (err) {
+      addToast(getApiErrorMessage(err, "Export failed. Please try again."), "error");
     }
   };
 
@@ -249,7 +249,7 @@ export default function LeaveListPage() {
             </span>
           </span>
           <button
-            onClick={() => setPanelOpen((o) => !o)}
+            onClick={() => setPanelOpen((isOpen) => !isOpen)}
             className="text-slate-400 hover:text-slate-600 transition text-base leading-none cursor-pointer bg-transparent border-none select-none"
             title={panelOpen ? "Collapse" : "Expand"}
           >
@@ -258,226 +258,226 @@ export default function LeaveListPage() {
         </div>
 
         {panelOpen && (
-        <div className="p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">From</label>
-              <input
-                type="date"
-                value={form.from_date || ""}
-                onChange={(e) => setForm((p) => ({ ...p, from_date: e.target.value }))}
-                className={inputCls}
-              />
+          <div className="p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">From</label>
+                <input
+                  type="date"
+                  value={form.from_date || ""}
+                  onChange={(event) => setForm((prev) => ({ ...prev, from_date: event.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">To</label>
+                <input
+                  type="date"
+                  value={form.to_date || ""}
+                  onChange={(event) => setForm((prev) => ({ ...prev, to_date: event.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Employee</label>
+                <input
+                  type="text"
+                  placeholder="Type for hints…"
+                  value={form.employee_name || ""}
+                  onChange={(event) => setForm((prev) => ({ ...prev, employee_name: event.target.value }))}
+                  className={inputCls}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">To</label>
-              <input
-                type="date"
-                value={form.to_date || ""}
-                onChange={(e) => setForm((p) => ({ ...p, to_date: e.target.value }))}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Employee</label>
-              <input
-                type="text"
-                placeholder="Type for hints…"
-                value={form.employee_name || ""}
-                onChange={(e) => setForm((p) => ({ ...p, employee_name: e.target.value }))}
-                className={inputCls}
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Sub Unit</label>
-              <div className="relative">
-                <select
-                  value={form.sub_unit || ""}
-                  onChange={(e) => setForm((p) => ({ ...p, sub_unit: e.target.value }))}
-                  className={selectCls}
-                >
-                  <option value="">All</option>
-                  {SUB_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                </select>
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Sub Unit</label>
+                <div className="relative">
+                  <select
+                    value={form.sub_unit || ""}
+                    onChange={(event) => setForm((prev) => ({ ...prev, sub_unit: event.target.value }))}
+                    className={selectCls}
+                  >
+                    <option value="">All</option>
+                    {SUB_UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+                  </select>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Location</label>
+                <div className="relative">
+                  <select
+                    value={form.location || ""}
+                    onChange={(event) => setForm((prev) => ({ ...prev, location: event.target.value }))}
+                    className={selectCls}
+                  >
+                    <option value="">All</option>
+                    {LOCATIONS.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                  </select>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Leave Type</label>
+                <div className="relative">
+                  <select
+                    value={form.leave_type_id || ""}
+                    onChange={(event) => setForm((prev) => ({ ...prev, leave_type_id: event.target.value }))}
+                    className={selectCls}
+                  >
+                    <option value="">All</option>
+                    {leaveTypes.map((lt) => <option key={lt.id} value={String(lt.id)}>{lt.name}</option>)}
+                  </select>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+                </div>
               </div>
             </div>
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Location</label>
-              <div className="relative">
-                <select
-                  value={form.location || ""}
-                  onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
-                  className={selectCls}
-                >
-                  <option value="">All</option>
-                  {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-                </select>
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Leave Type</label>
-              <div className="relative">
-                <select
-                  value={form.leave_type_id || ""}
-                  onChange={(e) => setForm((p) => ({ ...p, leave_type_id: e.target.value }))}
-                  className={selectCls}
-                >
-                  <option value="">All</option>
-                  {leaveTypes.map((lt) => <option key={lt.id} value={String(lt.id)}>{lt.name}</option>)}
-                </select>
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-              </div>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Job Title</label>
-              <div className="relative">
-                <select
-                  value={form.job_title || ""}
-                  onChange={(e) => setForm((p) => ({ ...p, job_title: e.target.value }))}
-                  className={selectCls}
-                >
-                  <option value="">All</option>
-                  {JOB_TITLES.map((j) => <option key={j} value={j}>{j}</option>)}
-                </select>
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Job Title</label>
+                <div className="relative">
+                  <select
+                    value={form.job_title || ""}
+                    onChange={(event) => setForm((prev) => ({ ...prev, job_title: event.target.value }))}
+                    className={selectCls}
+                  >
+                    <option value="">All</option>
+                    {JOB_TITLES.map((title) => <option key={title} value={title}>{title}</option>)}
+                  </select>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Employment Status</label>
+                <div className="relative">
+                  <select
+                    value={form.employment_status || ""}
+                    onChange={(event) => setForm((prev) => ({ ...prev, employment_status: event.target.value }))}
+                    className={selectCls}
+                  >
+                    <option value="">All</option>
+                    {EMP_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Job Category</label>
+                <div className="relative">
+                  <select
+                    value={form.job_category || ""}
+                    onChange={(event) => setForm((prev) => ({ ...prev, job_category: event.target.value }))}
+                    className={selectCls}
+                  >
+                    <option value="">All</option>
+                    {JOB_CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+                </div>
               </div>
             </div>
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Employment Status</label>
-              <div className="relative">
-                <select
-                  value={form.employment_status || ""}
-                  onChange={(e) => setForm((p) => ({ ...p, employment_status: e.target.value }))}
-                  className={selectCls}
-                >
-                  <option value="">All</option>
-                  {EMP_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Job Category</label>
-              <div className="relative">
-                <select
-                  value={form.job_category || ""}
-                  onChange={(e) => setForm((p) => ({ ...p, job_category: e.target.value }))}
-                  className={selectCls}
-                >
-                  <option value="">All</option>
-                  {JOB_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-              </div>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Attachment Status</label>
-              <div className="relative">
-                <select
-                  value={form.attachment_status || ""}
-                  onChange={(e) => setForm((p) => ({ ...p, attachment_status: e.target.value }))}
-                  className={selectCls}
-                >
-                  <option value="">All</option>
-                  {ATTACH_STATUSES.map((a) => <option key={a} value={a}>{a}</option>)}
-                </select>
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Attachment Status</label>
+                <div className="relative">
+                  <select
+                    value={form.attachment_status || ""}
+                    onChange={(event) => setForm((prev) => ({ ...prev, attachment_status: event.target.value }))}
+                    className={selectCls}
+                  >
+                    <option value="">All</option>
+                    {ATTACH_STATUSES.map((attachStatus) => <option key={attachStatus} value={attachStatus}>{attachStatus}</option>)}
+                  </select>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-wrap gap-5 mb-4">
-            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.include_past || false}
-                onChange={(e) => setForm((p) => ({ ...p, include_past: e.target.checked }))}
-                className="w-4 h-4 accent-blue-900"
-              />
-              Include Past Employees
-            </label>
-            {isManager && (
+            <div className="flex flex-wrap gap-5 mb-4">
               <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={form.only_subordinates || false}
-                  onChange={(e) => setForm((p) => ({ ...p, only_subordinates: e.target.checked }))}
+                  checked={form.include_past || false}
+                  onChange={(event) => setForm((prev) => ({ ...prev, include_past: event.target.checked }))}
                   className="w-4 h-4 accent-blue-900"
                 />
-                Only Show My Subordinate's Leave
+                Include Past Employees
               </label>
-            )}
-          </div>
-
-          <div className="mb-5">
-            <p className="text-xs font-semibold text-slate-700 mb-2">Show Leave with Status</p>
-            <div className="flex flex-wrap gap-4">
-              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isAllChecked}
-                  ref={(el) => { if (el) el.indeterminate = isSomeChecked; }}
-                  onChange={() => toggleStatus("All")}
-                  className="w-4 h-4 accent-blue-900"
-                />
-                All
-              </label>
-              {STATUS_OPTIONS.map((s) => (
-                <label key={s} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {isManager && (
+                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={(form.statuses || []).includes(s)}
-                    onChange={() => toggleStatus(s)}
+                    checked={form.only_subordinates || false}
+                    onChange={(event) => setForm((prev) => ({ ...prev, only_subordinates: event.target.checked }))}
                     className="w-4 h-4 accent-blue-900"
                   />
-                  {s}
+                  Only Show My Subordinate's Leave
                 </label>
-              ))}
+              )}
+            </div>
+
+            <div className="mb-5">
+              <p className="text-xs font-semibold text-slate-700 mb-2">Show Leave with Status</p>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAllChecked}
+                    ref={(el) => { if (el) el.indeterminate = isSomeChecked; }}
+                    onChange={() => toggleStatus("All")}
+                    className="w-4 h-4 accent-blue-900"
+                  />
+                  All
+                </label>
+                {STATUS_OPTIONS.map((statusOption) => (
+                  <label key={statusOption} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={(form.statuses || []).includes(statusOption)}
+                      onChange={() => toggleStatus(statusOption)}
+                      className="w-4 h-4 accent-blue-900"
+                    />
+                    {statusOption}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-end">
+              <button
+                onClick={handleReset}
+                className="px-5 py-2 rounded-lg bg-slate-600 text-white text-sm font-medium cursor-pointer hover:bg-slate-700 transition"
+              >
+                Reset
+              </button>
+              {isManager && (
+                <>
+                  <button
+                    onClick={() => handleExport("summary")}
+                    className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition"
+                  >
+                    Export Summary
+                  </button>
+                  <button
+                    onClick={() => handleExport("detail")}
+                    className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition"
+                  >
+                    Export Detail
+                  </button>
+                </>
+              )}
+              <button
+                onClick={handleSearch}
+                className="px-6 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-semibold cursor-pointer hover:opacity-90 transition"
+              >
+                Search
+              </button>
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-2 justify-end">
-            <button
-              onClick={handleReset}
-              className="px-5 py-2 rounded-lg bg-slate-600 text-white text-sm font-medium cursor-pointer hover:bg-slate-700 transition"
-            >
-              Reset
-            </button>
-            {isManager && (
-              <>
-                <button
-                  onClick={() => handleExport("summary")}
-                  className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition"
-                >
-                  Export Summary
-                </button>
-                <button
-                  onClick={() => handleExport("detail")}
-                  className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition"
-                >
-                  Export Detail
-                </button>
-              </>
-            )}
-            <button
-              onClick={handleSearch}
-              className="px-6 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-semibold cursor-pointer hover:opacity-90 transition"
-            >
-              Search
-            </button>
-          </div>
-        </div>
         )}
       </div>
 
@@ -497,12 +497,11 @@ export default function LeaveListPage() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-slate-50 border-b-2 border-slate-100">
-                {[
-                  "Employee ID", "Employee Name", "Date", "Applied On",
+                {["Employee ID", "Employee Name", "Date", "Applied On",
                   "Leave Type", "Net Leave Balance", "Requested Duration", "Status", "Actions"
-                ].map((h) => (
-                  <th key={h} className="px-3 py-2.5 text-left text-xs font-bold text-slate-600 whitespace-nowrap">
-                    {h}
+                ].map((heading) => (
+                  <th key={heading} className="px-3 py-2.5 text-left text-xs font-bold text-slate-600 whitespace-nowrap">
+                    {heading}
                   </th>
                 ))}
               </tr>
@@ -534,17 +533,16 @@ export default function LeaveListPage() {
                 </tr>
               )}
               {!loading &&
-                data?.data.map((row: LeaveRequest, i: number) => (
+                data?.data.map((row: LeaveRequest, rowIndex: number) => (
                   <tr
                     key={row.id}
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
+                    onClick={(event) => {
+                      const target = event.target as HTMLElement;
                       if (target.closest("[data-action-cell]")) return;
                       navigate(`/leave/view_leave_list/details/${row.id}`);
                     }}
-                    className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors cursor-pointer ${
-                      i % 2 === 0 ? "bg-white" : "bg-slate-50"
-                    }`}
+                    className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors cursor-pointer ${rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
+                      }`}
                   >
                     <td className="px-3 py-2.5 text-xs font-mono text-slate-700">
                       {row.employee_id || "—"}
@@ -649,23 +647,23 @@ function ActionDropdown({ row, isManager, loading, onApprove, onReject, onCancel
 
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
-        menuRef.current && !menuRef.current.contains(e.target as Node) &&
-        btnRef.current && !btnRef.current.contains(e.target as Node)
+        menuRef.current && !menuRef.current.contains(event.target as Node) &&
+        btnRef.current && !btnRef.current.contains(event.target as Node)
       ) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const h = () => setOpen(false);
-    window.addEventListener("scroll", h, true);
-    return () => window.removeEventListener("scroll", h, true);
+    const handleScroll = () => setOpen(false);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
   }, [open]);
 
   if (loading) {

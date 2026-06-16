@@ -8,32 +8,30 @@ export default function LeaveNavBar() {
   const entRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (entRef.current && !entRef.current.contains(e.target as Node)) setEntOpen(false);
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (entRef.current && !entRef.current.contains(event.target as Node)) setEntOpen(false);
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
+  const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
   const tabCls = (active: boolean) =>
-    `px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
-      active
-        ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
-        : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
+    `px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${active
+      ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
+      : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
     }`;
 
   const entSubPaths = ["/leave/entitlements/add", "/leave/entitlements/list", "/leave/entitlements/my"];
-  const entActive = entSubPaths.some((p) => pathname === p);
+  const entActive = entSubPaths.some((subPath) => pathname === subPath);
 
   return (
     <nav className="bg-white border-b border-slate-200 flex items-center gap-0.5 px-3 py-0 flex-shrink-0 overflow-visible">
       <Link
         to="/leave/view_leave_list"
         title="Leave Home"
-        className={`flex items-center justify-center w-9 h-9 rounded mr-1 flex-shrink-0 transition no-underline ${
-          isActive("/leave/dashboard") ? "bg-orange-100 text-orange-700" : "text-slate-500 hover:bg-slate-100"
-        }`}
+        className={`flex items-center justify-center w-9 h-9 rounded mr-1 flex-shrink-0 transition no-underline ${isActive("/leave/dashboard") ? "bg-orange-100 text-orange-700" : "text-slate-500 hover:bg-slate-100"
+          }`}
       >
         <IconHome size={16} />
       </Link>
@@ -48,12 +46,11 @@ export default function LeaveNavBar() {
 
       <div ref={entRef} className="relative flex-shrink-0 self-stretch flex items-center">
         <button
-          onClick={() => setEntOpen((o) => !o)}
-          className={`flex items-center gap-1 px-4 py-2.5 text-sm border-b-2 transition cursor-pointer h-full ${
-            entActive
+          onClick={() => setEntOpen((isOpen) => !isOpen)}
+          className={`flex items-center gap-1 px-4 py-2.5 text-sm border-b-2 transition cursor-pointer h-full ${entActive
               ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
               : "border-transparent text-slate-600 hover:text-slate-900 font-medium"
-          }`}
+            }`}
         >
           Entitlements
           <svg
@@ -72,17 +69,16 @@ export default function LeaveNavBar() {
             {[
               { label: "Add Entitlements", path: "/leave/entitlements/add" },
               { label: "Entitlement List", path: "/leave/entitlements/list" },
-              { label: "My Entitlements",  path: "/leave/entitlements/my" },
+              { label: "My Entitlements", path: "/leave/entitlements/my" },
             ].map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setEntOpen(false)}
-                className={`block px-4 py-2 text-sm no-underline transition ${
-                  pathname === item.path
+                className={`block px-4 py-2 text-sm no-underline transition ${pathname === item.path
                     ? "bg-orange-50 text-orange-700 font-semibold"
                     : "text-slate-700 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 {item.label}
               </Link>

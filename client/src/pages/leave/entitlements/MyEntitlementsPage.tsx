@@ -13,12 +13,12 @@ export default function MyEntitlementsPage() {
     setLoading(true);
     getMyEntitlements()
       .then(setRecords)
-      .catch((e) => addToast(getApiErrorMessage(e, "Failed to load entitlements."), "error"))
+      .catch((err) => addToast(getApiErrorMessage(err, "Failed to load entitlements."), "error"))
       .finally(() => setLoading(false));
   }, []);
 
   const grandTotal = records.reduce(
-    (sum, r) => sum + Number(r.leave_entitlement),
+    (sum, record) => sum + Number(record.leave_entitlement),
     0
   );
 
@@ -51,61 +51,37 @@ export default function MyEntitlementsPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-white">
-                  {[
-                    "Leave Type",
-                    "Entitlement Type",
-                    "Credited On",
-                    "Valid From",
-                    "Valid To",
-                    "Expired",
-                    "Leave Entitlement",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="px-5 py-3 text-left text-xs font-semibold text-slate-600 whitespace-nowrap"
-                    >
-                      {h}
+                {[
+                    "Leave Type", "Entitlement Type", "Credited On",
+                    "Valid From", "Valid To", "Expired", "Leave Entitlement",
+                  ].map((heading) => (
+                    <th key={heading} className="px-5 py-3 text-left text-xs font-semibold text-slate-600 whitespace-nowrap">
+                      {heading}
                     </th>
                   ))}
                 </tr>
               </thead>
 
               <tbody>
-                {records.map((r) => (
+                {records.map((record) => (
                   <tr
-                    key={r.id}
+                    key={record.id}
                     className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                   >
-                    <td className="px-5 py-3 text-sm text-slate-800">
-                      {r.leave_type}
-                    </td>
-
-                    <td className="px-5 py-3 text-sm text-slate-600">
-                      {r.entitlement_type}
-                    </td>
-
-                    <td className="px-5 py-3 text-sm text-slate-600">
-                      {r.credited_on || "—"}
-                    </td>
-
-                    <td className="px-5 py-3 text-sm text-slate-600">
-                      {r.valid_from}
-                    </td>
-
-                    <td className="px-5 py-3 text-sm text-slate-600">
-                      {r.valid_to}
-                    </td>
-
+                    <td className="px-5 py-3 text-sm text-slate-800">{record.leave_type}</td>
+                    <td className="px-5 py-3 text-sm text-slate-600">{record.entitlement_type}</td>
+                    <td className="px-5 py-3 text-sm text-slate-600">{record.credited_on || "—"}</td>
+                    <td className="px-5 py-3 text-sm text-slate-600">{record.valid_from}</td>
+                    <td className="px-5 py-3 text-sm text-slate-600">{record.valid_to}</td>
                     <td className="px-5 py-3 text-sm">
-                      {r.expired ? (
+                      {record.expired ? (
                         <span className="text-red-500 font-medium">Yes</span>
                       ) : (
                         <span className="text-slate-500">No</span>
                       )}
                     </td>
-
                     <td className="px-5 py-3 text-sm text-slate-700">
-                      {Number(r.leave_entitlement).toFixed(2)} day(s)
+                      {Number(record.leave_entitlement).toFixed(2)} day(s)
                     </td>
                   </tr>
                 ))}

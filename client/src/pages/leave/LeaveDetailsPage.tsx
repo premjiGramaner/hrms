@@ -16,11 +16,11 @@ import Toast, { useToast } from "../../components/Toast";
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     "Pending Approval": "bg-amber-50 text-amber-700 border-amber-200",
-    "Approved":         "bg-green-50 text-green-700 border-green-200",
-    "Scheduled":        "bg-blue-50 text-blue-700 border-blue-200",
-    "Taken":            "bg-purple-50 text-purple-700 border-purple-200",
-    "Rejected":         "bg-red-50 text-red-700 border-red-200",
-    "Cancelled":        "bg-slate-100 text-slate-500 border-slate-200",
+    "Approved": "bg-green-50 text-green-700 border-green-200",
+    "Scheduled": "bg-blue-50 text-blue-700 border-blue-200",
+    "Taken": "bg-purple-50 text-purple-700 border-purple-200",
+    "Rejected": "bg-red-50 text-red-700 border-red-200",
+    "Cancelled": "bg-slate-100 text-slate-500 border-slate-200",
   };
   return (
     <span className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full border ${map[status] || "bg-slate-50 text-slate-500 border-slate-200"}`}>
@@ -29,7 +29,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function RejectModal({ onConfirm, onClose }: { onConfirm: (r: string) => void; onClose: () => void }) {
+function RejectModal({ onConfirm, onClose }: { onConfirm: (reason: string) => void; onClose: () => void }) {
   const [reason, setReason] = useState("");
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -38,7 +38,7 @@ function RejectModal({ onConfirm, onClose }: { onConfirm: (r: string) => void; o
         <label className="block text-xs text-slate-500 mb-1">Rejection Reason <span className="text-red-500">*</span></label>
         <textarea
           value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          onChange={(event) => setReason(event.target.value)}
           rows={4}
           autoFocus
           placeholder="Enter reason for rejection…"
@@ -88,27 +88,27 @@ function ActionMenu({
 
   const openMenu = () => {
     if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setPos({ top: r.bottom + window.scrollY + 4, left: r.right + window.scrollX });
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + window.scrollY + 4, left: rect.right + window.scrollX });
     }
     setOpen(true);
   };
 
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node) &&
-          btnRef.current && !btnRef.current.contains(e.target as Node)) setOpen(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node) &&
+        btnRef.current && !btnRef.current.contains(event.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const h = () => setOpen(false);
-    window.addEventListener("scroll", h, true);
-    return () => window.removeEventListener("scroll", h, true);
+    const handleScroll = () => setOpen(false);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
   }, [open]);
 
   const canApproveReject = isAdminOrHR && !isRequester;
@@ -152,13 +152,13 @@ function ActionMenu({
 }
 
 function initials(name = "") {
-  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+  return name.split(" ").map((word) => word[0]).slice(0, 2).join("").toUpperCase() || "?";
 }
 
 export default function LeaveDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const user = useAppSelector((s) => s.auth.user);
+  const user = useAppSelector((state) => state.auth.user);
   const { toasts, addToast, removeToast } = useToast();
 
   const [leave, setLeave] = useState<LeaveRequest | null>(null);
@@ -176,8 +176,8 @@ export default function LeaveDetailsPage() {
     setLoading(true);
     try {
       setLeave(await getLeaveDetails(leaveId));
-    } catch (e) {
-      addToast(getApiErrorMessage(e, "Failed to load leave details."), "error");
+    } catch (err) {
+      addToast(getApiErrorMessage(err, "Failed to load leave details."), "error");
     } finally {
       setLoading(false);
     }
@@ -194,7 +194,7 @@ export default function LeaveDetailsPage() {
       await approveLeave(leaveId);
       addToast("Leave approved successfully.", "success");
       await load();
-    } catch (e) { addToast(getApiErrorMessage(e, "Failed to approve leave."), "error"); }
+    } catch (err) { addToast(getApiErrorMessage(err, "Failed to approve leave."), "error"); }
     finally { setActionLoading(false); }
   };
 
@@ -205,7 +205,7 @@ export default function LeaveDetailsPage() {
       await rejectLeave(leaveId, reason);
       addToast("Leave rejected.", "success");
       await load();
-    } catch (e) { addToast(getApiErrorMessage(e, "Failed to reject leave."), "error"); }
+    } catch (err) { addToast(getApiErrorMessage(err, "Failed to reject leave."), "error"); }
     finally { setActionLoading(false); }
   };
 
@@ -216,12 +216,12 @@ export default function LeaveDetailsPage() {
       await cancelLeave(leaveId);
       addToast("Leave cancelled.", "success");
       await load();
-    } catch (e) { addToast(getApiErrorMessage(e, "Failed to cancel leave."), "error"); }
+    } catch (err) { addToast(getApiErrorMessage(err, "Failed to cancel leave."), "error"); }
     finally { setActionLoading(false); }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) { addToast("File exceeds 5 MB limit.", "error"); return; }
     setUploading(true);
@@ -229,7 +229,7 @@ export default function LeaveDetailsPage() {
       await uploadLeaveAttachment(leaveId, file);
       addToast("Attachment uploaded successfully.", "success");
       await load();
-    } catch (e) { addToast(getApiErrorMessage(e, "Upload failed."), "error"); }
+    } catch (err) { addToast(getApiErrorMessage(err, "Upload failed."), "error"); }
     finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
 
@@ -282,8 +282,8 @@ export default function LeaveDetailsPage() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b-2 border-slate-100">
-                    {["Date", "Leave Type", "Net Leave Balance", "Duration (Days)", "Status", "Comments", "Actions"].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-bold text-slate-600 whitespace-nowrap">{h}</th>
+                    {["Date", "Leave Type", "Net Leave Balance", "Duration (Days)", "Status", "Comments", "Actions"].map((heading) => (
+                      <th key={heading} className="px-4 py-3 text-left text-xs font-bold text-slate-600 whitespace-nowrap">{heading}</th>
                     ))}
                   </tr>
                 </thead>

@@ -15,9 +15,9 @@ function buildPeriods(): { label: string; start: string; end: string }[] {
   const periods = [];
   const now = new Date();
   const baseYear = now.getFullYear() - 2;
-  for (let y = baseYear; y <= baseYear + 4; y++) {
-    const start = `${y}-04-01`;
-    const end   = `${y + 1}-03-31`;
+  for (let year = baseYear; year <= baseYear + 4; year++) {
+    const start = `${year}-04-01`;
+    const end = `${year + 1}-03-31`;
     periods.push({ label: `${start} to ${end}`, start, end });
   }
   return periods;
@@ -26,8 +26,8 @@ function buildPeriods(): { label: string; start: string; end: string }[] {
 const PERIODS = buildPeriods();
 function defaultPeriod() {
   const now = new Date();
-  const y = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-  return `${y}-04-01`;
+  const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  return `${currentYear}-04-01`;
 }
 
 interface EmpSearchProps {
@@ -59,16 +59,16 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
   }, [query]);
 
   useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  const isSelected = (id: number) => selected.some((s) => s.id === id);
+  const isSelected = (id: number) => selected.some((emp) => emp.id === id);
 
   const handleSelect = (emp: EmployeeOption) => {
     if (isSelected(emp.id)) return;
@@ -103,7 +103,7 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(event) => setQuery(event.target.value)}
             onFocus={() => query && setOpen(true)}
             placeholder="Type employee name or ID…"
             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition pr-8"
@@ -183,13 +183,13 @@ export default function AddEntitlementsPage() {
 
   const addEmployee = (emp: EmployeeOption) => {
     setSelectedEmployees((prev) =>
-      prev.some((e) => e.id === emp.id) ? prev : [...prev, emp]
+      prev.some((existing) => existing.id === emp.id) ? prev : [...prev, emp]
     );
-    setErrors((e) => ({ ...e, employee: "" }));
+    setErrors((prevErrors) => ({ ...prevErrors, employee: "" }));
   };
 
   const removeEmployee = (id: number) => {
-    setSelectedEmployees((prev) => prev.filter((e) => e.id !== id));
+    setSelectedEmployees((prev) => prev.filter((existing) => existing.id !== id));
   };
 
   const validate = (): boolean => {
@@ -203,26 +203,26 @@ export default function AddEntitlementsPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
     try {
       const payload = multiMode
         ? {
-            employee_ids: selectedEmployees.map((e) => e.id),
-            leave_type_id: parseInt(leaveTypeId),
-            leave_period_start: periodStart,
-            entitlement_days: parseFloat(entitlementDays),
-            comments: comments || undefined,
-          }
+          employee_ids: selectedEmployees.map((emp) => emp.id),
+          leave_type_id: parseInt(leaveTypeId),
+          leave_period_start: periodStart,
+          entitlement_days: parseFloat(entitlementDays),
+          comments: comments || undefined,
+        }
         : {
-            employee_id: selectedEmployees[0].id,
-            leave_type_id: parseInt(leaveTypeId),
-            leave_period_start: periodStart,
-            entitlement_days: parseFloat(entitlementDays),
-            comments: comments || undefined,
-          };
+          employee_id: selectedEmployees[0].id,
+          leave_type_id: parseInt(leaveTypeId),
+          leave_period_start: periodStart,
+          entitlement_days: parseFloat(entitlementDays),
+          comments: comments || undefined,
+        };
 
       const result = await createEntitlements(payload);
       addToast(result.message, "success");
@@ -238,7 +238,7 @@ export default function AddEntitlementsPage() {
     }
   };
 
-  const selectedPeriod = PERIODS.find((p) => p.start === periodStart);
+  const selectedPeriod = PERIODS.find((period) => period.start === periodStart);
 
   const inputCls = (hasError?: boolean) =>
     `w-full border rounded-lg px-3 py-2 text-sm outline-none bg-white transition
@@ -273,7 +273,7 @@ export default function AddEntitlementsPage() {
                   <input
                     type="checkbox"
                     checked={multiMode}
-                    onChange={(e) => handleMultiToggle(e.target.checked)}
+                    onChange={(event) => handleMultiToggle(event.target.checked)}
                     className="w-4 h-4 accent-blue-900"
                   />
                   <span className="text-sm text-slate-600">Add to Multiple Employees</span>
@@ -290,7 +290,7 @@ export default function AddEntitlementsPage() {
                   <div className="relative">
                     <select
                       value={leaveTypeId}
-                      onChange={(e) => { setLeaveTypeId(e.target.value); setErrors((er) => ({ ...er, leaveType: "" })); }}
+                      onChange={(event) => { setLeaveTypeId(event.target.value); setErrors((prevErrors) => ({ ...prevErrors, leaveType: "" })); }}
                       className={`${inputCls(!!errors.leaveType)} appearance-none pr-8 cursor-pointer`}
                     >
                       <option value="">— Select leave type —</option>
@@ -313,12 +313,12 @@ export default function AddEntitlementsPage() {
                 <div className="relative">
                   <select
                     value={periodStart}
-                    onChange={(e) => { setPeriodStart(e.target.value); setErrors((er) => ({ ...er, period: "" })); }}
+                    onChange={(event) => { setPeriodStart(event.target.value); setErrors((prevErrors) => ({ ...prevErrors, period: "" })); }}
                     className={`${inputCls(!!errors.period)} appearance-none pr-8 cursor-pointer`}
                   >
                     <option value="">— Select period —</option>
-                    {PERIODS.map((p) => (
-                      <option key={p.start} value={p.start}>{p.label}</option>
+                    {PERIODS.map((period) => (
+                      <option key={period.start} value={period.start}>{period.label}</option>
                     ))}
                   </select>
                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
@@ -337,7 +337,7 @@ export default function AddEntitlementsPage() {
                   min="0.5"
                   step="0.5"
                   value={entitlementDays}
-                  onChange={(e) => { setEntitlementDays(e.target.value); setErrors((er) => ({ ...er, days: "" })); }}
+                  onChange={(event) => { setEntitlementDays(event.target.value); setErrors((prevErrors) => ({ ...prevErrors, days: "" })); }}
                   placeholder="e.g. 12"
                   className={inputCls(!!errors.days)}
                 />
@@ -352,7 +352,7 @@ export default function AddEntitlementsPage() {
                 </label>
                 <textarea
                   value={comments}
-                  onChange={(e) => setComments(e.target.value)}
+                  onChange={(event) => setComments(event.target.value)}
                   rows={3}
                   placeholder="Optional comments…"
                   className={`${inputCls()} resize-none`}

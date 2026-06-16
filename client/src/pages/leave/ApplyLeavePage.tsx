@@ -8,7 +8,7 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 
 function initials(name = "") {
-  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+  return name.split(" ").map((word) => word[0]).slice(0, 2).join("").toUpperCase() || "?";
 }
 
 function daysBetween(start: string, end: string): number {
@@ -19,7 +19,7 @@ function daysBetween(start: string, end: string): number {
 
 export default function ApplyLeavePage() {
   const navigate = useNavigate();
-  const user = useAppSelector((s) => s.auth.user);
+  const user = useAppSelector((state) => state.auth.user);
   const { toasts, addToast, removeToast } = useToast();
 
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -44,22 +44,21 @@ export default function ApplyLeavePage() {
       user?.id && user.id > 0 ? getLeaveBalance(user.id, financialYear) : Promise.resolve([]),
       getLeaves({ page: 1, limit: 1, statuses: [] }),
     ])
-      .then(([types, bals, leaveData]) => {
+      .then(([types, balances, leaveData]) => {
         setLeaveTypes(types);
-        setBalances(bals as LeaveBalance[]);
+        setBalances(balances as LeaveBalance[]);
         const leavePage = leaveData as { data: LeaveRequest[] };
         if (leavePage.data?.length) setLatestLeave(leavePage.data[0]);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoadingTypes(false));
   }, []);
 
   const getBalance = (typeId: number): number => {
-    const b = balances.find((b) => b.leave_type_id === typeId);
-    return b ? Number(b.net_balance) : 0;
+    const balance = balances.find((bal) => bal.leave_type_id === typeId);
+    return balance ? Number(balance.net_balance) : 0;
   };
 
-  const selectedType = leaveTypes.find((t) => t.id === selectedTypeId);
   const requestedDays = daysBetween(startDate, endDate);
   const selectedBalance = selectedTypeId ? getBalance(selectedTypeId) : 0;
 
@@ -69,8 +68,8 @@ export default function ApplyLeavePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!selectedTypeId) { addToast("Please select a leave type.", "error"); return; }
     if (!startDate || !endDate) { addToast("Please select From and To dates.", "error"); return; }
     if (requestedDays <= 0) { addToast("End date must be on or after start date.", "error"); return; }
@@ -130,24 +129,24 @@ export default function ApplyLeavePage() {
                 className="flex gap-3 overflow-x-auto pb-1 scroll-smooth"
                 style={{ scrollbarWidth: "none" }}
               >
-                {leaveTypes.map((lt) => {
-                  const bal = getBalance(lt.id);
-                  const active = selectedTypeId === lt.id;
+                {leaveTypes.map((leaveType) => {
+                  const balance = getBalance(leaveType.id);
+                  const active = selectedTypeId === leaveType.id;
                   return (
                     <button
-                      key={lt.id}
+                      key={leaveType.id}
                       type="button"
-                      onClick={() => setSelectedTypeId(active ? null : lt.id)}
+                      onClick={() => setSelectedTypeId(active ? null : leaveType.id)}
                       className={`flex-shrink-0 w-36 rounded-xl border-2 px-3 py-3 text-left cursor-pointer transition
                         ${active
                           ? "border-blue-700 bg-blue-50 shadow-md"
                           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}
                     >
                       <p className={`text-xs font-semibold leading-tight mb-1 ${active ? "text-blue-800" : "text-slate-700"}`}>
-                        {lt.name}
+                        {leaveType.name}
                       </p>
                       <p className={`text-2xl font-bold leading-none ${active ? "text-blue-900" : "text-slate-800"}`}>
-                        {bal.toFixed(2)}
+                        {balance.toFixed(2)}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">Balance Day(s)</p>
                     </button>
@@ -190,7 +189,7 @@ export default function ApplyLeavePage() {
                 <input
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(event) => setStartDate(event.target.value)}
                   placeholder="yyyy-mm-dd"
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition"
                 />
@@ -203,7 +202,7 @@ export default function ApplyLeavePage() {
                   type="date"
                   value={endDate}
                   min={startDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(event) => setEndDate(event.target.value)}
                   placeholder="yyyy-mm-dd"
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition"
                 />
@@ -216,7 +215,7 @@ export default function ApplyLeavePage() {
               </label>
               <textarea
                 value={comments}
-                onChange={(e) => setComments(e.target.value)}
+                onChange={(event) => setComments(event.target.value)}
                 rows={4}
                 placeholder="Add your comments here"
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition resize-none"
