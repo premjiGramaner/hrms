@@ -1,36 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import { getAuditTrail } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
-
-// ── Constants ─────────────────────────────────────────────────────────────────
+import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
   { label: "Job Categories", path: "/hradmin/job-categories" },
   { label: "Sub Units", path: "/hradmin/sub-units" },
   { label: "Audit Trail", path: "/hradmin/audit-trail" },
-  { label: "Organization", path: "#" },
-  { label: "More", path: "#" },
 ];
 
-const TABLE_COLUMNS = [
-  "Date & Time",
-  "Action Owner",
-  "Action",
-  "Employee",
-  "Section",
-  "Source",
-  "Performed Screen",
-  "Action Description",
-];
-
-const ACTION_COLOR: Record<string, { bg: string; color: string }> = {
-  CREATE: { bg: "#dcfce7", color: "#16a34a" },
-  UPDATE: { bg: "#fef9c3", color: "#a16207" },
-  DELETE: { bg: "#fee2e2", color: "#dc2626" },
-};
-
+const ACTION_COLOR: Record<string, { bg: string; color: string; dot: string }> =
+  {
+    CREATE: { bg: "#dcfce7", color: "#16a34a", dot: "#22c55e" },
+    UPDATE: { bg: "#fef9c3", color: "#a16207", dot: "#eab308" },
+    DELETE: { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
+    TERMINATE: { bg: "#fce7f3", color: "#9d174d", dot: "#ec4899" },
+  };
 
 interface AuditRecord {
   id: number;
@@ -45,9 +32,7 @@ interface AuditRecord {
   action_description: string;
   event_time: string;
   created_at: string;
-  updated_at: string;
 }
-
 
 function formatDateTime(iso: string): string {
   if (!iso) return "—";
@@ -65,15 +50,72 @@ function formatDateTime(iso: string): string {
   }
 }
 
+function FilterSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  minWidth = 140,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder: string;
+  minWidth?: number;
+}) {
+  return (
+    <div style={{ position: "relative" }}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          padding: "9px 32px 9px 12px",
+          border: "1.5px solid #e2e8f0",
+          borderRadius: 10,
+          fontSize: 13,
+          outline: "none",
+          appearance: "none",
+          background: "#fff",
+          cursor: "pointer",
+          minWidth,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+        }}
+      >
+        <option value="all">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      <span
+        style={{
+          position: "absolute",
+          right: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+          pointerEvents: "none",
+          color: "#94a3b8",
+          fontSize: 11,
+        }}
+      >
+        ▼
+      </span>
+    </div>
+  );
+}
 
 export default function AuditTrailPage() {
-  const [allRecords, setAllRecords]     = useState<AuditRecord[]>([]);
+  const [allRecords, setAllRecords] = useState<AuditRecord[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<AuditRecord[]>([]);
-  const [isLoading, setIsLoading]       = useState(true);
-  const [pageError, setPageError]       = useState("");
-  const [searchQuery, setSearchQuery]   = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [sectionFilter, setSectionFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     setIsLoading(true);
@@ -86,408 +128,409 @@ export default function AuditTrailPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const uniqueActions  = [...new Set(allRecords.map((r) => r.action).filter(Boolean))];
-  const uniqueSections = [...new Set(allRecords.map((r) => r.section).filter(Boolean))];
+  const uniqueActions = [
+    ...new Set(allRecords.map((allRecord) => allRecord.action).filter(Boolean)),
+  ];
+  const uniqueSections = [
+    ...new Set(
+      allRecords.map((allRecord) => allRecord.section).filter(Boolean),
+    ),
+  ];
 
   const applyFilters = (search: string, action: string, section: string) => {
     const term = search.toLowerCase();
     setFilteredRecords(
-      allRecords.filter((record) => {
+      allRecords.filter((r) => {
         const matchesSearch =
           !term ||
-          record.action_owner.toLowerCase().includes(term) ||
-          record.employee.toLowerCase().includes(term) ||
-          (record.action_owner_username || "").toLowerCase().includes(term) ||
-          (record.employee_username || "").toLowerCase().includes(term) ||
-          record.section.toLowerCase().includes(term) ||
-          record.action_description.toLowerCase().includes(term) ||
-          record.performed_screen.toLowerCase().includes(term);
-
-        const matchesAction  = action === "all"  || record.action === action;
-        const matchesSection = section === "all" || record.section === section;
-
-        return matchesSearch && matchesAction && matchesSection;
+          r.action_owner.toLowerCase().includes(term) ||
+          r.employee.toLowerCase().includes(term) ||
+          (r.action_owner_username || "").toLowerCase().includes(term) ||
+          (r.employee_username || "").toLowerCase().includes(term) ||
+          r.section.toLowerCase().includes(term) ||
+          r.action_description.toLowerCase().includes(term) ||
+          r.performed_screen.toLowerCase().includes(term);
+        return (
+          matchesSearch &&
+          (action === "all" || r.action === action) &&
+          (section === "all" || r.section === section)
+        );
       }),
     );
+    setCurrentPage(1);
   };
 
-  const debouncedSearch = useDebounce((value: string) => {
-    applyFilters(value, actionFilter, sectionFilter);
-  }, 300);
-
-  const handleSearchChange = (value: string) => {
+  const debouncedSearch = useDebounce(
+    (v: string) => applyFilters(v, actionFilter, sectionFilter),
+    300,
+  );
+  const handleSearch = (value: string) => {
     setSearchQuery(value);
     debouncedSearch(value);
   };
-
-  const handleActionFilter = (value: string) => {
+  const handleAction = (value: string) => {
     setActionFilter(value);
     applyFilters(searchQuery, value, sectionFilter);
   };
-
-  const handleSectionFilter = (value: string) => {
+  const handleSection = (value: string) => {
     setSectionFilter(value);
     applyFilters(searchQuery, actionFilter, value);
   };
-
-  const handleClearFilters = () => {
+  const handleClear = () => {
     setSearchQuery("");
     setActionFilter("all");
     setSectionFilter("all");
     setFilteredRecords(allRecords);
+    setCurrentPage(1);
   };
-
-  const hasActiveFilters =
+  const hasFilters =
     searchQuery !== "" || actionFilter !== "all" || sectionFilter !== "all";
 
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
+  const pagedRecords = useMemo(() => {
+    const sorted = [...filteredRecords].sort((a, b) => {
+      const diff =
+        new Date(a.event_time).getTime() - new Date(b.event_time).getTime();
+      return dateSort === "desc" ? -diff : diff;
+    });
+    return sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredRecords, currentPage, pageSize, dateSort]);
+
+  const createCount = allRecords.filter(
+    (Record) => Record.action === "CREATE",
+  ).length;
+  const updateCount = allRecords.filter(
+    (Record) => Record.action === "UPDATE",
+  ).length;
+  const terminateCount = allRecords.filter(
+    (Record) => Record.action === "TERMINATE",
+  ).length;
+
+  const stats: StatCard[] = [
+    {
+      label: "Total Events",
+      value: allRecords.length,
+      icon: "",
+      color: "#1b2a6b",
+      bg: "#eff6ff",
+      border: "#bfdbfe",
+    },
+    {
+      label: "Created",
+      value: createCount,
+      icon: "",
+      color: "#16a34a",
+      bg: "#f0fdf4",
+      border: "#bbf7d0",
+    },
+    {
+      label: "Updated",
+      value: updateCount,
+      icon: "",
+      color: "#a16207",
+      bg: "#fefce8",
+      border: "#fde68a",
+    },
+    {
+      label: "Terminated",
+      value: terminateCount,
+      icon: "",
+      color: "#9d174d",
+      bg: "#fdf2f8",
+      border: "#fbcfe8",
+    },
+  ];
+
+  const columns: ColumnDef<AuditRecord>[] = [
+    {
+      key: "event_time",
+      header: "Date & Time",
+      render: (row) => (
+        <span
+          style={{ color: "#475569", fontSize: 12.5, whiteSpace: "nowrap" }}
+        >
+          {formatDateTime(row.event_time)}
+        </span>
+      ),
+    },
+    {
+      key: "action_owner",
+      header: "Action Owner",
+      render: (row) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              flexShrink: 0,
+              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 700,
+              boxShadow: "0 2px 6px rgba(27,42,107,0.2)",
+            }}
+          >
+            {(row.action_owner || "?")
+              .split(" ")
+              .map((w) => w[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 13 }}>
+              {row.action_owner || "—"}
+            </div>
+            <div style={{ color: "#94a3b8", fontSize: 11 }}>
+              {row.action_owner_username || ""}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "action",
+      header: "Action",
+      width: 110,
+      render: (row) => {
+        const s = ACTION_COLOR[row.action] ?? {
+          bg: "#f1f5f9",
+          color: "#64748b",
+          dot: "#94a3b8",
+        };
+        return (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              fontSize: 11.5,
+              fontWeight: 700,
+              padding: "4px 10px",
+              borderRadius: 999,
+              background: s.bg,
+              color: s.color,
+              border: `1px solid ${s.bg}`,
+              letterSpacing: 0.3,
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: s.dot,
+                flexShrink: 0,
+              }}
+            />
+            {row.action}
+          </span>
+        );
+      },
+    },
+    {
+      key: "employee",
+      header: "Employee",
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 13 }}>
+            {row.employee || "—"}
+          </div>
+          {row.employee_username && (
+            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+              @{row.employee_username}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "section",
+      header: "Section",
+      width: 120,
+      render: (row) => (
+        <span
+          style={{
+            padding: "3px 10px",
+            borderRadius: 6,
+            background: "#f1f5f9",
+            color: "#475569",
+            fontSize: 12,
+            fontWeight: 500,
+          }}
+        >
+          {row.section || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "source",
+      header: "Source",
+      render: (row) => (
+        <span style={{ color: "#64748b", fontSize: 12.5 }}>
+          {row.source || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "performed_screen",
+      header: "Performed Screen",
+      render: (row) => (
+        <span style={{ color: "#64748b", fontSize: 12.5 }}>
+          {row.performed_screen || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "action_description",
+      header: "Action Description",
+      render: (row) => (
+        <span
+          style={{
+            color: "#64748b",
+            fontSize: 12.5,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical" as const,
+            overflow: "hidden",
+            maxWidth: 260,
+          }}
+        >
+          {row.action_description || "—"}
+        </span>
+      ),
+    },
+  ];
+
+  const extraToolbar = (
+    <>
+      <FilterSelect
+        value={actionFilter}
+        onChange={handleAction}
+        options={uniqueActions}
+        placeholder="All Actions"
+        minWidth={140}
+      />
+      <FilterSelect
+        value={sectionFilter}
+        onChange={handleSection}
+        options={uniqueSections}
+        placeholder="All Sections"
+        minWidth={150}
+      />
+      {hasFilters && (
+        <button
+          onClick={handleClear}
+          style={{
+            padding: "9px 14px",
+            border: "1.5px solid #e2e8f0",
+            borderRadius: 10,
+            fontSize: 13,
+            background: "#fff",
+            cursor: "pointer",
+            color: "#64748b",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+          }}
+        >
+          ✕ Clear
+        </button>
+      )}
+    </>
+  );
 
   return (
     <Layout title="HR Administration" tabs={TABS} activeTab="Audit Trail">
       {pageError && (
         <div
           style={{
-            marginBottom: 12,
-            padding: "10px 16px",
-            background: "#fef2f2",
+            marginBottom: 16,
+            padding: "12px 18px",
+            background: "linear-gradient(135deg,#fff5f5,#fff)",
             border: "1px solid #fecaca",
-            borderRadius: 10,
+            borderLeft: "4px solid #ef4444",
+            borderRadius: 12,
             color: "#dc2626",
             fontSize: 13.5,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            boxShadow: "0 2px 8px rgba(239,68,68,0.08)",
           }}
         >
-          {pageError}
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 16 }}>⚠</span>
+            {pageError}
+          </span>
           <button
             onClick={() => setPageError("")}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16, padding: 0 }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#dc2626",
+              fontSize: 18,
+              padding: 0,
+              lineHeight: 1,
+            }}
           >
             ✕
           </button>
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          marginBottom: 16,
-          flexWrap: "wrap",
+      <DataTable<AuditRecord>
+        title="Audit Trail"
+        subtitle="Full history of all user & employee actions"
+        icon="📋"
+        rows={pagedRecords}
+        isLoading={isLoading}
+        columns={columns}
+        actions={[]}
+        getKey={(row, idx) => `${row.id}-${idx}`}
+        emptyIcon="📋"
+        emptyTitle={
+          hasFilters
+            ? "No records match the current filters"
+            : "No audit trail records found"
+        }
+        emptySubtitle={
+          hasFilters
+            ? "Try adjusting or clearing the filters"
+            : "Actions will appear here once users make changes"
+        }
+        stats={stats}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalRecords={filteredRecords.length}
+        pageSize={pageSize}
+        pageSizeOptions={[5, 10, 20, 50]}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          setCurrentPage(1);
         }}
-      >
-        <div style={{ position: "relative", width: 300 }}>
-          <span
-            style={{
-              position: "absolute",
-              left: 12,
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </span>
-          <input
-            type="text"
-            placeholder="Search by owner, employee, action…"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "9px 12px 9px 34px",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 10,
-              fontSize: 13.5,
-              outline: "none",
-              background: "#fff",
-              boxSizing: "border-box",
-            }}
-          />
-        </div>
-
-        <div style={{ position: "relative" }}>
-          <select
-            value={actionFilter}
-            onChange={(e) => handleActionFilter(e.target.value)}
-            style={{
-              padding: "9px 32px 9px 12px",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 10,
-              fontSize: 13,
-              outline: "none",
-              appearance: "none",
-              background: "#fff",
-              cursor: "pointer",
-              minWidth: 140,
-            }}
-          >
-            <option value="all">All Actions</option>
-            {uniqueActions.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-          <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "#94a3b8", fontSize: 11 }}>▼</span>
-        </div>
-
-        <div style={{ position: "relative" }}>
-          <select
-            value={sectionFilter}
-            onChange={(e) => handleSectionFilter(e.target.value)}
-            style={{
-              padding: "9px 32px 9px 12px",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 10,
-              fontSize: 13,
-              outline: "none",
-              appearance: "none",
-              background: "#fff",
-              cursor: "pointer",
-              minWidth: 150,
-            }}
-          >
-            <option value="all">All Sections</option>
-            {uniqueSections.map((uniqueSection) => (
-              <option key={uniqueSection} value={uniqueSection}>{uniqueSection}</option>
-            ))}
-          </select>
-          <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "#94a3b8", fontSize: 11 }}>▼</span>
-        </div>
-
-        {hasActiveFilters && (
-          <button
-            onClick={handleClearFilters}
-            style={{
-              padding: "9px 16px",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 10,
-              fontSize: 13,
-              background: "#fff",
-              cursor: "pointer",
-              color: "#64748b",
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            ✕ Clear filters
-          </button>
-        )}
-
-        <span style={{ marginLeft: "auto", fontSize: 13, color: "#64748b", whiteSpace: "nowrap" }}>
-          {filteredRecords.length} record{filteredRecords.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
-          overflow: "hidden",
+        itemLabel="records"
+        searchQuery={searchQuery}
+        searchPlaceholder="Search by owner, employee, action…"
+        onSearchChange={handleSearch}
+        extraToolbar={extraToolbar}
+        sortableColumns={{
+          event_time: {
+            dir: dateSort,
+            onToggle: () => {
+              setDateSort((p) => (p === "desc" ? "asc" : "desc"));
+              setCurrentPage(1);
+            },
+          },
         }}
-      >
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid #f1f5f9", background: "#fafbff" }}>
-                {TABLE_COLUMNS.map((col) => (
-                  <th
-                    key={col}
-                    style={{
-                      padding: "11px 16px",
-                      textAlign: "left",
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      color: "#94a3b8",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-
-            <tbody>
-              {isLoading && (
-                <tr>
-                  <td
-                    colSpan={TABLE_COLUMNS.length}
-                    style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}
-                  >
-                    Loading…
-                  </td>
-                </tr>
-              )}
-
-              {!isLoading && filteredRecords.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={TABLE_COLUMNS.length}
-                    style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}
-                  >
-                    {hasActiveFilters
-                      ? "No records match the current filters."
-                      : "No audit trail records found."}
-                  </td>
-                </tr>
-              )}
-
-              {!isLoading &&
-                filteredRecords.map((record, rowIndex) => {
-                  const actionStyle = ACTION_COLOR[record.action] ?? { bg: "#f1f5f9", color: "#64748b" };
-                  return (
-                    <tr
-                      key={record.id}
-                      style={{
-                        borderBottom: "1px solid #f8fafc",
-                        background: rowIndex % 2 === 0 ? "#fff" : "#fafbff",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        ((e.currentTarget as HTMLTableRowElement).style.background = "#f0f9ff")
-                      }
-                      onMouseLeave={(e) =>
-                        ((e.currentTarget as HTMLTableRowElement).style.background =
-                          rowIndex % 2 === 0 ? "#fff" : "#fafbff")
-                      }
-                    >
-                      <td
-                        style={{
-                          padding: "11px 16px",
-                          color: "#64748b",
-                          fontSize: 12,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {formatDateTime(record.event_time)}
-                      </td>
-
-                      <td style={{ padding: "11px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: "50%",
-                              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#fff",
-                              fontSize: 10,
-                              fontWeight: 700,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {(record.action_owner || "?")
-                              .split(" ")
-                              .map((w) => w[0])
-                              .slice(0, 2)
-                              .join("")
-                              .toUpperCase()}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 13 }}>
-                              {record.action_owner || "—"}
-                            </div>
-                            <div style={{ color: "#94a3b8", fontSize: 11 }}>
-                              {record.action_owner_username || ""}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td style={{ padding: "11px 16px" }}>
-                        <span
-                          style={{
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            padding: "3px 10px",
-                            borderRadius: 999,
-                            background: actionStyle.bg,
-                            color: actionStyle.color,
-                            letterSpacing: 0.3,
-                          }}
-                        >
-                          {record.action}
-                        </span>
-                      </td>
-
-                      <td
-                        style={{
-                          padding: "11px 16px",
-                          color: "#374151",
-                          fontWeight: 500,
-                          fontSize: 13,
-                        }}
-                      >
-                        {record.employee || "—"}
-                      </td>
-
-                      <td
-                        style={{
-                          padding: "11px 16px",
-                          color: "#64748b",
-                          fontSize: 12.5,
-                        }}
-                      >
-                        <span
-                          style={{
-                            padding: "2px 8px",
-                            borderRadius: 6,
-                            background: "#f1f5f9",
-                            color: "#475569",
-                            fontSize: 12,
-                            fontWeight: 500,
-                          }}
-                        >
-                          {record.section || "—"}
-                        </span>
-                      </td>
-
-                      <td
-                        style={{
-                          padding: "11px 16px",
-                          color: "#64748b",
-                          fontSize: 12.5,
-                        }}
-                      >
-                        {record.source || "—"}
-                      </td>
-
-                      <td
-                        style={{
-                          padding: "11px 16px",
-                          color: "#64748b",
-                          fontSize: 12.5,
-                        }}
-                      >
-                        {record.performed_screen || "—"}
-                      </td>
-
-                      <td
-                        style={{
-                          padding: "11px 16px",
-                          color: "#64748b",
-                          fontSize: 12.5,
-                          maxWidth: 260,
-                        }}
-                      >
-                        {record.action_description || "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      />
     </Layout>
   );
 }

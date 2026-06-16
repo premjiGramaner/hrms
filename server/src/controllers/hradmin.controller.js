@@ -1,6 +1,7 @@
 import pool from "../config/db.js";
 import { success, created } from "../utils/response.js";
 import AppError from "../utils/AppError.js";
+import { writeAuditLog } from "../services/audit.service.js";
 
 const SPACE_REGEX = /\s+/g;
 const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
@@ -129,6 +130,16 @@ const createUser = async (req, res, next) => {
       ],
     );
 
+    await writeAuditLog({
+      employeeId:        rows[0].id,
+      employeeName:      rows[0].name,
+      employeeUsername:  rows[0].username,
+      section:           rows[0].role,
+      action:            "CREATE",
+      actor:             req.user,
+      actionDescription: `User created: ${rows[0].name} (${rows[0].email})`,
+    });
+
     return created(res, rows[0]);
   } catch (err) {
     next(err);
@@ -179,6 +190,17 @@ const updateUser = async (req, res, next) => {
       return next(new AppError("User not found", 404));
     }
 
+    const updatedRow = result.rows[0];
+    await writeAuditLog({
+      employeeId:        updatedRow.id,
+      employeeName:      updatedRow.name,
+      employeeUsername:  updatedRow.username,
+      section:           updatedRow.role,
+      action:            "UPDATE",
+      actor:             req.user,
+      actionDescription: `User updated: ${updatedRow.name} (${updatedRow.email})`,
+    });
+
     return success(res, result.rows[0]);
   } catch (err) {
     next(err);
@@ -190,6 +212,11 @@ const deleteUser = async (req, res, next) => {
     const userId = parseInt(req.params.id, 10);
     const deletedBy = req.user?.id || null;
 
+    const { rows: userRows } = await pool.query(
+      `SELECT name, username, role, email FROM tbl_appusers WHERE id = $1 AND is_deleted = false`,
+      [userId],
+    );
+
     const result = await pool.query(
       `UPDATE tbl_appusers
        SET is_deleted = true, updated_by = $1, updated_at = NOW()
@@ -199,6 +226,19 @@ const deleteUser = async (req, res, next) => {
 
     if (result.rowCount === 0) {
       return next(new AppError("User not found", 404));
+    }
+
+    if (userRows.length > 0) {
+      const u = userRows[0];
+      await writeAuditLog({
+        employeeId:        userId,
+        employeeName:      u.name,
+        employeeUsername:  u.username,
+        section:           u.role,
+        action:            "TERMINATE",
+        actor:             req.user,
+        actionDescription: `User terminated: ${u.name} (${u.email})`,
+      });
     }
 
     return success(res, { message: "User deleted successfully" });
@@ -559,94 +599,157 @@ const deleteSubUnit = async (req, res, next) => {
   }
 };
 
-const getAuditTrail = async (req, res, next) => {
+const getAuditTrail = async (_req, res, next) => {
   try {
-    const currentUser = req.user || {};
-    const currentUserName =
-      currentUser.id === 0
-        ? "Admin"
-        : currentUser.name || currentUser.username || "Unknown";
-    const currentUserUsername = currentUser.username || "admin";
+    const { rows: tableCheck } = await pool.query(
+      `SELECT to_regclass('public.tbl_audit_log') AS tbl`,
+    );
+    const auditTableExists = tableCheck[0]?.tbl !== null;
 
-    const { rows } = await pool.query(
-      `SELECT
-         emp.id,
-         COALESCE(emp.name, emp.username)   AS employee,
-         emp.username                       AS employee_username,
-         emp.role                           AS section,
-         CASE
-           WHEN emp.updated_at IS NOT NULL
-                AND emp.updated_at::timestamptz > emp.created_at::timestamptz
-             THEN 'UPDATE'
-           ELSE 'CREATE'
-         END                               AS action,
-         COALESCE(emp.updated_by, emp.created_by) AS actor_id_raw,
-         emp.created_at,
-         emp.updated_at,
-         COALESCE(emp.updated_at, emp.created_at) AS event_time,
-         -- Resolve actor name via safe JOIN (only for non-zero numeric ids)
-         CASE
-           WHEN emp.updated_at IS NOT NULL
-                AND emp.updated_at::timestamptz > emp.created_at::timestamptz
-           THEN COALESCE(actor_upd.name, actor_upd.username)
-           ELSE COALESCE(actor_cre.name, actor_cre.username)
-         END AS resolved_actor_name,
-         CASE
-           WHEN emp.updated_at IS NOT NULL
-                AND emp.updated_at::timestamptz > emp.created_at::timestamptz
-           THEN actor_upd.username
-           ELSE actor_cre.username
-         END AS resolved_actor_username
-       FROM tbl_appusers emp
-       LEFT JOIN tbl_appusers actor_cre
-              ON emp.created_by IS NOT NULL
-             AND emp.created_by ~ '^[1-9][0-9]*$'
-             AND actor_cre.id = emp.created_by::bigint
-             AND actor_cre.is_deleted = false
-       LEFT JOIN tbl_appusers actor_upd
-              ON emp.updated_by IS NOT NULL
-             AND emp.updated_by ~ '^[1-9][0-9]*$'
-             AND actor_upd.id = emp.updated_by::bigint
-             AND actor_upd.is_deleted = false
-       WHERE emp.is_deleted = false
-       ORDER BY COALESCE(emp.updated_at, emp.created_at) DESC NULLS LAST
-       LIMIT 100`,
+    let rows = [];
+
+    if (auditTableExists) {
+      const { rows: logRows } = await pool.query(
+        `SELECT
+           al.id::bigint                        AS id,
+           COALESCE(al.employee_name, '—')      AS employee,
+           COALESCE(al.employee_username, '')   AS employee_username,
+           COALESCE(al.section, '')             AS section,
+           al.action,
+           COALESCE(al.actor_name, 'System')    AS action_owner,
+           COALESCE(al.actor_username, '')      AS action_owner_username,
+           COALESCE(al.source, 'Web Application')             AS source,
+           COALESCE(al.performed_screen, 'HR Administration') AS performed_screen,
+           COALESCE(al.action_description, '')  AS action_description,
+           al.event_time,
+           al.created_at
+         FROM tbl_audit_log al
+         ORDER BY al.event_time DESC`,
+      );
+      rows = logRows;
+    }
+
+    const { rows: derivedRows } = await pool.query(
+      `
+      -- CREATE events: every user/employee has at least one
+      SELECT
+        (emp.id * 10 + 1)::bigint                    AS id,
+        COALESCE(emp.name, emp.username, '—')         AS employee,
+        COALESCE(emp.username, '')                    AS employee_username,
+        COALESCE(emp.role, '')                        AS section,
+        'CREATE'                                      AS action,
+        CASE
+          WHEN emp.created_by = '0' OR emp.created_by IS NULL THEN 'Admin'
+          ELSE COALESCE(actor_cre.name, actor_cre.username, 'System')
+        END                                           AS action_owner,
+        CASE
+          WHEN emp.created_by = '0' OR emp.created_by IS NULL THEN 'admin'
+          ELSE COALESCE(actor_cre.username, '')
+        END                                           AS action_owner_username,
+        'Web Application'                             AS source,
+        'HR Administration'                           AS performed_screen,
+        'Record created by ' ||
+          CASE
+            WHEN emp.created_by = '0' OR emp.created_by IS NULL THEN 'Admin'
+            ELSE COALESCE(actor_cre.name, actor_cre.username, 'System')
+          END                                         AS action_description,
+        emp.created_at                                AS event_time,
+        emp.created_at
+      FROM tbl_appusers emp
+      LEFT JOIN tbl_appusers actor_cre
+             ON emp.created_by IS NOT NULL
+            AND emp.created_by ~ '^[1-9][0-9]*$'
+            AND actor_cre.id = emp.created_by::bigint
+            AND actor_cre.is_deleted = false
+
+      UNION ALL
+
+      -- UPDATE events: only for users updated AFTER creation
+      SELECT
+        (emp.id * 10 + 2)::bigint                    AS id,
+        COALESCE(emp.name, emp.username, '—')         AS employee,
+        COALESCE(emp.username, '')                    AS employee_username,
+        COALESCE(emp.role, '')                        AS section,
+        'UPDATE'                                      AS action,
+        CASE
+          WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'Admin'
+          ELSE COALESCE(actor_upd.name, actor_upd.username, 'System')
+        END                                           AS action_owner,
+        CASE
+          WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'admin'
+          ELSE COALESCE(actor_upd.username, '')
+        END                                           AS action_owner_username,
+        'Web Application'                             AS source,
+        'HR Administration'                           AS performed_screen,
+        'Record updated by ' ||
+          CASE
+            WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'Admin'
+            ELSE COALESCE(actor_upd.name, actor_upd.username, 'System')
+          END                                         AS action_description,
+        emp.updated_at                                AS event_time,
+        emp.updated_at                                AS created_at
+      FROM tbl_appusers emp
+      LEFT JOIN tbl_appusers actor_upd
+             ON emp.updated_by IS NOT NULL
+            AND emp.updated_by ~ '^[1-9][0-9]*$'
+            AND actor_upd.id = emp.updated_by::bigint
+            AND actor_upd.is_deleted = false
+      WHERE emp.updated_at IS NOT NULL
+        AND emp.updated_at::timestamptz > (emp.created_at::timestamptz + interval '1 second')
+        AND emp.is_deleted = false
+
+      UNION ALL
+
+      -- TERMINATE events: soft-deleted users
+      SELECT
+        (emp.id * 10 + 3)::bigint                    AS id,
+        COALESCE(emp.name, emp.username, '—')         AS employee,
+        COALESCE(emp.username, '')                    AS employee_username,
+        COALESCE(emp.role, '')                        AS section,
+        'TERMINATE'                                   AS action,
+        CASE
+          WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'Admin'
+          ELSE COALESCE(actor_del.name, actor_del.username, 'System')
+        END                                           AS action_owner,
+        CASE
+          WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'admin'
+          ELSE COALESCE(actor_del.username, '')
+        END                                           AS action_owner_username,
+        'Web Application'                             AS source,
+        'HR Administration'                           AS performed_screen,
+        'Record terminated by ' ||
+          CASE
+            WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'Admin'
+            ELSE COALESCE(actor_del.name, actor_del.username, 'System')
+          END                                         AS action_description,
+        COALESCE(emp.updated_at, emp.created_at)      AS event_time,
+        COALESCE(emp.updated_at, emp.created_at)      AS created_at
+      FROM tbl_appusers emp
+      LEFT JOIN tbl_appusers actor_del
+             ON emp.updated_by IS NOT NULL
+            AND emp.updated_by ~ '^[1-9][0-9]*$'
+            AND actor_del.id = emp.updated_by::bigint
+            AND actor_del.is_deleted = false
+      WHERE emp.is_deleted = true
+
+      ORDER BY event_time DESC NULLS LAST
+      `,
     );
 
-    const finalRows = rows.map((row) => {
-     
-      const isAdminActor =
-        !row.actor_id_raw || row.actor_id_raw === "0" || row.actor_id_raw === 0;
 
-      const actionOwner = isAdminActor
-        ? currentUserName
-        : row.resolved_actor_name || currentUserName;
-
-      const actionOwnerUsername = isAdminActor
-        ? currentUserUsername
-        : row.resolved_actor_username || currentUserUsername;
-
-      const actionDescription =
-        row.action === "UPDATE"
-          ? `Record updated by ${actionOwner}`
-          : `Record created by ${actionOwner}`;
-
-      return {
-        id: row.id,
-        employee: row.employee,
-        employee_username: row.employee_username,
-        section: row.section,
-        action: row.action,
-        action_owner: actionOwner,
-        action_owner_username: actionOwnerUsername,
-        source: "Web Application",
-        performed_screen: "HR Administration",
-        action_description: actionDescription,
-        event_time: row.event_time,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-      };
-    });
+    let finalRows;
+    if (auditTableExists && rows.length > 0) {
+      const loggedUsernames = new Set(rows.map((r) => r.employee_username));
+      const gap = derivedRows.filter(
+        (r) => !loggedUsernames.has(r.employee_username),
+      );
+      finalRows = [...rows, ...gap].sort(
+        (a, b) =>
+          new Date(b.event_time).getTime() - new Date(a.event_time).getTime(),
+      );
+    } else {
+      finalRows = derivedRows;
+    }
 
     return success(res, finalRows);
   } catch (err) {

@@ -1,5 +1,6 @@
 import * as EmployeeModel from '../models/employee.model.js';
 import { success, created, error } from '../utils/response.js';
+import { writeAuditLog } from '../services/audit.service.js';
 
 const listEmployees = async (req, res, next) => {
   try {
@@ -65,6 +66,17 @@ const createEmployee = async (req, res, next) => {
       avatarPath
     );
 
+    await writeAuditLog({
+      employeeId:        emp.id,
+      employeeName:      emp.name,
+      employeeUsername:  emp.username,
+      section:           req.body.role || "employee",
+      action:            "CREATE",
+      actor:             req.user,
+      performedScreen:   "Employee Management",
+      actionDescription: `Employee created: ${emp.name} (${emp.email})`,
+    });
+
     return created(res, { message: 'Employee created successfully', id: emp.id });
   } catch (err) {
     if (err.code === '23505') return error(res, 'An employee with this email already exists', 422);
@@ -82,6 +94,18 @@ const updateEmployee = async (req, res, next) => {
     const body = { ...req.body, email: req.body.work_email || req.body.email };
 
     await EmployeeModel.updateEmployee(id, body, avatarPath, req.user?.id);
+
+    await writeAuditLog({
+      employeeId:        existing.id,
+      employeeName:      existing.name,
+      employeeUsername:  existing.username,
+      section:           existing.role || "employee",
+      action:            "UPDATE",
+      actor:             req.user,
+      performedScreen:   "Employee Management",
+      actionDescription: `Employee updated: ${existing.name}`,
+    });
+
     return success(res, { message: 'Employee updated successfully' });
   } catch (err) {
     next(err);
@@ -97,6 +121,18 @@ const deleteEmployee = async (req, res, next) => {
     if (!existing) return error(res, 'Employee not found', 404);
 
     await EmployeeModel.softDeleteEmployee(id, req.user?.id);
+
+    await writeAuditLog({
+      employeeId:        existing.id,
+      employeeName:      existing.name,
+      employeeUsername:  existing.username,
+      section:           existing.role || "employee",
+      action:            "TERMINATE",
+      actor:             req.user,
+      performedScreen:   "Employee Management",
+      actionDescription: `Employee terminated: ${existing.name}`,
+    });
+
     return success(res, { message: 'Employee deleted successfully' });
   } catch (err) {
     next(err);

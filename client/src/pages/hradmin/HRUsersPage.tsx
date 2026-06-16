@@ -18,8 +18,6 @@ const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
   { label: "Job Categories", path: "/hradmin/job-categories" },
   { label: "Sub Units", path: "/hradmin/sub-units" },
-  { label: "Organization", path: "#" },
-  { label: "More", path: "#" },
 ];
 
 const ROLE_DISPLAY_MAP: Record<string, string> = {
@@ -751,7 +749,6 @@ function UserFormModal({
           overflow: "hidden",
         }}
       >
-        {/* Header */}
         <div
           style={{
             padding: "20px 24px 0",
@@ -787,7 +784,6 @@ function UserFormModal({
           </button>
         </div>
 
-        {/* Body */}
         <div
           style={{
             padding: "20px 24px",
@@ -816,14 +812,14 @@ function UserFormModal({
               <FormInput
                 value={formData.employee_name}
                 placeholder="Full name"
-                onChange={(v) => handleFieldChange("employee_name", v)}
+                onChange={(value) => handleFieldChange("employee_name", value)}
               />
             </FormField>
             <FormField label="Email Address" required>
               <FormInput
                 value={formData.email}
                 placeholder="user@example.com"
-                onChange={(v) => handleFieldChange("email", v)}
+                onChange={(value) => handleFieldChange("email", value)}
               />
             </FormField>
           </FormRow>
@@ -836,7 +832,7 @@ function UserFormModal({
                   { value: "empmanager", label: "Employee Manager" },
                   { value: "hradmin", label: "HR Administrator" },
                 ]}
-                onChange={(v) => handleFieldChange("role", v)}
+                onChange={(value) => handleFieldChange("role", value)}
               />
             </FormField>
             <FormField label="Status">

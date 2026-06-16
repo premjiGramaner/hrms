@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getJobCategories,
@@ -10,70 +10,55 @@ import {
   UpdateJobCategoryPayload,
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
+import DataTable, { ColumnDef, ActionDef, StatCard, EditIcon, DeleteIcon } from "../../components/DataTable";
 
 const TABS: TabItem[] = [
-  { label: "Job Titles", path: "/hradmin/job-titles" },
+  { label: "Job Titles",     path: "/hradmin/job-titles" },
   { label: "Job Categories", path: "/hradmin/job-categories" },
-  { label: "Sub Units", path: "/hradmin/sub-units" },
-  { label: "Audit Trail", path: "/hradmin/audit-trail" },
-  { label: "Organization", path: "#" },
-  { label: "More", path: "#" },
-];
-
-const TABLE_COLUMNS = [
-  "#",
-  "Category Name",
-  "Description",
-  "Status",
-  "Actions",
+  { label: "Sub Units",      path: "/hradmin/sub-units" },
+  { label: "Audit Trail",    path: "/hradmin/audit-trail" },
 ];
 
 export default function JobCategoriesPage() {
-  const [categoryList, setCategoryList] = useState<JobCategory[]>([]);
-  const [filteredList, setFilteredList] = useState<JobCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<JobCategory | null>(
-    null,
-  );
-  const [categoryToDelete, setCategoryToDelete] = useState<JobCategory | null>(
-    null,
-  );
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [pageError, setPageError] = useState("");
+  const [categoryList, setCategoryList]       = useState<JobCategory[]>([]);
+  const [filteredList, setFilteredList]       = useState<JobCategory[]>([]);
+  const [isLoading, setIsLoading]             = useState(true);
+  const [searchQuery, setSearchQuery]         = useState("");
+  const [showAddModal, setShowAddModal]       = useState(false);
+  const [categoryToEdit, setCategoryToEdit]   = useState<JobCategory | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<JobCategory | null>(null);
+  const [isDeleting, setIsDeleting]           = useState(false);
+  const [pageError, setPageError]             = useState("");
+  const [currentPage, setCurrentPage]         = useState(1);
+  const [pageSize, setPageSize]               = useState(10);
 
   const fetchCategories = () => {
     setIsLoading(true);
     getJobCategories()
-      .then((res) => {
-        setCategoryList(res.data);
-        setFilteredList(res.data);
-        setSearchQuery("");
-      })
-      .catch(() =>
-        setPageError("Failed to load job categories. Please refresh."),
-      )
+      .then((res) => { setCategoryList(res.data); setFilteredList(res.data); setSearchQuery(""); })
+      .catch(() => setPageError("Failed to load job categories. Please refresh."))
       .finally(() => setIsLoading(false));
   };
-
   useEffect(fetchCategories, []);
 
   const debouncedFilter = useDebounce((value: string) => {
     const term = value.toLowerCase();
     setFilteredList(
       categoryList.filter(
-        (jc) =>
-          jc.category.toLowerCase().includes(term) ||
-          (jc.description || "").toLowerCase().includes(term),
+        (jc) => jc.category.toLowerCase().includes(term) ||
+                (jc.description || "").toLowerCase().includes(term),
       ),
     );
+    setCurrentPage(1);
   }, 300);
 
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-    debouncedFilter(value);
-  };
+  const handleSearchChange = (value: string) => { setSearchQuery(value); debouncedFilter(value); };
+
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / pageSize));
+  const pagedList  = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredList.slice(start, start + pageSize);
+  }, [filteredList, currentPage, pageSize]);
 
   const handleDeleteConfirm = async () => {
     if (!categoryToDelete) return;
@@ -82,312 +67,136 @@ export default function JobCategoriesPage() {
       await deleteJobCategory(categoryToDelete.id);
       setCategoryToDelete(null);
       fetchCategories();
-    } catch {
-      setPageError("Failed to delete job category. Please try again.");
-    } finally {
-      setIsDeleting(false);
-    }
+    } catch { setPageError("Failed to delete job category. Please try again."); }
+    finally { setIsDeleting(false); }
   };
 
-  const handleSaved = () => {
-    setShowAddModal(false);
-    setCategoryToEdit(null);
-    fetchCategories();
-  };
+  const handleSaved = () => { setShowAddModal(false); setCategoryToEdit(null); fetchCategories(); };
+
+  const activeCount = categoryList.filter((c) => c.is_active).length;
+
+  const columns: ColumnDef<JobCategory>[] = [
+    {
+      key: "category",
+      header: "Category Name",
+      render: (row) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+            background: "linear-gradient(135deg,#7c3aed,#a78bfa)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontSize: 13, fontWeight: 700,
+            boxShadow: "0 2px 8px rgba(124,58,237,0.2)",
+          }}>
+            {row.category.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>{row.category}</div>
+            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>ID #{row.id}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "description",
+      header: "Description",
+      render: (row) => row.description ? (
+        <span style={{
+          color: "#475569", fontSize: 13,
+          display: "-webkit-box", WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical" as const, overflow: "hidden",
+        }}>{row.description}</span>
+      ) : (
+        <span style={{ color: "#cbd5e1", fontSize: 12.5, fontStyle: "italic" }}>No description</span>
+      ),
+    },
+    {
+      key: "is_active",
+      header: "Status",
+      width: 120,
+      render: (row) => (
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 999,
+          background: row.is_active ? "#dcfce7" : "#f1f5f9",
+          color:      row.is_active ? "#16a34a" : "#94a3b8",
+          border:    `1px solid ${row.is_active ? "#bbf7d0" : "#e2e8f0"}`,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: row.is_active ? "#22c55e" : "#cbd5e1" }}/>
+          {row.is_active ? "Active" : "Inactive"}
+        </span>
+      ),
+    },
+  ];
+
+  const actions: ActionDef<JobCategory>[] = [
+    { label: "Edit",   icon: EditIcon,   color: "#1b2a6b", bg: "#eff6ff", bgHover: "#dbeafe", borderColor: "#bfdbfe", borderColorHover: "#93c5fd", onClick: (row) => setCategoryToEdit(row),   title: "Edit category" },
+    { label: "Delete", icon: DeleteIcon, color: "#e11d48", bg: "#fff1f2", bgHover: "#ffe4e6", borderColor: "#fecdd3", borderColorHover: "#fda4af", onClick: (row) => setCategoryToDelete(row), title: "Delete category" },
+  ];
 
   return (
-    <Layout
-      title="HR Administration"
-      tabs={TABS}
-      activeTab="Job Categories"
-      onFab={() => setShowAddModal(true)}
-    >
+    <Layout title="HR Administration" tabs={TABS} activeTab="Job Categories">
       {pageError && (
-        <div
-          style={{
-            marginBottom: 12,
-            padding: "10px 16px",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: 10,
-            color: "#dc2626",
-            fontSize: 13.5,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          {pageError}
-          <button
-            onClick={() => setPageError("")}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#dc2626",
-              fontSize: 16,
-              padding: 0,
-            }}
-          >
-            ✕
-          </button>
+        <div style={{
+          marginBottom: 16, padding: "12px 18px",
+          background: "linear-gradient(135deg,#fff5f5,#fff)",
+          border: "1px solid #fecaca", borderLeft: "4px solid #ef4444",
+          borderRadius: 12, color: "#dc2626", fontSize: 13.5,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          boxShadow: "0 2px 8px rgba(239,68,68,0.08)",
+        }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span>⚠</span>{pageError}</span>
+          <button onClick={() => setPageError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 18, padding: 0 }}>✕</button>
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: 10,
-        }}
-      >
-        <div style={{ position: "relative", width: 280 }}>
-          <span
-            style={{
-              position: "absolute",
-              left: 12,
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#94a3b8"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </span>
-          <input
-            type="text"
-            placeholder="Search job categories…"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "9px 12px 9px 34px",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 10,
-              fontSize: 13.5,
-              outline: "none",
-              background: "#fff",
-              boxSizing: "border-box",
-            }}
-          />
-        </div>
-
-        <span style={{ fontSize: 13, color: "#64748b" }}>
-          {filteredList.length}{" "}
-          {filteredList.length !== 1 ? "categories" : "category"}
-        </span>
-      </div>
-
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}
-        >
-          <thead>
-            <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
-              {TABLE_COLUMNS.map((col, i) => (
-                <th
-                  key={i}
-                  style={{
-                    padding: "12px 16px",
-                    textAlign: "left",
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    color: "#94a3b8",
-                    whiteSpace: "nowrap",
-                    width: i === 0 ? 48 : undefined,
-                  }}
-                >
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {isLoading && (
-              <tr>
-                <td
-                  colSpan={TABLE_COLUMNS.length}
-                  style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}
-                >
-                  Loading…
-                </td>
-              </tr>
-            )}
-
-            {!isLoading && filteredList.length === 0 && (
-              <tr>
-                <td
-                  colSpan={TABLE_COLUMNS.length}
-                  style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}
-                >
-                  {searchQuery
-                    ? `No results for "${searchQuery}"`
-                    : "No job categories found. Click + to add one."}
-                </td>
-              </tr>
-            )}
-
-            {!isLoading &&
-              filteredList.map((jobCategory, rowIndex) => (
-                <tr
-                  key={jobCategory.id}
-                  style={{
-                    borderBottom: "1px solid #f8fafc",
-                    background: rowIndex % 2 === 0 ? "#fff" : "#fafbff",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.background =
-                      "#f8fafc")
-                  }
-                  onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.background =
-                      rowIndex % 2 === 0 ? "#fff" : "#fafbff")
-                  }
-                >
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      color: "#94a3b8",
-                      fontSize: 12,
-                    }}
-                  >
-                    {rowIndex + 1}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      fontWeight: 600,
-                      color: "#1e293b",
-                    }}
-                  >
-                    {jobCategory.category}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      color: "#64748b",
-                      fontSize: 12.5,
-                    }}
-                  >
-                    {jobCategory.description || (
-                      <span style={{ color: "#cbd5e1" }}>—</span>
-                    )}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        padding: "3px 10px",
-                        borderRadius: 999,
-                        background: jobCategory.is_active
-                          ? "#dcfce7"
-                          : "#f1f5f9",
-                        color: jobCategory.is_active ? "#16a34a" : "#94a3b8",
-                      }}
-                    >
-                      {jobCategory.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button
-                        onClick={() => setCategoryToEdit(jobCategory)}
-                        title="Edit category"
-                        style={{
-                          background: "#eff6ff",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "#1b2a6b",
-                          fontSize: 13,
-                          padding: "5px 10px",
-                          borderRadius: 8,
-                          fontWeight: 600,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        ✎ Edit
-                      </button>
-                      <button
-                        onClick={() => setCategoryToDelete(jobCategory)}
-                        title="Delete category"
-                        style={{
-                          background: "#fff1f2",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "#e11d48",
-                          fontSize: 13,
-                          padding: "5px 10px",
-                          borderRadius: 8,
-                          fontWeight: 600,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        🗑 Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable<JobCategory>
+        title="Job Categories"
+        subtitle="Manage your organisation's job categories"
+        icon=""
+        rows={pagedList}
+        isLoading={isLoading}
+        columns={columns}
+        actions={actions}
+        getKey={(row) => row.id}
+        emptyIcon=""
+        emptyTitle={searchQuery ? `No results for "${searchQuery}"` : "No job categories yet"}
+        emptySubtitle={searchQuery ? "Try a different search term" : "Click 'Add Job Category' to create one"}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalRecords={filteredList.length}
+        pageSize={pageSize}
+        pageSizeOptions={[5, 10, 20, 50]}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
+        itemLabel="categories"
+        searchQuery={searchQuery}
+        searchPlaceholder="Search categories or description…"
+        onSearchChange={handleSearchChange}
+        addLabel="Add Job Category"
+        onAdd={() => setShowAddModal(true)}
+      />
 
       {showAddModal && (
-        <JobCategoryFormModal
-          mode="add"
-          onClose={() => setShowAddModal(false)}
-          onSaved={handleSaved}
-          onError={(msg) => setPageError(msg)}
-        />
+        <JobCategoryFormModal mode="add" onClose={() => setShowAddModal(false)} onSaved={handleSaved} onError={(m) => setPageError(m)} />
       )}
-
       {categoryToEdit && (
-        <JobCategoryFormModal
-          mode="edit"
-          jobCategory={categoryToEdit}
-          onClose={() => setCategoryToEdit(null)}
-          onSaved={handleSaved}
-          onError={(msg) => setPageError(msg)}
-        />
+        <JobCategoryFormModal mode="edit" jobCategory={categoryToEdit} onClose={() => setCategoryToEdit(null)} onSaved={handleSaved} onError={(m) => setPageError(m)} />
       )}
-
       {categoryToDelete && (
-        <DeleteConfirmModal
-          categoryName={categoryToDelete.category}
-          isLoading={isDeleting}
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setCategoryToDelete(null)}
-        />
+        <DeleteConfirmModal categoryName={categoryToDelete.category} isLoading={isDeleting} onConfirm={handleDeleteConfirm} onCancel={() => setCategoryToDelete(null)} />
       )}
     </Layout>
   );
 }
+
+const inputStyle: React.CSSProperties = {
+  padding: "11px 14px", border: "1.5px solid #e2e8f0",
+  borderRadius: 10, fontSize: 13.5, outline: "none",
+  background: "#fff", width: "100%", boxSizing: "border-box",
+  transition: "border-color 0.2s",
+};
+const labelStyle: React.CSSProperties = { fontSize: 12.5, fontWeight: 600, color: "#374151" };
 
 interface JobCategoryFormModalProps {
   mode: "add" | "edit";
@@ -397,279 +206,96 @@ interface JobCategoryFormModalProps {
   onError: (message: string) => void;
 }
 
-function JobCategoryFormModal({
-  mode,
-  jobCategory,
-  onClose,
-  onSaved,
-  onError,
-}: JobCategoryFormModalProps) {
+function JobCategoryFormModal({ mode, jobCategory, onClose, onSaved, onError }: JobCategoryFormModalProps) {
   const [categoryName, setCategoryName] = useState(jobCategory?.category || "");
-  const [description, setDescription] = useState(
-    jobCategory?.description || "",
-  );
-  const [isActive, setIsActive] = useState(jobCategory?.is_active !== false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [description, setDescription]   = useState(jobCategory?.description || "");
+  const [isActive, setIsActive]         = useState(jobCategory?.is_active !== false);
+  const [isSaving, setIsSaving]         = useState(false);
+  const [formError, setFormError]       = useState("");
 
   const handleSubmit = async () => {
-    if (!categoryName.trim()) {
-      setFormError("Category name is required.");
-      return;
-    }
-
+    if (!categoryName.trim()) { setFormError("Category name is required."); return; }
     setIsSaving(true);
     try {
       if (mode === "add") {
-        const payload: CreateJobCategoryPayload = {
-          category: categoryName.trim(),
-          description: description.trim() || undefined,
-        };
-        await createJobCategory(payload);
+        await createJobCategory({ category: categoryName.trim(), description: description.trim() || undefined } as CreateJobCategoryPayload);
       } else if (mode === "edit" && jobCategory) {
-        const payload: UpdateJobCategoryPayload = {
-          category: categoryName.trim(),
-          description: description.trim() || undefined,
-          is_active: isActive,
-        };
-        await updateJobCategory(jobCategory.id, payload);
+        await updateJobCategory(jobCategory.id, { category: categoryName.trim(), description: description.trim() || undefined, is_active: isActive } as UpdateJobCategoryPayload);
       }
       onSaved();
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        `Failed to ${mode === "add" ? "create" : "update"} job category. Please try again.`;
-      setFormError(message);
-      onError(message);
-    } finally {
-      setIsSaving(false);
-    }
+      const msg = err?.response?.data?.message || `Failed to ${mode === "add" ? "create" : "update"} job category.`;
+      setFormError(msg); onError(msg);
+    } finally { setIsSaving(false); }
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-        padding: 16,
-      }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 20,
-          width: "100%",
-          maxWidth: 480,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: "20px 24px 0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#1b2a6b",
-            }}
-          >
-            {mode === "add" ? "Add Job Category" : "Edit Job Category"}
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background: "#f1f5f9",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 14,
-              color: "#64748b",
-            }}
-          >
-            ✕
-          </button>
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
+      position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)",
+      backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
+      justifyContent: "center", zIndex: 200, padding: 16,
+    }}>
+      <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 500, boxShadow: "0 24px 80px rgba(0,0,0,0.22)", overflow: "hidden" }}>
+        {/* Header */}
+        <div style={{ padding: "22px 26px 18px", background: "linear-gradient(135deg,#7c3aed,#a78bfa)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+              {mode === "add" ? "➕" : "✏️"}
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#fff" }}>{mode === "add" ? "Add Job Category" : "Edit Job Category"}</h2>
+              <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>{mode === "add" ? "Create a new job category" : "Update category details"}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.18)", border: "none", cursor: "pointer", fontSize: 16, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
 
-        <div
-          style={{
-            padding: "20px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-          }}
-        >
+        <div style={{ padding: "22px 26px", display: "flex", flexDirection: "column", gap: 16 }}>
           {formError && (
-            <div
-              style={{
-                padding: "8px 12px",
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
-                borderRadius: 8,
-                color: "#dc2626",
-                fontSize: 13,
-              }}
-            >
-              {formError}
-            </div>
+            <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderLeft: "4px solid #ef4444", borderRadius: 10, color: "#dc2626", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>⚠ {formError}</div>
           )}
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <label
-              style={{ fontSize: 12.5, fontWeight: 600, color: "#4a5568" }}
-            >
-              Category Name <span style={{ color: "#ef4444" }}>*</span>
-            </label>
-            <input
-              value={categoryName}
-              onChange={(e) => {
-                setCategoryName(e.target.value);
-                setFormError("");
-              }}
-              placeholder="e.g. Delivery Team"
-              style={{
-                padding: "10px 12px",
-                border: "1.5px solid #e2e8f0",
-                borderRadius: 10,
-                fontSize: 13.5,
-                outline: "none",
-                background: "#fff",
-              }}
-            />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={labelStyle}>Category Name <span style={{ color: "#ef4444" }}>*</span></label>
+            <input value={categoryName} onChange={(e) => { setCategoryName(e.target.value); setFormError(""); }} placeholder="e.g. Delivery Team" style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#7c3aed")} onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")} />
           </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <label
-              style={{ fontSize: 12.5, fontWeight: 600, color: "#4a5568" }}
-            >
-              Description{" "}
-              <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>
-                (optional)
-              </span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of this category…"
-              rows={3}
-              style={{
-                padding: "10px 12px",
-                border: "1.5px solid #e2e8f0",
-                borderRadius: 10,
-                fontSize: 13.5,
-                outline: "none",
-                background: "#fff",
-                resize: "vertical",
-                fontFamily: "inherit",
-              }}
-            />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={labelStyle}>Description <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>(optional)</span></label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of this category…" rows={3}
+              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#7c3aed")} onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")} />
           </div>
-
           {mode === "edit" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <label
-                style={{ fontSize: 12.5, fontWeight: 600, color: "#4a5568" }}
-              >
-                Status
-              </label>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 20,
-                  paddingTop: 4,
-                }}
-              >
-                {(["Active", "Inactive"] as const).map((statusOption) => (
-                  <label
-                    key={statusOption}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 13.5,
-                      cursor: "pointer",
-                      color: "#374151",
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="job_category_status"
-                      checked={isActive === (statusOption === "Active")}
-                      onChange={() => setIsActive(statusOption === "Active")}
-                      style={{ accentColor: "#1b2a6b", width: 15, height: 15 }}
-                    />
-                    {statusOption}
-                  </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={labelStyle}>Status</label>
+              <div style={{ display: "flex", gap: 10 }}>
+                {(["Active", "Inactive"] as const).map((opt) => (
+                  <button key={opt} type="button" onClick={() => setIsActive(opt === "Active")} style={{
+                    flex: 1, padding: "9px", borderRadius: 10, cursor: "pointer",
+                    border: `2px solid ${isActive === (opt === "Active") ? (opt === "Active" ? "#22c55e" : "#94a3b8") : "#e2e8f0"}`,
+                    background: isActive === (opt === "Active") ? (opt === "Active" ? "#f0fdf4" : "#f8fafc") : "#fff",
+                    color: isActive === (opt === "Active") ? (opt === "Active" ? "#16a34a" : "#64748b") : "#94a3b8",
+                    fontWeight: 600, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.15s",
+                  }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: opt === "Active" ? "#22c55e" : "#94a3b8" }} />{opt}
+                  </button>
                 ))}
               </div>
             </div>
           )}
         </div>
 
-        <div
-          style={{
-            padding: "14px 24px 20px",
-            borderTop: "1px solid #f1f5f9",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <span style={{ fontSize: 12, color: "#94a3b8" }}>
-            <span style={{ color: "#ef4444" }}>*</span> Required
-          </span>
+        <div style={{ padding: "16px 26px 22px", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fafbff" }}>
+          <span style={{ fontSize: 12, color: "#94a3b8" }}><span style={{ color: "#ef4444" }}>*</span> Required fields</span>
           <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: "9px 22px",
-                borderRadius: 999,
-                border: "1.5px solid #e2e8f0",
-                background: "#fff",
-                fontSize: 13.5,
-                fontWeight: 600,
-                cursor: "pointer",
-                color: "#64748b",
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSaving}
-              style={{
-                padding: "9px 28px",
-                borderRadius: 999,
-                border: "none",
-                background: isSaving
-                  ? "#94a3b8"
-                  : "linear-gradient(90deg,#1b2a6b,#16a085)",
-                color: "#fff",
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: isSaving ? "not-allowed" : "pointer",
-              }}
-            >
-              {isSaving
-                ? "Saving…"
-                : mode === "add"
-                  ? "Add Category"
-                  : "Save Changes"}
+            <button onClick={onClose} style={{ padding: "10px 22px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontSize: 13.5, fontWeight: 600, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+            <button onClick={handleSubmit} disabled={isSaving} style={{
+              padding: "10px 28px", borderRadius: 10, border: "none",
+              background: isSaving ? "#94a3b8" : "linear-gradient(135deg,#7c3aed,#a78bfa)",
+              color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: isSaving ? "not-allowed" : "pointer",
+              boxShadow: isSaving ? "none" : "0 2px 10px rgba(124,58,237,0.25)",
+            }}>
+              {isSaving ? "Saving…" : mode === "add" ? "Add Category" : "Save Changes"}
             </button>
           </div>
         </div>
@@ -678,112 +304,26 @@ function JobCategoryFormModal({
   );
 }
 
-interface DeleteConfirmModalProps {
-  categoryName: string;
-  isLoading: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
+interface DeleteConfirmModalProps { categoryName: string; isLoading: boolean; onConfirm: () => void; onCancel: () => void; }
 
-function DeleteConfirmModal({
-  categoryName,
-  isLoading,
-  onConfirm,
-  onCancel,
-}: DeleteConfirmModalProps) {
+function DeleteConfirmModal({ categoryName, isLoading, onConfirm, onCancel }: DeleteConfirmModalProps) {
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 16,
-          width: "100%",
-          maxWidth: 420,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-          padding: "28px 28px 24px",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: "50%",
-            background: "#fff1f2",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 16px",
-            fontSize: 22,
-          }}
-        >
-          🗑
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 420, boxShadow: "0 24px 80px rgba(0,0,0,0.22)", overflow: "hidden" }}>
+        <div style={{ background: "linear-gradient(135deg,#fff1f2,#fff5f5)", borderBottom: "1px solid #fecdd3", padding: "24px 28px 20px", textAlign: "center" }}>
+          <div style={{ width: 60, height: 60, borderRadius: "50%", background: "linear-gradient(135deg,#fee2e2,#fecdd3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", fontSize: 26, boxShadow: "0 4px 16px rgba(239,68,68,0.2)" }}>🗑</div>
+          <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 800, color: "#1e293b" }}>Delete Job Category</h3>
+          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>This action cannot be undone</p>
         </div>
-        <h3
-          style={{
-            margin: "0 0 8px",
-            fontSize: 17,
-            fontWeight: 700,
-            color: "#1e293b",
-          }}
-        >
-          Delete Job Category
-        </h3>
-        <p
-          style={{
-            margin: "0 0 24px",
-            fontSize: 14,
-            color: "#64748b",
-            lineHeight: 1.5,
-          }}
-        >
-          Are you sure you want to delete{" "}
-          <strong style={{ color: "#1e293b" }}>"{categoryName}"</strong>?{" "}
-          Employees assigned this category will keep it, but it won't appear in
-          the dropdown for new records.
-        </p>
-        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-          <button
-            onClick={onCancel}
-            disabled={isLoading}
-            style={{
-              padding: "9px 24px",
-              borderRadius: 999,
-              border: "1.5px solid #e2e8f0",
-              background: "#fff",
-              fontSize: 13.5,
-              fontWeight: 600,
-              cursor: "pointer",
-              color: "#64748b",
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={isLoading}
-            style={{
-              padding: "9px 24px",
-              borderRadius: 999,
-              border: "none",
-              background: isLoading ? "#94a3b8" : "#e11d48",
-              color: "#fff",
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: isLoading ? "not-allowed" : "pointer",
-            }}
-          >
+        <div style={{ padding: "20px 28px" }}>
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "14px 16px", fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>
+            Are you sure you want to delete <strong style={{ color: "#1e293b", background: "#fee2e2", padding: "1px 6px", borderRadius: 4 }}>"{categoryName}"</strong>?
+            <br /><span style={{ fontSize: 12.5, color: "#94a3b8" }}>Employees with this category will keep it, but it won't appear in new records.</span>
+          </div>
+        </div>
+        <div style={{ padding: "0 28px 24px", display: "flex", gap: 10 }}>
+          <button onClick={onCancel} disabled={isLoading} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", fontSize: 13.5, fontWeight: 600, cursor: "pointer", color: "#64748b" }}>Cancel</button>
+          <button onClick={onConfirm} disabled={isLoading} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: isLoading ? "#94a3b8" : "linear-gradient(135deg,#dc2626,#e11d48)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: isLoading ? "not-allowed" : "pointer", boxShadow: isLoading ? "none" : "0 2px 10px rgba(220,38,38,0.3)" }}>
             {isLoading ? "Deleting…" : "Yes, Delete"}
           </button>
         </div>
