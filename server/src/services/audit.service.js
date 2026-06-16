@@ -26,10 +26,10 @@ export async function writeAuditLog({
   actionDescription = "",
 }) {
   try {
-    const actorId       = actor?.id   ?? null;
+    const actorId = actor?.id ?? null;
     // actor.name is NOT in the JWT payload — only id and username are.
     // Resolve the real name from DB when we have a valid numeric id.
-    let actorName     = actor?.name ?? actor?.username ?? "System";
+    let actorName = actor?.name ?? actor?.username ?? "System";
     let actorUsername = actor?.username ?? "system";
 
     if (actorId && actorId !== 0) {
@@ -39,14 +39,14 @@ export async function writeAuditLog({
           [actorId],
         );
         if (rows.length > 0) {
-          actorName     = rows[0].name || rows[0].username || actorUsername;
+          actorName = rows[0].name || rows[0].username || actorUsername;
           actorUsername = rows[0].username || actorUsername;
         }
       } catch {
         // keep the fallback values
       }
     } else if (actorId === 0) {
-      actorName     = "Admin";
+      actorName = "Admin";
       actorUsername = "admin";
     }
 

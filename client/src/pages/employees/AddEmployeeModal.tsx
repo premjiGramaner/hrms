@@ -662,7 +662,10 @@ export default function AddEmployeeModal({
                           onChange={() => {
                             setSelectedSupervisors((prev) =>
                               checked
-                                ? prev.filter((setSelectedSupervisor) => setSelectedSupervisor !== supervis.name)
+                                ? prev.filter(
+                                    (setSelectedSupervisor) =>
+                                      setSelectedSupervisor !== supervis.name,
+                                  )
                                 : prev.length < 3
                                   ? [...prev, supervis.name]
                                   : prev,

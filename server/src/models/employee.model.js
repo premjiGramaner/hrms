@@ -171,8 +171,10 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       ? `${data.first_name} ${data.last_name}`.trim()
       : undefined;
 
-  const n = (value) => (value && String(value).trim() !== "" ? String(value).trim() : null);
-  const d = (value) => (!value || String(value).trim() === "" ? null : String(value).trim());
+  const n = (value) =>
+    value && String(value).trim() !== "" ? String(value).trim() : null;
+  const d = (value) =>
+    !value || String(value).trim() === "" ? null : String(value).trim();
 
   const result = await pool.query(
     `UPDATE tbl_appusers SET

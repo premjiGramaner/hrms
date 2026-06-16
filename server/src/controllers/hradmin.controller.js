@@ -131,12 +131,12 @@ const createUser = async (req, res, next) => {
     );
 
     await writeAuditLog({
-      employeeId:        rows[0].id,
-      employeeName:      rows[0].name,
-      employeeUsername:  rows[0].username,
-      section:           rows[0].role,
-      action:            "CREATE",
-      actor:             req.user,
+      employeeId: rows[0].id,
+      employeeName: rows[0].name,
+      employeeUsername: rows[0].username,
+      section: rows[0].role,
+      action: "CREATE",
+      actor: req.user,
       actionDescription: `User created: ${rows[0].name} (${rows[0].email})`,
     });
 
@@ -192,12 +192,12 @@ const updateUser = async (req, res, next) => {
 
     const updatedRow = result.rows[0];
     await writeAuditLog({
-      employeeId:        updatedRow.id,
-      employeeName:      updatedRow.name,
-      employeeUsername:  updatedRow.username,
-      section:           updatedRow.role,
-      action:            "UPDATE",
-      actor:             req.user,
+      employeeId: updatedRow.id,
+      employeeName: updatedRow.name,
+      employeeUsername: updatedRow.username,
+      section: updatedRow.role,
+      action: "UPDATE",
+      actor: req.user,
       actionDescription: `User updated: ${updatedRow.name} (${updatedRow.email})`,
     });
 
@@ -231,12 +231,12 @@ const deleteUser = async (req, res, next) => {
     if (userRows.length > 0) {
       const u = userRows[0];
       await writeAuditLog({
-        employeeId:        userId,
-        employeeName:      u.name,
-        employeeUsername:  u.username,
-        section:           u.role,
-        action:            "TERMINATE",
-        actor:             req.user,
+        employeeId: userId,
+        employeeName: u.name,
+        employeeUsername: u.username,
+        section: u.role,
+        action: "TERMINATE",
+        actor: req.user,
         actionDescription: `User terminated: ${u.name} (${u.email})`,
       });
     }
@@ -735,7 +735,6 @@ const getAuditTrail = async (_req, res, next) => {
       ORDER BY event_time DESC NULLS LAST
       `,
     );
-
 
     let finalRows;
     if (auditTableExists && rows.length > 0) {

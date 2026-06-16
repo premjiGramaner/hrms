@@ -22,7 +22,7 @@ function buildPageNumbers(
   if (activePage > 3) pages.push("ellipsis");
 
   const start = Math.max(2, activePage - 1);
-  const end   = Math.min(totalPages - 1, activePage + 1);
+  const end = Math.min(totalPages - 1, activePage + 1);
   for (let p = start; p <= end; p++) pages.push(p);
 
   if (activePage < totalPages - 2) pages.push("ellipsis");
@@ -96,7 +96,7 @@ export default function Pagination({
   if (totalRecords === 0) return null;
 
   const firstRow = (currentPage - 1) * pageSize + 1;
-  const lastRow  = Math.min(currentPage * pageSize, totalRecords);
+  const lastRow = Math.min(currentPage * pageSize, totalRecords);
 
   return (
     <div
@@ -117,16 +117,24 @@ export default function Pagination({
             {firstRow}–{lastRow}
           </span>{" "}
           of{" "}
-          <span style={{ fontWeight: 600, color: "#1e293b" }}>{totalRecords}</span>{" "}
+          <span style={{ fontWeight: 600, color: "#1e293b" }}>
+            {totalRecords}
+          </span>{" "}
           {itemLabel}
           &nbsp;·&nbsp; Page{" "}
-          <span style={{ fontWeight: 600, color: "#1e293b" }}>{currentPage}</span>{" "}
+          <span style={{ fontWeight: 600, color: "#1e293b" }}>
+            {currentPage}
+          </span>{" "}
           of{" "}
-          <span style={{ fontWeight: 600, color: "#1e293b" }}>{totalPages}</span>
+          <span style={{ fontWeight: 600, color: "#1e293b" }}>
+            {totalPages}
+          </span>
         </span>
 
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap" }}>
+          <span
+            style={{ fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap" }}
+          >
             Per page:
           </span>
           <select

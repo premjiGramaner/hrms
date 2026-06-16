@@ -1,6 +1,5 @@
 import api from "./axios";
 
-
 export interface HRUser {
   id: number;
   username: string;
@@ -38,7 +37,6 @@ export interface UpdateHRUserPayload {
   role: string;
   status: string;
 }
-
 
 export const getHRUsers = async (
   params: HRUsersQueryParams = {},
@@ -93,7 +91,6 @@ export const toggleHRUserStatus = async (
   return { data: response.data.data };
 };
 
-
 export interface JobTitle {
   id: number;
   title: string;
@@ -144,7 +141,6 @@ export const deleteJobTitle = async (jobTitleId: number): Promise<void> => {
   await api.delete(`/hradmin/job-titles/${jobTitleId}`);
 };
 
-
 export interface JobCategory {
   id: number;
   category: string;
@@ -191,10 +187,11 @@ export const updateJobCategory = async (
   return { data: response.data.data };
 };
 
-export const deleteJobCategory = async (jobCategoryId: number): Promise<void> => {
+export const deleteJobCategory = async (
+  jobCategoryId: number,
+): Promise<void> => {
   await api.delete(`/hradmin/job-categories/${jobCategoryId}`);
 };
-
 
 export interface SubUnit {
   id: number;
@@ -248,7 +245,6 @@ export const updateSubUnit = async (
 export const deleteSubUnit = async (subUnitId: number): Promise<void> => {
   await api.delete(`/hradmin/sub-units/${subUnitId}`);
 };
-
 
 export const getAuditTrail = async (): Promise<{ data: any[] }> => {
   const response = await api.get<{ success: boolean; data: any[] }>(
