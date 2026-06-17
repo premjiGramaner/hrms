@@ -150,7 +150,7 @@ export default function AddEmployeeModal({
   }, [initialForm]);
 
   const set =
-    (k: keyof typeof initialForm) =>
+    (fieldName: keyof typeof initialForm) =>
     (
       event: ChangeEvent<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -637,7 +637,7 @@ export default function AddEmployeeModal({
                 </p>
               ) : (
                 <div className="border border-slate-300 rounded-xl overflow-hidden">
-                  {supervisors.map((supervis, i) => {
+                  {supervisors.map((supervis, supervisorIndex) => {
                     const checked = selectedSupervisors.includes(supervis.name);
                     const subUnitMatch = subUnitRecords.find(
                       (su) =>

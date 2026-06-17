@@ -320,8 +320,37 @@ async function cancelLeave(id, cancelledById) {
   return rows[0] || null;
 }
 
+async function findLeaveFilterOptions() {
+  const [subUnits, locations, jobTitles, empStatuses, jobCategories] = await Promise.all([
+    pool.query(`SELECT DISTINCT sub_unit AS val FROM tbl_appusers WHERE sub_unit IS NOT NULL AND sub_unit <> '' AND is_deleted = FALSE ORDER BY val`),
+    pool.query(`SELECT DISTINCT location AS val FROM tbl_appusers WHERE location IS NOT NULL AND location <> '' AND is_deleted = FALSE ORDER BY val`),
+    pool.query(`SELECT DISTINCT job_title AS val FROM tbl_appusers WHERE job_title IS NOT NULL AND job_title <> '' AND is_deleted = FALSE ORDER BY val`),
+    pool.query(`SELECT DISTINCT employment_status AS val FROM tbl_appusers WHERE employment_status IS NOT NULL AND employment_status <> '' AND is_deleted = FALSE ORDER BY val`),
+    pool.query(`SELECT DISTINCT job_category AS val FROM tbl_appusers WHERE job_category IS NOT NULL AND job_category <> '' AND is_deleted = FALSE ORDER BY val`),
+  ]);
+  return {
+    sub_units: subUnits.rows.map(r => r.val),
+    locations: locations.rows.map(r => r.val),
+    job_titles: jobTitles.rows.map(r => r.val),
+    employment_statuses: empStatuses.rows.map(r => r.val),
+    job_categories: jobCategories.rows.map(r => r.val),
+  };
+}
+
+async function searchEmployees(q) {
+  const { rows } = await pool.query(
+    `SELECT id, employee_id, name, username, job_title, sub_unit
+     FROM tbl_appusers
+     WHERE is_deleted = FALSE AND is_active = TRUE
+       AND (name ILIKE $1 OR employee_id ILIKE $1 OR username ILIKE $1)
+     ORDER BY name
+     LIMIT 15`,
+    [`%${q}%`]
+  );
+  return rows;
+}
+
 async function getLeavesSummaryForExport(filters = {}) {
-  const { clause, values } = buildFilters(filters);
   const { rows } = await pool.query(
     `SELECT
        u.employee_id,
@@ -384,4 +413,6 @@ export {
   cancelLeave,
   getLeavesSummaryForExport,
   getLeavesDetailForExport,
+  findLeaveFilterOptions,
+  searchEmployees,
 };

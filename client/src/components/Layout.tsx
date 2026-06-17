@@ -22,6 +22,7 @@ export interface TabItem {
   label: string;
   path: string;
 }
+
 interface Props {
   children: React.ReactNode;
   title?: string;
@@ -30,15 +31,7 @@ interface Props {
   onFab?: () => void;
 }
 
-const HR_ADMIN_SUB_ITEMS: { label: string; path: string }[] = [];
-
-export default function Layout({
-  children,
-  title,
-  tabs,
-  activeTab,
-  onFab,
-}: Props) {
+export default function Layout({ children, title, tabs, activeTab, onFab }: Props) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const navigate = useNavigate();
@@ -48,11 +41,13 @@ export default function Layout({
   const role = user?.role || "employee";
   const username = user?.name || user?.username || "User";
   const roleLabel =
-    role === "empmanager" ? "Employee Manager" : role === "hradmin" ? "HR Administrator" : "Employee";
+    role === "empmanager"
+      ? "Employee Manager"
+      : role === "hradmin"
+        ? "HR Administrator"
+        : "Employee";
 
   const isActive = (path: string) => location.pathname.startsWith(path);
-
-  const isHrAdminActive = isActive("/hradmin");
 
   const pageTitle =
     title ||
@@ -62,20 +57,11 @@ export default function Layout({
         ? "HR Administration"
         : isActive("/leave")
           ? "Leave"
-          : isActive("/goals")
-            ? "Goals"
-            : "HRMS");
+          : "HRMS");
 
   const navItems = [
     ...(role === "hradmin" || role === "empmanager"
-      ? [
-          {
-            to: "/hradmin/job-titles",
-            label: "HR Administration",
-            icon: <IconBuilding />,
-            subItems: HR_ADMIN_SUB_ITEMS,
-          },
-        ]
+      ? [{ to: "/hradmin/users", label: "HR Administration", icon: <IconBuilding /> }]
       : []),
     { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
     { to: "#", label: "Reports and Analytics", icon: <IconChart /> },
@@ -85,163 +71,201 @@ export default function Layout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
-      {/* ── Sidebar ───────────────────────────────────────────── */}
-      <div className="relative">
+
+
+      <div
+        className="relative flex-shrink-0"
+        style={{
+          width: collapsed ? 0 : 230,
+          minWidth: collapsed ? 0 : 0,
+          transition: "width 250ms ease-in-out",
+        }}
+      >
         <aside
           style={{
-            width: collapsed ? 72 : 230,
-            transition: "width 250ms ease-in-out"
+            width: collapsed ? 0 : 230,
+            transition: "width 250ms ease-in-out",
+            overflow: "hidden",
           }}
-          className="flex flex-col bg-white shadow-lg relative z-10 flex-shrink-0 h-screen overflow-hidden"
+          className="flex flex-col bg-white shadow-lg z-10 h-screen select-none"
         >
-          {/* Logo - Fixed at top */}
-          <div className="px-6 py-3 border-b border-slate-100 flex items-center justify-center flex-shrink-0 min-h-[80px]">
+          <div
+            className="flex items-center justify-center border-b border-slate-100 flex-shrink-0"
+            style={{ height: 64, padding: "0 24px" }}
+          >
             <img
               src={cannyforeLogo}
               alt="Cannyfore"
-              className="h-10 max-w-[9rem] object-contain"
               style={{
+                height: 38,
+                maxWidth: 140,
+                objectFit: "contain",
                 opacity: collapsed ? 0 : 1,
-                transition: "opacity 250ms ease-in-out"
+                transition: "opacity 200ms ease-in-out",
               }}
             />
           </div>
 
-          {/* Profile */}
           <div
-            className="px-4 flex flex-col items-center text-center flex-shrink-0 border-b border-slate-100 overflow-hidden"
+            className="flex flex-col items-center text-center border-b border-slate-100 flex-shrink-0"
             style={{
-              maxHeight: collapsed ? 0 : "180px",
-              paddingTop: collapsed ? 0 : "20px",
-              paddingBottom: collapsed ? 0 : "12px",
+              padding: "20px 16px 14px",
+              maxHeight: collapsed ? 0 : 200,
               opacity: collapsed ? 0 : 1,
-              transition: "max-height 250ms ease-in-out, opacity 250ms ease-in-out, padding 250ms ease-in-out",
+              overflow: "hidden",
+              transition: "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
             }}
           >
-            <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden bg-gradient-to-br from-yellow-300 to-orange-400 flex items-center justify-center border-[3px] border-white shadow-md mb-2 flex-shrink-0">
+            <div
+              className="relative rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+              style={{
+                width: 72,
+                height: 72,
+                background: "linear-gradient(135deg, #fcd34d, #f97316)",
+                border: "3px solid #ffffff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.14)",
+                marginBottom: 8,
+              }}
+            >
               {user?.avatar ? (
-                <img src={`/uploads/${user.avatar}`} className="w-full h-full object-cover" alt="" />
+                <img
+                  src={`/uploads/${user.avatar}`}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  alt="avatar"
+                />
               ) : (
-                <span className="text-white text-2xl font-bold">{username.charAt(0).toUpperCase()}</span>
+                <span style={{ color: "#fff", fontSize: 26, fontWeight: 700 }}>
+                  {username.charAt(0).toUpperCase()}
+                </span>
               )}
-              <div className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center">
+              <div
+                className="absolute flex items-center justify-center bg-white rounded-full"
+                style={{ width: 20, height: 20, bottom: 2, right: 2, boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }}
+              >
                 <IconGear size={10} color="#888" />
               </div>
             </div>
-            <p className="text-sm font-bold text-slate-900 mt-1 mb-0 leading-tight truncate w-full">{username}</p>
-            <p className="text-xs text-slate-500 mt-0.5 truncate w-full">{roleLabel}</p>
+            <p
+              className="truncate w-full"
+              style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a", margin: "2px 0 0" }}
+            >
+              {username}
+            </p>
+            <p
+              className="truncate w-full"
+              style={{ fontSize: 11.5, color: "#64748b", marginTop: 3 }}
+            >
+              {roleLabel}
+            </p>
           </div>
 
-          {/* Search */}
           <div
-            className="px-3 flex-shrink-0 border-b border-slate-100 overflow-hidden"
             style={{
-              maxHeight: collapsed ? 0 : "56px",
-              paddingTop: collapsed ? 0 : "0px",
-              paddingBottom: collapsed ? 0 : "12px",
+              padding: "12px 12px 10px",
+              maxHeight: collapsed ? 0 : 60,
               opacity: collapsed ? 0 : 1,
-              transition: "max-height 250ms ease-in-out, opacity 250ms ease-in-out, padding 250ms ease-in-out",
+              overflow: "hidden",
+              transition: "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
             }}
+            className="flex-shrink-0"
           >
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search"
-                className="w-full pl-3.5 pr-8 py-[7px] border border-slate-200 rounded-full text-xs text-slate-600 bg-slate-50 outline-none"
+                style={{
+                  width: "100%",
+                  paddingLeft: 14,
+                  paddingRight: 34,
+                  paddingTop: 7,
+                  paddingBottom: 7,
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 999,
+                  fontSize: 12,
+                  color: "#475569",
+                  background: "#f8fafc",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
               />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2">
+              <span
+                className="absolute"
+                style={{ right: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+              >
                 <IconSearch size={13} color="#94a3b8" />
               </span>
             </div>
           </div>
 
-        <nav className="flex-1 px-2 py-1 pb-6 overflow-y-auto">
-          {navItems.map((item) => {
-            const hasSubItems = !!(item.subItems && item.subItems.length > 0);
-            const isHrAdminItem = item.to.startsWith("/hradmin");
-            const parentActive = isHrAdminItem
-              ? isActive("/hradmin")
-              : item.to !== "#" && isActive(item.to);
-            const parentExpanded = hasSubItems && isHrAdminActive;
-            const hovered = hoveredNav === item.label;
-
-            return (
-              <div key={item.label}>
-                <NavItem
+          <nav
+            className="flex-1 overflow-y-auto"
+            style={{ padding: "4px 8px 24px" }}
+          >
+            {navItems.map((item) => {
+              const active = item.to !== "#" && isActive(item.to);
+              return (
+                <SidebarNavItem
+                  key={item.label}
                   to={item.to}
                   icon={item.icon}
                   label={item.label}
-                  active={parentActive}
-                  expanded={parentExpanded}
-                  hovered={hovered}
-                  hasSubItems={hasSubItems}
-                  subExpanded={parentExpanded}
-                  onMouseEnter={() => setHoveredNav(item.label)}
-                  onMouseLeave={() => setHoveredNav("")}
+                  active={active}
+                  collapsed={collapsed}
                 />
+              );
+            })}
+          </nav>
+        </aside>
 
-                {hasSubItems && isHrAdminActive && (
-                  <div className="ml-4 mb-1 border-l-2 border-slate-100 pl-2">
-                    {item.subItems!.map((sub) => {
-                      const subActive = location.pathname === sub.path;
-                      return (
-                        <Link
-                          key={sub.path}
-                          to={sub.path}
-                          className={`flex items-center gap-2 px-2.5 py-1.75 rounded-xl text-xs no-underline mb-0.5 transition ${
-                            subActive
-                              ? "font-semibold text-blue-900 bg-blue-50"
-                              : "font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${
-                              subActive ? "bg-blue-900" : "bg-slate-300"
-                            }`}
-                          />
-                          {sub.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Toggle Button - Always visible */}
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => setCollapsed((prev) => !prev)}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="absolute w-7 h-7 rounded-full bg-[#233B86] border-none text-white cursor-pointer z-50 flex items-center justify-center shadow-md text-sm font-bold hover:bg-[#1a2d6b] active:scale-95"
           style={{
-            right: "-14px",
+            position: "absolute",
+            right: -14,
             top: "50%",
             transform: "translateY(-50%)",
-            transition: "background-color 250ms ease-in-out"
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            background: "#233B86",
+            border: "2px solid #ffffff",
+            color: "#fff",
+            cursor: "pointer",
+            zIndex: 30,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 8px rgba(35,59,134,0.30)",
+            fontSize: 14,
+            fontWeight: 700,
+            flexShrink: 0,
+            transition: "background 200ms",
           }}
+          onMouseEnter={(event) => ((event.currentTarget as HTMLElement).style.background = "#1a2e6e")}
+          onMouseLeave={(event) => ((event.currentTarget as HTMLElement).style.background = "#233B86")}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <span style={{
-            display: "inline-block",
-            transition: "transform 250ms ease-in-out",
-            transform: collapsed ? "rotate(180deg)" : "rotate(0deg)"
-          }}>
-            {collapsed ? "›" : "‹"}
+          <span
+            style={{
+              display: "inline-block",
+              transition: "transform 250ms ease-in-out",
+              transform: collapsed ? "rotate(180deg)" : "rotate(0deg)",
+              lineHeight: 1,
+            }}
+          >
+            ‹
           </span>
         </button>
       </div>
 
+
+      {/* Main content area — unchanged */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-between px-6 flex-shrink-0 shadow-md">
-          <span className="text-white font-bold text-lg tracking-wide">
-            {pageTitle}
-          </span>
+          <span className="text-white font-bold text-lg tracking-wide">{pageTitle}</span>
           <button
-            onClick={() => {
-              dispatch(logoutAction());
-              navigate("/login");
-            }}
+            onClick={() => { dispatch(logoutAction()); navigate("/login"); }}
             className="flex items-center gap-1.75 bg-white/20 border border-white/35 text-white rounded-full px-4 py-1.5 text-sm font-medium cursor-pointer hover:bg-white/30 transition"
           >
             <IconLogout size={15} />
@@ -258,16 +282,13 @@ export default function Layout({
             >
               <IconHome size={15} color="#64748b" />
             </Link>
-
             {tabs.map((tab) => {
-              const isActiveTab =
-                activeTab === tab.label || location.pathname === tab.path;
+              const isActiveTab = activeTab === tab.label || location.pathname === tab.path;
               return (
                 <Link
                   key={tab.label}
                   to={tab.path}
-                  className={`px-4 py-1.75 rounded-full text-sm no-underline whitespace-nowrap flex-shrink-0 transition ${
-                    isActiveTab
+                  className={`px-4 py-1.75 rounded-full text-sm no-underline whitespace-nowrap flex-shrink-0 transition ${isActiveTab
                       ? "font-semibold text-amber-700 bg-orange-100"
                       : "font-medium text-slate-600 hover:bg-slate-50"
                     }`}
@@ -276,17 +297,10 @@ export default function Layout({
                 </Link>
               );
             })}
-
             <div className="ml-auto flex items-center gap-1.5">
-              <TabIconBtn>
-                <IconFilter size={14} />
-              </TabIconBtn>
-              <TabIconBtn dark>
-                <span className="font-bold text-sm">?</span>
-              </TabIconBtn>
-              <TabIconBtn>
-                <IconShare size={14} />
-              </TabIconBtn>
+              <TabIconBtn><IconFilter size={14} /></TabIconBtn>
+              <TabIconBtn dark><span className="font-bold text-sm">?</span></TabIconBtn>
+              <TabIconBtn><IconShare size={14} /></TabIconBtn>
             </div>
           </div>
         )}
@@ -307,107 +321,100 @@ export default function Layout({
   );
 }
 
-function NavItem({
+
+function SidebarNavItem({
   to,
   icon,
   label,
   active,
-  expanded,
-  hovered,
-  hasSubItems,
-  subExpanded,
-  onMouseEnter,
-  onMouseLeave,
+  collapsed,
 }: {
   to: string;
   icon: React.ReactNode;
   label: string;
   active: boolean;
-  expanded?: boolean;
-  hovered: boolean;
-  hasSubItems?: boolean;
-  subExpanded?: boolean;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
+  collapsed: boolean;
 }) {
+  const [hovered, setHovered] = useState(false);
+
+  const containerStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: collapsed ? 0 : 12,
+    padding: collapsed ? "10px 0" : "10px 12px",
+    borderRadius: 28,
+    marginBottom: 4,
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "background 180ms ease, padding 250ms ease, gap 250ms ease",
+    userSelect: "none",
+    justifyContent: collapsed ? "center" : "flex-start",
+    background: active
+      ? "linear-gradient(90deg, #233B86 0%, #12C7A5 100%)"
+      : hovered
+        ? "#f1f5f9"
+        : "transparent",
+    boxShadow: active ? "0 2px 10px rgba(35,59,134,0.20)" : "none",
+  };
+
+  const iconStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    flexShrink: 0,
+    color: active ? "#ffffff" : "#6B7BA4",
+    transition: "color 180ms",
+  };
+
+  const textStyle: React.CSSProperties = {
+    fontSize: 13.5,
+    fontWeight: active ? 600 : 500,
+    color: active ? "#ffffff" : hovered ? "#1e293b" : "#6B7BA4",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    letterSpacing: "0.01em",
+    opacity: collapsed ? 0 : 1,
+    maxWidth: collapsed ? 0 : 160,
+    transition: "color 180ms, opacity 200ms ease, max-width 250ms ease",
+  };
+
   const content = (
     <>
-      <span className="flex items-center flex-shrink-0 min-w-fit">{icon}</span>
-      <span
-        className={`flex items-center flex-shrink-0 ${
-          active || expanded ? "opacity-100" : "opacity-70"
-        }`}
-      >
-        {icon}
-      </span>
-      <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
-        {label}
-      </span>
-      {hasSubItems && (
-        <span
-          className={`text-xs flex-shrink-0 transition-transform duration-200 ${
-            subExpanded ? "rotate-90" : ""
-          } ${active ? "text-white/70" : "text-slate-400"}`}
-        >
-          ›
-        </span>
-      )}
+      <span style={iconStyle}>{icon}</span>
+      <span style={textStyle}>{label}</span>
     </>
   );
-
-  const baseClass =
-    "flex items-center gap-2.5 px-3 py-2.75 rounded-2xl text-sm transition no-underline mb-0.5 cursor-pointer";
-
-  const classes = active
-    ? `${baseClass} font-semibold bg-gradient-to-r from-blue-900 to-teal-600 text-white shadow-md`
-    : expanded
-      ? `${baseClass} font-semibold text-blue-900 bg-blue-50`
-      : hovered
-        ? `${baseClass} font-medium text-slate-900 bg-emerald-50`
-        : `${baseClass} font-medium text-slate-700 hover:bg-slate-50`;
 
   if (to === "#") {
     return (
       <a
         href="#"
-        className={baseClass}
-        style={{
-          ...collapsedStyle,
-          ...(active ? activeStyle : inactiveStyle)
-        }}
-        onClick={(event) => event.preventDefault()}
-        onMouseEnter={(event) => { if (!active) (event.currentTarget as HTMLElement).style.background = "#f1f5f9"; }}
-        onMouseLeave={(event) => { if (!active) (event.currentTarget as HTMLElement).style.background = "transparent"; }}
+        style={containerStyle}
         title={collapsed ? label : undefined}
+        onClick={(event) => event.preventDefault()}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         {content}
       </a>
     );
   }
+
   return (
     <Link
       to={to}
-      className={baseClass}
-      style={{
-        ...collapsedStyle,
-        ...(active ? activeStyle : inactiveStyle)
-      }}
-      onMouseEnter={(event) => { if (!active) (event.currentTarget as HTMLElement).style.background = "#f1f5f9"; }}
-      onMouseLeave={(event) => { if (!active) (event.currentTarget as HTMLElement).style.background = "transparent"; }}
+      style={containerStyle}
       title={collapsed ? label : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {content}
     </Link>
   );
 }
 
-function TabIconBtn({
-  children,
-  dark,
-}: {
-  children: React.ReactNode;
-  dark?: boolean;
-}) {
+
+function TabIconBtn({ children, dark }: { children: React.ReactNode; dark?: boolean }) {
   return (
     <button
       type="button"
@@ -420,3 +427,4 @@ function TabIconBtn({
     </button>
   );
 }
+

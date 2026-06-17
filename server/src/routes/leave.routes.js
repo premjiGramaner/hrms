@@ -10,6 +10,8 @@ import { leaveRequestSchema, rejectLeaveSchema } from '../validators/leave.valid
 import {
   getLeaveTypes,
   getLeaveBalance,
+  getLeaveFilterOptions,
+  searchEmployees,
   listLeaves,
   getLeave,
   getLeaveDetails,
@@ -48,6 +50,8 @@ router.use(authenticate);
 
 router.get('/types', getLeaveTypes);
 router.get('/balance', getLeaveBalance);
+router.get('/filter-options', getLeaveFilterOptions);
+router.get('/employees/search', searchEmployees);
 
 router.get('/export/summary', requireRole('empmanager', 'hradmin'), exportSummary);
 router.get('/export/detail', requireRole('empmanager', 'hradmin'), exportDetail);

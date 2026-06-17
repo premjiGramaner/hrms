@@ -25,6 +25,35 @@ export const getLeaveTypes = async () => {
   return res.data.data;
 };
 
+export const getLeaveFilterOptions = async (): Promise<{
+  sub_units: string[];
+  locations: string[];
+  job_titles: string[];
+  employment_statuses: string[];
+  job_categories: string[];
+}> => {
+  const res = await api.get<{
+    success: boolean;
+    data: {
+      sub_units: string[];
+      locations: string[];
+      job_titles: string[];
+      employment_statuses: string[];
+      job_categories: string[];
+    };
+  }>("/leaves/filter-options");
+  return res.data.data;
+};
+
+export const searchLeaveEmployees = async (q: string): Promise<{ id: number; employee_id: string; name: string; username: string }[]> => {
+  if (!q.trim()) return [];
+  const res = await api.get<{
+    success: boolean;
+    data: { id: number; employee_id: string; name: string; username: string }[];
+  }>(`/leaves/employees/search?q=${encodeURIComponent(q)}`);
+  return res.data.data;
+};
+
 export const getLeaveBalance = async (employeeId?: number, year?: number) => {
   const qs = toQueryString({ employee_id: employeeId, year });
   const res = await api.get<{ success: boolean; data: LeaveBalance[] }>(
