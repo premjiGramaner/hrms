@@ -18,7 +18,7 @@ import ApplyLeavePage from "./pages/leave/ApplyLeavePage";
 
 import AddEntitlementsPage from "./pages/leave/entitlements/AddEntitlementsPage";
 import EntitlementListPage from "./pages/leave/entitlements/EntitlementListPage";
-import MyEntitlementsPage  from "./pages/leave/entitlements/MyEntitlementsPage";
+import MyEntitlementsPage from "./pages/leave/entitlements/MyEntitlementsPage";
 
 export default function App() {
   return (
@@ -39,6 +39,30 @@ export default function App() {
         <Route path="/leave" element={<ProtectedRoute><Navigate to="/leave/view_leave_list" replace /></ProtectedRoute>} />
         <Route path="/leave/view_leave_list" element={<ProtectedRoute><LeaveListPage /></ProtectedRoute>} />
         <Route path="/leave/view_leave_list/details/:id" element={<ProtectedRoute><LeaveDetailsPage /></ProtectedRoute>} />
+        <Route
+          path="/hradmin/job-titles"
+          element={
+            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+              <JobTitlesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hradmin/job-categories"
+          element={
+            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+              <JobCategoriesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hradmin/sub-units"
+          element={
+            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+              <SubUnitsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/leave/apply" element={<ProtectedRoute><ApplyLeavePage /></ProtectedRoute>} />
 
         <Route path="/view_my_leave_list/detail/:id/my" element={<ProtectedRoute><LeaveDetailsPage /></ProtectedRoute>} />

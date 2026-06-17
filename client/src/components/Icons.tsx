@@ -129,8 +129,6 @@ export function IconBriefcase() {
   );
 }
 
-
-
 export function IconSearch({ size = 16, color = "currentColor" }: IconProps) {
   return (
     <svg

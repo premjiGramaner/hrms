@@ -30,6 +30,8 @@ interface Props {
   onFab?: () => void;
 }
 
+const HR_ADMIN_SUB_ITEMS: { label: string; path: string }[] = [];
+
 export default function Layout({
   children,
   title,
@@ -50,6 +52,8 @@ export default function Layout({
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
+  const isHrAdminActive = isActive("/hradmin");
+
   const pageTitle =
     title ||
     (isActive("/employees") || isActive("/my-info")
@@ -64,7 +68,14 @@ export default function Layout({
 
   const navItems = [
     ...(role === "hradmin" || role === "empmanager"
-      ? [{ to: "/hradmin/users", label: "HR Administration", icon: <IconBuilding /> }]
+      ? [
+          {
+            to: "/hradmin/job-titles",
+            label: "HR Administration",
+            icon: <IconBuilding />,
+            subItems: HR_ADMIN_SUB_ITEMS,
+          },
+        ]
       : []),
     { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
     { to: "#", label: "Reports and Analytics", icon: <IconChart /> },
@@ -144,23 +155,60 @@ export default function Layout({
             </div>
           </div>
 
-          {/* Nav */}
-          <nav className="flex-1 px-2 py-1 pb-6 overflow-y-auto min-w-0">
-            {navItems.map((item) => {
-              const active = item.to !== "#" && isActive(item.to);
-              return (
+        <nav className="flex-1 px-2 py-1 pb-6 overflow-y-auto">
+          {navItems.map((item) => {
+            const hasSubItems = !!(item.subItems && item.subItems.length > 0);
+            const isHrAdminItem = item.to.startsWith("/hradmin");
+            const parentActive = isHrAdminItem
+              ? isActive("/hradmin")
+              : item.to !== "#" && isActive(item.to);
+            const parentExpanded = hasSubItems && isHrAdminActive;
+            const hovered = hoveredNav === item.label;
+
+            return (
+              <div key={item.label}>
                 <NavItem
-                  key={item.label}
                   to={item.to}
                   icon={item.icon}
                   label={item.label}
-                  active={active}
-                  collapsed={collapsed}
+                  active={parentActive}
+                  expanded={parentExpanded}
+                  hovered={hovered}
+                  hasSubItems={hasSubItems}
+                  subExpanded={parentExpanded}
+                  onMouseEnter={() => setHoveredNav(item.label)}
+                  onMouseLeave={() => setHoveredNav("")}
                 />
-              );
-            })}
-          </nav>
-        </aside>
+
+                {hasSubItems && isHrAdminActive && (
+                  <div className="ml-4 mb-1 border-l-2 border-slate-100 pl-2">
+                    {item.subItems!.map((sub) => {
+                      const subActive = location.pathname === sub.path;
+                      return (
+                        <Link
+                          key={sub.path}
+                          to={sub.path}
+                          className={`flex items-center gap-2 px-2.5 py-1.75 rounded-xl text-xs no-underline mb-0.5 transition ${
+                            subActive
+                              ? "font-semibold text-blue-900 bg-blue-50"
+                              : "font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors ${
+                              subActive ? "bg-blue-900" : "bg-slate-300"
+                            }`}
+                          />
+                          {sub.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
 
         {/* Toggle Button - Always visible */}
         <button
@@ -218,7 +266,8 @@ export default function Layout({
                 <Link
                   key={tab.label}
                   to={tab.path}
-                  className={`px-4 py-1.75 rounded-full text-sm no-underline whitespace-nowrap flex-shrink-0 transition ${isActiveTab
+                  className={`px-4 py-1.75 rounded-full text-sm no-underline whitespace-nowrap flex-shrink-0 transition ${
+                    isActiveTab
                       ? "font-semibold text-amber-700 bg-orange-100"
                       : "font-medium text-slate-600 hover:bg-slate-50"
                     }`}
@@ -263,54 +312,59 @@ function NavItem({
   icon,
   label,
   active,
-  collapsed,
+  expanded,
+  hovered,
+  hasSubItems,
+  subExpanded,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   to: string;
   icon: React.ReactNode;
   label: string;
   active: boolean;
-  collapsed?: boolean;
+  expanded?: boolean;
+  hovered: boolean;
+  hasSubItems?: boolean;
+  subExpanded?: boolean;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
 }) {
-  const baseClass =
-    "flex items-center gap-3 px-3 py-[10px] rounded-[22px] text-[13.5px] font-medium transition-all no-underline mb-[3px] cursor-pointer";
-
-  const activeStyle: React.CSSProperties = {
-    background: "linear-gradient(90deg, #233B86 0%, #12C7A5 100%)",
-    color: "#ffffff",
-    fontWeight: 600,
-    boxShadow: "0 2px 8px rgba(35,59,134,0.18)",
-  };
-  const inactiveStyle: React.CSSProperties = {
-    color: "#6B7BA4",
-    background: "transparent",
-  };
-
-  // Collapsed state styles
-  const collapsedStyle: React.CSSProperties = collapsed ? {
-    width: "44px",
-    height: "44px",
-    padding: "0",
-    margin: "3px auto",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  } : {};
-
   const content = (
     <>
       <span className="flex items-center flex-shrink-0 min-w-fit">{icon}</span>
       <span
-        className="whitespace-nowrap overflow-hidden text-ellipsis leading-snug"
-        style={{
-          opacity: collapsed ? 0 : 1,
-          width: collapsed ? 0 : "auto",
-          transition: "opacity 250ms ease-in-out, width 250ms ease-in-out"
-        }}
+        className={`flex items-center flex-shrink-0 ${
+          active || expanded ? "opacity-100" : "opacity-70"
+        }`}
       >
+        {icon}
+      </span>
+      <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
         {label}
       </span>
+      {hasSubItems && (
+        <span
+          className={`text-xs flex-shrink-0 transition-transform duration-200 ${
+            subExpanded ? "rotate-90" : ""
+          } ${active ? "text-white/70" : "text-slate-400"}`}
+        >
+          ›
+        </span>
+      )}
     </>
   );
+
+  const baseClass =
+    "flex items-center gap-2.5 px-3 py-2.75 rounded-2xl text-sm transition no-underline mb-0.5 cursor-pointer";
+
+  const classes = active
+    ? `${baseClass} font-semibold bg-gradient-to-r from-blue-900 to-teal-600 text-white shadow-md`
+    : expanded
+      ? `${baseClass} font-semibold text-blue-900 bg-blue-50`
+      : hovered
+        ? `${baseClass} font-medium text-slate-900 bg-emerald-50`
+        : `${baseClass} font-medium text-slate-700 hover:bg-slate-50`;
 
   if (to === "#") {
     return (
