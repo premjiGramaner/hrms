@@ -1,20 +1,51 @@
-import { Router } from 'express';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { Router } from "express";
+import { authenticate, requireRole } from "../middleware/auth.middleware.js";
 import {
   getUsers,
-  deactivateUser,
+  createUser,
+  updateUser,
+  deleteUser,
+  toggleUserStatus,
   getJobTitles,
+  createJobTitle,
+  updateJobTitle,
+  deleteJobTitle,
   getJobCategories,
+  createJobCategory,
+  updateJobCategory,
+  deleteJobCategory,
+  getSubUnits,
+  createSubUnit,
+  updateSubUnit,
+  deleteSubUnit,
   getAuditTrail,
-} from '../controllers/hradmin.controller.js';
+} from "../controllers/hradmin.controller.js";
 
 const router = Router();
 router.use(authenticate);
+router.use(requireRole("hradmin", "empmanager"));
 
-router.get('/users', getUsers);
-router.post('/users/:id/deactivate', deactivateUser);
-router.get('/job-titles', getJobTitles);
-router.get('/job-categories', getJobCategories);
-router.get('/audit-trail', getAuditTrail);
+router.get("/users", getUsers);
+router.post("/users", createUser);
+router.put("/users/:id", updateUser);
+router.delete("/users/:id", deleteUser);
+router.post("/users/:id/toggle-status", toggleUserStatus);
+
+router.get("/job-titles", getJobTitles);
+router.post("/job-titles", createJobTitle);
+router.put("/job-titles/:id", updateJobTitle);
+router.delete("/job-titles/:id", deleteJobTitle);
+
+router.get("/job-categories", getJobCategories);
+router.post("/job-categories", createJobCategory);
+router.put("/job-categories/:id", updateJobCategory);
+router.delete("/job-categories/:id", deleteJobCategory);
+
+router.get("/sub-units", getSubUnits);
+router.post("/sub-units", createSubUnit);
+router.put("/sub-units/:id", updateSubUnit);
+router.delete("/sub-units/:id", deleteSubUnit);
+
+router.get("/audit-trail", getAuditTrail);
 
 export default router;

@@ -1,4 +1,4 @@
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface EmployeeFormValues {
   first_name?: string;
@@ -15,7 +15,7 @@ export interface EmployeeFormValues {
 export function validateEmployeeStep(
   step: number,
   form: EmployeeFormValues,
-  selectedSupervisors: number[],
+  selectedSupervisors: string[],
   availableSupervisorsCount = 0,
 ): Record<string, string> {
   const errors: Record<string, string> = {};

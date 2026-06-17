@@ -7,6 +7,9 @@ import EmployeeProfilePage from "./pages/employees/EmployeeProfilePage";
 import MyInfoPage from "./pages/employees/MyInfoPage";
 import RolesPage from "./pages/roles/RolesPage";
 import HRUsersPage from "./pages/hradmin/HRUsersPage";
+import JobTitlesPage from "./pages/hradmin/JobTitlesPage";
+import JobCategoriesPage from "./pages/hradmin/JobCategoriesPage";
+import SubUnitsPage from "./pages/hradmin/SubUnitsPage";
 import AuditTrailPage from "./pages/hradmin/AuditTrailPage";
 
 import LeaveListPage from "./pages/leave/LeaveListPage";
