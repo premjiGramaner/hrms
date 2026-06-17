@@ -48,8 +48,8 @@ export default function LeaveNavBar() {
         <button
           onClick={() => setEntOpen((isOpen) => !isOpen)}
           className={`flex items-center gap-1 px-4 py-2.5 text-sm border-b-2 transition cursor-pointer h-full ${entActive
-              ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
-              : "border-transparent text-slate-600 hover:text-slate-900 font-medium"
+            ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
+            : "border-transparent text-slate-600 hover:text-slate-900 font-medium"
             }`}
         >
           Entitlements
@@ -76,8 +76,8 @@ export default function LeaveNavBar() {
                 to={item.path}
                 onClick={() => setEntOpen(false)}
                 className={`block px-4 py-2 text-sm no-underline transition ${pathname === item.path
-                    ? "bg-orange-50 text-orange-700 font-semibold"
-                    : "text-slate-700 hover:bg-slate-50"
+                  ? "bg-orange-50 text-orange-700 font-semibold"
+                  : "text-slate-700 hover:bg-slate-50"
                   }`}
               >
                 {item.label}
