@@ -19,8 +19,8 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setError("");
 
     const validationError = validateLogin(username, password);
@@ -86,7 +86,7 @@ export default function LoginPage() {
                   type="text"
                   placeholder="Username"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(event) => setUsername(event.target.value)}
                   autoFocus
                   autoComplete="username"
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
@@ -101,7 +101,7 @@ export default function LoginPage() {
                   type={showPass ? "text" : "password"}
                   placeholder="Password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   autoComplete="current-password"
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-14 text-sm text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
                 />
@@ -119,7 +119,7 @@ export default function LoginPage() {
                 <input
                   type="checkbox"
                   checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
+                  onChange={(event) => setRemember(event.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 accent-teal-600"
                 />
                 Keep me logged in for 30 days

@@ -735,7 +735,7 @@ function UserFormModal({
         zIndex: 200,
         padding: 16,
       }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(event) => event.target === event.currentTarget && onClose()}
     >
       <div
         style={{

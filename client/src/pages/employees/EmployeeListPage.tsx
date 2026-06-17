@@ -157,7 +157,7 @@ export default function EmployeeListPage() {
             type="text"
             placeholder="Search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             className="w-full rounded-full border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm shadow-sm outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-50"
           />
         </div>

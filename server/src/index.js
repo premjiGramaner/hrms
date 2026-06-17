@@ -8,6 +8,8 @@ import authRoutes from './routes/auth.routes.js';
 import employeeRoutes from './routes/employee.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import hradminRoutes from './routes/hradmin.routes.js';
+import leaveRoutes from './routes/leave.routes.js';
+import entitlementRoutes from './routes/entitlement.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +30,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/hradmin', hradminRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/leave/entitlements', entitlementRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ success: true, data: { status: 'ok' } }));
 

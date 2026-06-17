@@ -67,3 +67,72 @@ export interface UserRole {
   description?: string;
   is_active: boolean;
 }
+
+export interface LeaveType {
+  id: number;
+  name: string;
+  code: string;
+  description?: string;
+  max_days?: number;
+  carry_forward?: boolean;
+  is_active?: boolean;
+}
+
+export interface LeaveRequest {
+  id: number;
+  employee_id?: string;
+  employee_name?: string;
+  user_id?: number;
+  leave_type_id: number;
+  leave_type?: string;
+  leave_type_code?: string;
+  start_date: string;
+  end_date: string;
+  applied_on?: string;
+  requested_days: number;
+  status: string;
+  reason?: string;
+  rejection_reason?: string;
+  attachment_path?: string;
+  attachment_status?: string;
+  comments?: string;
+  net_leave_balance?: number;
+  sub_unit?: string;
+  location?: string;
+  job_title?: string;
+  employment_status?: string;
+  avatar?: string;
+  approved_on?: string;
+  rejected_on?: string;
+  cancelled_on?: string;
+}
+
+export interface LeaveBalance {
+  leave_type_id: number;
+  leave_type_name: string;
+  code: string;
+  total_days: number;
+  used_days: number;
+  carried_days: number;
+  net_balance: number;
+  year: number;
+}
+
+export interface LeaveFilters {
+  from_date?: string;
+  to_date?: string;
+  employee_id?: string;
+  employee_name?: string;
+  sub_unit?: string;
+  location?: string;
+  leave_type_id?: string;
+  job_title?: string;
+  employment_status?: string;
+  job_category?: string;
+  attachment_status?: string;
+  include_past?: boolean;
+  only_subordinates?: boolean;
+  statuses?: string[];
+  page?: number;
+  limit?: number;
+}

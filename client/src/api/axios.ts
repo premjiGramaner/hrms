@@ -14,7 +14,7 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (r) => r,
+  (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem(STORAGE_KEYS.token);

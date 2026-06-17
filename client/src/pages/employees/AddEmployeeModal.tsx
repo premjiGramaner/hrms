@@ -150,17 +150,17 @@ export default function AddEmployeeModal({
   }, [initialForm]);
 
   const set =
-    (k: keyof typeof initialForm) =>
+    (fieldName: keyof typeof initialForm) =>
     (
-      e: ChangeEvent<
+      event: ChangeEvent<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       >,
     ) => {
-      formRef.current[k] = e.target.value;
-      if (errors[k])
-        setErrors((errors) => {
-          const newErrors = { ...errors };
-          delete newErrors[k];
+      formRef.current[fieldName] = event.target.value;
+      if (errors[fieldName])
+        setErrors((currentErrors) => {
+          const newErrors = { ...currentErrors };
+          delete newErrors[fieldName];
           return newErrors;
         });
     };
@@ -301,7 +301,7 @@ export default function AddEmployeeModal({
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+          onClick={(event) => event.target === event.currentTarget && onClose()}
     >
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-900 to-teal-600">
@@ -317,8 +317,8 @@ export default function AddEmployeeModal({
         </div>
 
         <div className="flex p-3 pb-2.5 bg-blue-50 border-b border-slate-100">
-          {STEPS.map((label, i) => {
-            const stepNumber = i + 1;
+          {STEPS.map((label, stepIndex) => {
+            const stepNumber = stepIndex + 1;
             const done = stepNumber < step,
               active = stepNumber === step;
             return (
@@ -326,7 +326,7 @@ export default function AddEmployeeModal({
                 key={stepNumber}
                 className="flex flex-col items-center flex-1 relative"
               >
-                {i < STEPS.length - 1 && (
+              {stepIndex < STEPS.length - 1 && (
                   <div
                     className={`absolute top-3.5 left-1/2 w-full h-0.5 -z-0 ${done ? "bg-teal-600" : "bg-slate-200"}`}
                   />
@@ -637,7 +637,7 @@ export default function AddEmployeeModal({
                 </p>
               ) : (
                 <div className="border border-slate-300 rounded-xl overflow-hidden">
-                  {supervisors.map((supervis, i) => {
+                  {supervisors.map((supervis, supervisorIndex) => {
                     const checked = selectedSupervisors.includes(supervis.name);
                     const subUnitMatch = subUnitRecords.find(
                       (su) =>
@@ -650,10 +650,10 @@ export default function AddEmployeeModal({
                         className={`flex items-center gap-3 p-2.75 cursor-pointer transition-colors ${
                           checked
                             ? "bg-emerald-50"
-                            : i % 2 === 0
+                            : supervisorIndex % 2 === 0
                               ? "bg-white"
                               : "bg-blue-50"
-                        } ${i < supervisors.length - 1 ? "border-b border-slate-100" : ""}`}
+                        } ${supervisorIndex < supervisors.length - 1 ? "border-b border-slate-100" : ""}`}
                       >
                         <input
                           type="checkbox"

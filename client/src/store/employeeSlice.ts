@@ -56,7 +56,7 @@ const employeeSlice = createSlice({
       .addCase(removeEmployee.fulfilled, (state, action) => {
         if (state.data) {
           state.data.data = state.data.data.filter(
-            (e) => e.id !== action.payload,
+            (employee) => employee.id !== action.payload,
           );
           state.data.total -= 1;
         }
