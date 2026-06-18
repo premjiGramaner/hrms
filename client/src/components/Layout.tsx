@@ -319,11 +319,10 @@ export default function Layout({
                 <Link
                   key={tab.label}
                   to={tab.path}
-                  className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
-                    isActiveTab
-                      ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
-                      : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
-                  }`}
+                  className={`px-4 py-1.75 rounded-full text-sm no-underline whitespace-nowrap flex-shrink-0 transition ${isActiveTab
+                    ? "font-semibold text-amber-700 bg-orange-100"
+                    : "font-medium text-slate-600 hover:bg-slate-50"
+                    }`}
                 >
                   {tab.label}
                 </Link>
@@ -460,11 +459,10 @@ function TabIconBtn({
   return (
     <button
       type="button"
-      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${
-        dark
-          ? "bg-blue-900 text-white hover:bg-blue-800"
-          : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
-      }`}
+      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${dark
+        ? "bg-blue-900 text-white hover:bg-blue-800"
+        : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
+        }`}
     >
       {children}
     </button>
