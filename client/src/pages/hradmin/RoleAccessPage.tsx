@@ -25,13 +25,6 @@ const ROLE_OPTIONS = [
     border: "#bbf7d0",
   },
   {
-    value: "empmanager",
-    label: "Admin",
-    color: "#0369a1",
-    bg: "#dbeafe",
-    border: "#93c5fd",
-  },
-  {
     value: "hradmin",
     label: "Global Admin",
     color: "#7c3aed",
@@ -461,7 +454,6 @@ export default function RoleAccessPage() {
         onChange={setRoleFilter}
         options={[
           { value: "employee", label: "Employee" },
-          { value: "empmanager", label: "Admin" },
           { value: "hradmin", label: "Global Admin" },
         ]}
         placeholder="All Roles"
