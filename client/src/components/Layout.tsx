@@ -31,7 +31,13 @@ interface Props {
   onFab?: () => void;
 }
 
-export default function Layout({ children, title, tabs, activeTab, onFab }: Props) {
+export default function Layout({
+  children,
+  title,
+  tabs,
+  activeTab,
+  onFab,
+}: Props) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const navigate = useNavigate();
@@ -61,7 +67,7 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
 
   const navItems = [
     ...(role === "hradmin" || role === "empmanager"
-      ? [{ to: "/hradmin/users", label: "HR Administration", icon: <IconBuilding /> }]
+      ? [{ to: "/hradmin", label: "HR Administration", icon: <IconBuilding /> }]
       : []),
     { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
     { to: "#", label: "Reports and Analytics", icon: <IconChart /> },
@@ -71,8 +77,6 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
-
-
       <div
         className="relative flex-shrink-0"
         style={{
@@ -113,7 +117,8 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
               maxHeight: collapsed ? 0 : 200,
               opacity: collapsed ? 0 : 1,
               overflow: "hidden",
-              transition: "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
+              transition:
+                "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
             }}
           >
             <div
@@ -140,14 +145,25 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
               )}
               <div
                 className="absolute flex items-center justify-center bg-white rounded-full"
-                style={{ width: 20, height: 20, bottom: 2, right: 2, boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }}
+                style={{
+                  width: 20,
+                  height: 20,
+                  bottom: 2,
+                  right: 2,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                }}
               >
                 <IconGear size={10} color="#888" />
               </div>
             </div>
             <p
               className="truncate w-full"
-              style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a", margin: "2px 0 0" }}
+              style={{
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: "#0f172a",
+                margin: "2px 0 0",
+              }}
             >
               {username}
             </p>
@@ -165,7 +181,8 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
               maxHeight: collapsed ? 0 : 60,
               opacity: collapsed ? 0 : 1,
               overflow: "hidden",
-              transition: "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
+              transition:
+                "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
             }}
             className="flex-shrink-0"
           >
@@ -190,7 +207,12 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
               />
               <span
                 className="absolute"
-                style={{ right: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+                style={{
+                  right: 11,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                }}
               >
                 <IconSearch size={13} color="#94a3b8" />
               </span>
@@ -242,8 +264,12 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
             flexShrink: 0,
             transition: "background 200ms",
           }}
-          onMouseEnter={(event) => ((event.currentTarget as HTMLElement).style.background = "#1a2e6e")}
-          onMouseLeave={(event) => ((event.currentTarget as HTMLElement).style.background = "#233B86")}
+          onMouseEnter={(event) =>
+            ((event.currentTarget as HTMLElement).style.background = "#1a2e6e")
+          }
+          onMouseLeave={(event) =>
+            ((event.currentTarget as HTMLElement).style.background = "#233B86")
+          }
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <span
@@ -259,13 +285,17 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
         </button>
       </div>
 
-
       {/* Main content area — unchanged */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-between px-6 flex-shrink-0 shadow-md">
-          <span className="text-white font-bold text-lg tracking-wide">{pageTitle}</span>
+          <span className="text-white font-bold text-lg tracking-wide">
+            {pageTitle}
+          </span>
           <button
-            onClick={() => { dispatch(logoutAction()); navigate("/login"); }}
+            onClick={() => {
+              dispatch(logoutAction());
+              navigate("/login");
+            }}
             className="flex items-center gap-1.75 bg-white/20 border border-white/35 text-white rounded-full px-4 py-1.5 text-sm font-medium cursor-pointer hover:bg-white/30 transition"
           >
             <IconLogout size={15} />
@@ -275,32 +305,40 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
         </header>
 
         {tabs && tabs.length > 0 && (
-          <div className="bg-white border-b border-blue-100 flex items-center gap-1 px-4 py-2 flex-shrink-0 overflow-x-auto">
+          <div className="bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-x-auto gap-0">
             <Link
               to={tabs[0]?.path || "#"}
-              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center flex-shrink-0 mr-1 no-underline hover:bg-slate-200 transition"
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition"
             >
               <IconHome size={15} color="#64748b" />
             </Link>
             {tabs.map((tab) => {
-              const isActiveTab = activeTab === tab.label || location.pathname === tab.path;
+              const isActiveTab =
+                activeTab === tab.label || location.pathname === tab.path;
               return (
                 <Link
                   key={tab.label}
                   to={tab.path}
-                  className={`px-4 py-1.75 rounded-full text-sm no-underline whitespace-nowrap flex-shrink-0 transition ${isActiveTab
-                      ? "font-semibold text-amber-700 bg-orange-100"
-                      : "font-medium text-slate-600 hover:bg-slate-50"
-                    }`}
+                  className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
+                    isActiveTab
+                      ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
+                      : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
+                  }`}
                 >
                   {tab.label}
                 </Link>
               );
             })}
             <div className="ml-auto flex items-center gap-1.5">
-              <TabIconBtn><IconFilter size={14} /></TabIconBtn>
-              <TabIconBtn dark><span className="font-bold text-sm">?</span></TabIconBtn>
-              <TabIconBtn><IconShare size={14} /></TabIconBtn>
+              <TabIconBtn>
+                <IconFilter size={14} />
+              </TabIconBtn>
+              <TabIconBtn dark>
+                <span className="font-bold text-sm">?</span>
+              </TabIconBtn>
+              <TabIconBtn>
+                <IconShare size={14} />
+              </TabIconBtn>
             </div>
           </div>
         )}
@@ -320,7 +358,6 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
     </div>
   );
 }
-
 
 function SidebarNavItem({
   to,
@@ -413,18 +450,23 @@ function SidebarNavItem({
   );
 }
 
-
-function TabIconBtn({ children, dark }: { children: React.ReactNode; dark?: boolean }) {
+function TabIconBtn({
+  children,
+  dark,
+}: {
+  children: React.ReactNode;
+  dark?: boolean;
+}) {
   return (
     <button
       type="button"
-      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${dark
+      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${
+        dark
           ? "bg-blue-900 text-white hover:bg-blue-800"
           : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
-        }`}
+      }`}
     >
       {children}
     </button>
   );
 }
-

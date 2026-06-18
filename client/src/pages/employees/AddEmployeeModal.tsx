@@ -110,7 +110,7 @@ export default function AddEmployeeModal({
       employee_id: employee?.employee_id || "",
       joined_date: toDateStr(employee?.joined_date) || today,
       location: employee?.location || "",
-      role: employee?.role || "employee",
+      role: "employee",
       gender: employee?.gender || "",
       dob: toDateStr(employee?.dob) || "",
       nationality: employee?.nationality || "",
@@ -301,7 +301,7 @@ export default function AddEmployeeModal({
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(event) => event.target === event.currentTarget && onClose()}
+      onClick={(event) => event.target === event.currentTarget && onClose()}
     >
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-900 to-teal-600">
@@ -326,7 +326,7 @@ export default function AddEmployeeModal({
                 key={stepNumber}
                 className="flex flex-col items-center flex-1 relative"
               >
-              {stepIndex < STEPS.length - 1 && (
+                {stepIndex < STEPS.length - 1 && (
                   <div
                     className={`absolute top-3.5 left-1/2 w-full h-0.5 -z-0 ${done ? "bg-teal-600" : "bg-slate-200"}`}
                   />
@@ -452,12 +452,6 @@ export default function AddEmployeeModal({
                   </TwoColumnGrid>
                 </div>
               </div>
-              <TwoColumnGrid>
-                {FormField(
-                  "Role",
-                  renderSelect("role", ["employee", "empmanager", "hradmin"]),
-                )}
-              </TwoColumnGrid>
             </Section>
           )}
 
