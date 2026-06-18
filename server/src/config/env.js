@@ -5,7 +5,6 @@ import path from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// __dirname = server/src/config  →  ../../.env resolves to server/.env
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const isProduction = process.env.NODE_ENV === 'production';
