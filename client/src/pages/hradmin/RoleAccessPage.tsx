@@ -288,7 +288,7 @@ export default function RoleAccessPage() {
       border: "#bfdbfe",
     },
     {
-      label: "Employees (this page)",
+      label: "Employees",
       value: employeeCount,
       icon: "👤",
       color: "#16a34a",
@@ -296,7 +296,7 @@ export default function RoleAccessPage() {
       border: "#bbf7d0",
     },
     {
-      label: "Admin (this page)",
+      label: "Admin ",
       value: adminCount,
       icon: "🛡️",
       color: "#0369a1",
@@ -304,7 +304,7 @@ export default function RoleAccessPage() {
       border: "#7dd3fc",
     },
     {
-      label: "Global Admin (this page)",
+      label: "Global Admin",
       value: globalCount,
       icon: "⚙️",
       color: "#7c3aed",
