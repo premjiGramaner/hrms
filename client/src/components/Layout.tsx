@@ -289,8 +289,8 @@ export default function Layout({ children, title, tabs, activeTab, onFab }: Prop
                   key={tab.label}
                   to={tab.path}
                   className={`px-4 py-1.75 rounded-full text-sm no-underline whitespace-nowrap flex-shrink-0 transition ${isActiveTab
-                      ? "font-semibold text-amber-700 bg-orange-100"
-                      : "font-medium text-slate-600 hover:bg-slate-50"
+                    ? "font-semibold text-amber-700 bg-orange-100"
+                    : "font-medium text-slate-600 hover:bg-slate-50"
                     }`}
                 >
                   {tab.label}
@@ -419,8 +419,8 @@ function TabIconBtn({ children, dark }: { children: React.ReactNode; dark?: bool
     <button
       type="button"
       className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${dark
-          ? "bg-blue-900 text-white hover:bg-blue-800"
-          : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
+        ? "bg-blue-900 text-white hover:bg-blue-800"
+        : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
         }`}
     >
       {children}

@@ -15,17 +15,17 @@ export default function EntitlementsLayout({ children }: Props) {
 
   return (
     <LeaveLayout>
-      <div className="-mx-6 -mt-6 bg-white border-b border-slate-200 flex items-center px-4 gap-0.5 mb-6">
+      <div className="mb-6 bg-white rounded-lg shadow-sm p-2 flex overflow-x-auto gap-2">
         {SUB_TABS.map((tab) => {
           const active = pathname === tab.path;
           return (
             <Link
               key={tab.path}
               to={tab.path}
-              className={`px-4 py-2.5 text-sm no-underline whitespace-nowrap transition border-b-2
+              className={`px-6 py-2 text-sm font-medium whitespace-nowrap rounded-full
                 ${active
-                  ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
-                  : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"}`}
+                  ? "bg-[#fff3e0] text-[#ff9800]"
+                  : "text-[#757575] hover:bg-gray-50"}`}
             >
               {tab.label}
             </Link>
