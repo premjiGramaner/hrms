@@ -252,3 +252,62 @@ export const getAuditTrail = async (): Promise<{ data: any[] }> => {
   );
   return { data: response.data.data };
 };
+
+export interface RoleAccessUser {
+  id: number;
+  employee_id: string | null;
+  name: string;
+  username: string;
+  email: string;
+  role: string;
+  gender: string | null;
+  avatar: string | null;
+  is_active: boolean;
+  status: string | null;
+}
+
+export interface RoleAccessPaginatedResponse {
+  users: RoleAccessUser[];
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface RoleAccessQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+  gender?: string;
+  status?: string;
+}
+
+export const getRoleAccess = async (
+  params: RoleAccessQueryParams = {},
+): Promise<{ data: RoleAccessPaginatedResponse }> => {
+  const { page = 1, limit = 10, search = "", role = "", gender = "", status = "" } = params;
+  const qs = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    ...(search ? { search } : {}),
+    ...(role   ? { role }   : {}),
+    ...(gender ? { gender } : {}),
+    ...(status ? { status } : {}),
+  }).toString();
+  const response = await api.get<{ success: boolean; data: RoleAccessPaginatedResponse }>(
+    `/hradmin/role-access?${qs}`,
+  );
+  return { data: response.data.data };
+};
+
+export const updateUserRole = async (
+  userId: number,
+  role: string,
+): Promise<{ data: RoleAccessUser }> => {
+  const response = await api.put<{ success: boolean; data: RoleAccessUser }>(
+    `/hradmin/role-access/${userId}`,
+    { role },
+  );
+  return { data: response.data.data };
+};

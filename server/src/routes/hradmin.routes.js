@@ -18,6 +18,8 @@ import {
   createSubUnit,
   updateSubUnit,
   deleteSubUnit,
+  getRoleAccess,
+  updateUserRole,
   getAuditTrail,
 } from "../controllers/hradmin.controller.js";
 
@@ -45,6 +47,9 @@ router.get("/sub-units", getSubUnits);
 router.post("/sub-units", createSubUnit);
 router.put("/sub-units/:id", updateSubUnit);
 router.delete("/sub-units/:id", deleteSubUnit);
+
+router.get("/role-access", getRoleAccess);
+router.put("/role-access/:id", updateUserRole);
 
 router.get("/audit-trail", getAuditTrail);
 

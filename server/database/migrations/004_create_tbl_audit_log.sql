@@ -1,4 +1,3 @@
--- Dedicated audit log table to capture full history of all user/employee actions
 CREATE TABLE IF NOT EXISTS tbl_audit_log (
   id                  BIGSERIAL    PRIMARY KEY,
   employee_id         BIGINT,                          -- the user/employee that was acted on

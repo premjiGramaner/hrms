@@ -22,6 +22,7 @@ const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
   { label: "Job Categories", path: "/hradmin/job-categories" },
   { label: "Sub Units", path: "/hradmin/sub-units" },
+  { label: "Role Access", path: "/hradmin/role-access" },
   { label: "Audit Trail", path: "/hradmin/audit-trail" },
 ];
 
@@ -326,7 +327,6 @@ export default function JobCategoriesPage() {
     </Layout>
   );
 }
-
 
 interface JobCategoryFormModalProps {
   mode: "add" | "edit";

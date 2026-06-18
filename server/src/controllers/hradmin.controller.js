@@ -123,7 +123,7 @@ const createUser = async (req, res, next) => {
         employee_name,
         username,
         email,
-        Math.random().toString(36).slice(2) + "Aa1!", // temporary password
+        Math.random().toString(36).slice(2) + "Aa1!",
         role,
         isActive,
         createdBy,
@@ -339,24 +339,51 @@ const updateJobTitle = async (req, res, next) => {
       );
     }
 
-    const result = await pool.query(
-      `UPDATE tbl_job_titles
-       SET title = $1, description = $2, is_active = $3, updated_at = NOW()
-       WHERE id = $4
-       RETURNING id, title, description, is_active`,
-      [
-        title.trim(),
-        description?.trim() || null,
-        is_active !== undefined ? Boolean(is_active) : true,
-        jobTitleId,
-      ],
+    const { rows: current } = await pool.query(
+      `SELECT title FROM tbl_job_titles WHERE id = $1`,
+      [jobTitleId],
     );
-
-    if (result.rowCount === 0) {
+    if (current.length === 0) {
       return next(new AppError("Job title not found", 404));
     }
+    const oldTitle = current[0].title;
+    const newTitle = title.trim();
 
-    return success(res, result.rows[0]);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const result = await client.query(
+        `UPDATE tbl_job_titles
+         SET title = $1, description = $2, is_active = $3, updated_at = NOW()
+         WHERE id = $4
+         RETURNING id, title, description, is_active`,
+        [
+          newTitle,
+          description?.trim() || null,
+          is_active !== undefined ? Boolean(is_active) : true,
+          jobTitleId,
+        ],
+      );
+
+      if (oldTitle !== newTitle) {
+        await client.query(
+          `UPDATE tbl_appusers
+           SET job_title = $1, updated_at = NOW()
+           WHERE LOWER(TRIM(COALESCE(job_title, ''))) = LOWER(TRIM($2))
+             AND is_deleted = false`,
+          [newTitle, oldTitle],
+        );
+      }
+
+      await client.query("COMMIT");
+      return success(res, result.rows[0]);
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     next(err);
   }
@@ -366,16 +393,39 @@ const deleteJobTitle = async (req, res, next) => {
   try {
     const jobTitleId = parseInt(req.params.id, 10);
 
-    const result = await pool.query(
-      `DELETE FROM tbl_job_titles WHERE id = $1`,
+    const { rows: existing } = await pool.query(
+      `SELECT title FROM tbl_job_titles WHERE id = $1`,
       [jobTitleId],
     );
-
-    if (result.rowCount === 0) {
+    if (existing.length === 0) {
       return next(new AppError("Job title not found", 404));
     }
+    const titleToRemove = existing[0].title;
 
-    return success(res, { message: "Job title deleted successfully" });
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      await client.query(`DELETE FROM tbl_job_titles WHERE id = $1`, [
+        jobTitleId,
+      ]);
+
+      await client.query(
+        `UPDATE tbl_appusers
+         SET job_title = NULL, updated_at = NOW()
+         WHERE LOWER(TRIM(COALESCE(job_title, ''))) = LOWER(TRIM($1))
+           AND is_deleted = false`,
+        [titleToRemove],
+      );
+
+      await client.query("COMMIT");
+      return success(res, { message: "Job title deleted successfully" });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     next(err);
   }
@@ -446,24 +496,51 @@ const updateJobCategory = async (req, res, next) => {
       );
     }
 
-    const result = await pool.query(
-      `UPDATE tbl_job_categories
-       SET category = $1, description = $2, is_active = $3, updated_at = NOW()
-       WHERE id = $4
-       RETURNING id, category, description, is_active`,
-      [
-        category.trim(),
-        description?.trim() || null,
-        is_active !== undefined ? Boolean(is_active) : true,
-        jobCategoryId,
-      ],
+    const { rows: current } = await pool.query(
+      `SELECT category FROM tbl_job_categories WHERE id = $1`,
+      [jobCategoryId],
     );
-
-    if (result.rowCount === 0) {
+    if (current.length === 0) {
       return next(new AppError("Job category not found", 404));
     }
+    const oldCategory = current[0].category;
+    const newCategory = category.trim();
 
-    return success(res, result.rows[0]);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const result = await client.query(
+        `UPDATE tbl_job_categories
+         SET category = $1, description = $2, is_active = $3, updated_at = NOW()
+         WHERE id = $4
+         RETURNING id, category, description, is_active`,
+        [
+          newCategory,
+          description?.trim() || null,
+          is_active !== undefined ? Boolean(is_active) : true,
+          jobCategoryId,
+        ],
+      );
+
+      if (oldCategory !== newCategory) {
+        await client.query(
+          `UPDATE tbl_appusers
+           SET job_category = $1, updated_at = NOW()
+           WHERE LOWER(TRIM(COALESCE(job_category, ''))) = LOWER(TRIM($2))
+             AND is_deleted = false`,
+          [newCategory, oldCategory],
+        );
+      }
+
+      await client.query("COMMIT");
+      return success(res, result.rows[0]);
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     next(err);
   }
@@ -473,16 +550,39 @@ const deleteJobCategory = async (req, res, next) => {
   try {
     const jobCategoryId = parseInt(req.params.id, 10);
 
-    const result = await pool.query(
-      `DELETE FROM tbl_job_categories WHERE id = $1`,
+    const { rows: existing } = await pool.query(
+      `SELECT category FROM tbl_job_categories WHERE id = $1`,
       [jobCategoryId],
     );
-
-    if (result.rowCount === 0) {
+    if (existing.length === 0) {
       return next(new AppError("Job category not found", 404));
     }
+    const categoryToRemove = existing[0].category;
 
-    return success(res, { message: "Job category deleted successfully" });
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      await client.query(`DELETE FROM tbl_job_categories WHERE id = $1`, [
+        jobCategoryId,
+      ]);
+
+      await client.query(
+        `UPDATE tbl_appusers
+         SET job_category = NULL, updated_at = NOW()
+         WHERE LOWER(TRIM(COALESCE(job_category, ''))) = LOWER(TRIM($1))
+           AND is_deleted = false`,
+        [categoryToRemove],
+      );
+
+      await client.query("COMMIT");
+      return success(res, { message: "Job category deleted successfully" });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     next(err);
   }
@@ -556,26 +656,53 @@ const updateSubUnit = async (req, res, next) => {
       );
     }
 
-    const result = await pool.query(
-      `UPDATE tbl_sub_units
-       SET sub_unit_name = $1, supervisor_name = $2, description = $3,
-           is_active = $4, updated_at = NOW()
-       WHERE id = $5
-       RETURNING id, sub_unit_name, supervisor_name, description, is_active`,
-      [
-        sub_unit_name.trim(),
-        supervisor_name?.trim() || null,
-        description?.trim() || null,
-        is_active !== undefined ? Boolean(is_active) : true,
-        subUnitId,
-      ],
+    const { rows: current } = await pool.query(
+      `SELECT sub_unit_name FROM tbl_sub_units WHERE id = $1`,
+      [subUnitId],
     );
-
-    if (result.rowCount === 0) {
+    if (current.length === 0) {
       return next(new AppError("Sub unit not found", 404));
     }
+    const oldName = current[0].sub_unit_name;
+    const newName = sub_unit_name.trim();
 
-    return success(res, result.rows[0]);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const result = await client.query(
+        `UPDATE tbl_sub_units
+         SET sub_unit_name = $1, supervisor_name = $2, description = $3,
+             is_active = $4, updated_at = NOW()
+         WHERE id = $5
+         RETURNING id, sub_unit_name, supervisor_name, description, is_active`,
+        [
+          newName,
+          supervisor_name?.trim() || null,
+          description?.trim() || null,
+          is_active !== undefined ? Boolean(is_active) : true,
+          subUnitId,
+        ],
+      );
+
+      if (oldName !== newName) {
+        await client.query(
+          `UPDATE tbl_appusers
+           SET sub_unit = $1, updated_at = NOW()
+           WHERE LOWER(TRIM(COALESCE(sub_unit, ''))) = LOWER(TRIM($2))
+             AND is_deleted = false`,
+          [newName, oldName],
+        );
+      }
+
+      await client.query("COMMIT");
+      return success(res, result.rows[0]);
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     next(err);
   }
@@ -585,15 +712,155 @@ const deleteSubUnit = async (req, res, next) => {
   try {
     const subUnitId = parseInt(req.params.id, 10);
 
-    const result = await pool.query(`DELETE FROM tbl_sub_units WHERE id = $1`, [
-      subUnitId,
-    ]);
-
-    if (result.rowCount === 0) {
+    const { rows: existing } = await pool.query(
+      `SELECT sub_unit_name FROM tbl_sub_units WHERE id = $1`,
+      [subUnitId],
+    );
+    if (existing.length === 0) {
       return next(new AppError("Sub unit not found", 404));
     }
+    const nameToRemove = existing[0].sub_unit_name;
 
-    return success(res, { message: "Sub unit deleted successfully" });
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      await client.query(`DELETE FROM tbl_sub_units WHERE id = $1`, [
+        subUnitId,
+      ]);
+
+      await client.query(
+        `UPDATE tbl_appusers
+         SET sub_unit = NULL, updated_at = NOW()
+         WHERE LOWER(TRIM(COALESCE(sub_unit, ''))) = LOWER(TRIM($1))
+           AND is_deleted = false`,
+        [nameToRemove],
+      );
+
+      await client.query("COMMIT");
+      return success(res, { message: "Sub unit deleted successfully" });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getRoleAccess = async (req, res, next) => {
+  try {
+    const currentPage = Math.max(1, parseInt(req.query.page || "1", 10));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.limit || "10", 10)),
+    );
+    const searchTerm = (req.query.search || "").trim();
+    const roleFilter = (req.query.role || "").trim();
+    const genderFilter = (req.query.gender || "").trim();
+    const statusFilter = (req.query.status || "").trim();
+    const offset = (currentPage - 1) * pageSize;
+
+    const conditions = ["u.is_deleted = false"];
+    const params = [];
+
+    if (searchTerm) {
+      params.push(`%${searchTerm}%`);
+      const p = params.length;
+      conditions.push(
+        `(u.name ILIKE $${p} OR u.username ILIKE $${p} OR u.email ILIKE $${p} OR u.employee_id ILIKE $${p})`,
+      );
+    }
+    if (roleFilter) {
+      params.push(roleFilter);
+      conditions.push(`u.role = $${params.length}`);
+    }
+    if (genderFilter) {
+      params.push(genderFilter);
+      conditions.push(`u.gender = $${params.length}`);
+    }
+    if (statusFilter) {
+      if (statusFilter === "active") {
+        conditions.push("u.is_active = true");
+      }
+      if (statusFilter === "inactive") {
+        conditions.push("u.is_active = false");
+      }
+    }
+
+    const where = conditions.join(" AND ");
+
+    const { rows: countRows } = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM tbl_appusers u WHERE ${where}`,
+      params,
+    );
+    const totalRecords = countRows[0].total;
+    const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+
+    const dataParams = [...params, pageSize, offset];
+    const limitIdx = params.length + 1;
+    const offsetIdx = params.length + 2;
+
+    const { rows } = await pool.query(
+      `SELECT
+         u.id,
+         u.employee_id,
+         u.name,
+         u.username,
+         u.email,
+         u.role,
+         u.gender,
+         u.avatar,
+         u.is_active,
+         u.status
+       FROM tbl_appusers u
+       WHERE ${where}
+       ORDER BY u.created_at DESC
+       LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+      dataParams,
+    );
+
+    return success(res, {
+      users: rows,
+      total: totalRecords,
+      page: currentPage,
+      totalPages,
+      limit: pageSize,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateUserRole = async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { role } = req.body;
+
+    const allowedRoles = ["employee", "empmanager", "hradmin"];
+    if (!role || !allowedRoles.includes(role)) {
+      return next(
+        new AppError(
+          "Invalid role. Must be employee, empmanager, or hradmin",
+          400,
+        ),
+      );
+    }
+
+    const result = await pool.query(
+      `UPDATE tbl_appusers SET role = $1, updated_by = $2, updated_at = NOW()
+       WHERE id = $3 AND is_deleted = false
+       RETURNING id, name, username, email, role, is_active`,
+      [role, req.user?.id || null, userId],
+    );
+
+    if (result.rowCount === 0) {
+      return next(new AppError("User not found", 404));
+    }
+
+    return success(res, result.rows[0]);
   } catch (err) {
     next(err);
   }
@@ -774,5 +1041,7 @@ export {
   createSubUnit,
   updateSubUnit,
   deleteSubUnit,
+  getRoleAccess,
+  updateUserRole,
   getAuditTrail,
 };
