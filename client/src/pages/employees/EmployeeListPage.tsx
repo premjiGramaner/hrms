@@ -1,292 +1,354 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
 import { Employee } from "../../types";
 import AddEmployeeModal from "./AddEmployeeModal";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchEmployees, setPage } from "../../store/employeeSlice";
+import { fetchEmployees, setPage, setLimit } from "../../store/employeeSlice";
+import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
   { label: "My Info", path: "/my-info" },
 ];
 
-const COLS = [
-  "Employee Id",
-  "Name",
-  "Job Title",
-  "Employment Status",
-  "Sub Unit",
-  "Location",
-  "Supervisor",
-];
+const getDisplayName = (employe: Employee) =>
+  employe.name ||
+  `${employe.first_name || ""} ${employe.last_name || ""}`.trim() ||
+  "—";
+
+const getInitials = (employee: Employee) => {
+  const employeName = getDisplayName(employee);
+  return employeName !== "—"
+    ? employeName
+        .split(" ")
+        .map((w) => w[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "EE";
+};
+
+const getSupervisor = (employee: Employee): string => {
+  if (
+    !employee.supervisors ||
+    !Array.isArray(employee.supervisors) ||
+    employee.supervisors.length === 0
+  )
+    return "—";
+  return String(employee.supervisors[0]);
+};
 
 export default function EmployeeListPage() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const { data, loading, page } = useAppSelector((state) => state.employees);
+  const { data, loading, page, limit } = useAppSelector(
+    (state) => state.employees,
+  );
+
   const [success, setSuccess] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [search, setSearch] = useState("");
-  const clearSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flash = useCallback((msg: string) => {
     setSuccess(msg);
-
-    if (clearSuccessTimeoutRef.current) {
-      clearTimeout(clearSuccessTimeoutRef.current);
-    }
-
-    clearSuccessTimeoutRef.current = setTimeout(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
       setSuccess("");
-      clearSuccessTimeoutRef.current = null;
+      timerRef.current = null;
     }, 3000);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (clearSuccessTimeoutRef.current) {
-        clearTimeout(clearSuccessTimeoutRef.current);
-      }
-    };
-  }, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
-    dispatch(fetchEmployees(page));
-  }, [dispatch, page]);
+    dispatch(fetchEmployees({ page, limit }));
+  }, [dispatch, page, limit]);
 
   useEffect(() => {
     const message = (location.state as { message?: string } | null)?.message;
     if (!message) return;
-
     flash(message);
     navigate(location.pathname, { replace: true });
   }, [flash, location.pathname, location.state, navigate]);
 
-  const fetchData = (pageNum: number) => dispatch(fetchEmployees(pageNum));
-
-  const openAdd = () => {
-    setEditEmployee(null);
-    setShowModal(true);
-  };
-
-  const openProfile = (emp: Employee) => {
-    if (emp.id) {
-      navigate(`/employees/${emp.id}/profile`);
-    }
-  };
-
-  const rows = (data?.data || []).filter(
-    (user) =>
-      !search ||
-      (user.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (user.username || "").toLowerCase().includes(search.toLowerCase()) ||
-      (user.email || "").toLowerCase().includes(search.toLowerCase()) ||
-      (user.employee_id || "").toLowerCase().includes(search.toLowerCase()) ||
-      (user.job_title || "").toLowerCase().includes(search.toLowerCase()),
+  const allRows = data?.data || [];
+  const filteredRows = useMemo(
+    () =>
+      !search
+        ? allRows
+        : allRows.filter((employee) => {
+            const query = search.toLowerCase();
+            return (
+              (employee.name || "").toLowerCase().includes(query) ||
+              (employee.employee_id || "").toLowerCase().includes(query) ||
+              (employee.email || "").toLowerCase().includes(query) ||
+              (employee.job_title || "").toLowerCase().includes(query) ||
+              (employee.sub_unit || "").toLowerCase().includes(query) ||
+              (employee.location || "").toLowerCase().includes(query)
+            );
+          }),
+    [allRows, search],
   );
 
-  const getSupervisorLabel = (emp: Employee): string => {
-    if (
-      !emp.supervisors ||
-      !Array.isArray(emp.supervisors) ||
-      emp.supervisors.length === 0
-    ) {
-      return "-";
-    }
+  const activeCount = allRows.filter((e) => e.is_active !== false).length;
+  const inactiveCount = allRows.length - activeCount;
 
-    return String(emp.supervisors[0]);
-  };
+  const stats: StatCard[] = [
+    {
+      label: "Total",
+      value: data?.total ?? 0,
+      icon: "👥",
+      color: "#1b2a6b",
+      bg: "#eff6ff",
+      border: "#bfdbfe",
+    },
+    {
+      label: "Active",
+      value: activeCount,
+      icon: "✅",
+      color: "#16a34a",
+      bg: "#f0fdf4",
+      border: "#bbf7d0",
+    },
+    {
+      label: "Inactive",
+      value: inactiveCount,
+      icon: "⏸",
+      color: "#94a3b8",
+      bg: "#f8fafc",
+      border: "#e2e8f0",
+    },
+  ];
 
-  const getDisplayName = (emp: Employee) =>
-    emp.name ||
-    `${emp.first_name || ""} ${emp.last_name || ""}`.trim() ||
-    "-";
+  const columns: ColumnDef<Employee>[] = [
+    {
+      key: "employee_id",
+      header: "Employee ID",
+      render: (employee) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              flexShrink: 0,
+              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              boxShadow: "0 2px 6px rgba(27,42,107,0.18)",
+            }}
+          >
+            {employee.avatar ? (
+              <img
+                src={`/${employee.avatar}`}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                alt=""
+              />
+            ) : (
+              <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>
+                {getInitials(employee)}
+              </span>
+            )}
+          </div>
+          <span
+            style={{
+              fontFamily: "monospace",
+              fontSize: 12.5,
+              background: "#f8fafc",
+              padding: "2px 7px",
+              borderRadius: 6,
+              color: "#475569",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            {employee.employee_id || "—"}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: "name",
+      header: "Name",
+      render: (employee) => (
+        <div>
+          <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 13.5 }}>
+            {getDisplayName(employee)}
+          </div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+            {employee.email}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "job_title",
+      header: "Job Title",
+      render: (employee) => (
+        <span style={{ fontSize: 13, color: "#475569" }}>
+          {employee.job_title || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "employment_status",
+      header: "Employment Status",
+      render: (employee) => {
+        const status = employee.employment_status || employee.status || "";
+        return status ? (
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              padding: "3px 10px",
+              borderRadius: 999,
+              background: "#f1f5f9",
+              color: "#475569",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            {status}
+          </span>
+        ) : (
+          <span style={{ color: "#cbd5e1" }}>—</span>
+        );
+      },
+    },
+    {
+      key: "sub_unit",
+      header: "Sub Unit",
+      render: (employee) => (
+        <span style={{ fontSize: 13, color: "#64748b" }}>
+          {employee.sub_unit || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "location",
+      header: "Location",
+      render: (employee) => (
+        <span style={{ fontSize: 13, color: "#64748b" }}>
+          {employee.location || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "supervisors",
+      header: "Supervisor",
+      render: (employee) => (
+        <span style={{ fontSize: 13, color: "#64748b" }}>
+          {getSupervisor(employee)}
+        </span>
+      ),
+    },
+  ];
 
-  const initials = (emp: Employee) => {
-    const fullName = getDisplayName(emp);
-    return fullName !== "-"
-      ? fullName
-          .split(" ")
-          .map((word) => word[0])
-          .slice(0, 2)
-          .join("")
-          .toUpperCase()
-      : "EE";
-  };
+  const totalPages = data?.totalPages ?? 1;
+  const totalRecords = data?.total ?? 0;
+
+  const handlePageChange = (page: number) => dispatch(setPage(page));
+  const handlePageSizeChange = (size: number) => dispatch(setLimit(size));
 
   return (
-    <Layout
-      title="Employee Management"
-      tabs={TABS}
-      activeTab="Employee List"
-    >
+    <Layout title="Employee Management" tabs={TABS} activeTab="Employee List">
       {success && (
-        <div className="mb-4 rounded-xl border-l-4 border-green-400 bg-green-50 p-3 text-sm text-green-900">
-          {success}
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "12px 18px",
+            background: "linear-gradient(135deg,#f0fdf4,#fff)",
+            border: "1px solid #bbf7d0",
+            borderLeft: "4px solid #22c55e",
+            borderRadius: 12,
+            color: "#15803d",
+            fontSize: 13.5,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            boxShadow: "0 2px 8px rgba(34,197,94,0.08)",
+          }}
+        >
+          ✓ {success}
         </div>
       )}
 
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Employee List</h2>
-          <p className="mt-0.5 text-xs text-slate-500">
-            View and manage employee profile information.
-          </p>
-        </div>
-
-        <div className="relative w-full md:w-80">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#94a3b8"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </span>
-          <input
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="w-full rounded-full border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm shadow-sm outline-none transition focus:border-teal-300 focus:ring-2 focus:ring-teal-50"
-          />
-        </div>
-      </div>
-
-      <div className="relative rounded-2xl bg-white shadow-sm">
-        <button
-          type="button"
-          onClick={openAdd}
-          aria-label="Add employee"
-          className="absolute right-6 top-[-1.75rem] z-20 flex h-14 w-14 items-center justify-center rounded-full border-none bg-blue-950 text-4xl leading-none text-white shadow-2xl transition hover:bg-blue-900"
-        >
-          +
-        </button>
-
-        <div className="overflow-hidden rounded-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-white">
-                {COLS.map((header) => (
-                  <th
-                    key={header}
-                    className="px-5 py-5 text-left text-xs font-bold text-slate-700 whitespace-nowrap"
-                  >
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                <tr>
-                  <td
-                    colSpan={COLS.length}
-                    className="py-16 text-center text-slate-400"
-                  >
-                    <div className="text-sm">Loading employees...</div>
-                  </td>
-                </tr>
-              )}
-
-              {!loading && rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={COLS.length}
-                    className="py-16 text-center text-slate-400"
-                  >
-                    <div className="text-sm">No employees found</div>
-                  </td>
-                </tr>
-              )}
-
-              {!loading &&
-                rows.map((emp) => (
-                  <tr
-                    key={emp.id}
-                    onClick={() => openProfile(emp)}
-                    className="cursor-pointer border-b border-slate-100 bg-white transition-colors last:border-b-0 hover:bg-teal-50/60"
-                  >
-                    <td className="px-5 py-4 text-slate-700">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-blue-900 to-teal-600 text-xs font-bold text-white">
-                          {emp.avatar ? (
-                            <img
-                              src={`/${emp.avatar}`}
-                              className="h-full w-full object-cover"
-                              alt=""
-                            />
-                          ) : (
-                            initials(emp)
-                          )}
-                        </div>
-                        <span className="font-medium">
-                          {emp.employee_id || "-"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-slate-700">
-                      {getDisplayName(emp)}
-                    </td>
-                    <td className="px-5 py-4 text-slate-700">
-                      {emp.job_title || "-"}
-                    </td>
-                    <td className="px-5 py-4 text-slate-700">
-                      {emp.employment_status || emp.status || "-"}
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {emp.sub_unit || "-"}
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {emp.location || "-"}
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {getSupervisorLabel(emp)}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-
-        {data && (
-          <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 text-sm text-slate-600 md:flex-row md:items-center md:justify-end">
-            <span>
-              Rows per page <strong className="ml-3 text-slate-700">50</strong>
-            </span>
-            <span className="text-slate-700">
-              {(data.page - 1) * 15 + (rows.length > 0 ? 1 : 0)} -{" "}
-              {(data.page - 1) * 15 + rows.length} of {data.total}
-            </span>
-            <button
-              onClick={() => dispatch(setPage(page - 1))}
-              disabled={page === 1}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Prev
-            </button>
-            <button
-              onClick={() => dispatch(setPage(page + 1))}
-              disabled={page === data.totalPages}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        )}
-        </div>
-      </div>
+      <DataTable<Employee>
+        title="Employee List"
+        subtitle="View and manage employee profile information"
+        icon="👥"
+        rows={filteredRows}
+        isLoading={loading}
+        columns={columns}
+        actions={[
+          {
+            label: "View",
+            color: "#1b2a6b",
+            bg: "#eff6ff",
+            bgHover: "#dbeafe",
+            borderColor: "#bfdbfe",
+            borderColorHover: "#93c5fd",
+            icon: (
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            ),
+            onClick: (employee) =>
+              employee.id && navigate(`/employees/${employee.id}/profile`),
+            title: "View profile",
+          },
+        ]}
+        getKey={(employee) => employee.id}
+        emptyIcon="👤"
+        emptyTitle={
+          search ? `No results for "${search}"` : "No employees found"
+        }
+        emptySubtitle={
+          search
+            ? "Try a different search term"
+            : "Click 'Add Employee' to get started"
+        }
+        stats={stats}
+        currentPage={page}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        pageSize={limit}
+        pageSizeOptions={[10, 15, 20, 50]}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        itemLabel="employees"
+        searchQuery={search}
+        searchPlaceholder="Search by name, ID, email, job title…"
+        onSearchChange={setSearch}
+        addLabel="Add Employee"
+        onAdd={() => {
+          setEditEmployee(null);
+          setShowModal(true);
+        }}
+      />
 
       {showModal && (
         <AddEmployeeModal
@@ -296,7 +358,7 @@ export default function EmployeeListPage() {
             setEditEmployee(null);
           }}
           onSaved={() => {
-            fetchData(page);
+            dispatch(fetchEmployees({ page, limit }));
             flash(
               editEmployee
                 ? "Employee updated successfully."
