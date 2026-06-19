@@ -1,9 +1,10 @@
 import pool from "../config/db.js";
-
+import bcrypt from 'bcryptjs';
+ 
 const SPACE_REGEX = /\s+/g;
 const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
 const TRIM_UNDERSCORE_REGEX = /^_+|_+$/g;
-
+ 
 async function createUniqueUsername(email, name) {
   let base = name
     ? name
@@ -12,7 +13,7 @@ async function createUniqueUsername(email, name) {
         .replace(INVALID_CHAR_REGEX, "")
     : email.split("@")[0];
   base = base.replace(TRIM_UNDERSCORE_REGEX, "") || email.split("@")[0];
-
+ 
   let username = base;
   let counter = 1;
   while (true) {
@@ -25,7 +26,7 @@ async function createUniqueUsername(email, name) {
   }
   return username;
 }
-
+ 
 async function findAllEmployees(page, limit = 15) {
   const offset = (page - 1) * limit;
   const { rows } = await pool.query(
@@ -49,7 +50,7 @@ async function findAllEmployees(page, limit = 15) {
   const total = cnt[0].count;
   return { data: rows, total, page, totalPages: Math.ceil(total / limit) };
 }
-
+ 
 async function findEmployeeById(id) {
   const { rows } = await pool.query(
     `SELECT id::int, employee_id, first_name, middle_name, last_name, name,
@@ -73,12 +74,14 @@ async function findEmployeeById(id) {
   );
   return rows[0] || null;
 }
-
+ 
 async function createEmployee(data, avatarPath) {
   const name = `${data.first_name} ${data.last_name}`.trim();
   const username = await createUniqueUsername(data.email, name);
-  const password = Math.random().toString(36).slice(2) + "Aa1!";
-
+  const plainPassword = Math.random().toString(36).slice(2) + "Aa1!";
+  const password = await bcrypt.hash(plainPassword, 10);
+  console.log(`Generated password for employee ${data.email}: ${plainPassword} (username: ${username})`);
+ 
   const { rows } = await pool.query(
     `INSERT INTO tbl_appusers (
       employee_id, first_name, middle_name, last_name, name,
@@ -164,18 +167,18 @@ async function createEmployee(data, avatarPath) {
   );
   return rows[0];
 }
-
+ 
 async function updateEmployee(id, data, avatarPath, updatedBy) {
   const name =
     data.first_name && data.last_name
       ? `${data.first_name} ${data.last_name}`.trim()
       : undefined;
-
+ 
   const n = (value) =>
     value && String(value).trim() !== "" ? String(value).trim() : null;
   const d = (value) =>
     !value || String(value).trim() === "" ? null : String(value).trim();
-
+ 
   const result = await pool.query(
     `UPDATE tbl_appusers SET
       first_name        = COALESCE(NULLIF($1,''), first_name),
@@ -277,10 +280,10 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       id,
     ],
   );
-
+ 
   if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
 }
-
+ 
 async function softDeleteEmployee(id, deletedBy) {
   const result = await pool.query(
     `UPDATE tbl_appusers SET is_deleted = true, updated_by = $1, updated_at = NOW()
@@ -289,7 +292,7 @@ async function softDeleteEmployee(id, deletedBy) {
   );
   if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
 }
-
+ 
 async function getSupervisors() {
   const { rows } = await pool.query(
     `SELECT DISTINCT supervisor_name AS name
@@ -301,7 +304,7 @@ async function getSupervisors() {
   );
   return rows;
 }
-
+ 
 async function findByEmail(email) {
   const { rows } = await pool.query(
     `SELECT id FROM tbl_appusers WHERE email = $1 AND is_deleted = false`,
@@ -309,7 +312,7 @@ async function findByEmail(email) {
   );
   return rows[0] || null;
 }
-
+ 
 export {
   findAllEmployees,
   findEmployeeById,
@@ -319,3 +322,4 @@ export {
   getSupervisors,
   findByEmail,
 };
+ 
