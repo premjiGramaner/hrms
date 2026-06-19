@@ -186,7 +186,7 @@ export default function LeaveDetailsPage() {
   useEffect(() => { load(); }, [leaveId]);
 
   const isAdminOrHR = user?.role === "empmanager" || user?.role === "hradmin";
-  const isRequester = !!(leave?.user_id && user?.id && leave.user_id === user.id);
+  const isRequester = !!(leave?.user_id && user?.id && String(leave.user_id) === String(user.id));
 
   const handleApprove = async () => {
     setActionLoading(true);

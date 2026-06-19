@@ -45,6 +45,7 @@ export default function Layout({
   const [collapsed, setCollapsed] = useState(false);
 
   const role = user?.role || "employee";
+  const isAdmin = role === "hradmin" || role === "empmanager";
   const username = user?.name || user?.username || "User";
   const roleLabel =
     role === "empmanager"
@@ -53,6 +54,7 @@ export default function Layout({
         ? "HR Administrator"
         : "Employee";
 
+  // Match a path prefix — used for both active highlight and page title
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   const pageTitle =
@@ -65,12 +67,21 @@ export default function Layout({
           ? "Leave"
           : "HRMS");
 
+  // Build nav items based on role
+  // Employees: Employee Management → /my-info (no list access), Leave, Performance
+  // Admins: HR Admin, Employee Management → /employees, Reports, Leave, Performance
   const navItems = [
-    ...(role === "hradmin" || role === "empmanager"
+    ...(isAdmin
       ? [{ to: "/hradmin", label: "HR Administration", icon: <IconBuilding /> }]
       : []),
-    { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
-    { to: "#", label: "Reports and Analytics", icon: <IconChart /> },
+    {
+      to: isAdmin ? "/employees" : "/my-info",
+      label: "Employee Management",
+      icon: <IconPeople />,
+    },
+    ...(isAdmin
+      ? [{ to: "#", label: "Reports and Analytics", icon: <IconChart /> }]
+      : []),
     { to: "/leave/view_leave_list", label: "Leave", icon: <IconCalendar /> },
     { to: "#", label: "Performance", icon: <IconBriefcase /> },
   ];
@@ -175,56 +186,70 @@ export default function Layout({
             </p>
           </div>
 
-          <div
-            style={{
-              padding: "12px 12px 10px",
-              maxHeight: collapsed ? 0 : 60,
-              opacity: collapsed ? 0 : 1,
-              overflow: "hidden",
-              transition:
-                "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
-            }}
-            className="flex-shrink-0"
-          >
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search"
-                style={{
-                  width: "100%",
-                  paddingLeft: 14,
-                  paddingRight: 34,
-                  paddingTop: 7,
-                  paddingBottom: 7,
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 999,
-                  fontSize: 12,
-                  color: "#475569",
-                  background: "#f8fafc",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-              <span
-                className="absolute"
-                style={{
-                  right: 11,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                }}
-              >
-                <IconSearch size={13} color="#94a3b8" />
-              </span>
+          {/* Search box — hidden for employees */}
+          {isAdmin && (
+            <div
+              style={{
+                padding: "12px 12px 10px",
+                maxHeight: collapsed ? 0 : 60,
+                opacity: collapsed ? 0 : 1,
+                overflow: "hidden",
+                transition:
+                  "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
+              }}
+              className="flex-shrink-0"
+            >
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search"
+                  style={{
+                    width: "100%",
+                    paddingLeft: 14,
+                    paddingRight: 34,
+                    paddingTop: 7,
+                    paddingBottom: 7,
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    color: "#475569",
+                    background: "#f8fafc",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <span
+                  className="absolute"
+                  style={{
+                    right: 11,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    pointerEvents: "none",
+                  }}
+                >
+                  <IconSearch size={13} color="#94a3b8" />
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
           <nav
             className="flex-1 overflow-y-auto"
             style={{ padding: "4px 8px 24px" }}
           >
             {navItems.map((item) => {
-              const active = item.to !== "#" && isActive(item.to);
+              // Leave sidebar item stays active for any /leave/* path
+              // Employee Management stays active for both /employees and /my-info
+              let active = false;
+              if (item.to !== "#") {
+                if (item.to === "/leave/view_leave_list") {
+                  active = isActive("/leave");
+                } else if (item.label === "Employee Management") {
+                  active = isActive("/employees") || isActive("/my-info");
+                } else {
+                  active = isActive(item.to);
+                }
+              }
               return (
                 <SidebarNavItem
                   key={item.label}
@@ -285,7 +310,7 @@ export default function Layout({
         </button>
       </div>
 
-      {/* Main content area — unchanged */}
+      {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-between px-6 flex-shrink-0 shadow-md">
           <span className="text-white font-bold text-lg tracking-wide">

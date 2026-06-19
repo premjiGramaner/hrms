@@ -279,6 +279,69 @@ async function createLeaveRequest(data) {
   return rows[0];
 }
 
+// Creates a leave request and deducts balance atomically in a transaction.
+// Prevents double-deduction by checking the entitlement balance inside the transaction.
+async function createLeaveRequestWithDeduction(data, leaveTypeId, year, requestedDays) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Re-check balance with a row lock to prevent race conditions
+    const { rows: balRows } = await client.query(
+      `SELECT (total_days + carried_days - used_days) AS net_balance
+       FROM tbl_leave_entitlements
+       WHERE employee_id = $1 AND leave_type_id = $2 AND year = $3 AND is_deleted = FALSE
+       FOR UPDATE`,
+      [data.employee_id, leaveTypeId, year]
+    );
+    if (!balRows.length) {
+      throw Object.assign(new Error('No entitlement found for the selected leave type and period.'), { statusCode: 422 });
+    }
+    if (Number(balRows[0].net_balance) < requestedDays) {
+      throw Object.assign(
+        new Error(`Insufficient leave balance. Available: ${Number(balRows[0].net_balance).toFixed(2)} day(s).`),
+        { statusCode: 422 }
+      );
+    }
+
+    // Insert the leave request
+    const { rows } = await client.query(
+      `INSERT INTO tbl_leave_requests
+         (employee_id, leave_type_id, start_date, end_date, requested_days, reason,
+          status, attachment_status, comments)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING id`,
+      [
+        data.employee_id,
+        data.leave_type_id,
+        data.start_date,
+        data.end_date,
+        data.requested_days || 1,
+        data.reason || null,
+        data.status || 'Pending Approval',
+        data.attachment_status || 'Not Required',
+        data.comments || null,
+      ]
+    );
+
+    // Deduct balance
+    await client.query(
+      `UPDATE tbl_leave_entitlements
+       SET used_days = used_days + $1, updated_at = NOW()
+       WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4 AND is_deleted = FALSE`,
+      [requestedDays, data.employee_id, leaveTypeId, year]
+    );
+
+    await client.query('COMMIT');
+    return rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 function toActorId(id) {
   const n = parseInt(id);
   return (isNaN(n) || n <= 0) ? null : n;
@@ -351,6 +414,7 @@ async function searchEmployees(q) {
 }
 
 async function getLeavesSummaryForExport(filters = {}) {
+  const { clause, values } = buildFilters(filters);
   const { rows } = await pool.query(
     `SELECT
        u.employee_id,
@@ -408,6 +472,7 @@ export {
   findLeaveDetails,
   updateLeaveAttachment,
   createLeaveRequest,
+  createLeaveRequestWithDeduction,
   approveLeave,
   rejectLeave,
   cancelLeave,

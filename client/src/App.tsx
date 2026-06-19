@@ -21,6 +21,9 @@ import AddEntitlementsPage from "./pages/leave/entitlements/AddEntitlementsPage"
 import EntitlementListPage from "./pages/leave/entitlements/EntitlementListPage";
 import MyEntitlementsPage from "./pages/leave/entitlements/MyEntitlementsPage";
 
+// Roles that can access admin features
+const ADMIN_ROLES = ["empmanager", "hradmin"];
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -31,15 +34,16 @@ export default function App() {
           path="/"
           element={
             <ProtectedRoute>
-              <Navigate to="/employees" replace />
+              <Navigate to="/my-info" replace />
             </ProtectedRoute>
           }
         />
 
+        {/* ── Employee Management ── */}
         <Route
           path="/employees"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN_ROLES}>
               <EmployeeListPage />
             </ProtectedRoute>
           }
@@ -61,18 +65,21 @@ export default function App() {
           }
         />
 
+        {/* ── Roles (admin only) ── */}
         <Route
           path="/roles"
           element={
-            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+            <ProtectedRoute roles={ADMIN_ROLES}>
               <RolesPage />
             </ProtectedRoute>
           }
         />
+
+        {/* ── HR Administration (admin only) ── */}
         <Route
           path="/hradmin"
           element={
-            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+            <ProtectedRoute roles={ADMIN_ROLES}>
               <Navigate to="/hradmin/job-titles" replace />
             </ProtectedRoute>
           }
@@ -80,7 +87,7 @@ export default function App() {
         <Route
           path="/hradmin/users"
           element={
-            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+            <ProtectedRoute roles={ADMIN_ROLES}>
               <HRUsersPage />
             </ProtectedRoute>
           }
@@ -88,12 +95,45 @@ export default function App() {
         <Route
           path="/hradmin/audit-trail"
           element={
-            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+            <ProtectedRoute roles={ADMIN_ROLES}>
               <AuditTrailPage />
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/hradmin/job-titles"
+          element={
+            <ProtectedRoute roles={ADMIN_ROLES}>
+              <JobTitlesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hradmin/job-categories"
+          element={
+            <ProtectedRoute roles={ADMIN_ROLES}>
+              <JobCategoriesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hradmin/sub-units"
+          element={
+            <ProtectedRoute roles={ADMIN_ROLES}>
+              <SubUnitsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hradmin/role-access"
+          element={
+            <ProtectedRoute roles={ADMIN_ROLES}>
+              <RoleAccessPage />
+            </ProtectedRoute>
+          }
+        />
 
+        {/* ── Leave ── */}
         <Route
           path="/leave"
           element={
@@ -110,6 +150,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        {/* Both /leave/view_leave_list/details/:id and /view_my_leave_list/detail/:id/my */}
         <Route
           path="/leave/view_leave_list/details/:id"
           element={
@@ -119,34 +160,10 @@ export default function App() {
           }
         />
         <Route
-          path="/hradmin/job-titles"
+          path="/view_my_leave_list/detail/:id/my"
           element={
-            <ProtectedRoute roles={["empmanager", "hradmin"]}>
-              <JobTitlesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/hradmin/job-categories"
-          element={
-            <ProtectedRoute roles={["empmanager", "hradmin"]}>
-              <JobCategoriesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/hradmin/sub-units"
-          element={
-            <ProtectedRoute roles={["empmanager", "hradmin"]}>
-              <SubUnitsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/hradmin/role-access"
-          element={
-            <ProtectedRoute roles={["empmanager", "hradmin"]}>
-              <RoleAccessPage />
+            <ProtectedRoute>
+              <LeaveDetailsPage />
             </ProtectedRoute>
           }
         />
@@ -159,27 +176,20 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/view_my_leave_list/detail/:id/my"
-          element={
-            <ProtectedRoute>
-              <LeaveDetailsPage />
-            </ProtectedRoute>
-          }
-        />
-
+        {/* ── Leave Entitlements ── */}
         <Route
           path="/leave/entitlements"
           element={
             <ProtectedRoute>
-              <Navigate to="/leave/entitlements/add" replace />
+              <Navigate to="/leave/entitlements/my" replace />
             </ProtectedRoute>
           }
         />
+        {/* Add & List are admin-only */}
         <Route
           path="/leave/entitlements/add"
           element={
-            <ProtectedRoute roles={["empmanager", "hradmin"]}>
+            <ProtectedRoute roles={ADMIN_ROLES}>
               <AddEntitlementsPage />
             </ProtectedRoute>
           }
@@ -187,11 +197,12 @@ export default function App() {
         <Route
           path="/leave/entitlements/list"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={ADMIN_ROLES}>
               <EntitlementListPage />
             </ProtectedRoute>
           }
         />
+        {/* My Entitlements is accessible by everyone */}
         <Route
           path="/leave/entitlements/my"
           element={
@@ -209,7 +220,8 @@ export default function App() {
           }
         />
 
-        <Route path="*" element={<Navigate to="/employees" replace />} />
+        {/* Catch-all — redirect to my-info (works for both roles; employees can't reach /employees) */}
+        <Route path="*" element={<Navigate to="/my-info" replace />} />
       </Routes>
     </BrowserRouter>
   );

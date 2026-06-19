@@ -139,7 +139,23 @@ const createLeave = async (req, res, next) => {
       return error(res, 'Please specify the employee for this leave request', 422);
     }
     const data = { ...req.body, employee_id: parseInt(employeeId) };
-    const leave = await LeaveModel.createLeaveRequest(data);
+    const requestedDays = parseFloat(data.requested_days) || 1;
+    const leaveTypeId = parseInt(data.leave_type_id);
+    // Derive financial year (Apr–Mar): if start_date month >= April (3), year+1; else year
+    const startDate = new Date(data.start_date);
+    const year = startDate.getMonth() >= 3 ? startDate.getFullYear() + 1 : startDate.getFullYear();
+
+    // Check balance before attempting to submit
+    const netBalance = await LeaveModel.getNetBalance(data.employee_id, leaveTypeId, year);
+    if (netBalance === null) {
+      return error(res, 'No entitlement found for the selected leave type and period. Please contact HR.', 422);
+    }
+    if (Number(netBalance) < requestedDays) {
+      return error(res, `Insufficient leave balance. Available: ${Number(netBalance).toFixed(2)} day(s), requested: ${requestedDays}.`, 422);
+    }
+
+    // Create leave request and deduct balance in a single transaction
+    const leave = await LeaveModel.createLeaveRequestWithDeduction(data, leaveTypeId, year, requestedDays);
     return created(res, { message: 'Leave request submitted successfully', id: leave.id });
   } catch (err) {
     next(err);
@@ -156,18 +172,13 @@ const approveLeave = async (req, res, next) => {
     const actorRole = req.user.role;
 
     if (actorRole === 'employee') return error(res, 'Employees cannot approve leave requests', 403);
-    if (actorId > 0 && leave.employee_id === actorId) return error(res, 'You cannot approve your own leave request', 403);
+    if (actorId > 0 && String(leave.employee_id) === String(actorId)) return error(res, 'You cannot approve your own leave request', 403);
     if (leave.status === 'Cancelled') return error(res, 'Cannot approve a cancelled leave', 400);
 
-    const wasApproved = ['Approved', 'Taken'].includes(leave.status);
     const approved = await LeaveModel.approveLeave(id, actorId);
     if (!approved) return error(res, 'Failed to approve leave', 500);
 
-    if (!wasApproved) {
-      try {
-        await LeaveModel.deductLeaveBalance(approved.employee_id, approved.leave_type_id, approved.leave_year, approved.requested_days);
-      } catch { }
-    }
+    // Balance was already deducted on submission — no further deduction needed
     return success(res, { message: 'Leave approved successfully' });
   } catch (err) {
     next(err);
@@ -185,15 +196,19 @@ const rejectLeave = async (req, res, next) => {
     const actorRole = req.user.role;
 
     if (actorRole === 'employee') return error(res, 'Employees cannot reject leave requests', 403);
-    if (actorId > 0 && leave.employee_id === actorId) return error(res, 'You cannot reject your own leave request', 403);
-    if (leave.status === 'Cancelled') return error(res, 'Cannot reject a cancelled leave', 400);
-
-    if (['Approved', 'Taken'].includes(leave.status)) {
-      try {
-        const year = new Date(leave.start_date).getFullYear();
-        await LeaveModel.restoreLeaveBalance(leave.employee_id, leave.leave_type_id, year, leave.requested_days);
-      } catch { }
+    if (actorId > 0 && String(leave.employee_id) === String(actorId)) return error(res, 'You cannot reject your own leave request', 403);
+    if (['Cancelled', 'Rejected'].includes(leave.status)) {
+      return error(res, `Cannot reject a leave that is already ${leave.status.toLowerCase()}`, 400);
     }
+
+    // Restore balance for any active status (Pending Approval, Approved, Scheduled, Taken)
+    // Balance was deducted on submission, so always restore on rejection
+    try {
+      const sd = new Date(leave.start_date);
+      const year = sd.getMonth() >= 3 ? sd.getFullYear() + 1 : sd.getFullYear();
+      await LeaveModel.restoreLeaveBalance(leave.employee_id, leave.leave_type_id, year, leave.requested_days);
+    } catch { }
+
     await LeaveModel.rejectLeave(id, actorId, rejection_reason);
     return success(res, { message: 'Leave rejected successfully' });
   } catch (err) {
@@ -209,15 +224,20 @@ const cancelLeave = async (req, res, next) => {
     if (req.user.role === 'employee' && leave.employee_id !== req.user.id) {
       return error(res, 'Forbidden', 403);
     }
-    const wasApproved = ['Approved', 'Taken'].includes(leave.status);
+    if (leave.status === 'Cancelled') {
+      return error(res, 'Leave is already cancelled', 400);
+    }
+
     const cancelled = await LeaveModel.cancelLeave(id, req.user.id);
     if (!cancelled) return error(res, 'Failed to cancel leave', 500);
-    if (wasApproved) {
-      try {
-        const year = new Date(leave.start_date).getFullYear();
-        await LeaveModel.restoreLeaveBalance(cancelled.employee_id, cancelled.leave_type_id, year, leave.requested_days);
-      } catch { }
-    }
+
+    // Balance was deducted on submission — always restore on cancellation
+    try {
+      const sd = new Date(leave.start_date);
+      const year = sd.getMonth() >= 3 ? sd.getFullYear() + 1 : sd.getFullYear();
+      await LeaveModel.restoreLeaveBalance(cancelled.employee_id, cancelled.leave_type_id, year, leave.requested_days);
+    } catch { }
+
     return success(res, { message: 'Leave cancelled successfully' });
   } catch (err) {
     next(err);

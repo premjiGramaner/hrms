@@ -137,7 +137,7 @@ export default function LeaveListPage() {
   const navigate = useNavigate();
   const { data, loading, filters } = useAppSelector(s => s.leaves);
   const user = useAppSelector(s => s.auth.user);
-  const isManager = user?.role === "empmanager" || user?.role === "hradmin";
+  const isAdmin = user?.role === "empmanager" || user?.role === "hradmin";
   const { toasts, addToast, removeToast } = useToast();
 
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -149,14 +149,16 @@ export default function LeaveListPage() {
   const [searchTriggered, setSearchTriggered] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      getLeaveTypes().catch(() => []),
-      getLeaveFilterOptions().catch(() => ({ sub_units: [], locations: [], job_titles: [], employment_statuses: [], job_categories: [] })),
-    ]).then(([types, opts]) => {
-      setLeaveTypes(types as LeaveType[]);
-      setFilterOpts(opts as FilterOptions);
-    });
-  }, []);
+    if (isAdmin) {
+      Promise.all([
+        getLeaveTypes().catch(() => []),
+        getLeaveFilterOptions().catch(() => ({ sub_units: [], locations: [], job_titles: [], employment_statuses: [], job_categories: [] })),
+      ]).then(([types, opts]) => {
+        setLeaveTypes(types as LeaveType[]);
+        setFilterOpts(opts as FilterOptions);
+      });
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     const init = { ...EMPTY_FORM, page: 1 };
@@ -234,172 +236,99 @@ export default function LeaveListPage() {
       <Toast toasts={toasts} onRemove={removeToast} />
       {rejectTarget && <RejectModal leaveId={rejectTarget} onConfirm={handleRejectConfirm} onCancel={() => setRejectTarget(null)} />}
 
-      {/* Search Panel */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-5">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
-          <span className="text-sm font-semibold text-slate-700">Search <span className="text-xs text-slate-400 font-normal ml-1">(Please specify your search)</span></span>
-          <button onClick={() => setPanelOpen(o => !o)} className="text-slate-400 hover:text-slate-600 text-base leading-none cursor-pointer bg-transparent border-none select-none" title={panelOpen ? "Collapse" : "Expand"}>
-            {panelOpen ? "▲" : "▼"}
-          </button>
-        </div>
-
-        {panelOpen && (
-          <div className="p-5">
-            {/* Row 1: Dates + Employee */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">From</label>
-                <input type="date" value={form.from_date || ""} onChange={e => setForm(p => ({ ...p, from_date: e.target.value }))} className={inputCls} />
+      {/* Search/Filter panel — admin only */}
+      {isAdmin && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-5">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+            <span className="text-sm font-semibold text-slate-700">Search <span className="text-xs text-slate-400 font-normal ml-1">(Please specify your search)</span></span>
+            <button onClick={() => setPanelOpen(o => !o)} className="text-slate-400 hover:text-slate-600 text-base leading-none cursor-pointer bg-transparent border-none select-none">
+              {panelOpen ? "▲" : "▼"}
+            </button>
+          </div>
+          {panelOpen && (
+            <div className="p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div><label className="block text-xs text-slate-500 mb-1">From</label>
+                  <input type="date" value={form.from_date || ""} onChange={e => setForm(p => ({ ...p, from_date: e.target.value }))} className={inputCls} /></div>
+                <div><label className="block text-xs text-slate-500 mb-1">To</label>
+                  <input type="date" value={form.to_date || ""} onChange={e => setForm(p => ({ ...p, to_date: e.target.value }))} className={inputCls} /></div>
+                <div><label className="block text-xs text-slate-500 mb-1">Employee</label>
+                  <EmployeeAutocomplete value={form.employee_name || ""} onChange={v => setForm(p => ({ ...p, employee_name: v }))} onSelect={emp => setForm(p => ({ ...p, employee_name: emp.name }))} /></div>
               </div>
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">To</label>
-                <input type="date" value={form.to_date || ""} onChange={e => setForm(p => ({ ...p, to_date: e.target.value }))} className={inputCls} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div><label className="block text-xs text-slate-500 mb-1">Sub Unit</label>
+                  <div className="relative"><select value={form.sub_unit || ""} onChange={e => setForm(p => ({ ...p, sub_unit: e.target.value }))} className={selectCls}>
+                    <option value="">All</option>{filterOpts.sub_units.map(u => <option key={u} value={u}>{u}</option>)}</select>
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span></div></div>
+                <div><label className="block text-xs text-slate-500 mb-1">Location</label>
+                  <div className="relative"><select value={form.location || ""} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} className={selectCls}>
+                    <option value="">All</option>{filterOpts.locations.map(l => <option key={l} value={l}>{l}</option>)}</select>
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span></div></div>
+                <div><label className="block text-xs text-slate-500 mb-1">Leave Type</label>
+                  <div className="relative"><select value={form.leave_type_id || ""} onChange={e => setForm(p => ({ ...p, leave_type_id: e.target.value }))} className={selectCls}>
+                    <option value="">All</option>{leaveTypes.map(lt => <option key={lt.id} value={String(lt.id)}>{lt.name}</option>)}</select>
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span></div></div>
               </div>
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Employee</label>
-                <EmployeeAutocomplete
-                  value={form.employee_name || ""}
-                  onChange={v => setForm(p => ({ ...p, employee_name: v }))}
-                  onSelect={emp => setForm(p => ({ ...p, employee_name: emp.name }))}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div><label className="block text-xs text-slate-500 mb-1">Job Title</label>
+                  <div className="relative"><select value={form.job_title || ""} onChange={e => setForm(p => ({ ...p, job_title: e.target.value }))} className={selectCls}>
+                    <option value="">All</option>{filterOpts.job_titles.map(j => <option key={j} value={j}>{j}</option>)}</select>
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span></div></div>
+                <div><label className="block text-xs text-slate-500 mb-1">Employment Status</label>
+                  <div className="relative"><select value={form.employment_status || ""} onChange={e => setForm(p => ({ ...p, employment_status: e.target.value }))} className={selectCls}>
+                    <option value="">All</option>{filterOpts.employment_statuses.map(s => <option key={s} value={s}>{s}</option>)}</select>
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span></div></div>
+                <div><label className="block text-xs text-slate-500 mb-1">Job Category</label>
+                  <div className="relative"><select value={form.job_category || ""} onChange={e => setForm(p => ({ ...p, job_category: e.target.value }))} className={selectCls}>
+                    <option value="">All</option>{filterOpts.job_categories.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span></div></div>
               </div>
-            </div>
-
-            {/* Row 2: Sub Unit, Location, Leave Type */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Sub Unit</label>
-                <div className="relative">
-                  <select value={form.sub_unit || ""} onChange={e => setForm(p => ({ ...p, sub_unit: e.target.value }))} className={selectCls}>
-                    <option value="">All</option>
-                    {filterOpts.sub_units.map(u => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div><label className="block text-xs text-slate-500 mb-1">Attachment Status</label>
+                  <div className="relative"><select value={form.attachment_status || ""} onChange={e => setForm(p => ({ ...p, attachment_status: e.target.value }))} className={selectCls}>
+                    <option value="">All</option>{ATTACH_STATUSES.map(a => <option key={a} value={a}>{a}</option>)}</select>
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span></div></div>
               </div>
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Location</label>
-                <div className="relative">
-                  <select value={form.location || ""} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} className={selectCls}>
-                    <option value="">All</option>
-                    {filterOpts.locations.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Leave Type</label>
-                <div className="relative">
-                  <select value={form.leave_type_id || ""} onChange={e => setForm(p => ({ ...p, leave_type_id: e.target.value }))} className={selectCls}>
-                    <option value="">All</option>
-                    {leaveTypes.map(lt => <option key={lt.id} value={String(lt.id)}>{lt.name}</option>)}
-                  </select>
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 3: Job Title, Emp Status, Job Category */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Job Title</label>
-                <div className="relative">
-                  <select value={form.job_title || ""} onChange={e => setForm(p => ({ ...p, job_title: e.target.value }))} className={selectCls}>
-                    <option value="">All</option>
-                    {filterOpts.job_titles.map(j => <option key={j} value={j}>{j}</option>)}
-                  </select>
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Employment Status</label>
-                <div className="relative">
-                  <select value={form.employment_status || ""} onChange={e => setForm(p => ({ ...p, employment_status: e.target.value }))} className={selectCls}>
-                    <option value="">All</option>
-                    {filterOpts.employment_statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Job Category</label>
-                <div className="relative">
-                  <select value={form.job_category || ""} onChange={e => setForm(p => ({ ...p, job_category: e.target.value }))} className={selectCls}>
-                    <option value="">All</option>
-                    {filterOpts.job_categories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 4: Attachment Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Attachment Status</label>
-                <div className="relative">
-                  <select value={form.attachment_status || ""} onChange={e => setForm(p => ({ ...p, attachment_status: e.target.value }))} className={selectCls}>
-                    <option value="">All</option>
-                    {ATTACH_STATUSES.map(a => <option key={a} value={a}>{a}</option>)}
-                  </select>
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Checkboxes */}
-            <div className="flex flex-wrap gap-5 mb-4">
-              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                <input type="checkbox" checked={form.include_past || false} onChange={e => setForm(p => ({ ...p, include_past: e.target.checked }))} className="w-4 h-4 accent-blue-900" />
-                Include Past Employees
-              </label>
-              {isManager && (
+              <div className="flex flex-wrap gap-5 mb-4">
+                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                  <input type="checkbox" checked={form.include_past || false} onChange={e => setForm(p => ({ ...p, include_past: e.target.checked }))} className="w-4 h-4 accent-blue-900" />
+                  Include Past Employees
+                </label>
                 <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                   <input type="checkbox" checked={form.only_subordinates || false} onChange={e => setForm(p => ({ ...p, only_subordinates: e.target.checked }))} className="w-4 h-4 accent-blue-900" />
                   Only Show My Subordinate's Leave
                 </label>
-              )}
-            </div>
-
-            {/* Status multi-select */}
-            <div className="mb-5">
-              <p className="text-xs font-semibold text-slate-700 mb-2">Show Leave with Status</p>
-              <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                  <input type="checkbox" checked={isAllChecked} ref={el => { if (el) el.indeterminate = isSomeChecked; }} onChange={() => toggleStatus("All")} className="w-4 h-4 accent-blue-900" />
-                  All
-                </label>
-                {STATUS_OPTIONS.map(s => (
-                  <label key={s} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                    <input type="checkbox" checked={(form.statuses || []).includes(s)} onChange={() => toggleStatus(s)} className="w-4 h-4 accent-blue-900" />
-                    {s}
+              </div>
+              <div className="mb-5">
+                <p className="text-xs font-semibold text-slate-700 mb-2">Show Leave with Status</p>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                    <input type="checkbox" checked={isAllChecked} ref={el => { if (el) el.indeterminate = isSomeChecked; }} onChange={() => toggleStatus("All")} className="w-4 h-4 accent-blue-900" />All
                   </label>
-                ))}
+                  {STATUS_OPTIONS.map(s => (
+                    <label key={s} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                      <input type="checkbox" checked={(form.statuses || []).includes(s)} onChange={() => toggleStatus(s)} className="w-4 h-4 accent-blue-900" />{s}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-end">
+                <button onClick={handleReset} className="px-5 py-2 rounded-lg bg-slate-600 text-white text-sm font-medium cursor-pointer hover:bg-slate-700 transition">Reset</button>
+                <button onClick={() => handleExport("summary")} className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition">Export Summary</button>
+                <button onClick={() => handleExport("detail")} className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition">Export Detail</button>
+                <button onClick={handleSearch} className="px-6 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-semibold cursor-pointer hover:opacity-90 transition">Search</button>
               </div>
             </div>
-
-            {/* Buttons */}
-            <div className="flex flex-wrap gap-2 justify-end">
-              <button onClick={handleReset} className="px-5 py-2 rounded-lg bg-slate-600 text-white text-sm font-medium cursor-pointer hover:bg-slate-700 transition">Reset</button>
-              {isManager && (
-                <>
-                  <button onClick={() => handleExport("summary")} className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition">Export Summary</button>
-                  <button onClick={() => handleExport("detail")} className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition">Export Detail</button>
-                </>
-              )}
-              <button onClick={handleSearch} className="px-6 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-semibold cursor-pointer hover:opacity-90 transition">Search</button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Results Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-700">{data ? `${data.total} record${data.total !== 1 ? "s" : ""}` : "Results"}</span>
-          {isManager && <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-700 rounded border border-slate-200 hover:bg-slate-200 transition cursor-pointer">⚙ Save</button>}
+          {isAdmin && <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-700 rounded border border-slate-200 hover:bg-slate-200 transition cursor-pointer">⚙ Save</button>}
         </div>
-
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -418,47 +347,55 @@ export default function LeaveListPage() {
                   </div>
                 </td></tr>
               )}
-              {!loading && !searchTriggered && (
-                <tr><td colSpan={9} className="text-center py-16 text-slate-400 text-sm">Use the filters above and click Search to view results.</td></tr>
-              )}
               {!loading && searchTriggered && (!data || data.data.length === 0) && (
                 <tr><td colSpan={9} className="text-center py-16 text-slate-400">
                   <div className="text-3xl mb-2">📋</div>
                   <div className="text-sm">No leave records found</div>
                 </td></tr>
               )}
-              {!loading && data?.data.map((row: LeaveRequest, i: number) => (
-                <tr key={row.id}
-                  onClick={e => { if ((e.target as HTMLElement).closest("[data-action-cell]")) return; navigate(`/leave/view_leave_list/details/${row.id}`); }}
-                  className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
-                >
-                  <td className="px-3 py-2.5 text-xs font-mono text-slate-700">{row.employee_id || "—"}</td>
-                  <td className="px-3 py-2.5 text-sm text-slate-800 font-medium whitespace-nowrap">{row.employee_name || "—"}</td>
-                  <td className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">
-                    {row.start_date}{row.start_date !== row.end_date && <span> to {row.end_date}</span>}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">{row.applied_on ? row.applied_on.substring(0, 10) : "—"}</td>
-                  <td className="px-3 py-2.5 text-xs text-slate-700">{row.leave_type}</td>
-                  <td className="px-3 py-2.5 text-xs">
-                    <span className="text-blue-700 font-semibold">{Number(row.net_leave_balance ?? 0).toFixed(2)} day(s)</span>
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-slate-700">{Number(row.requested_days).toFixed(2)} day(s)</td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex flex-col gap-1">
-                      <StatusBadge status={row.status} />
-                      <span className="text-xs text-slate-400">({Number(row.requested_days).toFixed(2)} day(s))</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5" data-action-cell="true">
-                    <ActionDropdown row={row} isManager={isManager} loading={actionLoading === row.id}
-                      onApprove={() => handleApprove(row.id)} onReject={() => setRejectTarget(row.id)} onCancel={() => handleCancel(row.id)} />
-                  </td>
-                </tr>
-              ))}
+              {!loading && data?.data.map((row: LeaveRequest, i: number) => {
+                // Compare as strings to handle BIGINT → string from pg vs number from JWT
+                const isRequester = !!(row.user_id && user?.id &&
+                  String(row.user_id) === String(user.id));
+                return (
+                  <tr key={row.id}
+                    onClick={e => { if ((e.target as HTMLElement).closest("[data-action-cell]")) return; navigate(`/leave/view_leave_list/details/${row.id}`); }}
+                    className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
+                  >
+                    <td className="px-3 py-2.5 text-xs font-mono text-slate-700">{row.employee_id || "—"}</td>
+                    <td className="px-3 py-2.5 text-sm text-slate-800 font-medium whitespace-nowrap">{row.employee_name || "—"}</td>
+                    <td className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      {row.start_date}{row.start_date !== row.end_date && <span> to {row.end_date}</span>}
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">{row.applied_on ? row.applied_on.substring(0, 10) : "—"}</td>
+                    <td className="px-3 py-2.5 text-xs text-slate-700">{row.leave_type}</td>
+                    <td className="px-3 py-2.5 text-xs">
+                      <span className="text-blue-700 font-semibold">{Number(row.net_leave_balance ?? 0).toFixed(2)} day(s)</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-slate-700">{Number(row.requested_days).toFixed(2)} day(s)</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex flex-col gap-1">
+                        <StatusBadge status={row.status} />
+                        <span className="text-xs text-slate-400">({Number(row.requested_days).toFixed(2)} day(s))</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5" data-action-cell="true">
+                      <ActionDropdown
+                        row={row}
+                        isAdmin={isAdmin}
+                        isRequester={isRequester}
+                        loading={actionLoading === row.id}
+                        onApprove={() => handleApprove(row.id)}
+                        onReject={() => setRejectTarget(row.id)}
+                        onCancel={() => handleCancel(row.id)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-
         {data && data.totalPages > 1 && (
           <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-3 text-sm text-slate-600">
             <button onClick={() => handlePageChange((filters.page || 1) - 1)} disabled={(filters.page || 1) <= 1}
@@ -473,9 +410,17 @@ export default function LeaveListPage() {
   );
 }
 
-function ActionDropdown({ row, isManager, loading, onApprove, onReject, onCancel }: {
-  row: LeaveRequest; isManager: boolean; loading: boolean;
-  onApprove: () => void; onReject: () => void; onCancel: () => void;
+// ActionDropdown uses the same requester-check logic as LeaveDetailsPage:
+// - If the logged-in user created the leave → show only Cancel
+// - If another admin opens it → show Approve, Cancel, Reject
+function ActionDropdown({ row, isAdmin, isRequester, loading, onApprove, onReject, onCancel }: {
+  row: LeaveRequest;
+  isAdmin: boolean;
+  isRequester: boolean;
+  loading: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+  onCancel: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -508,6 +453,9 @@ function ActionDropdown({ row, isManager, loading, onApprove, onReject, onCancel
 
   if (loading) return <div className="w-4 h-4 border-2 border-blue-900 border-t-transparent rounded-full animate-spin mx-2" />;
 
+  // Same rule as details page: admin who is NOT the requester can approve/reject
+  const canApproveReject = isAdmin && !isRequester;
+
   return (
     <>
       <button ref={btnRef} onClick={() => open ? setOpen(false) : openMenu()}
@@ -515,15 +463,14 @@ function ActionDropdown({ row, isManager, loading, onApprove, onReject, onCancel
         Select Action
         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
-
       {open && (
         <div ref={menuRef} style={{ position: "fixed", top: pos.top, left: pos.left, transform: "translateX(-100%)", zIndex: 9999 }}
           className="bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-36">
-          {isManager && (
+          {canApproveReject && (
             <button onClick={() => { setOpen(false); onApprove(); }} className="w-full text-left px-4 py-2 text-xs text-green-700 hover:bg-green-50 transition cursor-pointer">✓ Approve</button>
           )}
           <button onClick={() => { setOpen(false); onCancel(); }} className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer">⊘ Cancel</button>
-          {isManager && (
+          {canApproveReject && (
             <button onClick={() => { setOpen(false); onReject(); }} className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition cursor-pointer">✕ Reject</button>
           )}
         </div>

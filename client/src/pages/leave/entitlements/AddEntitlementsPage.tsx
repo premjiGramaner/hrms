@@ -248,7 +248,7 @@ export default function AddEntitlementsPage() {
     <EntitlementsLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
 
-      <div className="max-w-3xl">
+      <div className="max-w-3xl mx-auto">
         <h2 className="text-base font-bold text-slate-800 mb-6">Add Leave Entitlement</h2>
 
         <form onSubmit={handleSubmit}>
