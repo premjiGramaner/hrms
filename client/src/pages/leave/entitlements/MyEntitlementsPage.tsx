@@ -1,5 +1,8 @@
 ﻿import React, { useEffect, useState } from "react";
-import { getMyEntitlements, MyEntitlementRecord } from "../../../api/entitlement.api";
+import {
+  getMyEntitlements,
+  MyEntitlementRecord,
+} from "../../../api/entitlement.api";
 import { getApiErrorMessage } from "../../../utils/errors";
 import Toast, { useToast } from "../../../components/Toast";
 import EntitlementsLayout from "./EntitlementsLayout";
@@ -13,13 +16,18 @@ export default function MyEntitlementsPage() {
     setLoading(true);
     getMyEntitlements()
       .then(setRecords)
-      .catch((err) => addToast(getApiErrorMessage(err, "Failed to load entitlements."), "error"))
+      .catch((err) =>
+        addToast(
+          getApiErrorMessage(err, "Failed to load entitlements."),
+          "error",
+        ),
+      )
       .finally(() => setLoading(false));
   }, []);
 
   const grandTotal = records.reduce(
     (sum, record) => sum + Number(record.leave_entitlement),
-    0
+    0,
   );
 
   return (
@@ -31,7 +39,9 @@ export default function MyEntitlementsPage() {
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 border-2 border-blue-900 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm text-slate-400">Loading entitlements…</span>
+              <span className="text-sm text-slate-400">
+                Loading entitlements…
+              </span>
             </div>
           </div>
         )}
@@ -39,7 +49,9 @@ export default function MyEntitlementsPage() {
         {!loading && records.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
             <div className="text-4xl mb-3">🌴</div>
-            <p className="text-sm font-medium text-slate-500">No entitlement records found.</p>
+            <p className="text-sm font-medium text-slate-500">
+              No entitlement records found.
+            </p>
             <p className="text-xs text-slate-400 mt-1">
               Entitlements assigned to you will appear here.
             </p>
@@ -51,11 +63,19 @@ export default function MyEntitlementsPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-white">
-                {[
-                    "Leave Type", "Entitlement Type", "Credited On",
-                    "Valid From", "Valid To", "Expired", "Leave Entitlement",
+                  {[
+                    "Leave Type",
+                    "Entitlement Type",
+                    "Credited On",
+                    "Valid From",
+                    "Valid To",
+                    "Expired",
+                    "Leave Entitlement",
                   ].map((heading) => (
-                    <th key={heading} className="px-5 py-3 text-left text-xs font-semibold text-slate-600 whitespace-nowrap">
+                    <th
+                      key={heading}
+                      className="px-5 py-3 text-left text-xs font-semibold text-slate-600 whitespace-nowrap"
+                    >
                       {heading}
                     </th>
                   ))}
@@ -68,11 +88,21 @@ export default function MyEntitlementsPage() {
                     key={record.id}
                     className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                   >
-                    <td className="px-5 py-3 text-sm text-slate-800">{record.leave_type}</td>
-                    <td className="px-5 py-3 text-sm text-slate-600">{record.entitlement_type}</td>
-                    <td className="px-5 py-3 text-sm text-slate-600">{record.credited_on || "—"}</td>
-                    <td className="px-5 py-3 text-sm text-slate-600">{record.valid_from}</td>
-                    <td className="px-5 py-3 text-sm text-slate-600">{record.valid_to}</td>
+                    <td className="px-5 py-3 text-sm text-slate-800">
+                      {record.leave_type}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-slate-600">
+                      {record.entitlement_type}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-slate-600">
+                      {record.credited_on || "—"}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-slate-600">
+                      {record.valid_from}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-slate-600">
+                      {record.valid_to}
+                    </td>
                     <td className="px-5 py-3 text-sm">
                       {record.expired ? (
                         <span className="text-red-500 font-medium">Yes</span>

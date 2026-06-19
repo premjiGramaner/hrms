@@ -27,8 +27,6 @@ export async function writeAuditLog({
 }) {
   try {
     const actorId = actor?.id ?? null;
-    // actor.name is NOT in the JWT payload — only id and username are.
-    // Resolve the real name from DB when we have a valid numeric id.
     let actorName = actor?.name ?? actor?.username ?? "System";
     let actorUsername = actor?.username ?? "system";
 

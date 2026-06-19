@@ -54,7 +54,7 @@ export default function RolesPage() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-100">
-            {ROLE_TABLE_HEADERS.map((header, index) => (
+              {ROLE_TABLE_HEADERS.map((header, index) => (
                 <th
                   key={index}
                   className="px-4 py-3 text-left text-xs font-semibold text-slate-400 text-nowrap"

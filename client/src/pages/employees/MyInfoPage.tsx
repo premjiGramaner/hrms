@@ -36,16 +36,9 @@ const ADMIN_TABS: TabItem[] = [
   { label: "My Info", path: "/my-info" },
 ];
 
-const EMPLOYEE_TABS: TabItem[] = [
-  { label: "My Info", path: "/my-info" },
-];
+const EMPLOYEE_TABS: TabItem[] = [{ label: "My Info", path: "/my-info" }];
 
-const PROFILE_TABS = [
-  "Profile",
-  "Personal Details",
-  "Job",
-  "Contact Details",
-];
+const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
 
 export default function MyInfoPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -452,10 +445,11 @@ export default function MyInfoPage() {
     <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
       {message && (
         <div
-          className={`mb-3.5 p-2.5 border-l-4 rounded text-sm ${message.toLowerCase().includes("failed")
+          className={`mb-3.5 p-2.5 border-l-4 rounded text-sm ${
+            message.toLowerCase().includes("failed")
               ? "bg-red-50 border-red-400 text-red-800"
               : "bg-green-50 border-green-400 text-green-900"
-            }`}
+          }`}
         >
           {message}
         </div>
@@ -466,10 +460,11 @@ export default function MyInfoPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(idx)}
-            className={`px-6 py-2 text-sm font-medium whitespace-nowrap rounded-full transition ${activeTab === idx
+            className={`px-6 py-2 text-sm font-medium whitespace-nowrap rounded-full transition ${
+              activeTab === idx
                 ? "bg-[#fff3e0] text-[#ff9800]"
                 : "text-[#757575] hover:bg-gray-50"
-              }`}
+            }`}
           >
             {tab}
           </button>

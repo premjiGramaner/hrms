@@ -25,6 +25,4 @@ export const labelStyle: React.CSSProperties = {
   color: "#374151",
 };
 
-
 import type React from "react";
-

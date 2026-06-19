@@ -40,12 +40,7 @@ const TABS: TabItem[] = [
   { label: "My Info", path: "/my-info" },
 ];
 
-const PROFILE_TABS = [
-  "Profile",
-  "Personal Details",
-  "Job",
-  "Contact Details",
-];
+const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
 
 export default function EmployeeProfilePage() {
   const { id } = useParams<{ id: string }>();

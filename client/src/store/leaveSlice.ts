@@ -12,8 +12,12 @@ const initialState: LeaveState = {
   data: null,
   loading: false,
   filters: {
-    from_date: new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0],
-    to_date: new Date(new Date().getFullYear(), 11, 31).toISOString().split("T")[0],
+    from_date: new Date(new Date().getFullYear(), 0, 1)
+      .toISOString()
+      .split("T")[0],
+    to_date: new Date(new Date().getFullYear(), 11, 31)
+      .toISOString()
+      .split("T")[0],
     statuses: [],
     page: 1,
     limit: 15,
@@ -24,7 +28,7 @@ export const fetchLeaves = createAsyncThunk(
   "leaves/fetch",
   async (filters: LeaveFilters) => {
     return await getLeaves(filters);
-  }
+  },
 );
 
 const leaveSlice = createSlice({

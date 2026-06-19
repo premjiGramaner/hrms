@@ -26,7 +26,8 @@ function buildPeriods(): { label: string; start: string; end: string }[] {
 const PERIODS = buildPeriods();
 function defaultPeriod() {
   const now = new Date();
-  const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const currentYear =
+    now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
   return `${currentYear}-04-01`;
 }
 
@@ -46,21 +47,31 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    if (!query.trim()) { setOptions([]); setOpen(false); return; }
+    if (!query.trim()) {
+      setOptions([]);
+      setOpen(false);
+      return;
+    }
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
         const data = await getEntitlementEmployees(query);
         setOptions(data);
         setOpen(true);
-      } catch { setOptions([]); }
-      finally { setLoading(false); }
+      } catch {
+        setOptions([]);
+      } finally {
+        setLoading(false);
+      }
     }, 250);
   }, [query]);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -73,7 +84,10 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
   const handleSelect = (emp: EmployeeOption) => {
     if (isSelected(emp.id)) return;
     onAdd(emp);
-    if (!multi) { setQuery(""); setOpen(false); }
+    if (!multi) {
+      setQuery("");
+      setOpen(false);
+    }
   };
 
   return (
@@ -85,7 +99,8 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
               key={emp.id}
               className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full"
             >
-              {emp.employee_id ? `${emp.employee_id} - ` : ""}{emp.name}
+              {emp.employee_id ? `${emp.employee_id} - ` : ""}
+              {emp.name}
               <button
                 type="button"
                 onClick={() => onRemove(emp.id)}
@@ -133,7 +148,9 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
                   </span>
                   {emp.name}
                   {emp.job_title && (
-                    <span className="text-xs text-slate-400 ml-2">· {emp.job_title}</span>
+                    <span className="text-xs text-slate-400 ml-2">
+                      · {emp.job_title}
+                    </span>
                   )}
                 </span>
                 {sel && <span className="text-xs text-blue-500">✓</span>}
@@ -159,7 +176,9 @@ export default function AddEntitlementsPage() {
   const [loadingTypes, setLoadingTypes] = useState(true);
 
   const [multiMode, setMultiMode] = useState(false);
-  const [selectedEmployees, setSelectedEmployees] = useState<EmployeeOption[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<EmployeeOption[]>(
+    [],
+  );
   const [leaveTypeId, setLeaveTypeId] = useState("");
   const [periodStart, setPeriodStart] = useState(defaultPeriod());
   const [entitlementDays, setEntitlementDays] = useState("");
@@ -183,22 +202,26 @@ export default function AddEntitlementsPage() {
 
   const addEmployee = (emp: EmployeeOption) => {
     setSelectedEmployees((prev) =>
-      prev.some((existing) => existing.id === emp.id) ? prev : [...prev, emp]
+      prev.some((existing) => existing.id === emp.id) ? prev : [...prev, emp],
     );
     setErrors((prevErrors) => ({ ...prevErrors, employee: "" }));
   };
 
   const removeEmployee = (id: number) => {
-    setSelectedEmployees((prev) => prev.filter((existing) => existing.id !== id));
+    setSelectedEmployees((prev) =>
+      prev.filter((existing) => existing.id !== id),
+    );
   };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (selectedEmployees.length === 0) newErrors.employee = "At least one employee is required.";
+    if (selectedEmployees.length === 0)
+      newErrors.employee = "At least one employee is required.";
     if (!leaveTypeId) newErrors.leaveType = "Leave type is required.";
     if (!periodStart) newErrors.period = "Leave period is required.";
     const days = parseFloat(entitlementDays);
-    if (!entitlementDays || isNaN(days) || days <= 0) newErrors.days = "Entitlement days must be > 0.";
+    if (!entitlementDays || isNaN(days) || days <= 0)
+      newErrors.days = "Entitlement days must be > 0.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -210,19 +233,19 @@ export default function AddEntitlementsPage() {
     try {
       const payload = multiMode
         ? {
-          employee_ids: selectedEmployees.map((emp) => emp.id),
-          leave_type_id: parseInt(leaveTypeId),
-          leave_period_start: periodStart,
-          entitlement_days: parseFloat(entitlementDays),
-          comments: comments || undefined,
-        }
+            employee_ids: selectedEmployees.map((emp) => emp.id),
+            leave_type_id: parseInt(leaveTypeId),
+            leave_period_start: periodStart,
+            entitlement_days: parseFloat(entitlementDays),
+            comments: comments || undefined,
+          }
         : {
-          employee_id: selectedEmployees[0].id,
-          leave_type_id: parseInt(leaveTypeId),
-          leave_period_start: periodStart,
-          entitlement_days: parseFloat(entitlementDays),
-          comments: comments || undefined,
-        };
+            employee_id: selectedEmployees[0].id,
+            leave_type_id: parseInt(leaveTypeId),
+            leave_period_start: periodStart,
+            entitlement_days: parseFloat(entitlementDays),
+            comments: comments || undefined,
+          };
 
       const result = await createEntitlements(payload);
       addToast(result.message, "success");
@@ -249,12 +272,13 @@ export default function AddEntitlementsPage() {
       <Toast toasts={toasts} onRemove={removeToast} />
 
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-base font-bold text-slate-800 mb-6">Add Leave Entitlement</h2>
+        <h2 className="text-base font-bold text-slate-800 mb-6">
+          Add Leave Entitlement
+        </h2>
 
         <form onSubmit={handleSubmit}>
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
               <div className="md:col-span-2 lg:col-span-1">
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Employee <span className="text-red-500">*</span>
@@ -273,10 +297,14 @@ export default function AddEntitlementsPage() {
                   <input
                     type="checkbox"
                     checked={multiMode}
-                    onChange={(event) => handleMultiToggle(event.target.checked)}
+                    onChange={(event) =>
+                      handleMultiToggle(event.target.checked)
+                    }
                     className="w-4 h-4 accent-blue-900"
                   />
-                  <span className="text-sm text-slate-600">Add to Multiple Employees</span>
+                  <span className="text-sm text-slate-600">
+                    Add to Multiple Employees
+                  </span>
                 </label>
               </div>
 
@@ -290,19 +318,31 @@ export default function AddEntitlementsPage() {
                   <div className="relative">
                     <select
                       value={leaveTypeId}
-                      onChange={(event) => { setLeaveTypeId(event.target.value); setErrors((prevErrors) => ({ ...prevErrors, leaveType: "" })); }}
+                      onChange={(event) => {
+                        setLeaveTypeId(event.target.value);
+                        setErrors((prevErrors) => ({
+                          ...prevErrors,
+                          leaveType: "",
+                        }));
+                      }}
                       className={`${inputCls(!!errors.leaveType)} appearance-none pr-8 cursor-pointer`}
                     >
                       <option value="">— Select leave type —</option>
                       {leaveTypes.map((lt) => (
-                        <option key={lt.id} value={String(lt.id)}>{lt.name}</option>
+                        <option key={lt.id} value={String(lt.id)}>
+                          {lt.name}
+                        </option>
                       ))}
                     </select>
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                      ▾
+                    </span>
                   </div>
                 )}
                 {errors.leaveType && (
-                  <p className="text-xs text-red-500 mt-1">{errors.leaveType}</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.leaveType}
+                  </p>
                 )}
               </div>
 
@@ -313,15 +353,25 @@ export default function AddEntitlementsPage() {
                 <div className="relative">
                   <select
                     value={periodStart}
-                    onChange={(event) => { setPeriodStart(event.target.value); setErrors((prevErrors) => ({ ...prevErrors, period: "" })); }}
+                    onChange={(event) => {
+                      setPeriodStart(event.target.value);
+                      setErrors((prevErrors) => ({
+                        ...prevErrors,
+                        period: "",
+                      }));
+                    }}
                     className={`${inputCls(!!errors.period)} appearance-none pr-8 cursor-pointer`}
                   >
                     <option value="">— Select period —</option>
                     {PERIODS.map((period) => (
-                      <option key={period.start} value={period.start}>{period.label}</option>
+                      <option key={period.start} value={period.start}>
+                        {period.label}
+                      </option>
                     ))}
                   </select>
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">▾</span>
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                    ▾
+                  </span>
                 </div>
                 {errors.period && (
                   <p className="text-xs text-red-500 mt-1">{errors.period}</p>
@@ -337,7 +387,10 @@ export default function AddEntitlementsPage() {
                   min="0.5"
                   step="0.5"
                   value={entitlementDays}
-                  onChange={(event) => { setEntitlementDays(event.target.value); setErrors((prevErrors) => ({ ...prevErrors, days: "" })); }}
+                  onChange={(event) => {
+                    setEntitlementDays(event.target.value);
+                    setErrors((prevErrors) => ({ ...prevErrors, days: "" }));
+                  }}
                   placeholder="e.g. 12"
                   className={inputCls(!!errors.days)}
                 />

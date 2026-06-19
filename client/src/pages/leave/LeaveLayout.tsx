@@ -9,7 +9,10 @@ interface Props {
 export default function LeaveLayout({ children }: Props) {
   return (
     <Layout title="Leave">
-      <div className="-mx-6 -mt-6 flex flex-col" style={{ height: "calc(100% + 1.5rem)" }}>
+      <div
+        className="-mx-6 -mt-6 flex flex-col"
+        style={{ height: "calc(100% + 1.5rem)" }}
+      >
         <div className="flex-shrink-0" style={{ overflow: "visible" }}>
           <LeaveNavBar />
         </div>

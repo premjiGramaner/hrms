@@ -1,11 +1,8 @@
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-
 const NAME_REGEX = /^[A-Za-z\s'\-]+$/;
 
-
 const MOBILE_10DIGIT_REGEX = /^\d{10}$/;
-
 
 const WORK_TEL_REGEX = /^\d{7,15}$/;
 
@@ -40,12 +37,15 @@ export function validateEmployeeStep(
     const mn = form.middle_name?.trim() || "";
 
     if (!fn) errors.first_name = "First name is required";
-    else if (!NAME_REGEX.test(fn)) errors.first_name = "First name must contain letters only";
+    else if (!NAME_REGEX.test(fn))
+      errors.first_name = "First name must contain letters only";
 
     if (!ln) errors.last_name = "Last name is required";
-    else if (!NAME_REGEX.test(ln)) errors.last_name = "Last name must contain letters only";
+    else if (!NAME_REGEX.test(ln))
+      errors.last_name = "Last name must contain letters only";
 
-    if (mn && !NAME_REGEX.test(mn)) errors.middle_name = "Middle name must contain letters only";
+    if (mn && !NAME_REGEX.test(mn))
+      errors.middle_name = "Middle name must contain letters only";
 
     if (!form.joined_date) errors.joined_date = "Joined date is required";
     if (!form.location) errors.location = "Location is required";
@@ -63,16 +63,19 @@ export function validateEmployeeStep(
 
   if (step === 3) {
     if (!form.job_title) errors.job_title = "Job title is required";
-    if (!form.employment_status) errors.employment_status = "Employment status is required";
+    if (!form.employment_status)
+      errors.employment_status = "Employment status is required";
   }
 
   if (step === 4) {
     if (!form.work_email?.trim()) errors.work_email = "Work email is required";
-    else if (!EMAIL_REGEX.test(form.work_email)) errors.work_email = "Enter a valid email";
+    else if (!EMAIL_REGEX.test(form.work_email))
+      errors.work_email = "Enter a valid email";
 
     const mobile = form.mobile?.trim() || "";
     if (!mobile) errors.mobile = "Mobile is required (exactly 10 digits)";
-    else if (!MOBILE_10DIGIT_REGEX.test(mobile)) errors.mobile = "Mobile must be exactly 10 digits";
+    else if (!MOBILE_10DIGIT_REGEX.test(mobile))
+      errors.mobile = "Mobile must be exactly 10 digits";
 
     const workTel = form.work_tel?.trim() || "";
     if (workTel && !WORK_TEL_REGEX.test(workTel)) {
@@ -80,7 +83,11 @@ export function validateEmployeeStep(
     }
   }
 
-  if (step === 5 && availableSupervisorsCount > 0 && selectedSupervisors.length === 0) {
+  if (
+    step === 5 &&
+    availableSupervisorsCount > 0 &&
+    selectedSupervisors.length === 0
+  ) {
     errors.supervisors = "Please assign at least one supervisor";
   }
 

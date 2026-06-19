@@ -54,9 +54,7 @@ export default function Layout({
         ? "HR Administrator"
         : "Employee";
 
-  // Match a path prefix — used for both active highlight and page title
   const isActive = (path: string) => location.pathname.startsWith(path);
-
   const pageTitle =
     title ||
     (isActive("/employees") || isActive("/my-info")
@@ -67,9 +65,6 @@ export default function Layout({
           ? "Leave"
           : "HRMS");
 
-  // Build nav items based on role
-  // Employees: Employee Management → /my-info (no list access), Leave, Performance
-  // Admins: HR Admin, Employee Management → /employees, Reports, Leave, Performance
   const navItems = [
     ...(isAdmin
       ? [{ to: "/hradmin", label: "HR Administration", icon: <IconBuilding /> }]
@@ -185,8 +180,6 @@ export default function Layout({
               {roleLabel}
             </p>
           </div>
-
-          {/* Search box — hidden for employees */}
           {isAdmin && (
             <div
               style={{
@@ -238,8 +231,6 @@ export default function Layout({
             style={{ padding: "4px 8px 24px" }}
           >
             {navItems.map((item) => {
-              // Leave sidebar item stays active for any /leave/* path
-              // Employee Management stays active for both /employees and /my-info
               let active = false;
               if (item.to !== "#") {
                 if (item.to === "/leave/view_leave_list") {
@@ -309,8 +300,6 @@ export default function Layout({
           </span>
         </button>
       </div>
-
-      {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-between px-6 flex-shrink-0 shadow-md">
           <span className="text-white font-bold text-lg tracking-wide">
@@ -344,10 +333,11 @@ export default function Layout({
                 <Link
                   key={tab.label}
                   to={tab.path}
-                  className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${isActiveTab
-                    ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
-                    : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
-                    }`}
+                  className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
+                    isActiveTab
+                      ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
+                      : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
+                  }`}
                 >
                   {tab.label}
                 </Link>
@@ -484,10 +474,11 @@ function TabIconBtn({
   return (
     <button
       type="button"
-      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${dark
-        ? "bg-blue-900 text-white hover:bg-blue-800"
-        : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
-        }`}
+      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${
+        dark
+          ? "bg-blue-900 text-white hover:bg-blue-800"
+          : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
+      }`}
     >
       {children}
     </button>
