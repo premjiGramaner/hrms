@@ -1,11 +1,11 @@
 import api from "./axios";
 import { Employee, PaginatedResponse } from "../types";
 
-export const getEmployees = async (page = 1) => {
+export const getEmployees = async (page = 1, limit = 15) => {
   const response = await api.get<{
     success: boolean;
     data: PaginatedResponse<Employee>;
-  }>(`/employees?page=${page}&_=${Date.now()}`);
+  }>(`/employees?page=${page}&limit=${limit}&_=${Date.now()}`);
   return { data: response.data.data };
 };
 

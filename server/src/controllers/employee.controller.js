@@ -4,8 +4,9 @@ import { writeAuditLog } from "../services/audit.service.js";
 
 const listEmployees = async (req, res, next) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const result = await EmployeeModel.findAllEmployees(page);
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
+    const result = await EmployeeModel.findAllEmployees(page, limit);
     return success(res, result);
   } catch (err) {
     next(err);
@@ -33,9 +34,9 @@ const getMyInfo = async (req, res, next) => {
       });
     }
 
-    const emp = await EmployeeModel.findEmployeeById(req.user.id);
-    if (!emp) return error(res, "Profile not found", 404);
-    return success(res, emp);
+    const employee = await EmployeeModel.findEmployeeById(req.user.id);
+    if (!employee) return error(res, "Profile not found", 404);
+    return success(res, employee);
   } catch (err) {
     next(err);
   }
@@ -43,9 +44,9 @@ const getMyInfo = async (req, res, next) => {
 
 const getEmployee = async (req, res, next) => {
   try {
-    const emp = await EmployeeModel.findEmployeeById(parseInt(req.params.id));
-    if (!emp) return error(res, "Employee not found", 404);
-    return success(res, emp);
+    const employee = await EmployeeModel.findEmployeeById(parseInt(req.params.id));
+    if (!employee) return error(res, "Employee not found", 404);
+    return success(res, employee);
   } catch (err) {
     next(err);
   }

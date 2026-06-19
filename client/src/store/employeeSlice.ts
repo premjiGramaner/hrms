@@ -9,18 +9,20 @@ interface EmployeeState {
   data: PaginatedResponse<Employee> | null;
   loading: boolean;
   page: number;
+  limit: number;
 }
 
 const initialState: EmployeeState = {
   data: null,
   loading: false,
   page: 1,
+  limit: 15,
 };
 
 export const fetchEmployees = createAsyncThunk(
   "employees/fetch",
-  async (page: number) => {
-    const res = await getEmployees(page);
+  async ({ page, limit }: { page: number; limit: number }) => {
+    const res = await getEmployees(page, limit);
     return res.data;
   },
 );
@@ -39,6 +41,10 @@ const employeeSlice = createSlice({
   reducers: {
     setPage(state, action: PayloadAction<number>) {
       state.page = action.payload;
+    },
+    setLimit(state, action: PayloadAction<number>) {
+      state.limit = action.payload;
+      state.page = 1;
     },
   },
   extraReducers: (builder) => {
@@ -64,5 +70,5 @@ const employeeSlice = createSlice({
   },
 });
 
-export const { setPage } = employeeSlice.actions;
+export const { setPage, setLimit } = employeeSlice.actions;
 export default employeeSlice.reducer;
