@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import bcrypt from "bcryptjs";
 
 const SPACE_REGEX = /\s+/g;
 const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
@@ -77,7 +78,11 @@ async function findEmployeeById(id) {
 async function createEmployee(data, avatarPath) {
   const name = `${data.first_name} ${data.last_name}`.trim();
   const username = await createUniqueUsername(data.email, name);
-  const password = Math.random().toString(36).slice(2) + "Aa1!";
+  const plainPassword = Math.random().toString(36).slice(2) + "Aa1!";
+  const password = await bcrypt.hash(plainPassword, 10);
+  console.log(
+    `Generated password for employee ${data.email}: ${plainPassword} (username: ${username})`,
+  );
 
   const { rows } = await pool.query(
     `INSERT INTO tbl_appusers (
