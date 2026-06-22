@@ -4,7 +4,7 @@ import { writeAuditLog } from "../services/audit.service.js";
 
 const listEmployees = async (req, res, next) => {
   try {
-    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
     const result = await EmployeeModel.findAllEmployees(page, limit);
     return success(res, result);
@@ -44,7 +44,9 @@ const getMyInfo = async (req, res, next) => {
 
 const getEmployee = async (req, res, next) => {
   try {
-    const employee = await EmployeeModel.findEmployeeById(parseInt(req.params.id));
+    const employee = await EmployeeModel.findEmployeeById(
+      parseInt(req.params.id),
+    );
     if (!employee) return error(res, "Employee not found", 404);
     return success(res, employee);
   } catch (err) {

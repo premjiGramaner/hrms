@@ -34,6 +34,7 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
 }
+
 interface Supervisor {
   name: string;
 }
@@ -64,6 +65,12 @@ export default function AddEmployeeModal({
   const [jobCategoryOptions, setJobCategoryOptions] = useState<string[]>([]);
   const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
   const [subUnitRecords, setSubUnitRecords] = useState<SubUnit[]>([]);
+
+  // Simple 10-digit mobile number state
+  const [mobileNumber, setMobileNumber] = useState(
+    employee?.mobile?.replace(/\D/g, "")?.slice(0, 10) || "",
+  );
+
   const avatarRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<Record<keyof typeof initialForm, string>>({} as any);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -73,21 +80,15 @@ export default function AddEmployeeModal({
       .then((res) => setSupervisors(res.data))
       .catch(() => {});
     getJobTitles()
-      .then((res) =>
-        setJobTitleOptions(res.data.map((JobTitle) => JobTitle.title)),
-      )
+      .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
       .catch(() => {});
     getJobCategories()
-      .then((res) =>
-        setJobCategoryOptions(
-          res.data.map((JobCategory) => JobCategory.category),
-        ),
-      )
+      .then((res) => setJobCategoryOptions(res.data.map((j) => j.category)))
       .catch(() => {});
     getSubUnits()
       .then((res) => {
         setSubUnitRecords(res.data);
-        setSubUnitOptions(res.data.map((subunit) => subunit.sub_unit_name));
+        setSubUnitOptions(res.data.map((s) => s.sub_unit_name));
       })
       .catch(() => {});
   }, []);
@@ -95,9 +96,7 @@ export default function AddEmployeeModal({
   useEffect(() => {
     if (employee?.supervisors && Array.isArray(employee.supervisors)) {
       setSelectedSupervisors(
-        employee.supervisors
-          .map(String)
-          .filter((supervisor) => supervisor.trim() !== ""),
+        employee.supervisors.map(String).filter((s) => s.trim() !== ""),
       );
     }
   }, [employee?.id]);
@@ -132,7 +131,7 @@ export default function AddEmployeeModal({
       comments: employee?.comments || "",
       work_email: employee?.email || "",
       other_email: employee?.other_email || "",
-      mobile: employee?.mobile || "",
+      mobile: employee?.mobile?.replace(/\D/g, "").slice(0, 10) || "",
       home_tel: employee?.home_tel || "",
       work_tel: employee?.work_tel || "",
       address1: employee?.address1 || "",
@@ -158,12 +157,28 @@ export default function AddEmployeeModal({
     ) => {
       formRef.current[fieldName] = event.target.value;
       if (errors[fieldName])
-        setErrors((currentErrors) => {
-          const newErrors = { ...currentErrors };
-          delete newErrors[fieldName];
-          return newErrors;
+        setErrors((prev) => {
+          const n = { ...prev };
+          delete n[fieldName];
+          return n;
         });
     };
+
+  function validateCurrentStep(stepNumber: number) {
+    // Pass 10-digit mobile value into validator
+    const formValues = {
+      ...formRef.current,
+      mobile: mobileNumber,
+    };
+    const nextErrors = validateEmployeeStep(
+      stepNumber,
+      formValues,
+      selectedSupervisors,
+      supervisors.length,
+    );
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
 
   const validators: Record<number, () => boolean> = {
     1: () => validateCurrentStep(1),
@@ -173,20 +188,9 @@ export default function AddEmployeeModal({
     5: () => validateCurrentStep(5),
   };
 
-  function validateCurrentStep(stepNumber: number) {
-    const nextErrors = validateEmployeeStep(
-      stepNumber,
-      formRef.current,
-      selectedSupervisors,
-      supervisors.length,
-    );
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  }
-
   const handleNext = () => {
     if (validators[step] && !validators[step]()) return;
-    setStep((currentStep) => currentStep + 1);
+    setStep((s) => s + 1);
   };
 
   const handleSubmit = async () => {
@@ -194,7 +198,9 @@ export default function AddEmployeeModal({
     setSaving(true);
     try {
       const formData = new FormData();
-      Object.entries(formRef.current).forEach(([key, val]) => {
+      // Use 10-digit mobile number
+      const assembled = { ...formRef.current, mobile: mobileNumber };
+      Object.entries(assembled).forEach(([key, val]) => {
         const value = String(val).trim();
         if (value) formData.append(key, value);
       });
@@ -250,9 +256,9 @@ export default function AddEmployeeModal({
         }`}
       >
         <option value="">{placeholder}</option>
-        {opts.map((option) => (
-          <option key={option} value={option}>
-            {option}
+        {opts.map((o) => (
+          <option key={o} value={o}>
+            {o}
           </option>
         ))}
       </select>
@@ -266,7 +272,7 @@ export default function AddEmployeeModal({
   );
 
   const renderLabel = (text: string, req = false) => (
-    <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
+    <label className="text-xs font-semibold text-slate-600 block mb-1 tracking-wide">
       {text}
       {req && <span className="text-red-600 ml-0.5">*</span>}
     </label>
@@ -295,6 +301,37 @@ export default function AddEmployeeModal({
         {title}
       </div>
       {children}
+    </div>
+  );
+
+  // Simple 10-digit phone input
+  const renderPhoneField = () => (
+    <div>
+      <input
+        type="tel"
+        inputMode="numeric"
+        placeholder="10-digit mobile number"
+        value={mobileNumber}
+        maxLength={10}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+          setMobileNumber(digits);
+          if (errors.mobile)
+            setErrors((prev) => {
+              const n = { ...prev };
+              delete n.mobile;
+              return n;
+            });
+        }}
+        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+          errors.mobile
+            ? "border-red-500 bg-red-50"
+            : "border-slate-200 bg-slate-50 focus:border-slate-300"
+        }`}
+      />
+      {errors.mobile && (
+        <span className="text-xs text-red-600 mt-1 block">{errors.mobile}</span>
+      )}
     </div>
   );
 
@@ -432,7 +469,7 @@ export default function AddEmployeeModal({
                       renderInput("middle_name", "Optional"),
                     )}
                     {FormField(
-                      "Employee ID",
+                      "Employee Id",
                       renderInput("employee_id", "e.g. EMP-001"),
                     )}
                     {FormField(
@@ -456,7 +493,7 @@ export default function AddEmployeeModal({
           )}
 
           {step === 2 && (
-            <Section title="Personal Details">
+            <Section title="Personal Information">
               <TwoColumnGrid>
                 {FormField(
                   "Gender",
@@ -467,7 +504,7 @@ export default function AddEmployeeModal({
                   ),
                   true,
                 )}
-                {FormField("Date of Birth", renderInput("dob", "", "date"))}
+                {FormField("Date Of Birth", renderInput("dob", "", "date"))}
                 {FormField(
                   "Nationality",
                   renderSelect("nationality", NATIONALITIES),
@@ -488,10 +525,10 @@ export default function AddEmployeeModal({
                   "Blood Group",
                   renderSelect("blood_group", BLOOD_GROUPS),
                 )}
-                {FormField("Real DOB", renderInput("real_dob", "", "date"))}
+                {FormField("Real Dob", renderInput("real_dob", "", "date"))}
                 {FormField(
                   "Driver's License No.",
-                  renderInput("license_number", "License number"),
+                  renderInput("license_number", "e.g. TN0120260012345"),
                 )}
                 {FormField(
                   "License Expiry",
@@ -551,7 +588,7 @@ export default function AddEmployeeModal({
                   renderInput("probation_end_date", "", "date"),
                 )}
                 {FormField(
-                  "Date of Permanence",
+                  "Date Of Permanence",
                   renderInput("date_of_permanence", "", "date"),
                 )}
                 {FormField(
@@ -589,14 +626,10 @@ export default function AddEmployeeModal({
                   "Other Email",
                   renderInput("other_email", "personal@email.com", "email"),
                 )}
-                {FormField(
-                  "Mobile",
-                  renderInput("mobile", "+91 99999 00000", "tel"),
-                  true,
-                )}
+                {FormField("Mobile", renderPhoneField(), true)}
                 {FormField(
                   "Work Tel",
-                  renderInput("work_tel", "Work telephone", "tel"),
+                  renderInput("work_tel", "e.g. 4224542188", "tel"),
                 )}
                 {FormField(
                   "Home Tel",
@@ -613,17 +646,16 @@ export default function AddEmployeeModal({
                 {FormField("City", renderInput("city", "City"))}
                 {FormField("State", renderInput("state", "State / Province"))}
                 {FormField("Country", renderSelect("country", COUNTRIES))}
-                {FormField("ZIP Code", renderInput("zip", "Postal code"))}
+                {FormField("Zip Code", renderInput("zip", "Postal code"))}
               </TwoColumnGrid>
             </Section>
           )}
 
           {step === 5 && (
-            <Section title="Report To — Assign Supervisors (max 3)">
+            <Section title="Report To — Assign Supervisors (Max 3)">
               <p className="text-sm text-slate-600 mb-3.5">
                 Select up to 3 supervisors from the sub unit list below.
               </p>
-
               {supervisors.length === 0 ? (
                 <p className="text-sm text-slate-400 italic">
                   No supervisors available. Add supervisor names in HR
@@ -631,7 +663,7 @@ export default function AddEmployeeModal({
                 </p>
               ) : (
                 <div className="border border-slate-300 rounded-xl overflow-hidden">
-                  {supervisors.map((supervis, supervisorIndex) => {
+                  {supervisors.map((supervis, idx) => {
                     const checked = selectedSupervisors.includes(supervis.name);
                     const subUnitMatch = subUnitRecords.find(
                       (su) =>
@@ -644,10 +676,10 @@ export default function AddEmployeeModal({
                         className={`flex items-center gap-3 p-2.75 cursor-pointer transition-colors ${
                           checked
                             ? "bg-emerald-50"
-                            : supervisorIndex % 2 === 0
+                            : idx % 2 === 0
                               ? "bg-white"
                               : "bg-blue-50"
-                        } ${supervisorIndex < supervisors.length - 1 ? "border-b border-slate-100" : ""}`}
+                        } ${idx < supervisors.length - 1 ? "border-b border-slate-100" : ""}`}
                       >
                         <input
                           type="checkbox"
@@ -656,19 +688,16 @@ export default function AddEmployeeModal({
                           onChange={() => {
                             setSelectedSupervisors((prev) =>
                               checked
-                                ? prev.filter(
-                                    (setSelectedSupervisor) =>
-                                      setSelectedSupervisor !== supervis.name,
-                                  )
+                                ? prev.filter((n) => n !== supervis.name)
                                 : prev.length < 3
                                   ? [...prev, supervis.name]
                                   : prev,
                             );
                             if (errors.supervisors)
-                              setErrors((errs) => {
-                                const next = { ...errs };
-                                delete next.supervisors;
-                                return next;
+                              setErrors((e) => {
+                                const n = { ...e };
+                                delete n.supervisors;
+                                return n;
                               });
                           }}
                           className="w-4 h-4 accent-blue-900 flex-shrink-0"
@@ -676,7 +705,7 @@ export default function AddEmployeeModal({
                         <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {supervis.name
                             .split(" ")
-                            .map((word: string) => word[0])
+                            .map((w: string) => w[0])
                             .slice(0, 2)
                             .join("")
                             .toUpperCase()}
@@ -701,28 +730,26 @@ export default function AddEmployeeModal({
                   })}
                 </div>
               )}
-
               {errors.supervisors && (
                 <span className="text-xs text-red-600 block mt-2">
                   {errors.supervisors}
                 </span>
               )}
-
               {selectedSupervisors.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   <span className="text-xs text-slate-400 self-center">
                     Assigned:
                   </span>
-                  {selectedSupervisors.map((supervisorName) => (
+                  {selectedSupervisors.map((name) => (
                     <span
-                      key={supervisorName}
+                      key={name}
                       className="flex items-center gap-1.5 bg-blue-100 text-blue-700 rounded-full py-1 px-3 text-xs font-semibold"
                     >
-                      {supervisorName}
+                      {name}
                       <button
                         onClick={() =>
                           setSelectedSupervisors((prev) =>
-                            prev.filter((name) => name !== supervisorName),
+                            prev.filter((n) => n !== name),
                           )
                         }
                         className="bg-none border-0 cursor-pointer text-blue-700 text-base leading-none pl-1"
@@ -750,7 +777,7 @@ export default function AddEmployeeModal({
             </button>
             {step > 1 && (
               <button
-                onClick={() => setStep((currentStep) => currentStep - 1)}
+                onClick={() => setStep((s) => s - 1)}
                 className="px-5 py-2 rounded-full border border-blue-900 bg-white text-sm font-semibold cursor-pointer text-blue-900 hover:bg-blue-50 transition"
               >
                 ← Back

@@ -1,8 +1,17 @@
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const NAME_REGEX = /^[A-Za-z\s'\-]+$/;
+
+const MOBILE_10DIGIT_REGEX = /^\d{10}$/;
+
+const WORK_TEL_REGEX = /^\d{7,15}$/;
+
+const LICENSE_REGEX = /^[A-Z]{2}\d{2}\d{4}\d{7}$/;
+
 export interface EmployeeFormValues {
   first_name?: string;
   last_name?: string;
+  middle_name?: string;
   joined_date?: string;
   location?: string;
   gender?: string;
@@ -10,6 +19,8 @@ export interface EmployeeFormValues {
   employment_status?: string;
   work_email?: string;
   mobile?: string;
+  work_tel?: string;
+  license_number?: string;
 }
 
 export function validateEmployeeStep(
@@ -21,14 +32,33 @@ export function validateEmployeeStep(
   const errors: Record<string, string> = {};
 
   if (step === 1) {
-    if (!form.first_name?.trim()) errors.first_name = "First name is required";
-    if (!form.last_name?.trim()) errors.last_name = "Last name is required";
+    const fn = form.first_name?.trim() || "";
+    const ln = form.last_name?.trim() || "";
+    const mn = form.middle_name?.trim() || "";
+
+    if (!fn) errors.first_name = "First name is required";
+    else if (!NAME_REGEX.test(fn))
+      errors.first_name = "First name must contain letters only";
+
+    if (!ln) errors.last_name = "Last name is required";
+    else if (!NAME_REGEX.test(ln))
+      errors.last_name = "Last name must contain letters only";
+
+    if (mn && !NAME_REGEX.test(mn))
+      errors.middle_name = "Middle name must contain letters only";
+
     if (!form.joined_date) errors.joined_date = "Joined date is required";
     if (!form.location) errors.location = "Location is required";
   }
 
-  if (step === 2 && !form.gender) {
-    errors.gender = "Gender is required";
+  if (step === 2) {
+    if (!form.gender) errors.gender = "Gender is required";
+
+    const lic = form.license_number?.trim() || "";
+    if (lic && !LICENSE_REGEX.test(lic)) {
+      errors.license_number =
+        "License format: 2 letters + 2 digits + 4-digit year + 7 digits (e.g. TN0120260012345)";
+    }
   }
 
   if (step === 3) {
@@ -41,7 +71,16 @@ export function validateEmployeeStep(
     if (!form.work_email?.trim()) errors.work_email = "Work email is required";
     else if (!EMAIL_REGEX.test(form.work_email))
       errors.work_email = "Enter a valid email";
-    if (!form.mobile?.trim()) errors.mobile = "Mobile number is required";
+
+    const mobile = form.mobile?.trim() || "";
+    if (!mobile) errors.mobile = "Mobile is required (exactly 10 digits)";
+    else if (!MOBILE_10DIGIT_REGEX.test(mobile))
+      errors.mobile = "Mobile must be exactly 10 digits";
+
+    const workTel = form.work_tel?.trim() || "";
+    if (workTel && !WORK_TEL_REGEX.test(workTel)) {
+      errors.work_tel = "Work tel must be 7–15 digits only (e.g. 4224542188)";
+    }
   }
 
   if (

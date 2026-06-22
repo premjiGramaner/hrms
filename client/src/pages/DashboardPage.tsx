@@ -51,7 +51,11 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
           <MetricCard label="Employees" value="1" helper="Active workforce" />
-          <MetricCard label="Pending Actions" value="11" helper="Needs review" />
+          <MetricCard
+            label="Pending Actions"
+            value="11"
+            helper="Needs review"
+          />
           <MetricCard label="On Leave Today" value="0" helper="No absences" />
         </div>
 
@@ -69,7 +73,9 @@ export default function DashboardPage() {
                   className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
                 >
                   <div className="flex items-center gap-3">
-                    <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${item.color}`}
+                    />
                     <span className="text-sm font-medium text-slate-700">
                       {item.label}
                     </span>

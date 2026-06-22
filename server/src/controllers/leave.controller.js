@@ -1,6 +1,6 @@
-﻿import ExcelJS from 'exceljs';
-import * as LeaveModel from '../models/leave.model.js';
-import { success, created, error } from '../utils/response.js';
+﻿import ExcelJS from "exceljs";
+import * as LeaveModel from "../models/leave.model.js";
+import { success, created, error } from "../utils/response.js";
 
 const getLeaveTypes = async (req, res, next) => {
   try {
@@ -33,7 +33,7 @@ const getLeaveFilterOptions = async (_req, res, next) => {
 
 const searchEmployees = async (req, res, next) => {
   try {
-    const q = String(req.query.q || '').trim();
+    const q = String(req.query.q || "").trim();
     if (!q) return success(res, []);
     const employees = await LeaveModel.searchEmployees(q);
     return success(res, employees);
@@ -55,13 +55,15 @@ const listLeaves = async (req, res, next) => {
       employee_name: req.query.employee_name || null,
       sub_unit: req.query.sub_unit || null,
       location: req.query.location || null,
-      leave_type_id: req.query.leave_type_id ? parseInt(req.query.leave_type_id) : null,
+      leave_type_id: req.query.leave_type_id
+        ? parseInt(req.query.leave_type_id)
+        : null,
       job_title: req.query.job_title || null,
       employment_status: req.query.employment_status || null,
       job_category: req.query.job_category || null,
       attachment_status: req.query.attachment_status || null,
-      include_past: req.query.include_past === 'true',
-      only_subordinates: req.query.only_subordinates === 'true',
+      include_past: req.query.include_past === "true",
+      only_subordinates: req.query.only_subordinates === "true",
       supervisor_id: req.user.id,
     };
 
@@ -69,10 +71,13 @@ const listLeaves = async (req, res, next) => {
     if (rawStatuses) {
       filters.statuses = Array.isArray(rawStatuses)
         ? rawStatuses
-        : String(rawStatuses).split(',').map(s => s.trim()).filter(Boolean);
+        : String(rawStatuses)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
     }
 
-    if (role === 'employee') {
+    if (role === "employee") {
       filters.own_employee_id = req.user.id;
     }
 
@@ -87,9 +92,9 @@ const getLeave = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
     const leave = await LeaveModel.findLeaveById(id);
-    if (!leave) return error(res, 'Leave request not found', 404);
-    if (req.user.role === 'employee' && leave.employee_id !== req.user.id) {
-      return error(res, 'Forbidden', 403);
+    if (!leave) return error(res, "Leave request not found", 404);
+    if (req.user.role === "employee" && leave.employee_id !== req.user.id) {
+      return error(res, "Forbidden", 403);
     }
     return success(res, leave);
   } catch (err) {
@@ -100,11 +105,11 @@ const getLeave = async (req, res, next) => {
 const getLeaveDetails = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return error(res, 'Invalid leave ID', 400);
+    if (isNaN(id)) return error(res, "Invalid leave ID", 400);
     const leave = await LeaveModel.findLeaveDetails(id);
-    if (!leave) return error(res, 'Leave request not found', 404);
-    if (req.user.role === 'employee' && leave.user_id !== req.user.id) {
-      return error(res, 'Forbidden', 403);
+    if (!leave) return error(res, "Leave request not found", 404);
+    if (req.user.role === "employee" && leave.user_id !== req.user.id) {
+      return error(res, "Forbidden", 403);
     }
     return success(res, leave);
   } catch (err) {
@@ -115,16 +120,19 @@ const getLeaveDetails = async (req, res, next) => {
 const uploadLeaveAttachment = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return error(res, 'Invalid leave ID', 400);
+    if (isNaN(id)) return error(res, "Invalid leave ID", 400);
     const leave = await LeaveModel.findLeaveById(id);
-    if (!leave) return error(res, 'Leave request not found', 404);
-    if (req.user.role === 'employee' && leave.employee_id !== req.user.id) {
-      return error(res, 'Forbidden', 403);
+    if (!leave) return error(res, "Leave request not found", 404);
+    if (req.user.role === "employee" && leave.employee_id !== req.user.id) {
+      return error(res, "Forbidden", 403);
     }
-    if (!req.file) return error(res, 'No file uploaded', 400);
+    if (!req.file) return error(res, "No file uploaded", 400);
     const relativePath = `uploads/${req.file.filename}`;
     await LeaveModel.updateLeaveAttachment(id, relativePath);
-    return success(res, { message: 'Attachment uploaded successfully', attachment_path: relativePath });
+    return success(res, {
+      message: "Attachment uploaded successfully",
+      attachment_path: relativePath,
+    });
   } catch (err) {
     next(err);
   }
@@ -132,15 +140,59 @@ const uploadLeaveAttachment = async (req, res, next) => {
 
 const createLeave = async (req, res, next) => {
   try {
-    const employeeId = req.user.role === 'employee'
-      ? req.user.id
-      : (req.body.employee_id || req.user.id);
+    const employeeId =
+      req.user.role === "employee"
+        ? req.user.id
+        : req.body.employee_id || req.user.id;
     if (!employeeId || parseInt(employeeId) <= 0) {
-      return error(res, 'Please specify the employee for this leave request', 422);
+      return error(
+        res,
+        "Please specify the employee for this leave request",
+        422,
+      );
     }
     const data = { ...req.body, employee_id: parseInt(employeeId) };
-    const leave = await LeaveModel.createLeaveRequest(data);
-    return created(res, { message: 'Leave request submitted successfully', id: leave.id });
+    const requestedDays = parseFloat(data.requested_days) || 1;
+    const leaveTypeId = parseInt(data.leave_type_id);
+    // Derive financial year (Apr–Mar): if start_date month >= April (3), year+1; else year
+    const startDate = new Date(data.start_date);
+    const year =
+      startDate.getMonth() >= 3
+        ? startDate.getFullYear() + 1
+        : startDate.getFullYear();
+
+    // Check balance before attempting to submit
+    const netBalance = await LeaveModel.getNetBalance(
+      data.employee_id,
+      leaveTypeId,
+      year,
+    );
+    if (netBalance === null) {
+      return error(
+        res,
+        "No entitlement found for the selected leave type and period. Please contact HR.",
+        422,
+      );
+    }
+    if (Number(netBalance) < requestedDays) {
+      return error(
+        res,
+        `Insufficient leave balance. Available: ${Number(netBalance).toFixed(2)} day(s), requested: ${requestedDays}.`,
+        422,
+      );
+    }
+
+    // Create leave request and deduct balance in a single transaction
+    const leave = await LeaveModel.createLeaveRequestWithDeduction(
+      data,
+      leaveTypeId,
+      year,
+      requestedDays,
+    );
+    return created(res, {
+      message: "Leave request submitted successfully",
+      id: leave.id,
+    });
   } catch (err) {
     next(err);
   }
@@ -150,25 +202,23 @@ const approveLeave = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
     const leave = await LeaveModel.findLeaveById(id);
-    if (!leave) return error(res, 'Leave request not found', 404);
+    if (!leave) return error(res, "Leave request not found", 404);
 
     const actorId = req.user.id;
     const actorRole = req.user.role;
 
-    if (actorRole === 'employee') return error(res, 'Employees cannot approve leave requests', 403);
-    if (actorId > 0 && leave.employee_id === actorId) return error(res, 'You cannot approve your own leave request', 403);
-    if (leave.status === 'Cancelled') return error(res, 'Cannot approve a cancelled leave', 400);
+    if (actorRole === "employee")
+      return error(res, "Employees cannot approve leave requests", 403);
+    if (actorId > 0 && String(leave.employee_id) === String(actorId))
+      return error(res, "You cannot approve your own leave request", 403);
+    if (leave.status === "Cancelled")
+      return error(res, "Cannot approve a cancelled leave", 400);
 
-    const wasApproved = ['Approved', 'Taken'].includes(leave.status);
     const approved = await LeaveModel.approveLeave(id, actorId);
-    if (!approved) return error(res, 'Failed to approve leave', 500);
+    if (!approved) return error(res, "Failed to approve leave", 500);
 
-    if (!wasApproved) {
-      try {
-        await LeaveModel.deductLeaveBalance(approved.employee_id, approved.leave_type_id, approved.leave_year, approved.requested_days);
-      } catch { }
-    }
-    return success(res, { message: 'Leave approved successfully' });
+    // Balance was already deducted on submission — no further deduction needed
+    return success(res, { message: "Leave approved successfully" });
   } catch (err) {
     next(err);
   }
@@ -179,23 +229,38 @@ const rejectLeave = async (req, res, next) => {
     const id = parseInt(req.params.id);
     const { rejection_reason } = req.body;
     const leave = await LeaveModel.findLeaveById(id);
-    if (!leave) return error(res, 'Leave request not found', 404);
+    if (!leave) return error(res, "Leave request not found", 404);
 
     const actorId = req.user.id;
     const actorRole = req.user.role;
 
-    if (actorRole === 'employee') return error(res, 'Employees cannot reject leave requests', 403);
-    if (actorId > 0 && leave.employee_id === actorId) return error(res, 'You cannot reject your own leave request', 403);
-    if (leave.status === 'Cancelled') return error(res, 'Cannot reject a cancelled leave', 400);
-
-    if (['Approved', 'Taken'].includes(leave.status)) {
-      try {
-        const year = new Date(leave.start_date).getFullYear();
-        await LeaveModel.restoreLeaveBalance(leave.employee_id, leave.leave_type_id, year, leave.requested_days);
-      } catch { }
+    if (actorRole === "employee")
+      return error(res, "Employees cannot reject leave requests", 403);
+    if (actorId > 0 && String(leave.employee_id) === String(actorId))
+      return error(res, "You cannot reject your own leave request", 403);
+    if (["Cancelled", "Rejected"].includes(leave.status)) {
+      return error(
+        res,
+        `Cannot reject a leave that is already ${leave.status.toLowerCase()}`,
+        400,
+      );
     }
+
+    // Restore balance for any active status (Pending Approval, Approved, Scheduled, Taken)
+    // Balance was deducted on submission, so always restore on rejection
+    try {
+      const starting_date = new Date(leave.start_date);
+      const year = starting_date.getMonth() >= 3 ? starting_date.getFullYear() + 1 : starting_date.getFullYear();
+      await LeaveModel.restoreLeaveBalance(
+        leave.employee_id,
+        leave.leave_type_id,
+        year,
+        leave.requested_days,
+      );
+    } catch {}
+
     await LeaveModel.rejectLeave(id, actorId, rejection_reason);
-    return success(res, { message: 'Leave rejected successfully' });
+    return success(res, { message: "Leave rejected successfully" });
   } catch (err) {
     next(err);
   }
@@ -205,20 +270,30 @@ const cancelLeave = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
     const leave = await LeaveModel.findLeaveById(id);
-    if (!leave) return error(res, 'Leave request not found', 404);
-    if (req.user.role === 'employee' && leave.employee_id !== req.user.id) {
-      return error(res, 'Forbidden', 403);
+    if (!leave) return error(res, "Leave request not found", 404);
+    if (req.user.role === "employee" && leave.employee_id !== req.user.id) {
+      return error(res, "Forbidden", 403);
     }
-    const wasApproved = ['Approved', 'Taken'].includes(leave.status);
+    if (leave.status === "Cancelled") {
+      return error(res, "Leave is already cancelled", 400);
+    }
+
     const cancelled = await LeaveModel.cancelLeave(id, req.user.id);
-    if (!cancelled) return error(res, 'Failed to cancel leave', 500);
-    if (wasApproved) {
-      try {
-        const year = new Date(leave.start_date).getFullYear();
-        await LeaveModel.restoreLeaveBalance(cancelled.employee_id, cancelled.leave_type_id, year, leave.requested_days);
-      } catch { }
-    }
-    return success(res, { message: 'Leave cancelled successfully' });
+    if (!cancelled) return error(res, "Failed to cancel leave", 500);
+
+    // Balance was deducted on submission — always restore on cancellation
+    try {
+      const starting_date = new Date(leave.start_date);
+      const year = starting_date.getMonth() >= 3 ? starting_date.getFullYear() + 1 : starting_date.getFullYear();
+      await LeaveModel.restoreLeaveBalance(
+        cancelled.employee_id,
+        cancelled.leave_type_id,
+        year,
+        leave.requested_days,
+      );
+    } catch {}
+
+    return success(res, { message: "Leave cancelled successfully" });
   } catch (err) {
     next(err);
   }
@@ -235,14 +310,17 @@ function buildExportFilters(query, userId, role) {
     employment_status: query.employment_status || null,
     job_category: query.job_category || null,
     attachment_status: query.attachment_status || null,
-    include_past: query.include_past === 'true',
+    include_past: query.include_past === "true",
   };
   if (query.statuses) {
     filters.statuses = Array.isArray(query.statuses)
       ? query.statuses
-      : String(query.statuses).split(',').map(s => s.trim()).filter(Boolean);
+      : String(query.statuses)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
   }
-  if (role === 'employee') filters.own_employee_id = userId;
+  if (role === "employee") filters.own_employee_id = userId;
   return filters;
 }
 
@@ -252,54 +330,97 @@ const exportSummary = async (req, res, next) => {
     const rows = await LeaveModel.getLeavesSummaryForExport(filters);
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'HRMS';
+    wb.creator = "HRMS";
     wb.created = new Date();
-    const ws = wb.addWorksheet('Leave Summary');
+    const ws = wb.addWorksheet("Leave Summary");
 
-    ws.mergeCells('A1:H1');
-    const t = ws.getCell('A1');
-    t.value = 'Leave Summary Report';
-    t.font = { bold: true, size: 14, color: { argb: 'FF1B2A6B' } };
-    t.alignment = { horizontal: 'center' };
-    ws.mergeCells('A2:H2');
-    const s = ws.getCell('A2');
+    ws.mergeCells("A1:H1");
+    const t = ws.getCell("A1");
+    t.value = "Leave Summary Report";
+    t.font = { bold: true, size: 14, color: { argb: "FF1B2A6B" } };
+    t.alignment = { horizontal: "center" };
+    ws.mergeCells("A2:H2");
+    const s = ws.getCell("A2");
     s.value = `Generated: ${new Date().toLocaleString()}`;
-    s.font = { size: 9, color: { argb: 'FF666666' } };
-    s.alignment = { horizontal: 'center' };
+    s.font = { size: 9, color: { argb: "FF666666" } };
+    s.alignment = { horizontal: "center" };
     ws.addRow([]);
 
-    const hdr = ws.addRow(['Employee ID', 'Employee Name', 'Leave Type', 'Total Requests', 'Total Days', 'Approved Days', 'Pending Days', 'Rejected Days']);
-    hdr.eachCell(cell => {
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B2A6B' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    const hdr = ws.addRow([
+      "Employee ID",
+      "Employee Name",
+      "Leave Type",
+      "Total Requests",
+      "Total Days",
+      "Approved Days",
+      "Pending Days",
+      "Rejected Days",
+    ]);
+    hdr.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1B2A6B" },
+      };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
     });
     hdr.height = 20;
     ws.columns = [
-      { width: 14 }, { width: 24 }, { width: 22 }, { width: 14 },
-      { width: 12 }, { width: 14 }, { width: 13 }, { width: 13 },
+      { width: 14 },
+      { width: 24 },
+      { width: 22 },
+      { width: 14 },
+      { width: 12 },
+      { width: 14 },
+      { width: 13 },
+      { width: 13 },
     ];
 
     rows.forEach((row, idx) => {
       const dr = ws.addRow([
-        row.employee_id || '', row.employee_name || '', row.leave_type || '',
-        Number(row.total_requests || 0), Number(Number(row.total_days || 0).toFixed(1)),
-        Number(Number(row.approved_days || 0).toFixed(1)), Number(Number(row.pending_days || 0).toFixed(1)),
+        row.employee_id || "",
+        row.employee_name || "",
+        row.leave_type || "",
+        Number(row.total_requests || 0),
+        Number(Number(row.total_days || 0).toFixed(1)),
+        Number(Number(row.approved_days || 0).toFixed(1)),
+        Number(Number(row.pending_days || 0).toFixed(1)),
         Number(Number(row.rejected_days || 0).toFixed(1)),
       ]);
-      const bg = idx % 2 === 0 ? 'FFF8F9FA' : 'FFFFFFFF';
-      dr.eachCell(cell => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-        cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
-        cell.alignment = { vertical: 'middle' };
+      const bg = idx % 2 === 0 ? "FFF8F9FA" : "FFFFFFFF";
+      dr.eachCell((cell) => {
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: bg },
+        };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFE2E8F0" } },
+          bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+          left: { style: "thin", color: { argb: "FFE2E8F0" } },
+          right: { style: "thin", color: { argb: "FFE2E8F0" } },
+        };
+        cell.alignment = { vertical: "middle" };
       });
       dr.height = 16;
     });
-    if (rows.length === 0) ws.addRow(['No records found.']);
+    if (rows.length === 0) ws.addRow(["No records found."]);
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="leave_summary.xlsx"');
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="leave_summary.xlsx"',
+    );
     await wb.xlsx.write(res);
     res.end();
   } catch (err) {
@@ -313,60 +434,112 @@ const exportDetail = async (req, res, next) => {
     const rows = await LeaveModel.getLeavesDetailForExport(filters);
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'HRMS';
+    wb.creator = "HRMS";
     wb.created = new Date();
-    const ws = wb.addWorksheet('Leave Detail');
+    const ws = wb.addWorksheet("Leave Detail");
 
-    ws.mergeCells('A1:I1');
-    const t = ws.getCell('A1');
-    t.value = 'Leave Detail Report';
-    t.font = { bold: true, size: 14, color: { argb: 'FF1B2A6B' } };
-    t.alignment = { horizontal: 'center' };
-    ws.mergeCells('A2:I2');
-    const s = ws.getCell('A2');
+    ws.mergeCells("A1:I1");
+    const t = ws.getCell("A1");
+    t.value = "Leave Detail Report";
+    t.font = { bold: true, size: 14, color: { argb: "FF1B2A6B" } };
+    t.alignment = { horizontal: "center" };
+    ws.mergeCells("A2:I2");
+    const s = ws.getCell("A2");
     s.value = `Generated: ${new Date().toLocaleString()}`;
-    s.font = { size: 9, color: { argb: 'FF666666' } };
-    s.alignment = { horizontal: 'center' };
+    s.font = { size: 9, color: { argb: "FF666666" } };
+    s.alignment = { horizontal: "center" };
     ws.addRow([]);
 
-    const hdr = ws.addRow(['Employee ID', 'Employee Name', 'Leave Type', 'Start Date', 'End Date', 'Days', 'Applied On', 'Status', 'Reason']);
-    hdr.eachCell(cell => {
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B2A6B' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    const hdr = ws.addRow([
+      "Employee ID",
+      "Employee Name",
+      "Leave Type",
+      "Start Date",
+      "End Date",
+      "Days",
+      "Applied On",
+      "Status",
+      "Reason",
+    ]);
+    hdr.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1B2A6B" },
+      };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
     });
     hdr.height = 20;
     ws.columns = [
-      { width: 14 }, { width: 24 }, { width: 22 }, { width: 13 },
-      { width: 13 }, { width: 8 }, { width: 14 }, { width: 18 }, { width: 30 },
+      { width: 14 },
+      { width: 24 },
+      { width: 22 },
+      { width: 13 },
+      { width: 13 },
+      { width: 8 },
+      { width: 14 },
+      { width: 18 },
+      { width: 30 },
     ];
 
-    const statusColors = { 'Approved': 'FF16A085', 'Pending Approval': 'FFD97706', 'Rejected': 'FFE53E3E', 'Cancelled': 'FF94A3B8', 'Scheduled': 'FF3B82F6', 'Taken': 'FF7C3AED' };
+    const statusColors = {
+      Approved: "FF16A085",
+      "Pending Approval": "FFD97706",
+      Rejected: "FFE53E3E",
+      Cancelled: "FF94A3B8",
+      Scheduled: "FF3B82F6",
+      Taken: "FF7C3AED",
+    };
 
     rows.forEach((row, idx) => {
       const dr = ws.addRow([
-        row.employee_id || '', row.employee_name || '', row.leave_type || '',
-        row.start_date || '', row.end_date || '',
+        row.employee_id || "",
+        row.employee_name || "",
+        row.leave_type || "",
+        row.start_date || "",
+        row.end_date || "",
         Number(Number(row.requested_days || 0).toFixed(1)),
-        row.applied_on ? row.applied_on.substring(0, 10) : '',
-        row.status || '', row.reason || '',
+        row.applied_on ? row.applied_on.substring(0, 10) : "",
+        row.status || "",
+        row.reason || "",
       ]);
-      const bg = idx % 2 === 0 ? 'FFF8F9FA' : 'FFFFFFFF';
+      const bg = idx % 2 === 0 ? "FFF8F9FA" : "FFFFFFFF";
       dr.eachCell((cell, colNum) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-        cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
-        cell.alignment = { vertical: 'middle', wrapText: colNum === 9 };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: bg },
+        };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFE2E8F0" } },
+          bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+          left: { style: "thin", color: { argb: "FFE2E8F0" } },
+          right: { style: "thin", color: { argb: "FFE2E8F0" } },
+        };
+        cell.alignment = { vertical: "middle", wrapText: colNum === 9 };
         if (colNum === 8 && row.status && statusColors[row.status]) {
           cell.font = { color: { argb: statusColors[row.status] }, bold: true };
         }
       });
       dr.height = 16;
     });
-    if (rows.length === 0) ws.addRow(['No records found.']);
+    if (rows.length === 0) ws.addRow(["No records found."]);
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="leave_detail.xlsx"');
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="leave_detail.xlsx"',
+    );
     await wb.xlsx.write(res);
     res.end();
   } catch (err) {

@@ -1,11 +1,11 @@
-﻿import pool from '../config/db.js';
+﻿import pool from "../config/db.js";
 
 async function findAllLeaveTypes() {
   const { rows } = await pool.query(
     `SELECT id, name, code, description, max_days, carry_forward, is_active
      FROM tbl_leave_types
      WHERE is_deleted = FALSE AND is_active = TRUE
-     ORDER BY name`
+     ORDER BY name`,
   );
   return rows;
 }
@@ -20,7 +20,7 @@ async function getLeaveBalance(employeeId, year) {
      JOIN tbl_leave_types lt ON lt.id = e.leave_type_id
      WHERE e.employee_id = $1 AND e.year = $2 AND e.is_deleted = FALSE
      ORDER BY lt.name`,
-    [employeeId, year]
+    [employeeId, year],
   );
   return rows;
 }
@@ -30,7 +30,7 @@ async function getNetBalance(employeeId, leaveTypeId, year) {
     `SELECT (COALESCE(total_days,0) + COALESCE(carried_days,0) - COALESCE(used_days,0)) AS net_balance
      FROM tbl_leave_entitlements
      WHERE employee_id = $1 AND leave_type_id = $2 AND year = $3 AND is_deleted = FALSE`,
-    [employeeId, leaveTypeId, year]
+    [employeeId, leaveTypeId, year],
   );
   return rows[0]?.net_balance ?? null;
 }
@@ -41,22 +41,28 @@ async function deductLeaveBalance(employeeId, leaveTypeId, year, days, client) {
     `UPDATE tbl_leave_entitlements
      SET used_days = used_days + $1, updated_at = NOW()
      WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4 AND is_deleted = FALSE`,
-    [days, employeeId, leaveTypeId, year]
+    [days, employeeId, leaveTypeId, year],
   );
 }
 
-async function restoreLeaveBalance(employeeId, leaveTypeId, year, days, client) {
+async function restoreLeaveBalance(
+  employeeId,
+  leaveTypeId,
+  year,
+  days,
+  client,
+) {
   const db = client || pool;
   await db.query(
     `UPDATE tbl_leave_entitlements
      SET used_days = GREATEST(0, used_days - $1), updated_at = NOW()
      WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4 AND is_deleted = FALSE`,
-    [days, employeeId, leaveTypeId, year]
+    [days, employeeId, leaveTypeId, year],
   );
 }
 
 function buildFilters(filters, startIndex = 1) {
-  const conditions = ['lr.is_deleted = FALSE'];
+  const conditions = ["lr.is_deleted = FALSE"];
   const values = [];
   let paramIndex = startIndex;
 
@@ -104,11 +110,17 @@ function buildFilters(filters, startIndex = 1) {
     conditions.push(`lr.attachment_status = $${paramIndex++}`);
     values.push(filters.attachment_status);
   }
-  if (filters.include_past === false || filters.include_past === 'false') {
+  if (filters.include_past === false || filters.include_past === "false") {
     conditions.push(`u.is_active = TRUE`);
   }
-  if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
-    const placeholders = filters.statuses.map(() => `$${paramIndex++}`).join(', ');
+  if (
+    filters.statuses &&
+    Array.isArray(filters.statuses) &&
+    filters.statuses.length > 0
+  ) {
+    const placeholders = filters.statuses
+      .map(() => `$${paramIndex++}`)
+      .join(", ");
     conditions.push(`lr.status IN (${placeholders})`);
     values.push(...filters.statuses);
   }
@@ -121,7 +133,7 @@ function buildFilters(filters, startIndex = 1) {
     values.push(filters.own_employee_id);
   }
 
-  return { clause: conditions.join(' AND '), values, nextIndex: paramIndex };
+  return { clause: conditions.join(" AND "), values, nextIndex: paramIndex };
 }
 
 async function findLeaveRequests(filters = {}, page = 1, limit = 15) {
@@ -195,7 +207,7 @@ async function findLeaveById(id) {
      JOIN tbl_appusers u  ON u.id = lr.employee_id
      JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id
      WHERE lr.id = $1 AND lr.is_deleted = FALSE`,
-    [id]
+    [id],
   );
   return rows[0] || null;
 }
@@ -243,7 +255,7 @@ async function findLeaveDetails(id) {
      JOIN tbl_appusers u  ON u.id = lr.employee_id
      JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id
      WHERE lr.id = $1 AND lr.is_deleted = FALSE`,
-    [id]
+    [id],
   );
   return rows[0] || null;
 }
@@ -253,7 +265,7 @@ async function updateLeaveAttachment(id, attachmentPath) {
     `UPDATE tbl_leave_requests
      SET attachment_path = $1, attachment_status = 'Available', updated_at = NOW()
      WHERE id = $2 AND is_deleted = FALSE`,
-    [attachmentPath, id]
+    [attachmentPath, id],
   );
 }
 
@@ -271,17 +283,87 @@ async function createLeaveRequest(data) {
       data.end_date,
       data.requested_days || 1,
       data.reason || null,
-      data.status || 'Pending Approval',
-      data.attachment_status || 'Not Required',
+      data.status || "Pending Approval",
+      data.attachment_status || "Not Required",
       data.comments || null,
-    ]
+    ],
   );
   return rows[0];
 }
 
+async function createLeaveRequestWithDeduction(
+  data,
+  leaveTypeId,
+  year,
+  requestedDays,
+) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Re-check balance with a row lock to prevent race conditions
+    const { rows: balRows } = await client.query(
+      `SELECT (total_days + carried_days - used_days) AS net_balance
+       FROM tbl_leave_entitlements
+       WHERE employee_id = $1 AND leave_type_id = $2 AND year = $3 AND is_deleted = FALSE
+       FOR UPDATE`,
+      [data.employee_id, leaveTypeId, year],
+    );
+    if (!balRows.length) {
+      throw Object.assign(
+        new Error(
+          "No entitlement found for the selected leave type and period.",
+        ),
+        { statusCode: 422 },
+      );
+    }
+    if (Number(balRows[0].net_balance) < requestedDays) {
+      throw Object.assign(
+        new Error(
+          `Insufficient leave balance. Available: ${Number(balRows[0].net_balance).toFixed(2)} day(s).`,
+        ),
+        { statusCode: 422 },
+      );
+    }
+
+    const { rows } = await client.query(
+      `INSERT INTO tbl_leave_requests
+         (employee_id, leave_type_id, start_date, end_date, requested_days, reason,
+          status, attachment_status, comments)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING id`,
+      [
+        data.employee_id,
+        data.leave_type_id,
+        data.start_date,
+        data.end_date,
+        data.requested_days || 1,
+        data.reason || null,
+        data.status || "Pending Approval",
+        data.attachment_status || "Not Required",
+        data.comments || null,
+      ],
+    );
+    await client.query(
+      `UPDATE tbl_leave_entitlements
+       SET used_days = used_days + $1, updated_at = NOW()
+       WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4 AND is_deleted = FALSE`,
+      [requestedDays, data.employee_id, leaveTypeId, year],
+    );
+
+    await client.query("COMMIT");
+    return rows[0];
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 function toActorId(id) {
   const n = parseInt(id);
-  return (isNaN(n) || n <= 0) ? null : n;
+  return isNaN(n) || n <= 0 ? null : n;
 }
 
 async function approveLeave(id, approverId) {
@@ -291,7 +373,7 @@ async function approveLeave(id, approverId) {
      WHERE id = $2 AND is_deleted = FALSE
      RETURNING employee_id, leave_type_id, requested_days,
                EXTRACT(YEAR FROM start_date)::int AS leave_year`,
-    [toActorId(approverId), id]
+    [toActorId(approverId), id],
   );
   return rows[0] || null;
 }
@@ -303,7 +385,7 @@ async function rejectLeave(id, rejectorId, rejectionReason) {
          rejection_reason = $2, updated_at = NOW()
      WHERE id = $3 AND is_deleted = FALSE
      RETURNING id`,
-    [toActorId(rejectorId), rejectionReason, id]
+    [toActorId(rejectorId), rejectionReason, id],
   );
   return rows[0] || null;
 }
@@ -315,25 +397,36 @@ async function cancelLeave(id, cancelledById) {
      WHERE id = $2 AND is_deleted = FALSE
      RETURNING employee_id, leave_type_id, requested_days,
                EXTRACT(YEAR FROM start_date)::int AS leave_year, status AS old_status`,
-    [toActorId(cancelledById), id]
+    [toActorId(cancelledById), id],
   );
   return rows[0] || null;
 }
 
 async function findLeaveFilterOptions() {
-  const [subUnits, locations, jobTitles, empStatuses, jobCategories] = await Promise.all([
-    pool.query(`SELECT DISTINCT sub_unit AS val FROM tbl_appusers WHERE sub_unit IS NOT NULL AND sub_unit <> '' AND is_deleted = FALSE ORDER BY val`),
-    pool.query(`SELECT DISTINCT location AS val FROM tbl_appusers WHERE location IS NOT NULL AND location <> '' AND is_deleted = FALSE ORDER BY val`),
-    pool.query(`SELECT DISTINCT job_title AS val FROM tbl_appusers WHERE job_title IS NOT NULL AND job_title <> '' AND is_deleted = FALSE ORDER BY val`),
-    pool.query(`SELECT DISTINCT employment_status AS val FROM tbl_appusers WHERE employment_status IS NOT NULL AND employment_status <> '' AND is_deleted = FALSE ORDER BY val`),
-    pool.query(`SELECT DISTINCT job_category AS val FROM tbl_appusers WHERE job_category IS NOT NULL AND job_category <> '' AND is_deleted = FALSE ORDER BY val`),
-  ]);
+  const [subUnits, locations, jobTitles, empStatuses, jobCategories] =
+    await Promise.all([
+      pool.query(
+        `SELECT DISTINCT sub_unit AS val FROM tbl_appusers WHERE sub_unit IS NOT NULL AND sub_unit <> '' AND is_deleted = FALSE ORDER BY val`,
+      ),
+      pool.query(
+        `SELECT DISTINCT location AS val FROM tbl_appusers WHERE location IS NOT NULL AND location <> '' AND is_deleted = FALSE ORDER BY val`,
+      ),
+      pool.query(
+        `SELECT DISTINCT job_title AS val FROM tbl_appusers WHERE job_title IS NOT NULL AND job_title <> '' AND is_deleted = FALSE ORDER BY val`,
+      ),
+      pool.query(
+        `SELECT DISTINCT employment_status AS val FROM tbl_appusers WHERE employment_status IS NOT NULL AND employment_status <> '' AND is_deleted = FALSE ORDER BY val`,
+      ),
+      pool.query(
+        `SELECT DISTINCT job_category AS val FROM tbl_appusers WHERE job_category IS NOT NULL AND job_category <> '' AND is_deleted = FALSE ORDER BY val`,
+      ),
+    ]);
   return {
-    sub_units: subUnits.rows.map(r => r.val),
-    locations: locations.rows.map(r => r.val),
-    job_titles: jobTitles.rows.map(r => r.val),
-    employment_statuses: empStatuses.rows.map(r => r.val),
-    job_categories: jobCategories.rows.map(r => r.val),
+    sub_units: subUnits.rows.map((r) => r.val),
+    locations: locations.rows.map((r) => r.val),
+    job_titles: jobTitles.rows.map((r) => r.val),
+    employment_statuses: empStatuses.rows.map((r) => r.val),
+    job_categories: jobCategories.rows.map((r) => r.val),
   };
 }
 
@@ -345,12 +438,13 @@ async function searchEmployees(q) {
        AND (name ILIKE $1 OR employee_id ILIKE $1 OR username ILIKE $1)
      ORDER BY name
      LIMIT 15`,
-    [`%${q}%`]
+    [`%${q}%`],
   );
   return rows;
 }
 
 async function getLeavesSummaryForExport(filters = {}) {
+  const { clause, values } = buildFilters(filters);
   const { rows } = await pool.query(
     `SELECT
        u.employee_id,
@@ -367,7 +461,7 @@ async function getLeavesSummaryForExport(filters = {}) {
      WHERE ${clause}
      GROUP BY u.employee_id, u.name, lt.name
      ORDER BY u.name, lt.name`,
-    values
+    values,
   );
   return rows;
 }
@@ -391,11 +485,10 @@ async function getLeavesDetailForExport(filters = {}) {
      JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id
      WHERE ${clause}
      ORDER BY lr.applied_on DESC`,
-    values
+    values,
   );
   return rows;
 }
-
 
 export {
   findAllLeaveTypes,
@@ -408,6 +501,7 @@ export {
   findLeaveDetails,
   updateLeaveAttachment,
   createLeaveRequest,
+  createLeaveRequestWithDeduction,
   approveLeave,
   rejectLeave,
   cancelLeave,

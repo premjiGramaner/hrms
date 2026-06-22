@@ -50,7 +50,9 @@ function ToastItem({
     <div
       className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl min-w-64 max-w-sm ${styles[toast.type]}`}
     >
-      <span className="text-base font-bold flex-shrink-0">{icons[toast.type]}</span>
+      <span className="text-base font-bold flex-shrink-0">
+        {icons[toast.type]}
+      </span>
       <span className="text-sm flex-1">{toast.message}</span>
       <button
         onClick={() => onRemove(toast.id)}

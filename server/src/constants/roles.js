@@ -1,7 +1,7 @@
 const ROLES = {
-  EMPLOYEE: 'employee',
-  MANAGER: 'empmanager',
-  HR_ADMIN: 'hradmin',
+  EMPLOYEE: "employee",
+  MANAGER: "empmanager",
+  HR_ADMIN: "hradmin",
 };
 
 const ADMIN_ROLES = [ROLES.MANAGER, ROLES.HR_ADMIN];

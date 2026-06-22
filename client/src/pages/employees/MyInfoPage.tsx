@@ -29,20 +29,22 @@ import {
 import LeaveBalance from "./components/LeaveBalance";
 import LeaveList from "./components/LeaveList";
 import QuickAccess from "./components/QuickAccess";
+import { useAppSelector } from "../../app/hooks";
 
-const TABS: TabItem[] = [
+const ADMIN_TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
   { label: "My Info", path: "/my-info" },
 ];
 
-const PROFILE_TABS = [
-  "Profile",
-  "Personal Details",
-  "Job",
-  "Contact Details",
-];
+const EMPLOYEE_TABS: TabItem[] = [{ label: "My Info", path: "/my-info" }];
+
+const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
 
 export default function MyInfoPage() {
+  const user = useAppSelector((state) => state.auth.user);
+  const isAdmin = user?.role === "hradmin" || user?.role === "empmanager";
+  const TABS = isAdmin ? ADMIN_TABS : EMPLOYEE_TABS;
+
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState<EditableEmployeeProfileForm | null>(null);
   const [activeTab, setActiveTab] = useState(0);

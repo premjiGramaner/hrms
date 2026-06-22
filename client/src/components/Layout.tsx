@@ -45,6 +45,7 @@ export default function Layout({
   const [collapsed, setCollapsed] = useState(false);
 
   const role = user?.role || "employee";
+  const isAdmin = role === "hradmin" || role === "empmanager";
   const username = user?.name || user?.username || "User";
   const roleLabel =
     role === "empmanager"
@@ -54,7 +55,6 @@ export default function Layout({
         : "Employee";
 
   const isActive = (path: string) => location.pathname.startsWith(path);
-
   const pageTitle =
     title ||
     (isActive("/employees") || isActive("/my-info")
@@ -66,11 +66,17 @@ export default function Layout({
           : "HRMS");
 
   const navItems = [
-    ...(role === "hradmin" || role === "empmanager"
+    ...(isAdmin
       ? [{ to: "/hradmin", label: "HR Administration", icon: <IconBuilding /> }]
       : []),
-    { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
-    { to: "#", label: "Reports and Analytics", icon: <IconChart /> },
+    {
+      to: isAdmin ? "/employees" : "/my-info",
+      label: "Employee Management",
+      icon: <IconPeople />,
+    },
+    ...(isAdmin
+      ? [{ to: "#", label: "Reports and Analytics", icon: <IconChart /> }]
+      : []),
     { to: "/leave/view_leave_list", label: "Leave", icon: <IconCalendar /> },
     { to: "#", label: "Performance", icon: <IconBriefcase /> },
   ];
@@ -174,57 +180,67 @@ export default function Layout({
               {roleLabel}
             </p>
           </div>
-
-          <div
-            style={{
-              padding: "12px 12px 10px",
-              maxHeight: collapsed ? 0 : 60,
-              opacity: collapsed ? 0 : 1,
-              overflow: "hidden",
-              transition:
-                "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
-            }}
-            className="flex-shrink-0"
-          >
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search"
-                style={{
-                  width: "100%",
-                  paddingLeft: 14,
-                  paddingRight: 34,
-                  paddingTop: 7,
-                  paddingBottom: 7,
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 999,
-                  fontSize: 12,
-                  color: "#475569",
-                  background: "#f8fafc",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-              <span
-                className="absolute"
-                style={{
-                  right: 11,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                }}
-              >
-                <IconSearch size={13} color="#94a3b8" />
-              </span>
+          {isAdmin && (
+            <div
+              style={{
+                padding: "12px 12px 10px",
+                maxHeight: collapsed ? 0 : 60,
+                opacity: collapsed ? 0 : 1,
+                overflow: "hidden",
+                transition:
+                  "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
+              }}
+              className="flex-shrink-0"
+            >
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search"
+                  style={{
+                    width: "100%",
+                    paddingLeft: 14,
+                    paddingRight: 34,
+                    paddingTop: 7,
+                    paddingBottom: 7,
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    color: "#475569",
+                    background: "#f8fafc",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <span
+                  className="absolute"
+                  style={{
+                    right: 11,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    pointerEvents: "none",
+                  }}
+                >
+                  <IconSearch size={13} color="#94a3b8" />
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
           <nav
             className="flex-1 overflow-y-auto"
             style={{ padding: "4px 8px 24px" }}
           >
             {navItems.map((item) => {
-              const active = item.to !== "#" && isActive(item.to);
+              let active = false;
+              if (item.to !== "#") {
+                if (item.to === "/leave/view_leave_list") {
+                  active = isActive("/leave");
+                } else if (item.label === "Employee Management") {
+                  active = isActive("/employees") || isActive("/my-info");
+                } else {
+                  active = isActive(item.to);
+                }
+              }
               return (
                 <SidebarNavItem
                   key={item.label}
@@ -284,8 +300,6 @@ export default function Layout({
           </span>
         </button>
       </div>
-
-      {/* Main content area — unchanged */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-between px-6 flex-shrink-0 shadow-md">
           <span className="text-white font-bold text-lg tracking-wide">
@@ -319,10 +333,11 @@ export default function Layout({
                 <Link
                   key={tab.label}
                   to={tab.path}
-                  className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${isActiveTab
-                    ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
-                    : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
-                    }`}
+                  className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
+                    isActiveTab
+                      ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
+                      : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
+                  }`}
                 >
                   {tab.label}
                 </Link>
@@ -459,10 +474,11 @@ function TabIconBtn({
   return (
     <button
       type="button"
-      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${dark
-        ? "bg-blue-900 text-white hover:bg-blue-800"
-        : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
-        }`}
+      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${
+        dark
+          ? "bg-blue-900 text-white hover:bg-blue-800"
+          : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
+      }`}
     >
       {children}
     </button>
