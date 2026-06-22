@@ -462,7 +462,7 @@ export default function MyInfoPage() {
             onClick={() => setActiveTab(idx)}
             className={`px-6 py-2 text-sm font-medium whitespace-nowrap rounded-full transition ${
               activeTab === idx
-                ? "bg-[#fff3e0] text-[#ff9800]"
+                ? "bg-[#fff3e0] text-[#c6410c]"
                 : "text-[#757575] hover:bg-gray-50"
             }`}
           >
