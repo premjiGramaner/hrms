@@ -1,12 +1,12 @@
-import pg from 'pg';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import path from 'path';
+import pg from "pg";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import path from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const { Pool } = pg;
 
@@ -17,8 +17,8 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-pool.on('error', (err) => {
-  console.error('PostgreSQL pool error:', err.message);
+pool.on("error", (err) => {
+  console.error("PostgreSQL pool error:", err.message);
 });
 
 export default pool;

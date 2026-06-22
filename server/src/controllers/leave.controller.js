@@ -249,8 +249,8 @@ const rejectLeave = async (req, res, next) => {
     // Restore balance for any active status (Pending Approval, Approved, Scheduled, Taken)
     // Balance was deducted on submission, so always restore on rejection
     try {
-      const sd = new Date(leave.start_date);
-      const year = sd.getMonth() >= 3 ? sd.getFullYear() + 1 : sd.getFullYear();
+      const starting_date = new Date(leave.start_date);
+      const year = starting_date.getMonth() >= 3 ? starting_date.getFullYear() + 1 : starting_date.getFullYear();
       await LeaveModel.restoreLeaveBalance(
         leave.employee_id,
         leave.leave_type_id,
@@ -283,8 +283,8 @@ const cancelLeave = async (req, res, next) => {
 
     // Balance was deducted on submission — always restore on cancellation
     try {
-      const sd = new Date(leave.start_date);
-      const year = sd.getMonth() >= 3 ? sd.getFullYear() + 1 : sd.getFullYear();
+      const starting_date = new Date(leave.start_date);
+      const year = starting_date.getMonth() >= 3 ? starting_date.getFullYear() + 1 : starting_date.getFullYear();
       await LeaveModel.restoreLeaveBalance(
         cancelled.employee_id,
         cancelled.leave_type_id,

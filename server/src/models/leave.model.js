@@ -291,8 +291,6 @@ async function createLeaveRequest(data) {
   return rows[0];
 }
 
-// Creates a leave request and deducts balance atomically in a transaction.
-// Prevents double-deduction by checking the entitlement balance inside the transaction.
 async function createLeaveRequestWithDeduction(
   data,
   leaveTypeId,
@@ -328,7 +326,6 @@ async function createLeaveRequestWithDeduction(
       );
     }
 
-    // Insert the leave request
     const { rows } = await client.query(
       `INSERT INTO tbl_leave_requests
          (employee_id, leave_type_id, start_date, end_date, requested_days, reason,
@@ -347,8 +344,6 @@ async function createLeaveRequestWithDeduction(
         data.comments || null,
       ],
     );
-
-    // Deduct balance
     await client.query(
       `UPDATE tbl_leave_entitlements
        SET used_days = used_days + $1, updated_at = NOW()
