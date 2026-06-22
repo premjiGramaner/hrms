@@ -167,8 +167,11 @@ const terminateEmployee = async (req, res, next) => {
       return error(res, "Termination reason is required", 422);
     if (!terminationDateTime)
       return error(res, "Termination date and time is required", 422);
-    if (notes === undefined || String(notes).trim() === "")
-      return error(res, "Notes or description is required", 422);
+
+    const datePart = terminationDateTime.split("T")[0];
+    if (!datePart || isNaN(Date.parse(datePart))) {
+      return error(res, "Invalid termination date", 422);
+    }
 
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
@@ -177,7 +180,8 @@ const terminateEmployee = async (req, res, next) => {
       id,
       String(terminationReason).trim(),
       terminationDateTime,
-      String(notes).trim(),
+      datePart,
+      notes !== undefined && notes !== null ? String(notes).trim() : null,
       req.user?.id,
     );
 

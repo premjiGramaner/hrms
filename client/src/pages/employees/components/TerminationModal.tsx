@@ -68,10 +68,6 @@ export default function TerminationModal({
       newErrors.terminationDateTime = "Termination date and time is required";
     }
 
-    if (!terminationForm.notes.trim()) {
-      newErrors.notes = "Notes or description is required";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -305,7 +301,7 @@ export default function TerminationModal({
             </div>
 
             <div>
-              {renderTextArea("notes", "Enter notes or description", true)}
+              {renderTextArea("notes", "Enter notes or description", false)}
             </div>
           </div>
         </div>

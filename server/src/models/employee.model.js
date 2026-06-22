@@ -298,24 +298,28 @@ async function softDeleteEmployee(id, deletedBy) {
 async function terminateEmployee(
   id,
   terminationReason,
-  terminationDateTime,
+  terminationDateTimeFull,
+  terminationDate,
   notes,
   terminatedBy,
 ) {
+  const notesValue = notes !== null && notes !== undefined ? notes : null;
+  const notesForComments = notesValue !== null ? notesValue : "";
+
   const result = await pool.query(
     `UPDATE tbl_appusers SET 
-          employment_status = 'Terminated',
-          is_active = false,
-          contract_end_date = $1,
-          comments = COALESCE(comments, '') || $2,
-          note = $3,
-          updated_by = $4,
-          updated_at = NOW()
-        WHERE id = $5::bigint AND is_deleted = false`,
+           employment_status = 'Terminated',
+           is_active = false,
+           contract_end_date = $1,
+           comments = COALESCE(comments, '') || $2,
+           note = $3,
+           updated_by = $4,
+           updated_at = NOW()
+         WHERE id = $5::bigint AND is_deleted = false`,
     [
-      terminationDateTime,
-      `Termination Reason: ${terminationReason}\nTermination Date/Time: ${terminationDateTime}\nNotes: ${notes}`,
-      notes,
+      terminationDate,
+      `Termination Reason: ${terminationReason}\nTermination Date/Time: ${terminationDateTimeFull}\nNotes: ${notesForComments}`,
+      notesValue,
       terminatedBy || null,
       id,
     ],

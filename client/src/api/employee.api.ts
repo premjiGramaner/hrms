@@ -64,7 +64,7 @@ export const terminateEmployee = async (
   terminationData: {
     terminationReason: string;
     terminationDateTime: string;
-    notes: string;
+    notes?: string;
   },
 ) => {
   const response = await api.post<{
