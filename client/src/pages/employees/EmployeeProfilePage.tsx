@@ -1,11 +1,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
-import {
-  deleteEmployee,
-  getEmployee,
-  updateEmployee,
-} from "../../api/employee.api";
+import { getEmployee, updateEmployee } from "../../api/employee.api";
 import { Employee } from "../../types";
 import {
   ATTENDANCE_CALCULATION_TYPES,
@@ -34,6 +30,7 @@ import {
 import LeaveBalance from "./components/LeaveBalance";
 import LeaveList from "./components/LeaveList";
 import QuickAccess from "./components/QuickAccess";
+import TerminationModal from "./components/TerminationModal";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -53,6 +50,7 @@ export default function EmployeeProfilePage() {
   const [terminating, setTerminating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EditableEmployeeProfileForm | null>(null);
+  const [showTerminationModal, setShowTerminationModal] = useState(false);
 
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -102,23 +100,9 @@ export default function EmployeeProfilePage() {
     );
   }
 
-  const handleTerminateEmployment = async () => {
-    if (!employee.id || terminating) return;
-    if (!confirm("Terminate this employee?")) return;
-
-    try {
-      setTerminating(true);
-      await deleteEmployee(employee.id);
-      navigate("/employees", {
-        replace: true,
-        state: { message: "Employee terminated successfully." },
-      });
-    } catch (err: unknown) {
-      setActionMessage(
-        getApiErrorMessage(err, "Failed to terminate employee."),
-      );
-      setTerminating(false);
-    }
+  const handleTerminateEmployment = () => {
+    if (!employee.id) return;
+    setShowTerminationModal(true);
   };
 
   const handleFieldChange = (
@@ -527,7 +511,6 @@ export default function EmployeeProfilePage() {
         </div>
       )}
 
-      {/* Profile Tabs */}
       <div className="mb-6 bg-white rounded-lg shadow-sm p-2 flex overflow-x-auto gap-2">
         {PROFILE_TABS.map((tab, idx) => (
           <button
@@ -545,6 +528,18 @@ export default function EmployeeProfilePage() {
       </div>
 
       {renderTabContent()}
+      {showTerminationModal && (
+        <TerminationModal
+          employeeId={employee!.id}
+          onClose={() => setShowTerminationModal(false)}
+          onSuccess={() => {
+            navigate("/employees", {
+              replace: true,
+              state: { message: "Employee terminated successfully." },
+            });
+          }}
+        />
+      )}
     </Layout>
   );
 }

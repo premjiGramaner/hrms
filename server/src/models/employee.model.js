@@ -39,13 +39,13 @@ async function findAllEmployees(page, limit = 15) {
               ELSE supervisors::json
             END AS supervisors
      FROM tbl_appusers
-     WHERE is_deleted = false AND role = 'employee'
+     WHERE is_deleted = false AND role = 'employee' AND (employment_status IS NULL OR employment_status != 'Terminated')
      ORDER BY created_at DESC
      LIMIT $1 OFFSET $2`,
     [limit, offset],
   );
   const { rows: cnt } = await pool.query(
-    `SELECT COUNT(*)::int as count FROM tbl_appusers WHERE is_deleted = false AND role = 'employee'`,
+    `SELECT COUNT(*)::int as count FROM tbl_appusers WHERE is_deleted = false AND role = 'employee' AND (employment_status IS NULL OR employment_status != 'Terminated')`,
   );
   const total = cnt[0].count;
   return { data: rows, total, page, totalPages: Math.ceil(total / limit) };
@@ -289,10 +289,43 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
 async function softDeleteEmployee(id, deletedBy) {
   const result = await pool.query(
     `UPDATE tbl_appusers SET is_deleted = true, updated_by = $1, updated_at = NOW()
-     WHERE id = $2::bigint AND is_deleted = false`,
+      WHERE id = $2::bigint AND is_deleted = false`,
     [deletedBy || null, id],
   );
   if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
+}
+
+async function terminateEmployee(
+  id,
+  terminationReason,
+  terminationDateTimeFull,
+  terminationDate,
+  notes,
+  terminatedBy,
+) {
+  const notesValue = notes !== null && notes !== undefined ? notes : null;
+  const notesForComments = notesValue !== null ? notesValue : "";
+
+  const result = await pool.query(
+    `UPDATE tbl_appusers SET 
+           employment_status = 'Terminated',
+           is_active = false,
+           contract_end_date = $1,
+           comments = COALESCE(comments, '') || $2,
+           note = $3,
+           updated_by = $4,
+           updated_at = NOW()
+         WHERE id = $5::bigint AND is_deleted = false`,
+    [
+      terminationDate,
+      `Termination Reason: ${terminationReason}\nTermination Date/Time: ${terminationDateTimeFull}\nNotes: ${notesForComments}`,
+      notesValue,
+      terminatedBy || null,
+      id,
+    ],
+  );
+  if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
+  return result.rowCount;
 }
 
 async function getSupervisors() {
@@ -321,6 +354,7 @@ export {
   createEmployee,
   updateEmployee,
   softDeleteEmployee,
+  terminateEmployee,
   getSupervisors,
   findByEmail,
 };

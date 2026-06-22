@@ -11,6 +11,7 @@ import {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  terminateEmployee,
 } from "../controllers/employee.controller.js";
 
 const router = Router();
@@ -33,5 +34,6 @@ router.put(
   updateEmployee,
 );
 router.delete("/:id", deleteEmployee);
+router.post("/:id/terminate", terminateEmployee);
 
 export default router;

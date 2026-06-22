@@ -156,6 +156,52 @@ const deleteEmployee = async (req, res, next) => {
   }
 };
 
+const terminateEmployee = async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id) || id <= 0) return error(res, "Invalid employee ID", 400);
+
+    const { terminationReason, terminationDateTime, notes } = req.body;
+
+    if (!terminationReason || String(terminationReason).trim() === "")
+      return error(res, "Termination reason is required", 422);
+    if (!terminationDateTime)
+      return error(res, "Termination date and time is required", 422);
+
+    const datePart = terminationDateTime.split("T")[0];
+    if (!datePart || isNaN(Date.parse(datePart))) {
+      return error(res, "Invalid termination date", 422);
+    }
+
+    const existing = await EmployeeModel.findEmployeeById(id);
+    if (!existing) return error(res, "Employee not found", 404);
+
+    await EmployeeModel.terminateEmployee(
+      id,
+      String(terminationReason).trim(),
+      terminationDateTime,
+      datePart,
+      notes !== undefined && notes !== null ? String(notes).trim() : null,
+      req.user?.id,
+    );
+
+    await writeAuditLog({
+      employeeId: existing.id,
+      employeeName: existing.name,
+      employeeUsername: existing.username,
+      section: existing.role || "employee",
+      action: "TERMINATE",
+      actor: req.user,
+      performedScreen: "Employee Management",
+      actionDescription: `Employee terminated: ${existing.name}. Reason: ${terminationReason}`,
+    });
+
+    return success(res, { message: "Employee terminated successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export {
   listEmployees,
   getMyInfo,
@@ -164,4 +210,5 @@ export {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  terminateEmployee,
 };

@@ -1,11 +1,11 @@
 import api from "./axios";
 import { Employee, PaginatedResponse } from "../types";
 
-export const getEmployees = async (page = 1, limit = 15) => {
+export const getEmployees = async (page = 1) => {
   const response = await api.get<{
     success: boolean;
     data: PaginatedResponse<Employee>;
-  }>(`/employees?page=${page}&limit=${limit}&_=${Date.now()}`);
+  }>(`/employees?page=${page}&_=${Date.now()}`);
   return { data: response.data.data };
 };
 
@@ -56,5 +56,21 @@ export const deleteEmployee = async (id: number) => {
     success: boolean;
     data: { message: string };
   }>(`/employees/${id}`);
+  return { data: response.data.data };
+};
+
+export const terminateEmployee = async (
+  id: number,
+  terminationData: {
+    terminationReason: string;
+    terminationDateTime: string;
+    notes?: string;
+  },
+) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { message: string };
+  }>(`/employees/${id}/terminate`, terminationData);
+
   return { data: response.data.data };
 };

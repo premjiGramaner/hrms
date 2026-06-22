@@ -20,7 +20,7 @@ export const jwtSecret =
 export const jwtExpiresIn = process.env.JWT_EXPIRES_IN || "24h";
 export const corsOrigins = (process.env.CORS_ORIGINS ?? "")
   .split(",")
-  .map((o) => o.trim())
+  .map((origin) => origin.trim())
   .filter(Boolean);
 
 export default { nodeEnv, port, jwtSecret, jwtExpiresIn, corsOrigins };
