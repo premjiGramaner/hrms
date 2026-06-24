@@ -77,10 +77,6 @@ export default function Layout({
     ...(isAdmin
       ? [{ to: "#", label: "Reports and Analytics", icon: <IconChart /> }]
       : []),
-<<<<<<< HEAD
-=======
-    // Employee gets /leave/apply, Admin keeps /leave/view_leave_list
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     {
       to: isAdmin ? "/leave/view_leave_list" : "/leave/apply",
       label: "Leave",

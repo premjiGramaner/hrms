@@ -181,17 +181,12 @@ export default function AddEmployeeModal({
       selectedSupervisors,
       supervisors.length,
     );
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     if (stepNumber === 1) {
       if (formRef.current.location === "Other" && !customLocation.trim()) {
         nextErrors.customLocation = "Please enter a location";
       }
     }
-<<<<<<< HEAD
 
     if (stepNumber === 4) {
       const workEmail = formRef.current.work_email?.trim();
@@ -201,26 +196,11 @@ export default function AddEmployeeModal({
         nextErrors.work_email = errors.work_email;
       }
 
-=======
-    
-    if (stepNumber === 4) {
-      const workEmail = formRef.current.work_email?.trim();
-      const otherEmail = formRef.current.other_email?.trim();
-      
-      if (errors.work_email && workEmail) {
-        nextErrors.work_email = errors.work_email;
-      }
-      
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       if (errors.other_email && otherEmail) {
         nextErrors.other_email = errors.other_email;
       }
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -238,7 +218,6 @@ export default function AddEmployeeModal({
       const firstErrorField = Object.keys(errors)[0];
       if (firstErrorField) {
         setTimeout(() => {
-<<<<<<< HEAD
           const errorElement = document.querySelector(
             `input[name="${firstErrorField}"], select[name="${firstErrorField}"], textarea[name="${firstErrorField}"]`,
           ) as HTMLElement;
@@ -254,29 +233,15 @@ export default function AddEmployeeModal({
                   behavior: "smooth",
                   block: "center",
                 });
-=======
-          const errorElement = document.querySelector(`input[name="${firstErrorField}"], select[name="${firstErrorField}"], textarea[name="${firstErrorField}"]`) as HTMLElement;
-          if (!errorElement) {
-            const allInputs = document.querySelectorAll('input, select, textarea');
-            for (const input of Array.from(allInputs)) {
-              const inputElement = input as HTMLInputElement;
-              if (inputElement.classList.contains('border-red-500')) {
-                inputElement.focus();
-                inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                 break;
               }
             }
           } else {
             errorElement.focus();
-<<<<<<< HEAD
             errorElement.scrollIntoView({
               behavior: "smooth",
               block: "center",
             });
-=======
-            errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
           }
         }, 100);
       }
@@ -291,19 +256,11 @@ export default function AddEmployeeModal({
     try {
       const formData = new FormData();
       const formDataToSubmit = { ...formRef.current };
-<<<<<<< HEAD
 
       if (formRef.current.location === "Other" && customLocation.trim()) {
         formDataToSubmit.location = customLocation.trim();
       }
 
-=======
-      
-      if (formRef.current.location === "Other" && customLocation.trim()) {
-        formDataToSubmit.location = customLocation.trim();
-      }
-      
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       Object.entries(formDataToSubmit).forEach(([key, val]) => {
         const value = String(val).trim();
         if (value) formData.append(key, value);
@@ -316,7 +273,6 @@ export default function AddEmployeeModal({
       onClose();
     } catch (err: any) {
       const errorMessage = getApiErrorMessage(err);
-<<<<<<< HEAD
 
       if (
         errorMessage.toLowerCase().includes("email") &&
@@ -325,35 +281,20 @@ export default function AddEmployeeModal({
         const workEmail = formRef.current.work_email?.trim();
         const otherEmail = formRef.current.other_email?.trim();
 
-=======
-      
-      if (errorMessage.toLowerCase().includes("email") && errorMessage.toLowerCase().includes("exist")) {
-        const workEmail = formRef.current.work_email?.trim();
-        const otherEmail = formRef.current.other_email?.trim();
-        
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
         if (workEmail) {
           setErrors((prev) => ({
             ...prev,
             work_email: "This email address is already registered",
           }));
         }
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
         if (otherEmail && otherEmail === workEmail) {
           setErrors((prev) => ({
             ...prev,
             other_email: "This email address is already registered",
           }));
         }
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
         setStep(4);
       } else {
         setErrors({ submit: errorMessage });
@@ -371,7 +312,6 @@ export default function AddEmployeeModal({
         e.target.tagName === "TEXTAREA"
       ) {
         e.preventDefault();
-<<<<<<< HEAD
 
         const targetElement = e.target as
           | HTMLInputElement
@@ -380,31 +320,16 @@ export default function AddEmployeeModal({
         const fieldName =
           targetElement.name || targetElement.getAttribute("name");
 
-=======
-        
-        const targetElement = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-        const fieldName = targetElement.name || targetElement.getAttribute('name');
-        
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
         if (fieldName && errors[fieldName]) {
           targetElement.focus();
           return;
         }
-<<<<<<< HEAD
 
         const form = e.currentTarget;
         const focusableElements = Array.from(
           form.querySelectorAll(
             'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])',
           ),
-=======
-        
-        const form = e.currentTarget;
-        const focusableElements = Array.from(
-          form.querySelectorAll(
-            'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'
-          )
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
         ) as HTMLElement[];
         const currentIndex = focusableElements.indexOf(e.target);
         if (currentIndex > -1 && currentIndex < focusableElements.length - 1) {
@@ -416,17 +341,10 @@ export default function AddEmployeeModal({
 
   const handleSelectChange = (
     fieldName: keyof typeof initialForm,
-<<<<<<< HEAD
     event: ChangeEvent<HTMLSelectElement>,
   ) => {
     formRef.current[fieldName] = event.target.value;
 
-=======
-    event: ChangeEvent<HTMLSelectElement>
-  ) => {
-    formRef.current[fieldName] = event.target.value;
-    
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     if (fieldName === "location") {
       if (event.target.value === "Other") {
         setShowCustomLocation(true);
@@ -442,11 +360,7 @@ export default function AddEmployeeModal({
         }
       }
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     if (errors[fieldName]) {
       setErrors((prev) => {
         const n = { ...prev };
@@ -454,32 +368,19 @@ export default function AddEmployeeModal({
         return n;
       });
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     if (errors[fieldName]) {
       event.target.focus();
       return;
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     const selectElement = event.target;
     const form = selectElement.closest("form");
     if (form) {
       const focusableElements = Array.from(
         form.querySelectorAll(
-<<<<<<< HEAD
           'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])',
         ),
-=======
-          'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'
-        )
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       ) as HTMLElement[];
       const currentIndex = focusableElements.indexOf(selectElement);
       if (currentIndex > -1 && currentIndex < focusableElements.length - 1) {
@@ -488,15 +389,11 @@ export default function AddEmployeeModal({
     }
   };
 
-<<<<<<< HEAD
   const handleEmailBlur = async (
     email: string,
     fieldName: "work_email" | "other_email",
     element: HTMLInputElement,
   ) => {
-=======
-  const handleEmailBlur = async (email: string, fieldName: "work_email" | "other_email", element: HTMLInputElement) => {
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     if (!email.trim()) {
       setErrors((prev) => {
         const n = { ...prev };
@@ -505,11 +402,7 @@ export default function AddEmployeeModal({
       });
       return;
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setErrors((prev) => ({
@@ -585,7 +478,6 @@ export default function AddEmployeeModal({
           errors[name]
             ? "border-red-500 bg-red-50"
             : checkingEmail
-<<<<<<< HEAD
               ? "border-blue-500 bg-blue-50"
               : "border-slate-200 bg-slate-50 focus:border-slate-300"
         }`}
@@ -594,14 +486,6 @@ export default function AddEmployeeModal({
         <span className="text-xs text-blue-600 mt-1 block">
           Checking email...
         </span>
-=======
-            ? "border-blue-500 bg-blue-50"
-            : "border-slate-200 bg-slate-50 focus:border-slate-300"
-        }`}
-      />
-      {checkingEmail && (
-        <span className="text-xs text-blue-600 mt-1 block">Checking email...</span>
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       )}
       {errors[name] && (
         <span className="text-xs text-red-600 mt-1 block">{errors[name]}</span>
@@ -800,13 +684,7 @@ export default function AddEmployeeModal({
   const renderPhoneField = () => renderMobileInput();
 
   return (
-<<<<<<< HEAD
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-=======
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-    >
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-900 to-teal-600">
           <h2 className="m-0 text-base font-bold text-white">
@@ -1130,19 +1008,8 @@ export default function AddEmployeeModal({
                   renderEmailInput("other_email", "personal@email.com"),
                 )}
                 {FormField("Mobile", renderPhoneField(), true)}
-<<<<<<< HEAD
                 {FormField("Work Tel", renderWorkTelInput())}
                 {FormField("Home Tel", renderHomeTelInput())}
-=======
-                {FormField(
-                  "Work Tel",
-                  renderWorkTelInput(),
-                )}
-                {FormField(
-                  "Home Tel",
-                  renderHomeTelInput(),
-                )}
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                 {FormField(
                   "Address Line 1",
                   renderInput("address1", "Street address"),

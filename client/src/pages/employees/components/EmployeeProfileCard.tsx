@@ -10,39 +10,27 @@ interface Props {
   onEmployeeUpdate?: (updatedEmployee: Employee) => void;
 }
 
-<<<<<<< HEAD
 export default function EmployeeProfileCard({
   employee,
   onEmployeeUpdate,
 }: Props) {
-=======
-export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Props) {
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
   const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now()); // For cache busting
 
-<<<<<<< HEAD
   const fullName =
     employee.name ||
-=======
-  const fullName = employee.name ||
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     `${employee.first_name || ""} ${employee.last_name || ""}`.trim();
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
   };
 
-<<<<<<< HEAD
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-=======
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -61,7 +49,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
     try {
       setUploading(true);
       setUploadMessage("");
-<<<<<<< HEAD
 
       const formData = new FormData();
       formData.append("avatar", file);
@@ -76,33 +63,15 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
       const newTimestamp = Date.now();
       setAvatarTimestamp(newTimestamp);
 
-=======
-      
-      const formData = new FormData();
-      formData.append('avatar', file);
-      
-      // Use dedicated profile image update endpoint (no email validation)
-      const { data: updatedEmployee } = await updateProfileImage(employee.id, formData);
-      
-      // Update timestamp for cache busting
-      const newTimestamp = Date.now();
-      setAvatarTimestamp(newTimestamp);
-      
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       // Update Redux store so sidebar avatar updates immediately
       if (updatedEmployee.avatar) {
         dispatch(updateUserAvatar(updatedEmployee.avatar));
       }
-<<<<<<< HEAD
 
-=======
-      
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       // Update parent component with fresh employee data
       if (onEmployeeUpdate) {
         onEmployeeUpdate(updatedEmployee);
       }
-<<<<<<< HEAD
 
       setUploadMessage("Profile picture updated successfully!");
       setTimeout(() => setUploadMessage(""), 3000);
@@ -110,13 +79,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
       setUploadMessage(
         getApiErrorMessage(error, "Failed to update profile picture."),
       );
-=======
-      
-      setUploadMessage("Profile picture updated successfully!");
-      setTimeout(() => setUploadMessage(""), 3000);
-    } catch (error) {
-      setUploadMessage(getApiErrorMessage(error, "Failed to update profile picture."));
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     } finally {
       setUploading(false);
       // Clear the file input
@@ -127,13 +89,8 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
   };
 
   // Generate avatar URL with cache busting
-<<<<<<< HEAD
   const avatarUrl = employee.avatar
     ? `/uploads/${employee.avatar}?t=${avatarTimestamp}`
-=======
-  const avatarUrl = employee.avatar 
-    ? `/uploads/${employee.avatar}?t=${avatarTimestamp}` 
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     : null;
 
   return (
@@ -141,7 +98,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
       <h2 className="text-base font-semibold text-[#333333] mb-4">About</h2>
 
       {uploadMessage && (
-<<<<<<< HEAD
         <div
           className={`mb-4 p-3 rounded-lg text-sm ${
             uploadMessage.includes("successfully") ||
@@ -150,13 +106,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
               : "bg-red-100 text-red-700 border border-red-200"
           }`}
         >
-=======
-        <div className={`mb-4 p-3 rounded-lg text-sm ${
-          uploadMessage.includes('successfully') || uploadMessage.includes('Success')
-            ? 'bg-green-100 text-green-700 border border-green-200'
-            : 'bg-red-100 text-red-700 border border-red-200'
-        }`}>
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
           {uploadMessage}
         </div>
       )}
@@ -164,11 +113,7 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
       <div className="flex flex-col sm:flex-row gap-6">
         {/* Avatar */}
         <div className="flex-shrink-0">
-<<<<<<< HEAD
           <div
-=======
-          <div 
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
             className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center border-4 border-white shadow-lg cursor-pointer hover:shadow-xl transition-shadow group"
             onClick={handleImageClick}
           >
@@ -183,17 +128,12 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
                 {(fullName[0] || "E").toUpperCase()}
               </span>
             )}
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
             {/* Upload overlay */}
             <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               {uploading ? (
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-<<<<<<< HEAD
                 <svg
                   className="w-6 h-6 text-white"
                   fill="none"
@@ -212,20 +152,11 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
                     strokeWidth={2}
                     d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
                   />
-=======
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                 </svg>
               )}
             </div>
           </div>
-<<<<<<< HEAD
 
-=======
-          
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
           <input
             ref={fileInputRef}
             type="file"
@@ -233,7 +164,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
             onChange={handleFileChange}
             className="hidden"
           />
-<<<<<<< HEAD
 
           <div className="text-center mt-4">
             <h3 className="font-bold text-lg text-[#333333]">{fullName}</h3>
@@ -247,14 +177,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
               className="text-xs text-gray-500 mt-2 cursor-pointer"
               onClick={handleImageClick}
             >
-=======
-          
-          <div className="text-center mt-4">
-            <h3 className="font-bold text-lg text-[#333333]">{fullName}</h3>
-            <p className="text-sm text-[#757575]">{employee.job_title || "Employee"}</p>
-            <p className="text-xs text-[#00897b] mt-1">📍 {employee.location || "Not specified"}</p>
-            <p className="text-xs text-gray-500 mt-2 cursor-pointer" onClick={handleImageClick}>
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
               Click to change photo
             </p>
           </div>
@@ -272,7 +194,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
                 <p className="text-xs text-[#757575]">Employee Id</p>
                 <p className="text-sm text-[#00897b] font-medium">
                   {employee.employee_id || "N/A"}
-<<<<<<< HEAD
                 </p>
               </div>
               <div>
@@ -289,8 +210,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
                 <p className="text-xs text-[#757575]">Location</p>
                 <p className="text-sm text-[#333333]">
                   {employee.location || "N/A"}
-=======
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                 </p>
               </div>
               <div>
@@ -349,7 +268,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
               <div>
                 <p className="text-xs text-[#757575]">Status</p>
                 <div className="flex items-center gap-2">
-<<<<<<< HEAD
                   <span
                     className={`w-2 h-2 rounded-full ${
                       employee.is_active ? "bg-green-500" : "bg-red-500"
@@ -357,13 +275,6 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
                   ></span>
                   <span className="text-sm text-[#333333]">
                     {employee.is_active ? "Active" : "Inactive"}
-=======
-                  <span className={`w-2 h-2 rounded-full ${
-                    employee.is_active ? 'bg-green-500' : 'bg-red-500'
-                  }`}></span>
-                  <span className="text-sm text-[#333333]">
-                    {employee.is_active ? 'Active' : 'Inactive'}
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                   </span>
                 </div>
               </div>
@@ -378,13 +289,9 @@ export default function EmployeeProfileCard({ employee, onEmployeeUpdate }: Prop
             <div className="space-y-2">
               <div>
                 <p className="text-xs text-[#757575]">Work Phone</p>
-<<<<<<< HEAD
                 <p className="text-sm text-[#00897b]">
                   {employee.work_tel || employee.mobile || "N/A"}
                 </p>
-=======
-                <p className="text-sm text-[#00897b]">{employee.work_tel || employee.mobile || "N/A"}</p>
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
               </div>
               <div>
                 <p className="text-xs text-[#757575]">Work Email</p>

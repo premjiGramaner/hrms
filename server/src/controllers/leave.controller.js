@@ -1,4 +1,4 @@
-ï»¿import ExcelJS from "exceljs";
+import ExcelJS from "exceljs";
 import * as LeaveModel from "../models/leave.model.js";
 import { success, created, error } from "../utils/response.js";
 
@@ -154,7 +154,7 @@ const createLeave = async (req, res, next) => {
     const data = { ...req.body, employee_id: parseInt(employeeId) };
     const requestedDays = parseFloat(data.requested_days) || 1;
     const leaveTypeId = parseInt(data.leave_type_id);
-    // Derive financial year (Aprâ€“Mar): if start_date month >= April (3), year+1; else year
+    // Derive financial year (Apr–Mar): if start_date month >= April (3), year+1; else year
     const startDate = new Date(data.start_date);
     const year =
       startDate.getMonth() >= 3
@@ -217,7 +217,7 @@ const approveLeave = async (req, res, next) => {
     const approved = await LeaveModel.approveLeave(id, actorId);
     if (!approved) return error(res, "Failed to approve leave", 500);
 
-    // Balance was already deducted on submission â€” no further deduction needed
+    // Balance was already deducted on submission — no further deduction needed
     return success(res, { message: "Leave approved successfully" });
   } catch (err) {
     next(err);
@@ -296,7 +296,7 @@ const cancelLeave = async (req, res, next) => {
     const cancelled = await LeaveModel.cancelLeave(id, actorId);
     if (!cancelled) return error(res, "Failed to cancel leave", 500);
 
-    // Balance was deducted on submission â€” always restore on cancellation
+    // Balance was deducted on submission — always restore on cancellation
     try {
       const starting_date = new Date(leave.start_date);
       const year =
@@ -405,7 +405,6 @@ const exportSummary = async (req, res, next) => {
     ws.columns = [
       { width: 14 }, 
       { width: 14 },
-<<<<<<< HEAD
       { width: 14 },
       { width: 16 },
       { width: 14 },
@@ -425,26 +424,6 @@ const exportSummary = async (req, res, next) => {
       { width: 16 },
       { width: 18 },
       { width: 30 },
-=======
-      { width: 16 }, 
-      { width: 14 }, 
-      { width: 24 }, 
-      { width: 20 }, 
-      { width: 20 }, 
-      { width: 20 }, 
-      { width: 18 }, 
-      { width: 20 },
-      { width: 18 }, 
-      { width: 18 }, 
-      { width: 8 },  
-      { width: 12 }, 
-      { width: 8 },  
-      { width: 18 }, 
-      { width: 18 }, 
-      { width: 16 }, 
-      { width: 18 }, 
-      { width: 30 }, 
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     ];
 
     rows.forEach((row, idx) => {
@@ -575,15 +554,9 @@ const exportDetail = async (req, res, next) => {
       { width: 20 }, // Job Category
       { width: 18 }, // Work Schedule
       { width: 18 }, // Leave Type
-<<<<<<< HEAD
       { width: 8 }, // Unit
       { width: 12 }, // Entitlements
       { width: 8 }, // Used
-=======
-      { width: 8 },  // Unit
-      { width: 12 }, // Entitlements
-      { width: 8 },  // Used
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       { width: 18 }, // Net Leave Balance
       { width: 16 }, // Duration (Hours)
       { width: 16 }, // Status
@@ -637,14 +610,10 @@ const exportDetail = async (req, res, next) => {
             Taken: "FF7C3AED",
           };
           if (statusColors[row.status]) {
-<<<<<<< HEAD
             cell.font = {
               color: { argb: statusColors[row.status] },
               bold: true,
             };
-=======
-            cell.font = { color: { argb: statusColors[row.status] }, bold: true };
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
           }
         }
       });

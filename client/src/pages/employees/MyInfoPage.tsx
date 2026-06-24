@@ -62,7 +62,6 @@ export default function MyInfoPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-<<<<<<< HEAD
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {},
   );
@@ -70,11 +69,6 @@ export default function MyInfoPage() {
   const [jobCategoryOptions, setJobCategoryOptions] = useState<
     { id: number; category: string }[]
   >([]);
-=======
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-  const [jobTitleOptions, setJobTitleOptions] = useState<string[]>([]);
-  const [jobCategoryOptions, setJobCategoryOptions] = useState<{ id: number; category: string }[]>([]);
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
   const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
   const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
 
@@ -84,15 +78,11 @@ export default function MyInfoPage() {
         .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
         .catch(() => {});
       getJobCategories()
-<<<<<<< HEAD
         .then((res) =>
           setJobCategoryOptions(
             res.data.map((c) => ({ id: c.id, category: c.category })),
           ),
         )
-=======
-        .then((res) => setJobCategoryOptions(res.data.map((c) => ({ id: c.id, category: c.category }))))
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
         .catch(() => {});
       getSubUnits()
         .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
@@ -127,7 +117,6 @@ export default function MyInfoPage() {
     >,
   ) => {
     const { name, value } = event.target;
-<<<<<<< HEAD
 
     // Handle numeric-only fields
     if (name === "mobile" || name === "work_tel" || name === "home_tel") {
@@ -144,22 +133,6 @@ export default function MyInfoPage() {
     setForm((current) => (current ? { ...current, [name]: value } : current));
     // Clear error for this field when user types
     setValidationErrors((prev) => ({ ...prev, [name]: "" }));
-=======
-    
-    // Handle numeric-only fields
-    if (name === 'mobile' || name === 'work_tel' || name === 'home_tel') {
-      // Only allow digits
-      const numericValue = value.replace(/\D/g, '');
-      setForm((current) => (current ? { ...current, [name]: numericValue } : current));
-      // Clear error for this field
-      setValidationErrors(prev => ({ ...prev, [name]: '' }));
-      return;
-    }
-    
-    setForm((current) => (current ? { ...current, [name]: value } : current));
-    // Clear error for this field when user types
-    setValidationErrors(prev => ({ ...prev, [name]: '' }));
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
   };
 
   const handleSave = async () => {
@@ -169,11 +142,7 @@ export default function MyInfoPage() {
       // Validate based on current tab
       let errors: ValidationErrors = {};
       const activeLabel = PROFILE_TABS[activeTab];
-<<<<<<< HEAD
 
-=======
-      
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       if (activeLabel === "Personal Details") {
         errors = validatePersonalDetails(form, isAdmin);
       } else if (activeLabel === "Contact Details") {
@@ -191,30 +160,18 @@ export default function MyInfoPage() {
       setSaving(true);
       setMessage("");
       setValidationErrors({});
-<<<<<<< HEAD
 
-=======
-      
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       const formData = new FormData();
 
       // Only include editable fields based on role
       Object.entries(form).forEach(([key, value]) => {
         // Employees cannot edit these fields
-<<<<<<< HEAD
         if (!isAdmin && (key === "employee_id" || key === "real_dob")) {
-=======
-        if (!isAdmin && (key === 'employee_id' || key === 'real_dob')) {
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
           return;
         }
         formData.append(key, value.trim());
       });
-<<<<<<< HEAD
 
-=======
-      
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       formData.append("role", employee.role || "employee");
       formData.append(
         "supervisors",
@@ -225,7 +182,6 @@ export default function MyInfoPage() {
       const { data: updatedEmployee } = await getMyInfo();
       setEmployee(updatedEmployee);
       setForm(employeeToEditableProfileForm(updatedEmployee));
-<<<<<<< HEAD
 
       // Update Redux store if name changed
       if (updatedEmployee.name) {
@@ -233,15 +189,6 @@ export default function MyInfoPage() {
         dispatch(updateUserAvatar(updatedEmployee.avatar || ""));
       }
 
-=======
-      
-      // Update Redux store if name changed
-      if (updatedEmployee.name) {
-        // Trigger sidebar update by dispatching a dummy action
-        dispatch(updateUserAvatar(updatedEmployee.avatar || ''));
-      }
-      
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       setMessage("Profile updated successfully.");
       // Clear success message after 3 seconds
       setTimeout(() => setMessage(""), 3000);
@@ -401,13 +348,9 @@ export default function MyInfoPage() {
             name="job_category"
             value={form.job_category}
             onChange={handleFieldChange}
-<<<<<<< HEAD
             options={
               isAdmin ? jobCategoryOptions.map((c) => c.category) : undefined
             }
-=======
-            options={isAdmin ? jobCategoryOptions.map((c) => c.category) : undefined}
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
             readOnly={!isAdmin}
           />
           <EditableProfileField
@@ -587,13 +530,8 @@ export default function MyInfoPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-<<<<<<< HEAD
           <EmployeeProfileCard
             employee={employee}
-=======
-          <EmployeeProfileCard 
-            employee={employee} 
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
             onEmployeeUpdate={(updatedEmployee) => {
               setEmployee(updatedEmployee);
               setForm(employeeToEditableProfileForm(updatedEmployee));
