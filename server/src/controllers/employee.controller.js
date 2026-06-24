@@ -77,15 +77,11 @@ const createEmployee = async (req, res, next) => {
     if (otherEmail) {
       const existingOther = await EmployeeModel.findByEmail(otherEmail);
       if (existingOther)
-<<<<<<< HEAD
         return error(
           res,
           "An employee with this other email already exists",
           422,
         );
-=======
-        return error(res, "An employee with this other email already exists", 422);
->>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     }
 
     const avatarPath = req.file ? req.file.filename : undefined;
