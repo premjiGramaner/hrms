@@ -213,18 +213,6 @@ export default function EmployeeProfileCard({
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Full Name</p>
-                <p className="text-sm text-[#333333] font-medium">{fullName}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Designation</p>
-                <p className="text-sm text-[#333333]">{employee.job_title || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Location</p>
-                <p className="text-sm text-[#333333]">{employee.location || "N/A"}</p>
-              </div>
-              <div>
                 <p className="text-xs text-[#757575]">Birthday</p>
                 <p className="text-sm text-[#333333]">
                   {employee.dob

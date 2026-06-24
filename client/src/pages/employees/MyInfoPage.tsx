@@ -95,9 +95,6 @@ export default function MyInfoPage() {
       setLoading(true);
       setError("");
       const { data } = await getMyInfo();
-      console.log("Job Title:", data.job_title);
-      console.log("Sub Unit:", data.sub_unit);
-      console.log("Location:", data.location);
       setEmployee(data);
       setForm(employeeToEditableProfileForm(data));
     } catch (err: unknown) {
