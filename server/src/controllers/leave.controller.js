@@ -403,7 +403,9 @@ const exportSummary = async (req, res, next) => {
     });
     hdr.height = 20;
     ws.columns = [
+      { width: 14 }, 
       { width: 14 },
+<<<<<<< HEAD
       { width: 14 },
       { width: 16 },
       { width: 14 },
@@ -423,6 +425,26 @@ const exportSummary = async (req, res, next) => {
       { width: 16 },
       { width: 18 },
       { width: 30 },
+=======
+      { width: 16 }, 
+      { width: 14 }, 
+      { width: 24 }, 
+      { width: 20 }, 
+      { width: 20 }, 
+      { width: 20 }, 
+      { width: 18 }, 
+      { width: 20 },
+      { width: 18 }, 
+      { width: 18 }, 
+      { width: 8 },  
+      { width: 12 }, 
+      { width: 8 },  
+      { width: 18 }, 
+      { width: 18 }, 
+      { width: 16 }, 
+      { width: 18 }, 
+      { width: 30 }, 
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     ];
 
     rows.forEach((row, idx) => {
@@ -553,9 +575,15 @@ const exportDetail = async (req, res, next) => {
       { width: 20 }, // Job Category
       { width: 18 }, // Work Schedule
       { width: 18 }, // Leave Type
+<<<<<<< HEAD
       { width: 8 }, // Unit
       { width: 12 }, // Entitlements
       { width: 8 }, // Used
+=======
+      { width: 8 },  // Unit
+      { width: 12 }, // Entitlements
+      { width: 8 },  // Used
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       { width: 18 }, // Net Leave Balance
       { width: 16 }, // Duration (Hours)
       { width: 16 }, // Status
@@ -609,10 +637,14 @@ const exportDetail = async (req, res, next) => {
             Taken: "FF7C3AED",
           };
           if (statusColors[row.status]) {
+<<<<<<< HEAD
             cell.font = {
               color: { argb: statusColors[row.status] },
               bold: true,
             };
+=======
+            cell.font = { color: { argb: statusColors[row.status] }, bold: true };
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
           }
         }
       });

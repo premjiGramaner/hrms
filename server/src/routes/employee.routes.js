@@ -36,7 +36,15 @@ router.put(
   validate(employeeSchema),
   updateEmployee,
 );
+<<<<<<< HEAD
 router.patch("/:id/profile-image", upload.single("avatar"), updateProfileImage);
+=======
+router.patch(
+  "/:id/profile-image",
+  upload.single("avatar"),
+  updateProfileImage,
+);
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
 router.delete("/:id", deleteEmployee);
 router.post("/:id/terminate", terminateEmployee);
 

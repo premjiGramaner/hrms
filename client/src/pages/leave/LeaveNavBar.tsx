@@ -55,7 +55,11 @@ export default function LeaveNavBar() {
       <Link to="/leave/apply" className={tabCls(isActive("/leave/apply"))}>
         Apply
       </Link>
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       <Link
         to="/leave/view_leave_list"
         className={tabCls(isActive("/leave/view_leave_list"))}

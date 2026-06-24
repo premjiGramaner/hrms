@@ -10,14 +10,21 @@ interface Props {
 function formatDate(dateString: string) {
   const date = new Date(dateString);
   return {
+<<<<<<< HEAD
     day: date.getDate().toString().padStart(2, "0"),
     dayName: date.toLocaleDateString("en-US", { weekday: "short" }),
     month: date.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+=======
+    day: date.getDate().toString().padStart(2, '0'),
+    dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+    month: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
   };
 }
 
 function getStatusColor(status: string) {
   switch (status.toLowerCase()) {
+<<<<<<< HEAD
     case "approved":
       return "bg-green-500";
     case "pending approval":
@@ -28,6 +35,18 @@ function getStatusColor(status: string) {
       return "bg-gray-500";
     default:
       return "bg-blue-500";
+=======
+    case 'approved':
+      return 'bg-green-500';
+    case 'pending approval':
+      return 'bg-yellow-500';
+    case 'rejected':
+      return 'bg-red-500';
+    case 'cancelled':
+      return 'bg-gray-500';
+    default:
+      return 'bg-blue-500';
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
   }
 }
 
@@ -38,16 +57,28 @@ export default function LeaveList({ employee }: Props) {
 
   const loadLeaveList = async () => {
     if (!employee?.id) return;
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     try {
       setLoading(true);
       const response = await getLeaves({
         page: 1,
+<<<<<<< HEAD
         limit: 10,
       });
       setLeaves(response.data || []);
     } catch (error) {
       console.error("Failed to load leave list:", error);
+=======
+        limit: 10
+      });
+      setLeaves(response.data || []);
+    } catch (error) {
+      console.error('Failed to load leave list:', error);
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       setLeaves([]);
     } finally {
       setLoading(false);
@@ -59,6 +90,7 @@ export default function LeaveList({ employee }: Props) {
   }, [employee?.id]);
 
   const handleWidgetClick = () => {
+<<<<<<< HEAD
     navigate("/leave/view_leave_list");
   };
 
@@ -75,13 +107,32 @@ export default function LeaveList({ employee }: Props) {
     },
     {},
   );
+=======
+    navigate('/leave/view_leave_list');
+  };
+
+  // Group leaves by month
+  const groupedLeaves = leaves.reduce((groups: Record<string, LeaveRequest[]>, leave) => {
+    const date = formatDate(leave.start_date);
+    const monthKey = date.month;
+    if (!groups[monthKey]) {
+      groups[monthKey] = [];
+    }
+    groups[monthKey].push(leave);
+    return groups;
+  }, {});
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
 
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
+<<<<<<< HEAD
         <h2 className="text-base font-semibold text-[#333333] mb-4">
           Leave List
         </h2>
+=======
+        <h2 className="text-base font-semibold text-[#333333] mb-4">Leave List</h2>
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="animate-pulse">
@@ -102,6 +153,7 @@ export default function LeaveList({ employee }: Props) {
   }
 
   return (
+<<<<<<< HEAD
     <div
       className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
       onClick={handleWidgetClick}
@@ -109,6 +161,13 @@ export default function LeaveList({ employee }: Props) {
       <h2 className="text-base font-semibold text-[#333333] mb-4">
         Leave List
       </h2>
+=======
+    <div 
+      className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
+      onClick={handleWidgetClick}
+    >
+      <h2 className="text-base font-semibold text-[#333333] mb-4">Leave List</h2>
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
 
       <div className="space-y-4">
         {Object.keys(groupedLeaves).length === 0 ? (
@@ -123,6 +182,7 @@ export default function LeaveList({ employee }: Props) {
             .slice(0, 3) // Show only last 3 months
             .map(([month, monthLeaves]) => (
               <div key={month}>
+<<<<<<< HEAD
                 <h3 className="text-sm font-semibold text-[#333333] mb-2">
                   {month}
                 </h3>
@@ -137,12 +197,23 @@ export default function LeaveList({ employee }: Props) {
                       const startDate = formatDate(leave.start_date);
                       const statusColor = getStatusColor(leave.status);
 
+=======
+                <h3 className="text-sm font-semibold text-[#333333] mb-2">{month}</h3>
+                <div className="space-y-2">
+                  {monthLeaves
+                    .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime()) // Sort by newest first
+                    .map((leave) => {
+                      const startDate = formatDate(leave.start_date);
+                      const statusColor = getStatusColor(leave.status);
+                      
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                       return (
                         <div
                           key={leave.id}
                           className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
                         >
                           <div className="flex items-center gap-3">
+<<<<<<< HEAD
                             <div
                               className={`${statusColor} text-white w-12 h-12 rounded flex flex-col items-center justify-center`}
                             >
@@ -171,6 +242,26 @@ export default function LeaveList({ employee }: Props) {
                                         : "bg-gray-100 text-gray-800"
                                 }`}
                               >
+=======
+                            <div className={`${statusColor} text-white w-12 h-12 rounded flex flex-col items-center justify-center`}>
+                              <div className="text-xs font-semibold">{startDate.day}</div>
+                              <div className="text-xs">{startDate.dayName}</div>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-[#333333]">{leave.leave_type}</p>
+                              <p className="text-xs text-[#757575]">
+                                {leave.start_date === leave.end_date 
+                                  ? leave.start_date 
+                                  : `${leave.start_date} - ${leave.end_date}`
+                                }
+                              </p>
+                              <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${
+                                leave.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                                leave.status === 'Pending Approval' ? 'bg-yellow-100 text-yellow-800' :
+                                leave.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                                 {leave.status}
                               </span>
                             </div>
@@ -183,7 +274,12 @@ export default function LeaveList({ employee }: Props) {
                           </div>
                         </div>
                       );
+<<<<<<< HEAD
                     })}
+=======
+                    })
+                  }
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                 </div>
               </div>
             ))

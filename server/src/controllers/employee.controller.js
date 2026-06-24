@@ -77,11 +77,15 @@ const createEmployee = async (req, res, next) => {
     if (otherEmail) {
       const existingOther = await EmployeeModel.findByEmail(otherEmail);
       if (existingOther)
+<<<<<<< HEAD
         return error(
           res,
           "An employee with this other email already exists",
           422,
         );
+=======
+        return error(res, "An employee with this other email already exists", 422);
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     }
 
     const avatarPath = req.file ? req.file.filename : undefined;
@@ -124,21 +128,29 @@ const updateEmployee = async (req, res, next) => {
     if (workEmail) {
       const existingWork = await EmployeeModel.findByEmail(workEmail);
       if (existingWork && existingWork.id !== id)
+<<<<<<< HEAD
         return error(
           res,
           "An employee with this work email already exists",
           422,
         );
+=======
+        return error(res, "An employee with this work email already exists", 422);
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     }
 
     if (otherEmail) {
       const existingOther = await EmployeeModel.findByEmail(otherEmail);
       if (existingOther && existingOther.id !== id)
+<<<<<<< HEAD
         return error(
           res,
           "An employee with this other email already exists",
           422,
         );
+=======
+        return error(res, "An employee with this other email already exists", 422);
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     }
 
     const avatarPath = req.file ? req.file.filename : undefined;
@@ -175,11 +187,15 @@ const updateProfileImage = async (req, res, next) => {
 
     // Store only the filename, not the full path
     const avatarPath = req.file.filename;
+<<<<<<< HEAD
     const updated = await EmployeeModel.updateProfileImage(
       id,
       avatarPath,
       req.user?.id,
     );
+=======
+    const updated = await EmployeeModel.updateProfileImage(id, avatarPath, req.user?.id);
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
 
     await writeAuditLog({
       employeeId: existing.id,
@@ -230,12 +246,17 @@ const deleteEmployee = async (req, res, next) => {
 const checkEmailExists = async (req, res, next) => {
   try {
     const { email, employeeId } = req.body;
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     if (!email) {
       return success(res, { exists: false });
     }
 
     const existing = await EmployeeModel.findByEmail(email.trim());
+<<<<<<< HEAD
 
     if (!existing) {
       return success(res, { exists: false });
@@ -245,6 +266,17 @@ const checkEmailExists = async (req, res, next) => {
       return success(res, { exists: false });
     }
 
+=======
+    
+    if (!existing) {
+      return success(res, { exists: false });
+    }
+    
+    if (employeeId && existing.id === parseInt(employeeId)) {
+      return success(res, { exists: false });
+    }
+    
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     return success(res, { exists: true });
   } catch (err) {
     next(err);

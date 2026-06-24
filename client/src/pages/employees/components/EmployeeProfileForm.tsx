@@ -45,7 +45,12 @@ export function EditableProfileField({
   minLength,
 }: EditableProfileFieldProps) {
   const displayValue = value || "Not Assigned";
+<<<<<<< HEAD
   const controlClass = `min-h-[2.75rem] w-full rounded-lg border ${error ? "border-red-300" : "border-slate-200"} ${disabled || readOnly ? "bg-slate-50 cursor-not-allowed text-slate-500" : "bg-white"} px-3 py-2.5 text-sm font-medium ${disabled || readOnly ? "text-slate-500" : "text-slate-700"} outline-none transition ${disabled || readOnly ? "" : "focus:border-blue-300 focus:ring-2 focus:ring-blue-50"}`;
+=======
+  const controlClass =
+    `min-h-[2.75rem] w-full rounded-lg border ${error ? 'border-red-300' : 'border-slate-200'} ${disabled || readOnly ? 'bg-slate-50 cursor-not-allowed text-slate-500' : 'bg-white'} px-3 py-2.5 text-sm font-medium ${disabled || readOnly ? 'text-slate-500' : 'text-slate-700'} outline-none transition ${disabled || readOnly ? '' : 'focus:border-blue-300 focus:ring-2 focus:ring-blue-50'}`;
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
 
   if (readOnly) {
     return (
@@ -103,7 +108,13 @@ export function EditableProfileField({
           className={controlClass}
         />
       )}
+<<<<<<< HEAD
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+=======
+      {error && (
+        <p className="mt-1 text-xs text-red-600">{error}</p>
+      )}
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     </div>
   );
 }
@@ -129,3 +140,4 @@ export function ProfileDetailPanel({
     </div>
   );
 }
+

@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 export const LOCATIONS = [
   "Bangalore",
   "Coimbatore",
   "Hyderabad",
   "Other",
 ] as const;
+=======
+export const LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad", "Other"] as const;
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
 
 export const JOB_TITLES = [
   "Software Consultant",

@@ -13,18 +13,30 @@ export default function LeaveBalance({ employee }: Props) {
   const [loading, setLoading] = useState(true);
 
   const currentYear = new Date().getFullYear();
+<<<<<<< HEAD
   const financialYear =
     new Date().getMonth() >= 3 ? currentYear + 1 : currentYear;
 
   const loadLeaveBalance = async () => {
     if (!employee?.id) return;
 
+=======
+  const financialYear = new Date().getMonth() >= 3 ? currentYear + 1 : currentYear;
+
+  const loadLeaveBalance = async () => {
+    if (!employee?.id) return;
+    
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
     try {
       setLoading(true);
       const balances = await getLeaveBalance(employee.id, financialYear);
       setLeaveBalances(balances);
     } catch (error) {
+<<<<<<< HEAD
       console.error("Failed to load leave balance:", error);
+=======
+      console.error('Failed to load leave balance:', error);
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       setLeaveBalances([]);
     } finally {
       setLoading(false);
@@ -36,15 +48,23 @@ export default function LeaveBalance({ employee }: Props) {
   }, [employee?.id]);
 
   const handleWidgetClick = () => {
+<<<<<<< HEAD
     navigate("/leave/apply");
+=======
+    navigate('/leave/apply');
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
   };
 
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
+<<<<<<< HEAD
         <h2 className="text-base font-semibold text-[#333333] mb-4">
           Leave Balance
         </h2>
+=======
+        <h2 className="text-base font-semibold text-[#333333] mb-4">Leave Balance</h2>
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
         <div className="space-y-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-center gap-4 animate-pulse">
@@ -61,6 +81,7 @@ export default function LeaveBalance({ employee }: Props) {
   }
 
   return (
+<<<<<<< HEAD
     <div
       className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
       onClick={handleWidgetClick}
@@ -68,10 +89,18 @@ export default function LeaveBalance({ employee }: Props) {
       <h2 className="text-base font-semibold text-[#333333] mb-4">
         Leave Balance
       </h2>
+=======
+    <div 
+      className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
+      onClick={handleWidgetClick}
+    >
+      <h2 className="text-base font-semibold text-[#333333] mb-4">Leave Balance</h2>
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
       <div className="space-y-4">
         {leaveBalances.length === 0 ? (
           <div className="text-center text-gray-500 py-4">
             <p className="text-sm">No leave entitlements found</p>
+<<<<<<< HEAD
             <p className="text-xs mt-1">
               Contact HR to set up your leave balance
             </p>
@@ -92,6 +121,19 @@ export default function LeaveBalance({ employee }: Props) {
                 key={leave.leave_type_id}
                 className="flex items-center gap-4"
               >
+=======
+            <p className="text-xs mt-1">Contact HR to set up your leave balance</p>
+          </div>
+        ) : (
+          leaveBalances.map((leave) => {
+            const totalEntitlement = Number(leave.total_days || 0) + Number(leave.carried_days || 0);
+            const usedLeave = Number(leave.used_days || 0);
+            const remainingBalance = Number(leave.net_balance || 0);
+            const progressPercentage = totalEntitlement > 0 ? (remainingBalance / totalEntitlement) * 100 : 0;
+
+            return (
+              <div key={leave.leave_type_id} className="flex items-center gap-4">
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                 <div className="w-12 text-right">
                   <span className="text-2xl font-bold text-[#007bff]">
                     {remainingBalance.toFixed(1)}
@@ -104,6 +146,7 @@ export default function LeaveBalance({ employee }: Props) {
                   <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
+<<<<<<< HEAD
                         progressPercentage > 50
                           ? "bg-[#007bff]"
                           : progressPercentage > 25
@@ -118,6 +161,16 @@ export default function LeaveBalance({ employee }: Props) {
                   <p className="text-xs text-[#757575] mt-1">
                     {remainingBalance.toFixed(1)} of{" "}
                     {totalEntitlement.toFixed(1)} remaining
+=======
+                        progressPercentage > 50 ? 'bg-[#007bff]' : 
+                        progressPercentage > 25 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.max(0, Math.min(100, progressPercentage))}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-[#757575] mt-1">
+                    {remainingBalance.toFixed(1)} of {totalEntitlement.toFixed(1)} remaining
+>>>>>>> 0753d95a8ef5ecb684111e95af20451305002e0d
                   </p>
                 </div>
               </div>
