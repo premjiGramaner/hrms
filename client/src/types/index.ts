@@ -20,6 +20,7 @@ export interface Employee {
   dob?: string;
   real_dob?: string;
   blood_group?: string;
+  work_email?: string;
   other_email?: string;
   home_tel?: string;
   work_tel?: string;

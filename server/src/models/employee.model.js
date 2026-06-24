@@ -348,6 +348,20 @@ async function findByEmail(email) {
   return rows[0] || null;
 }
 
+async function updateProfileImage(id, avatarPath, updatedBy) {
+  const result = await pool.query(
+    `UPDATE tbl_appusers SET 
+      avatar = $1,
+      updated_by = $2,
+      updated_at = NOW()
+    WHERE id = $3::bigint AND is_deleted = false
+    RETURNING id::int, avatar`,
+    [avatarPath, updatedBy || null, id],
+  );
+  if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
+  return result.rows[0];
+}
+
 export {
   findAllEmployees,
   findEmployeeById,
@@ -357,4 +371,5 @@ export {
   terminateEmployee,
   getSupervisors,
   findByEmail,
+  updateProfileImage,
 };

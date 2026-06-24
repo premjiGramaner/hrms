@@ -16,18 +16,16 @@ CREATE TABLE IF NOT EXISTS tbl_leave_types (
   updated_at      TIMESTAMP    DEFAULT NOW()
 );
 
--- Seed leave types
+-- Seed leave types (only the 8 required types)
 INSERT INTO tbl_leave_types (name, code, max_days, carry_forward) VALUES
-  ('Carry Forward',             'CF',   30,  TRUE),
-  ('Privileged Leave',          'PL',   18,  TRUE),
-  ('Comp Off',                  'CO',   6,   FALSE),
-  ('Leave of Interns',          'LI',   10,  FALSE),
-  ('Loss of Pay',               'LOP',  0,   FALSE),
-  ('Maternity Leave',           'ML',   180, FALSE),
-  ('Paternity Leave',           'PTL',  15,  FALSE),
-  ('Privilege',                 'PR',   12,  TRUE),
-  ('Sick Leave',                'SL',   12,  FALSE),
-  ('Work From Home',            'WFH',  60,  FALSE)
+  ('Privileged Leave',                  'PL',   18,  TRUE),
+  ('Carry Forward - Privileged Leave',  'CFPL', 30,  TRUE),
+  ('Sick Leave',                        'SL',   12,  FALSE),
+  ('Comp Off',                          'CO',   6,   FALSE),
+  ('Loss of Pay',                       'LOP',  0,   FALSE),
+  ('Maternity Leave',                   'ML',   180, FALSE),
+  ('Paternity Leave',                   'PTL',  15,  FALSE),
+  ('Work From Home',                    'WFH',  60,  FALSE)
 ON CONFLICT (code) DO NOTHING;
 
 -- 2. Leave Entitlements (per employee per leave type per year)

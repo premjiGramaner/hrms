@@ -26,20 +26,20 @@ export const getLeaveTypes = async () => {
 };
 
 export const getLeaveFilterOptions = async (): Promise<{
-  sub_units: string[];
+  sub_units: { id: number; name: string }[];
   locations: string[];
-  job_titles: string[];
+  job_titles: { id: number; name: string }[];
   employment_statuses: string[];
-  job_categories: string[];
+  job_categories: { id: number; name: string }[];
 }> => {
   const res = await api.get<{
     success: boolean;
     data: {
-      sub_units: string[];
+      sub_units: { id: number; name: string }[];
       locations: string[];
-      job_titles: string[];
+      job_titles: { id: number; name: string }[];
       employment_statuses: string[];
-      job_categories: string[];
+      job_categories: { id: number; name: string }[];
     };
   }>("/leaves/filter-options");
   return res.data.data;

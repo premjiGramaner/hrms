@@ -21,8 +21,8 @@ const initialState: EmployeeState = {
 
 export const fetchEmployees = createAsyncThunk(
   "employees/fetch",
-  async ({ page, limit }: { page: number; limit: number }) => {
-    const res = await getEmployees(page, limit);
+  async ({ page }: { page: number }) => {
+    const res = await getEmployees(page);
     return res.data;
   },
 );

@@ -1,4 +1,4 @@
-export const LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"] as const;
+export const LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad", "Other"] as const;
 
 export const JOB_TITLES = [
   "Software Consultant",

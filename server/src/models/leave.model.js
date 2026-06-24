@@ -5,7 +5,18 @@ async function findAllLeaveTypes() {
     `SELECT id, name, code, description, max_days, carry_forward, is_active
      FROM tbl_leave_types
      WHERE is_deleted = FALSE AND is_active = TRUE
-     ORDER BY name`,
+     ORDER BY 
+       CASE code
+         WHEN 'PL' THEN 1
+         WHEN 'CFPL' THEN 2
+         WHEN 'SL' THEN 3
+         WHEN 'CO' THEN 4
+         WHEN 'LOP' THEN 5
+         WHEN 'ML' THEN 6
+         WHEN 'PTL' THEN 7
+         WHEN 'WFH' THEN 8
+         ELSE 99
+       END`,
   );
   return rows;
 }
@@ -19,7 +30,18 @@ async function getLeaveBalance(employeeId, year) {
      FROM tbl_leave_entitlements e
      JOIN tbl_leave_types lt ON lt.id = e.leave_type_id
      WHERE e.employee_id = $1 AND e.year = $2 AND e.is_deleted = FALSE
-     ORDER BY lt.name`,
+     ORDER BY 
+       CASE lt.code
+         WHEN 'PL' THEN 1
+         WHEN 'CFPL' THEN 2
+         WHEN 'SL' THEN 3
+         WHEN 'CO' THEN 4
+         WHEN 'LOP' THEN 5
+         WHEN 'ML' THEN 6
+         WHEN 'PTL' THEN 7
+         WHEN 'WFH' THEN 8
+         ELSE 99
+       END`,
     [employeeId, year],
   );
   return rows;
@@ -128,7 +150,7 @@ function buildFilters(filters, startIndex = 1) {
     conditions.push(`u.supervisors @> $${paramIndex++}::jsonb`);
     values.push(JSON.stringify([filters.supervisor_id]));
   }
-  if (filters.own_employee_id) {
+  if (filters.own_employee_id !== undefined) {
     conditions.push(`lr.employee_id = $${paramIndex++}`);
     values.push(filters.own_employee_id);
   }
@@ -167,7 +189,11 @@ async function findLeaveRequests(filters = {}, page = 1, limit = 15) {
          FROM tbl_leave_entitlements e
          WHERE e.employee_id = lr.employee_id
            AND e.leave_type_id = lr.leave_type_id
-           AND e.year = EXTRACT(YEAR FROM lr.start_date)
+           AND e.year = CASE 
+             WHEN EXTRACT(MONTH FROM lr.start_date) >= 4 
+             THEN EXTRACT(YEAR FROM lr.start_date) + 1
+             ELSE EXTRACT(YEAR FROM lr.start_date)
+           END
            AND e.is_deleted = FALSE
          LIMIT 1), 0
       ) AS net_leave_balance
@@ -201,8 +227,14 @@ async function findLeaveRequests(filters = {}, page = 1, limit = 15) {
 
 async function findLeaveById(id) {
   const { rows } = await pool.query(
-    `SELECT lr.*, lt.name AS leave_type,
-            u.employee_id, u.name AS employee_name, u.avatar
+    `SELECT 
+       lr.id, lr.employee_id, lr.leave_type_id, lr.start_date, lr.end_date,
+       lr.applied_on, lr.requested_days, lr.status, lr.reason, lr.rejection_reason,
+       lr.attachment_path, lr.attachment_status, lr.comments,
+       lr.approved_by, lr.approved_on, lr.rejected_by, lr.rejected_on,
+       lr.cancelled_by, lr.cancelled_on, lr.created_at, lr.updated_at,
+       lt.name AS leave_type,
+       u.employee_id AS employee_code, u.name AS employee_name, u.avatar
      FROM tbl_leave_requests lr
      JOIN tbl_appusers u  ON u.id = lr.employee_id
      JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id
@@ -247,7 +279,11 @@ async function findLeaveDetails(id) {
           FROM tbl_leave_entitlements e
           WHERE e.employee_id = lr.employee_id
             AND e.leave_type_id = lr.leave_type_id
-            AND e.year = EXTRACT(YEAR FROM lr.start_date)
+            AND e.year = CASE 
+              WHEN EXTRACT(MONTH FROM lr.start_date) >= 4 
+              THEN EXTRACT(YEAR FROM lr.start_date) + 1
+              ELSE EXTRACT(YEAR FROM lr.start_date)
+            END
             AND e.is_deleted = FALSE
           LIMIT 1), 0
        ) AS net_leave_balance
@@ -405,28 +441,33 @@ async function cancelLeave(id, cancelledById) {
 async function findLeaveFilterOptions() {
   const [subUnits, locations, jobTitles, empStatuses, jobCategories] =
     await Promise.all([
+      // Get Sub Units from tbl_sub_units with id and name
       pool.query(
-        `SELECT DISTINCT sub_unit AS val FROM tbl_appusers WHERE sub_unit IS NOT NULL AND sub_unit <> '' AND is_deleted = FALSE ORDER BY val`,
+        `SELECT id, sub_unit_name AS name FROM tbl_sub_units WHERE is_active = TRUE ORDER BY sub_unit_name`,
       ),
+      // Get Locations from distinct employee records (no lookup table exists)
       pool.query(
         `SELECT DISTINCT location AS val FROM tbl_appusers WHERE location IS NOT NULL AND location <> '' AND is_deleted = FALSE ORDER BY val`,
       ),
+      // Get Job Titles from tbl_job_titles with id and title
       pool.query(
-        `SELECT DISTINCT job_title AS val FROM tbl_appusers WHERE job_title IS NOT NULL AND job_title <> '' AND is_deleted = FALSE ORDER BY val`,
+        `SELECT id, title AS name FROM tbl_job_titles WHERE is_active = TRUE ORDER BY title`,
       ),
+      // Get Employment Statuses from distinct employee records (no lookup table exists)
       pool.query(
         `SELECT DISTINCT employment_status AS val FROM tbl_appusers WHERE employment_status IS NOT NULL AND employment_status <> '' AND is_deleted = FALSE ORDER BY val`,
       ),
+      // Get Job Categories from tbl_job_categories with id and category name
       pool.query(
-        `SELECT DISTINCT job_category AS val FROM tbl_appusers WHERE job_category IS NOT NULL AND job_category <> '' AND is_deleted = FALSE ORDER BY val`,
+        `SELECT id, category AS name FROM tbl_job_categories WHERE is_active = TRUE ORDER BY category`,
       ),
     ]);
   return {
-    sub_units: subUnits.rows.map((r) => r.val),
-    locations: locations.rows.map((r) => r.val),
-    job_titles: jobTitles.rows.map((r) => r.val),
-    employment_statuses: empStatuses.rows.map((r) => r.val),
-    job_categories: jobCategories.rows.map((r) => r.val),
+    sub_units: subUnits.rows, // Returns array of {id, name}
+    locations: locations.rows.map((r) => r.val), // Returns array of strings (no IDs)
+    job_titles: jobTitles.rows, // Returns array of {id, name}
+    employment_statuses: empStatuses.rows.map((r) => r.val), // Returns array of strings (no IDs)
+    job_categories: jobCategories.rows, // Returns array of {id, name}
   };
 }
 
@@ -447,20 +488,51 @@ async function getLeavesSummaryForExport(filters = {}) {
   const { clause, values } = buildFilters(filters);
   const { rows } = await pool.query(
     `SELECT
+       lr.start_date::text,
+       lr.end_date::text,
+       lr.applied_on::text,
+
        u.employee_id,
        u.name           AS employee_name,
-       lt.name          AS leave_type,
-       COUNT(lr.id)     AS total_requests,
-       SUM(lr.requested_days) AS total_days,
-       SUM(CASE WHEN lr.status='Approved' THEN lr.requested_days ELSE 0 END) AS approved_days,
-       SUM(CASE WHEN lr.status='Pending Approval' THEN lr.requested_days ELSE 0 END) AS pending_days,
-       SUM(CASE WHEN lr.status='Rejected' THEN lr.requested_days ELSE 0 END) AS rejected_days
+       u.job_title,
+       u.employment_status,
+       u.sub_unit,
+       u.location,
+       u.job_category,
+
+       u.attendance_calc AS work_schedule,
+
+       lt.name AS leave_type,
+       'Days' AS unit,
+
+       e.total_days AS entitlements,
+       COALESCE(e.used_days,0) AS used,
+       COALESCE(
+         (e.total_days + e.carried_days - e.used_days),
+         0
+       ) AS net_leave_balance,
+
+       lr.requested_days,
+       lr.status,
+       lr.attachment_status,
+       lr.comments
+
      FROM tbl_leave_requests lr
      JOIN tbl_appusers u ON u.id = lr.employee_id AND u.is_deleted = FALSE
      JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id
+
+     LEFT JOIN tbl_leave_entitlements e
+       ON e.employee_id = lr.employee_id
+      AND e.leave_type_id = lr.leave_type_id
+      AND e.year = CASE 
+        WHEN EXTRACT(MONTH FROM lr.start_date) >= 4 
+        THEN EXTRACT(YEAR FROM lr.start_date) + 1
+        ELSE EXTRACT(YEAR FROM lr.start_date)
+      END
+      AND e.is_deleted = FALSE
+
      WHERE ${clause}
-     GROUP BY u.employee_id, u.name, lt.name
-     ORDER BY u.name, lt.name`,
+     ORDER BY lr.applied_on DESC`,
     values,
   );
   return rows;
@@ -470,19 +542,52 @@ async function getLeavesDetailForExport(filters = {}) {
   const { clause, values } = buildFilters(filters);
   const { rows } = await pool.query(
     `SELECT
-       u.employee_id,
-       u.name           AS employee_name,
-       lt.name          AS leave_type,
        lr.start_date::text,
        lr.end_date::text,
-       lr.requested_days,
        lr.applied_on::text,
+
+       u.employee_id,
+       u.name           AS employee_name,
+       u.job_title,
+       u.employment_status,
+       u.sub_unit,
+       u.location,
+       u.job_category,
+
+       u.attendance_calc AS work_schedule,
+
+       lt.name AS leave_type,
+       'Days' AS unit,
+
+       COALESCE(e.total_days, 0) AS entitlements,
+       COALESCE(e.used_days, 0) AS used,
+
+       COALESCE(
+         (e.total_days + e.carried_days - e.used_days),
+         0
+       ) AS net_leave_balance,
+
+       lr.requested_days,
        lr.status,
-       lr.reason,
-       lr.rejection_reason
+       lr.attachment_status,
+       lr.comments,
+       -- Duration in hours: requested_days * 8
+       (COALESCE(lr.requested_days, 0) * 8) AS duration_hours
+
      FROM tbl_leave_requests lr
      JOIN tbl_appusers u ON u.id = lr.employee_id AND u.is_deleted = FALSE
      JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id
+
+     LEFT JOIN tbl_leave_entitlements e
+       ON e.employee_id = lr.employee_id
+      AND e.leave_type_id = lr.leave_type_id
+      AND e.year = CASE 
+        WHEN EXTRACT(MONTH FROM lr.start_date) >= 4 
+        THEN EXTRACT(YEAR FROM lr.start_date) + 1
+        ELSE EXTRACT(YEAR FROM lr.start_date)
+      END
+      AND e.is_deleted = FALSE
+
      WHERE ${clause}
      ORDER BY lr.applied_on DESC`,
     values,

@@ -59,6 +59,14 @@ export const deleteEmployee = async (id: number) => {
   return { data: response.data.data };
 };
 
+export const checkEmailExists = async (email: string, employeeId?: number) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { exists: boolean };
+  }>("/employees/check-email", { email, employeeId });
+  return { data: response.data.data };
+};
+
 export const terminateEmployee = async (
   id: number,
   terminationData: {
@@ -72,5 +80,15 @@ export const terminateEmployee = async (
     data: { message: string };
   }>(`/employees/${id}/terminate`, terminationData);
 
+  return { data: response.data.data };
+};
+
+export const updateProfileImage = async (id: number, formData: FormData) => {
+  const response = await api.patch<{
+    success: boolean;
+    data: Employee;
+  }>(`/employees/${id}/profile-image`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return { data: response.data.data };
 };
