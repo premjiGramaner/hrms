@@ -77,7 +77,11 @@ export default function Layout({
     ...(isAdmin
       ? [{ to: "#", label: "Reports and Analytics", icon: <IconChart /> }]
       : []),
-    { to: "/leave/view_leave_list", label: "Leave", icon: <IconCalendar /> },
+    {
+      to: isAdmin ? "/leave/view_leave_list" : "/leave/apply",
+      label: "Leave",
+      icon: <IconCalendar />,
+    },
     { to: "#", label: "Performance", icon: <IconBriefcase /> },
   ];
 

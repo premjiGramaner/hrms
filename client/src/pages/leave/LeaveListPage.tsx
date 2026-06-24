@@ -53,12 +53,17 @@ interface EmployeeSuggestion {
   username: string;
 }
 
+interface FilterOption {
+  id: number;
+  name: string;
+}
+
 interface FilterOptions {
-  sub_units: string[];
+  sub_units: FilterOption[];
   locations: string[];
-  job_titles: string[];
+  job_titles: FilterOption[];
   employment_statuses: string[];
-  job_categories: string[];
+  job_categories: FilterOption[];
 }
 
 function RejectModal({
@@ -443,8 +448,8 @@ export default function LeaveListPage() {
                     >
                       <option value="">All</option>
                       {filterOpts.sub_units.map((u) => (
-                        <option key={u} value={u}>
-                          {u}
+                        <option key={u.id} value={u.name}>
+                          {u.name}
                         </option>
                       ))}
                     </select>
@@ -520,8 +525,8 @@ export default function LeaveListPage() {
                     >
                       <option value="">All</option>
                       {filterOpts.job_titles.map((j) => (
-                        <option key={j} value={j}>
-                          {j}
+                        <option key={j.id} value={j.name}>
+                          {j.name}
                         </option>
                       ))}
                     </select>
@@ -571,8 +576,8 @@ export default function LeaveListPage() {
                     >
                       <option value="">All</option>
                       {filterOpts.job_categories.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
+                        <option key={c.id} value={c.name}>
+                          {c.name}
                         </option>
                       ))}
                     </select>
@@ -863,9 +868,10 @@ export default function LeaveListPage() {
   );
 }
 
-// ActionDropdown uses the same requester-check logic as LeaveDetailsPage:
-// - If the logged-in user created the leave → show only Cancel
-// - If another admin opens it → show Approve, Cancel, Reject
+// ActionDropdown logic:
+// - Employees can cancel their own leave requests
+// - Admins who are NOT the requester can approve/reject/cancel
+// - Admins who ARE the requester can only cancel (their own leave)
 function ActionDropdown({
   row,
   isAdmin,
@@ -926,8 +932,10 @@ function ActionDropdown({
       <div className="w-4 h-4 border-2 border-blue-900 border-t-transparent rounded-full animate-spin mx-2" />
     );
 
-  // Same rule as details page: admin who is NOT the requester can approve/reject
+  // Admin who is NOT the requester can approve/reject/cancel
   const canApproveReject = isAdmin && !isRequester;
+  // Employee can cancel their own leave, or admin can cancel any leave
+  const canCancel = isRequester || isAdmin;
 
   return (
     <>
@@ -970,15 +978,17 @@ function ActionDropdown({
               ✓ Approve
             </button>
           )}
-          <button
-            onClick={() => {
-              setOpen(false);
-              onCancel();
-            }}
-            className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-          >
-            ⊘ Cancel
-          </button>
+          {canCancel && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                onCancel();
+              }}
+              className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+            >
+              ⊘ Cancel
+            </button>
+          )}
           {canApproveReject && (
             <button
               onClick={() => {

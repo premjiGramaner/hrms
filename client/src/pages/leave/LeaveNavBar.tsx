@@ -51,15 +51,16 @@ export default function LeaveNavBar() {
         <IconHome size={16} />
       </Link>
 
+      {/* Apply tab - comes first */}
+      <Link to="/leave/apply" className={tabCls(isActive("/leave/apply"))}>
+        Apply
+      </Link>
+
       <Link
         to="/leave/view_leave_list"
         className={tabCls(isActive("/leave/view_leave_list"))}
       >
         Leave List
-      </Link>
-
-      <Link to="/leave/apply" className={tabCls(isActive("/leave/apply"))}>
-        Apply
       </Link>
 
       {/* Employees see only "My Entitlements" as a direct link */}

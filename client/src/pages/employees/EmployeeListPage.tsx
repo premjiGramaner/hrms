@@ -76,8 +76,8 @@ export default function EmployeeListPage() {
   );
 
   useEffect(() => {
-    dispatch(fetchEmployees({ page, limit }));
-  }, [dispatch, page, limit]);
+    dispatch(fetchEmployees({ page }));
+  }, [dispatch, page]);
 
   useEffect(() => {
     const message = (location.state as { message?: string } | null)?.message;
@@ -358,7 +358,7 @@ export default function EmployeeListPage() {
             setEditEmployee(null);
           }}
           onSaved={() => {
-            dispatch(fetchEmployees({ page, limit }));
+            dispatch(fetchEmployees({ page }));
             flash(
               editEmployee
                 ? "Employee updated successfully."

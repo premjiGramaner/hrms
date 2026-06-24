@@ -18,8 +18,10 @@ export interface EmployeeFormValues {
   job_title?: string;
   employment_status?: string;
   work_email?: string;
+  other_email?: string;
   mobile?: string;
   work_tel?: string;
+  home_tel?: string;
   license_number?: string;
 }
 
@@ -72,14 +74,23 @@ export function validateEmployeeStep(
     else if (!EMAIL_REGEX.test(form.work_email))
       errors.work_email = "Enter a valid email";
 
+    const otherEmail = form.other_email?.trim() || "";
+    if (otherEmail && !EMAIL_REGEX.test(otherEmail))
+      errors.other_email = "Enter a valid email";
+
     const mobile = form.mobile?.trim() || "";
-    if (!mobile) errors.mobile = "Mobile is required (exactly 10 digits)";
+    if (!mobile) errors.mobile = "Mobile is required";
     else if (!MOBILE_10DIGIT_REGEX.test(mobile))
       errors.mobile = "Mobile must be exactly 10 digits";
 
     const workTel = form.work_tel?.trim() || "";
-    if (workTel && !WORK_TEL_REGEX.test(workTel)) {
-      errors.work_tel = "Work tel must be 7–15 digits only (e.g. 4224542188)";
+    if (workTel && !MOBILE_10DIGIT_REGEX.test(workTel)) {
+      errors.work_tel = "Work Tel must be exactly 10 digits";
+    }
+
+    const homeTel = form.home_tel?.trim() || "";
+    if (homeTel && !MOBILE_10DIGIT_REGEX.test(homeTel)) {
+      errors.home_tel = "Home Tel must be exactly 10 digits";
     }
   }
 

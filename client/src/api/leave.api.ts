@@ -12,7 +12,8 @@ function toQueryString(params: Record<string, unknown>): string {
   for (const [key, val] of Object.entries(params)) {
     if (val === null || val === undefined || val === "") continue;
     if (Array.isArray(val)) {
-      if (val.length > 0) parts.push(`${key}=${encodeURIComponent(val.join(","))}`);
+      if (val.length > 0)
+        parts.push(`${key}=${encodeURIComponent(val.join(","))}`);
     } else {
       parts.push(`${key}=${encodeURIComponent(String(val))}`);
     }
@@ -21,31 +22,37 @@ function toQueryString(params: Record<string, unknown>): string {
 }
 
 export const getLeaveTypes = async () => {
-  const res = await api.get<{ success: boolean; data: LeaveType[] }>("/leaves/types");
+  const res = await api.get<{ success: boolean; data: LeaveType[] }>(
+    "/leaves/types",
+  );
   return res.data.data;
 };
 
 export const getLeaveFilterOptions = async (): Promise<{
-  sub_units: string[];
+  sub_units: { id: number; name: string }[];
   locations: string[];
-  job_titles: string[];
+  job_titles: { id: number; name: string }[];
   employment_statuses: string[];
-  job_categories: string[];
+  job_categories: { id: number; name: string }[];
 }> => {
   const res = await api.get<{
     success: boolean;
     data: {
-      sub_units: string[];
+      sub_units: { id: number; name: string }[];
       locations: string[];
-      job_titles: string[];
+      job_titles: { id: number; name: string }[];
       employment_statuses: string[];
-      job_categories: string[];
+      job_categories: { id: number; name: string }[];
     };
   }>("/leaves/filter-options");
   return res.data.data;
 };
 
-export const searchLeaveEmployees = async (q: string): Promise<{ id: number; employee_id: string; name: string; username: string }[]> => {
+export const searchLeaveEmployees = async (
+  q: string,
+): Promise<
+  { id: number; employee_id: string; name: string; username: string }[]
+> => {
   if (!q.trim()) return [];
   const res = await api.get<{
     success: boolean;
@@ -57,11 +64,10 @@ export const searchLeaveEmployees = async (q: string): Promise<{ id: number; emp
 export const getLeaveBalance = async (employeeId?: number, year?: number) => {
   const qs = toQueryString({ employee_id: employeeId, year });
   const res = await api.get<{ success: boolean; data: LeaveBalance[] }>(
-    `/leaves/balance${qs}`
+    `/leaves/balance${qs}`,
   );
   return res.data.data;
 };
-
 
 export const getLeaves = async (filters: LeaveFilters = {}) => {
   const qs = toQueryString(filters as Record<string, unknown>);
@@ -73,12 +79,16 @@ export const getLeaves = async (filters: LeaveFilters = {}) => {
 };
 
 export const getLeave = async (id: number) => {
-  const res = await api.get<{ success: boolean; data: LeaveRequest }>(`/leaves/${id}`);
+  const res = await api.get<{ success: boolean; data: LeaveRequest }>(
+    `/leaves/${id}`,
+  );
   return res.data.data;
 };
 
 export const getLeaveDetails = async (id: number) => {
-  const res = await api.get<{ success: boolean; data: LeaveRequest }>(`/leaves/${id}/details`);
+  const res = await api.get<{ success: boolean; data: LeaveRequest }>(
+    `/leaves/${id}/details`,
+  );
   return res.data.data;
 };
 
@@ -95,16 +105,16 @@ export const uploadLeaveAttachment = async (id: number, file: File) => {
 };
 
 export const applyLeave = async (payload: Partial<LeaveRequest>) => {
-  const res = await api.post<{ success: boolean; data: { message: string; id: number } }>(
-    "/leaves",
-    payload
-  );
+  const res = await api.post<{
+    success: boolean;
+    data: { message: string; id: number };
+  }>("/leaves", payload);
   return res.data.data;
 };
 
 export const approveLeave = async (id: number) => {
   const res = await api.post<{ success: boolean; data: { message: string } }>(
-    `/leaves/${id}/approve`
+    `/leaves/${id}/approve`,
   );
   return res.data.data;
 };
@@ -112,14 +122,14 @@ export const approveLeave = async (id: number) => {
 export const rejectLeave = async (id: number, rejection_reason: string) => {
   const res = await api.post<{ success: boolean; data: { message: string } }>(
     `/leaves/${id}/reject`,
-    { rejection_reason }
+    { rejection_reason },
   );
   return res.data.data;
 };
 
 export const cancelLeave = async (id: number) => {
   const res = await api.post<{ success: boolean; data: { message: string } }>(
-    `/leaves/${id}/cancel`
+    `/leaves/${id}/cancel`,
   );
   return res.data.data;
 };
