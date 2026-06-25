@@ -118,12 +118,15 @@ const updateEmployee = async (req, res, next) => {
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
 
-    const workEmail = (req.body.work_email || req.body.email || "").trim();
-    const otherEmail = (req.body.other_email || "").trim();
+    const workEmail = (req.body.work_email || req.body.email || "")
+      .trim()
+      .toLowerCase();
+    const otherEmail = (req.body.other_email || "").trim().toLowerCase();
 
-    if (workEmail) {
+    // Only check for duplicates if the email is being changed
+    if (workEmail && workEmail !== existing.email?.toLowerCase()) {
       const existingWork = await EmployeeModel.findByEmail(workEmail);
-      if (existingWork && existingWork.id !== id)
+      if (existingWork && Number(existingWork.id) !== id)
         return error(
           res,
           "An employee with this work email already exists",
@@ -131,9 +134,9 @@ const updateEmployee = async (req, res, next) => {
         );
     }
 
-    if (otherEmail) {
+    if (otherEmail && otherEmail !== existing.other_email?.toLowerCase()) {
       const existingOther = await EmployeeModel.findByEmail(otherEmail);
-      if (existingOther && existingOther.id !== id)
+      if (existingOther && Number(existingOther.id) !== id)
         return error(
           res,
           "An employee with this other email already exists",
@@ -175,11 +178,7 @@ const updateProfileImage = async (req, res, next) => {
 
     // Store only the filename, not the full path
     const avatarPath = req.file.filename;
-    const updated = await EmployeeModel.updateProfileImage(
-      id,
-      avatarPath,
-      req.user?.id,
-    );
+    await EmployeeModel.updateProfileImage(id, avatarPath, req.user?.id);
 
     await writeAuditLog({
       employeeId: existing.id,

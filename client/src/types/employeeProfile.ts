@@ -21,6 +21,7 @@ export interface EditableEmployeeProfileForm {
   job_specification: string;
   sub_unit: string;
   location: string;
+  supervisor_id: string;
   probation_end_date: string;
   date_of_permanence: string;
   attendance_calc: string;
@@ -43,6 +44,16 @@ export interface EditableEmployeeProfileForm {
 export function employeeToEditableProfileForm(
   employee: Employee,
 ): EditableEmployeeProfileForm {
+  // Map supervisors array to supervisor_id string (first supervisor name)
+  let supervisorId = "";
+  if (Array.isArray(employee.supervisors) && employee.supervisors.length > 0) {
+    const firstSupervisor = employee.supervisors[0];
+    supervisorId =
+      typeof firstSupervisor === "string"
+        ? firstSupervisor
+        : firstSupervisor.name || "";
+  }
+
   return {
     first_name: employee.first_name || "",
     middle_name: employee.middle_name || "",
@@ -63,6 +74,7 @@ export function employeeToEditableProfileForm(
     job_specification: employee.job_specification || "",
     sub_unit: employee.sub_unit || "",
     location: employee.location || "",
+    supervisor_id: supervisorId,
     probation_end_date: toInputDate(employee.probation_end_date),
     date_of_permanence: toInputDate(employee.date_of_permanence),
     attendance_calc: employee.attendance_calc || "",

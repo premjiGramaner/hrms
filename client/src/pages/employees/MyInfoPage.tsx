@@ -1,6 +1,10 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
-import { getMyInfo, updateEmployee } from "../../api/employee.api";
+import {
+  getMyInfo,
+  updateEmployee,
+  getSupervisors,
+} from "../../api/employee.api";
 import { Employee } from "../../types";
 import {
   ATTENDANCE_CALCULATION_TYPES,
@@ -70,6 +74,9 @@ export default function MyInfoPage() {
     { id: number; category: string }[]
   >([]);
   const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
+  const [supervisorOptions, setSupervisorOptions] = useState<
+    { id: number; name: string }[]
+  >([]);
   const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
 
   useEffect(() => {
@@ -88,6 +95,9 @@ export default function MyInfoPage() {
         .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
         .catch(() => {});
     }
+    getSupervisors()
+      .then((res) => setSupervisorOptions(res.data || []))
+      .catch(() => {});
   }, [isAdmin]);
 
   const loadProfile = async () => {
@@ -114,21 +124,16 @@ export default function MyInfoPage() {
     >,
   ) => {
     const { name, value } = event.target;
-
-    // Handle numeric-only fields
     if (name === "mobile" || name === "work_tel" || name === "home_tel") {
-      // Only allow digits
       const numericValue = value.replace(/\D/g, "");
       setForm((current) =>
         current ? { ...current, [name]: numericValue } : current,
       );
-      // Clear error for this field
       setValidationErrors((prev) => ({ ...prev, [name]: "" }));
       return;
     }
 
     setForm((current) => (current ? { ...current, [name]: value } : current));
-    // Clear error for this field when user types
     setValidationErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -160,9 +165,7 @@ export default function MyInfoPage() {
 
       const formData = new FormData();
 
-      // Only include editable fields based on role
       Object.entries(form).forEach(([key, value]) => {
-        // Employees cannot edit these fields
         if (!isAdmin && (key === "employee_id" || key === "real_dob")) {
           return;
         }
@@ -170,24 +173,23 @@ export default function MyInfoPage() {
       });
 
       formData.append("role", employee.role || "employee");
-      formData.append(
-        "supervisors",
-        JSON.stringify(employee.supervisors || []),
-      );
+
+      const supervisorsArray = form.supervisor_id
+        ? [form.supervisor_id]
+        : (employee.supervisors as string[]) || [];
+      formData.append("supervisors", JSON.stringify(supervisorsArray));
 
       await updateEmployee(employee.id, formData);
+
       const { data: updatedEmployee } = await getMyInfo();
       setEmployee(updatedEmployee);
       setForm(employeeToEditableProfileForm(updatedEmployee));
 
-      // Update Redux store if name changed
       if (updatedEmployee.name) {
-        // Trigger sidebar update by dispatching a dummy action
         dispatch(updateUserAvatar(updatedEmployee.avatar || ""));
       }
 
       setMessage("Profile updated successfully.");
-      // Clear success message after 3 seconds
       setTimeout(() => setMessage(""), 3000);
     } catch (err: unknown) {
       setMessage(getApiErrorMessage(err, "Failed to update profile."));
@@ -366,6 +368,13 @@ export default function MyInfoPage() {
             required
             error={validationErrors.sub_unit}
             readOnly={!isAdmin}
+          />
+          <EditableProfileField
+            label="Supervisor"
+            name="supervisor_id"
+            value={form.supervisor_id}
+            onChange={handleFieldChange}
+            options={supervisorOptions.map((s) => s.name)}
           />
           <EditableProfileField
             label="Location"

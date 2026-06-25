@@ -330,7 +330,7 @@ async function terminateEmployee(
 
 async function getSupervisors() {
   const { rows } = await pool.query(
-    `SELECT DISTINCT supervisor_name AS name
+    `SELECT id::int, supervisor_name AS name
      FROM tbl_sub_units
      WHERE supervisor_name IS NOT NULL
        AND TRIM(supervisor_name) <> ''
@@ -338,6 +338,19 @@ async function getSupervisors() {
      ORDER BY supervisor_name ASC`,
   );
   return rows;
+}
+
+async function updateProfileImage(id, profileImagePath, updatedBy) {
+  const result = await pool.query(
+    `UPDATE tbl_appusers SET
+      avatar = $1,
+      updated_by = $2,
+      updated_at = NOW()
+     WHERE id = $3::bigint AND is_deleted = false`,
+    [profileImagePath, updatedBy || null, id],
+  );
+
+  if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
 }
 
 async function findByEmail(email) {
@@ -353,6 +366,7 @@ export {
   findEmployeeById,
   createEmployee,
   updateEmployee,
+  updateProfileImage,
   softDeleteEmployee,
   terminateEmployee,
   getSupervisors,

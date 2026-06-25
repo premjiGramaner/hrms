@@ -254,6 +254,12 @@ export default function EmployeeProfileCard({
                 </p>
               </div>
               <div>
+                <p className="text-xs text-[#757575]">Job Category</p>
+                <p className="text-sm text-[#333333]">
+                  {employee.job_category || "N/A"}
+                </p>
+              </div>
+              <div>
                 <p className="text-xs text-[#757575]">Status</p>
                 <div className="flex items-center gap-2">
                   <span
@@ -265,6 +271,32 @@ export default function EmployeeProfileCard({
                     {employee.is_active ? "Active" : "Inactive"}
                   </span>
                 </div>
+              </div>
+              <div>
+                <p className="text-xs text-[#757575]">Supervisor</p>
+                <p className="text-sm text-[#333333]">
+                  {(() => {
+                    let supervisorsData: any = employee.supervisors;
+                    if (typeof supervisorsData === "string") {
+                      try {
+                        supervisorsData = JSON.parse(supervisorsData);
+                      } catch {
+                        supervisorsData = [];
+                      }
+                    }
+                    if (
+                      Array.isArray(supervisorsData) &&
+                      supervisorsData.length > 0
+                    ) {
+                      return supervisorsData
+                        .map((s: any) =>
+                          typeof s === "string" ? s : s.name || s,
+                        )
+                        .join(", ");
+                    }
+                    return "N/A";
+                  })()}
+                </p>
               </div>
             </div>
           </div>
@@ -285,6 +317,12 @@ export default function EmployeeProfileCard({
                 <p className="text-xs text-[#757575]">Work Email</p>
                 <p className="text-sm text-[#00897b] break-all">
                   {employee.work_email || employee.email || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-[#757575]">Employment Status</p>
+                <p className="text-sm text-[#333333]">
+                  {employee.employment_status || "N/A"}
                 </p>
               </div>
             </div>
