@@ -5,8 +5,9 @@ import { writeAuditLog } from "../services/audit.service.js";
 const listEmployees = async (req, res, next) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
-    const result = await EmployeeModel.findAllEmployees(page, limit);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const search = (req.query.search || "").trim();
+    const result = await EmployeeModel.findAllEmployees(page, limit, search);
     return success(res, result);
   } catch (err) {
     next(err);

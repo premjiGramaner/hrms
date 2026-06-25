@@ -1,11 +1,18 @@
 import api from "./axios";
 import { Employee, PaginatedResponse } from "../types";
 
-export const getEmployees = async (page = 1, limit = 15) => {
+export const getEmployees = async (page = 1, limit = 10, search?: string) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (search && search.trim()) {
+    params.set("search", search.trim());
+  }
   const response = await api.get<{
     success: boolean;
     data: PaginatedResponse<Employee>;
-  }>(`/employees?page=${page}&limit=${limit}&_=${Date.now()}`);
+  }>(`/employees?${params.toString()}&_=${Date.now()}`);
   return { data: response.data.data };
 };
 

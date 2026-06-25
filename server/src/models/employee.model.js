@@ -27,26 +27,36 @@ async function createUniqueUsername(email, name) {
   return username;
 }
 
-async function findAllEmployees(page, limit = 15) {
+async function findAllEmployees(page, limit = 10, search = "") {
   const offset = (page - 1) * limit;
+  const searchTerm = search.trim();
+  const baseWhere =
+    "is_deleted = false AND role = 'employee' AND (employment_status IS NULL OR employment_status != 'Terminated')";
+  const searchCondition = searchTerm
+    ? ` AND (employee_id ILIKE $3 OR first_name ILIKE $3 OR last_name ILIKE $3 OR email ILIKE $3 OR job_title ILIKE $3)`
+    : "";
+  const args = searchTerm
+    ? [limit, offset, `%${searchTerm}%`]
+    : [limit, offset];
   const { rows } = await pool.query(
     `SELECT id::int, employee_id, name, first_name, last_name, username, email, mobile,
             status, avatar, job_title, role, joined_date::text, is_active,
             sub_unit, location,
-            -- Parse supervisors from TEXT to JSON array; fall back to empty array
             CASE
               WHEN supervisors IS NULL OR TRIM(supervisors) = '' THEN '[]'::json
               ELSE supervisors::json
             END AS supervisors
      FROM tbl_appusers
-     WHERE is_deleted = false AND role = 'employee' AND (employment_status IS NULL OR employment_status != 'Terminated')
+     WHERE ${baseWhere}${searchCondition}
      ORDER BY created_at DESC
      LIMIT $1 OFFSET $2`,
-    [limit, offset],
+    args,
   );
-  const { rows: cnt } = await pool.query(
-    `SELECT COUNT(*)::int as count FROM tbl_appusers WHERE is_deleted = false AND role = 'employee' AND (employment_status IS NULL OR employment_status != 'Terminated')`,
-  );
+  const countQuery = searchCondition
+    ? `SELECT COUNT(*)::int as count FROM tbl_appusers WHERE ${baseWhere}${searchCondition.replace(/\$3/g, "$1")}`
+    : `SELECT COUNT(*)::int as count FROM tbl_appusers WHERE ${baseWhere}`;
+  const countArgs = searchTerm ? [`%${searchTerm}%`] : [];
+  const { rows: cnt } = await pool.query(countQuery, countArgs);
   const total = cnt[0].count;
   return { data: rows, total, page, totalPages: Math.ceil(total / limit) };
 }
