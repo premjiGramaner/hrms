@@ -67,6 +67,7 @@ const createEmployee = async (req, res, next) => {
   try {
     const workEmail = (req.body.work_email || req.body.email || "").trim();
     const otherEmail = (req.body.other_email || "").trim();
+    const employeeId = (req.body.employee_id || "").trim();
 
     if (!workEmail) return error(res, "Work email is required", 422);
 
@@ -82,6 +83,13 @@ const createEmployee = async (req, res, next) => {
           "An employee with this other email already exists",
           422,
         );
+    }
+
+    if (employeeId) {
+      const existingEmployeeId =
+        await EmployeeModel.findByEmployeeId(employeeId);
+      if (existingEmployeeId)
+        return error(res, "Employee ID already exists", 409);
     }
 
     const avatarPath = req.file ? req.file.filename : undefined;
@@ -296,6 +304,41 @@ const terminateEmployee = async (req, res, next) => {
   }
 };
 
+const checkEmployeeIdExists = async (req, res, next) => {
+  try {
+    const { employee_id, excludeId } = req.body;
+
+    if (!employee_id || !String(employee_id).trim()) {
+      return success(res, { exists: false });
+    }
+
+    const existing = await EmployeeModel.findByEmployeeId(
+      String(employee_id).trim(),
+    );
+
+    if (!existing) {
+      return success(res, { exists: false });
+    }
+
+    if (excludeId && existing.id === parseInt(excludeId)) {
+      return success(res, { exists: false });
+    }
+
+    return success(res, { exists: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getLastEmployeeId = async (req, res, next) => {
+  try {
+    const lastEmployee = await EmployeeModel.getLastEmployeeId();
+    return success(res, { employee_id: lastEmployee?.employee_id || null });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export {
   listEmployees,
   getMyInfo,
@@ -306,5 +349,7 @@ export {
   updateProfileImage,
   deleteEmployee,
   checkEmailExists,
+  checkEmployeeIdExists,
+  getLastEmployeeId,
   terminateEmployee,
 };

@@ -13,6 +13,8 @@ import {
   updateProfileImage,
   deleteEmployee,
   checkEmailExists,
+  checkEmployeeIdExists,
+  getLastEmployeeId,
   terminateEmployee,
 } from "../controllers/employee.controller.js";
 
@@ -21,7 +23,9 @@ router.use(authenticate);
 
 router.get("/my-info", getMyInfo);
 router.get("/supervisors", getSupervisors);
+router.get("/last-employee-id", getLastEmployeeId);
 router.post("/check-email", checkEmailExists);
+router.post("/check-employee-id", checkEmployeeIdExists);
 router.get("/", listEmployees);
 router.get("/:id", getEmployee);
 router.post(
@@ -36,11 +40,7 @@ router.put(
   validate(employeeSchema),
   updateEmployee,
 );
-router.patch(
-  "/:id/profile-image",
-  upload.single("avatar"),
-  updateProfileImage,
-);
+router.patch("/:id/profile-image", upload.single("avatar"), updateProfileImage);
 router.delete("/:id", deleteEmployee);
 router.post("/:id/terminate", terminateEmployee);
 

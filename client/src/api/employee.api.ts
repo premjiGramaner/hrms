@@ -1,11 +1,11 @@
 import api from "./axios";
 import { Employee, PaginatedResponse } from "../types";
 
-export const getEmployees = async (page = 1) => {
+export const getEmployees = async (page = 1, limit = 15) => {
   const response = await api.get<{
     success: boolean;
     data: PaginatedResponse<Employee>;
-  }>(`/employees?page=${page}&_=${Date.now()}`);
+  }>(`/employees?page=${page}&limit=${limit}&_=${Date.now()}`);
   return { data: response.data.data };
 };
 
@@ -90,5 +90,24 @@ export const updateProfileImage = async (id: number, formData: FormData) => {
   }>(`/employees/${id}/profile-image`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+  return { data: response.data.data };
+};
+
+export const checkEmployeeIdExists = async (
+  employeeId: string,
+  excludeId?: number,
+) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { exists: boolean };
+  }>("/employees/check-employee-id", { employee_id: employeeId, excludeId });
+  return { data: response.data.data };
+};
+
+export const getLastEmployeeId = async () => {
+  const response = await api.get<{
+    success: boolean;
+    data: { employee_id: string | null };
+  }>("/employees/last-employee-id");
   return { data: response.data.data };
 };

@@ -76,8 +76,8 @@ export default function EmployeeListPage() {
   );
 
   useEffect(() => {
-    dispatch(fetchEmployees({ page }));
-  }, [dispatch, page]);
+    dispatch(fetchEmployees({ page, limit }));
+  }, [dispatch, page, limit]);
 
   useEffect(() => {
     const message = (location.state as { message?: string } | null)?.message;
@@ -336,7 +336,7 @@ export default function EmployeeListPage() {
         totalPages={totalPages}
         totalRecords={totalRecords}
         pageSize={limit}
-        pageSizeOptions={[10, 15, 20, 50]}
+        pageSizeOptions={[5, 10, 25, 50, 100]}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         itemLabel="employees"
@@ -358,7 +358,7 @@ export default function EmployeeListPage() {
             setEditEmployee(null);
           }}
           onSaved={() => {
-            dispatch(fetchEmployees({ page }));
+            dispatch(fetchEmployees({ page, limit }));
             flash(
               editEmployee
                 ? "Employee updated successfully."

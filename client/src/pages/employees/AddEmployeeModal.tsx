@@ -11,6 +11,8 @@ import {
   updateEmployee,
   getSupervisors,
   checkEmailExists,
+  checkEmployeeIdExists,
+  getLastEmployeeId,
 } from "../../api/employee.api";
 import {
   getJobTitles,
@@ -66,6 +68,8 @@ export default function AddEmployeeModal({
   const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
   const [subUnitRecords, setSubUnitRecords] = useState<SubUnit[]>([]);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingEmployeeId, setCheckingEmployeeId] = useState(false);
+  const [lastEmployeeId, setLastEmployeeId] = useState<string | null>(null);
   const [showCustomLocation, setShowCustomLocation] = useState(false);
   const [customLocation, setCustomLocation] = useState("");
   const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
@@ -89,6 +93,9 @@ export default function AddEmployeeModal({
         setSubUnitRecords(res.data);
         setSubUnitOptions(res.data.map((s) => s.sub_unit_name));
       })
+      .catch(() => {});
+    getLastEmployeeId()
+      .then((res) => setLastEmployeeId(res.data.employee_id))
       .catch(() => {});
   }, []);
 
@@ -188,6 +195,13 @@ export default function AddEmployeeModal({
       }
     }
 
+    if (stepNumber === 1) {
+      const employeeId = formRef.current.employee_id?.trim();
+      if (errors.employee_id && employeeId) {
+        nextErrors.employee_id = errors.employee_id;
+      }
+    }
+
     if (stepNumber === 4) {
       const workEmail = formRef.current.work_email?.trim();
       const otherEmail = formRef.current.other_email?.trim();
@@ -275,6 +289,15 @@ export default function AddEmployeeModal({
       const errorMessage = getApiErrorMessage(err);
 
       if (
+        errorMessage.toLowerCase().includes("employee id") &&
+        errorMessage.toLowerCase().includes("exist")
+      ) {
+        setErrors((prev) => ({
+          ...prev,
+          employee_id: "Employee ID already exists",
+        }));
+        setStep(1);
+      } else if (
         errorMessage.toLowerCase().includes("email") &&
         errorMessage.toLowerCase().includes("exist")
       ) {
@@ -436,6 +459,42 @@ export default function AddEmployeeModal({
     }
   };
 
+  const handleEmployeeIdBlur = async (
+    employeeId: string,
+    element: HTMLInputElement,
+  ) => {
+    if (!employeeId.trim()) {
+      setErrors((prev) => {
+        const n = { ...prev };
+        delete n.employee_id;
+        return n;
+      });
+      return;
+    }
+
+    setCheckingEmployeeId(true);
+    try {
+      const result = await checkEmployeeIdExists(employeeId, employee?.id);
+      if (result.data.exists) {
+        setErrors((prev) => ({
+          ...prev,
+          employee_id: "Employee ID already exists",
+        }));
+        setTimeout(() => element.focus(), 100);
+      } else {
+        setErrors((prev) => {
+          const n = { ...prev };
+          delete n.employee_id;
+          return n;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking employee ID:", error);
+    } finally {
+      setCheckingEmployeeId(false);
+    }
+  };
+
   const renderInput = (
     name: keyof typeof initialForm,
     placeholder = "",
@@ -456,6 +515,41 @@ export default function AddEmployeeModal({
       />
       {errors[name] && (
         <span className="text-xs text-red-600 mt-1 block">{errors[name]}</span>
+      )}
+    </div>
+  );
+
+  const renderEmployeeIdInput = () => (
+    <div>
+      <input
+        name="employee_id"
+        type="text"
+        placeholder="e.g. EMP-001"
+        defaultValue={formRef.current.employee_id}
+        onChange={set("employee_id")}
+        onBlur={(e) => handleEmployeeIdBlur(e.target.value, e.target)}
+        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+          errors.employee_id
+            ? "border-red-500 bg-red-50"
+            : checkingEmployeeId
+              ? "border-blue-500 bg-blue-50"
+              : "border-slate-200 bg-slate-50 focus:border-slate-300"
+        }`}
+      />
+      {checkingEmployeeId && (
+        <span className="text-xs text-blue-600 mt-1 block">
+          Checking Employee ID...
+        </span>
+      )}
+      {errors.employee_id && (
+        <span className="text-xs text-red-600 mt-1 block">
+          {errors.employee_id}
+        </span>
+      )}
+      {!errors.employee_id && lastEmployeeId && !checkingEmployeeId && (
+        <span className="text-xs text-slate-500 mt-1 block">
+          Last Employee ID: {lastEmployeeId}
+        </span>
       )}
     </div>
   );
@@ -813,10 +907,7 @@ export default function AddEmployeeModal({
                       "Middle Name",
                       renderInput("middle_name", "Optional"),
                     )}
-                    {FormField(
-                      "Employee Id",
-                      renderInput("employee_id", "e.g. EMP-001"),
-                    )}
+                    {FormField("Employee Id", renderEmployeeIdInput())}
                     {FormField(
                       "Joined Date",
                       renderInput("joined_date", "", "date"),

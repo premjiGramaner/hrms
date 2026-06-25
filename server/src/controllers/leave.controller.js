@@ -154,14 +154,12 @@ const createLeave = async (req, res, next) => {
     const data = { ...req.body, employee_id: parseInt(employeeId) };
     const requestedDays = parseFloat(data.requested_days) || 1;
     const leaveTypeId = parseInt(data.leave_type_id);
-    // Derive financial year (Apr�Mar): if start_date month >= April (3), year+1; else year
     const startDate = new Date(data.start_date);
     const year =
       startDate.getMonth() >= 3
         ? startDate.getFullYear() + 1
         : startDate.getFullYear();
 
-    // Check balance before attempting to submit
     const netBalance = await LeaveModel.getNetBalance(
       data.employee_id,
       leaveTypeId,
@@ -182,7 +180,6 @@ const createLeave = async (req, res, next) => {
       );
     }
 
-    // Create leave request and deduct balance in a single transaction
     const leave = await LeaveModel.createLeaveRequestWithDeduction(
       data,
       leaveTypeId,
@@ -217,7 +214,6 @@ const approveLeave = async (req, res, next) => {
     const approved = await LeaveModel.approveLeave(id, actorId);
     if (!approved) return error(res, "Failed to approve leave", 500);
 
-    // Balance was already deducted on submission � no further deduction needed
     return success(res, { message: "Leave approved successfully" });
   } catch (err) {
     next(err);
@@ -246,8 +242,6 @@ const rejectLeave = async (req, res, next) => {
       );
     }
 
-    // Restore balance for any active status (Pending Approval, Approved, Scheduled, Taken)
-    // Balance was deducted on submission, so always restore on rejection
     try {
       const starting_date = new Date(leave.start_date);
       const year =
@@ -277,10 +271,6 @@ const cancelLeave = async (req, res, next) => {
 
     const actorId = parseInt(req.user.id);
     const actorRole = req.user.role;
-
-    // Allow cancellation if: user is owner OR user is admin/HR
-    // Note: leave.employee_id from lr.* is now the numeric user ID (correct)
-    // The string employee_id like "EMP-001" is also available but not used here
     const leaveEmployeeId = parseInt(leave.employee_id);
     const isOwner = leaveEmployeeId === actorId;
     const isAdminOrHR = ["empmanager", "hradmin"].includes(actorRole);
@@ -296,7 +286,6 @@ const cancelLeave = async (req, res, next) => {
     const cancelled = await LeaveModel.cancelLeave(id, actorId);
     if (!cancelled) return error(res, "Failed to cancel leave", 500);
 
-    // Balance was deducted on submission � always restore on cancellation
     try {
       const starting_date = new Date(leave.start_date);
       const year =
@@ -378,7 +367,8 @@ const exportSummary = async (req, res, next) => {
       "Work Schedule",
       "Leave Type",
       "Unit",
-      "Entitlements Used",
+      "Entitlements",
+      "Used",
       "Net Leave Balance",
       "Requested Duration",
       "Status",
@@ -402,25 +392,27 @@ const exportSummary = async (req, res, next) => {
     });
     hdr.height = 20;
     ws.columns = [
-      { width: 14 }, // Start Date
-      { width: 14 }, // End Date
-      { width: 14 }, // Applied On
-      { width: 16 }, // Employee Id
-      { width: 14 }, // Employee Name
-      { width: 24 }, // Job Title
-      { width: 20 }, // Employment Status
-      { width: 20 }, // Sub Unit
-      { width: 20 }, // Location
-      { width: 18 }, // Job Category
-      { width: 20 }, // Work Schedule
-      { width: 18 }, // Leave Type
-      { width: 18 }, // Unit
-      { width: 16 }, // Entitlements Used
-      { width: 16 }, // Net Leave Balance
-      { width: 18 }, // Requested Duration
-      { width: 18 }, // Status
-      { width: 16 }, // Attachment Status
-      { width: 30 }, // Comments
+      { width: 14 },
+      { width: 14 },
+      { width: 14 },
+      { width: 16 },
+      { width: 14 },
+      { width: 24 },
+      { width: 20 },
+      { width: 20 },
+      { width: 20 },
+      { width: 18 },
+      { width: 20 },
+      { width: 18 },
+      { width: 18 },
+      { width: 8 },
+      { width: 12 },
+      { width: 8 },
+      { width: 18 },
+      { width: 18 },
+      { width: 16 },
+      { width: 18 },
+      { width: 30 },
     ];
 
     rows.forEach((row, idx) => {
@@ -438,6 +430,7 @@ const exportSummary = async (req, res, next) => {
         row.work_schedule || "",
         row.leave_type || "",
         row.unit || "",
+        row.entitlements ? Number(row.entitlements) : "",
         row.used ? Number(row.used) : "",
         row.net_leave_balance ? Number(row.net_leave_balance) : "",
         row.requested_days ? Number(row.requested_days) : "",
@@ -514,7 +507,8 @@ const exportDetail = async (req, res, next) => {
       "Work Schedule",
       "Leave Type",
       "Unit",
-      "Entitlements Used",
+      "Entitlements",
+      "Used",
       "Net Leave Balance",
       "Duration (Hours)",
       "Status",

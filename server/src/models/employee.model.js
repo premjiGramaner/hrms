@@ -361,6 +361,24 @@ async function findByEmail(email) {
   return rows[0] || null;
 }
 
+async function findByEmployeeId(employeeId) {
+  const { rows } = await pool.query(
+    `SELECT id::int, employee_id FROM tbl_appusers WHERE employee_id = $1 AND is_deleted = false`,
+    [employeeId],
+  );
+  return rows[0] || null;
+}
+
+async function getLastEmployeeId() {
+  const { rows } = await pool.query(
+    `SELECT employee_id FROM tbl_appusers 
+     WHERE is_deleted = false AND employee_id IS NOT NULL 
+     ORDER BY created_at DESC 
+     LIMIT 1`,
+  );
+  return rows[0] || null;
+}
+
 export {
   findAllEmployees,
   findEmployeeById,
@@ -371,4 +389,6 @@ export {
   terminateEmployee,
   getSupervisors,
   findByEmail,
+  findByEmployeeId,
+  getLastEmployeeId,
 };
