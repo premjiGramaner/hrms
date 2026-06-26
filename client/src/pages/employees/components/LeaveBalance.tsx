@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getLeaveBalance } from "../../../api/leave.api";
 import { Employee, LeaveBalance as LeaveBalanceType } from "../../../types";
-import LoaderCard from "./LoaderCard";
-interface Props {
+import LoaderCard from "../../../components/LoaderCard";
+interface LeaveBalanceProps {
   employee: Employee;
 }
 
-export default function LeaveBalance({ employee }: Props) {
+export default function LeaveBalance({ employee }: LeaveBalanceProps) {
   const navigate = useNavigate();
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalanceType[]>([]);
   const [loading, setLoading] = useState(true);

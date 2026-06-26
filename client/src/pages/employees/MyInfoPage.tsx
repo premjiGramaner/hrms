@@ -80,59 +80,6 @@ export default function MyInfoPage() {
   >([]);
   const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
 
-  // useEffect(() => {
-  //   if (isAdmin) {
-  //     getJobTitles()
-  //       .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
-  //       .catch(() => {});
-  //     getJobCategories()
-  //       .then((res) =>
-  //         setJobCategoryOptions(
-  //           res.data.map((c) => ({ id: c.id, category: c.category })),
-  //         ),
-  //       )
-  //       .catch(() => {});
-  //     getSubUnits()
-  //       .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
-  //       .catch(() => {});
-  //   }
-  //   getSupervisors()
-  //     .then((res) => setSupervisorOptions(res.data || []))
-  //     .catch(() => {});
-  // }, [isAdmin]);
-
-  //   useEffect(() => {
-  //   if (isAdmin) {
-  //     getJobTitles()
-  //       .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
-  //       .catch((err) =>
-  //         setError(getApiErrorMessage(err, "Failed to load job titles."))
-  //       );
-
-  //     getJobCategories()
-  //       .then((res) =>
-  //         setJobCategoryOptions(
-  //           res.data.map((c) => ({ id: c.id, category: c.category })),
-  //         ),
-  //       )
-  //       .catch((err) =>
-  //         setError(getApiErrorMessage(err, "Failed to load job categories."))
-  //       );
-
-  //     getSubUnits()
-  //       .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
-  //       .catch((err) =>
-  //         setError(getApiErrorMessage(err, "Failed to load sub units."))
-  //       );
-  //   }
-
-  //   getSupervisors()
-  //     .then((res) => setSupervisorOptions(res.data || []))
-  //     .catch((err) =>
-  //       setError(getApiErrorMessage(err, "Failed to load supervisors."))
-  //     );
-  // }, [isAdmin]);
-
   useEffect(() => {
     if (isAdmin) {
       getJobTitles()

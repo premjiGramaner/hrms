@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getLeaves } from "../../../api/leave.api";
 import { Employee, LeaveRequest } from "../../../types";
-import LoaderCard from "./LoaderCard";
+import LoaderCard from "../../../components/LoaderCard";
 
 interface Props {
   employee: Employee;
@@ -92,6 +92,28 @@ export default function LeaveList({ employee }: Props) {
     return <LoaderCard title="Leave List" rows={3} variant="list" />;
   }
 
+  const displayGroupedLeaves = sortedGroupedLeaves.map(
+    ({ month, monthLeaves }) => ({
+      month,
+      monthLeaves: monthLeaves.map((leave) => ({
+        ...leave,
+        startDate: formatDate(leave.start_date),
+        statusColor: getStatusColor(leave.status),
+        displayDate:
+          leave.start_date === leave.end_date
+            ? leave.start_date
+            : `${leave.start_date} - ${leave.end_date}`,
+        statusClass:
+          leave.status === "Approved"
+            ? "bg-green-100 text-green-800"
+            : leave.status === "Pending Approval"
+              ? "bg-yellow-100 text-yellow-800"
+              : leave.status === "Rejected"
+                ? "bg-red-100 text-red-800"
+                : "bg-gray-100 text-gray-800",
+      })),
+    }),
+  );
   return (
     <div
       className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
@@ -109,69 +131,53 @@ export default function LeaveList({ employee }: Props) {
             <p className="text-xs mt-1">Your leave history will appear here</p>
           </div>
         ) : (
-          sortedGroupedLeaves.map(({ month, monthLeaves }) => (
+          displayGroupedLeaves.map(({ month, monthLeaves }) => (
             <div key={month}>
               <h3 className="text-sm font-semibold text-[#333333] mb-2">
                 {month}
               </h3>
-              <div className="space-y-2">
-                {monthLeaves
-                  .sort(
-                    (a, b) =>
-                      new Date(b.start_date).getTime() -
-                      new Date(a.start_date).getTime(),
-                  ) // Sort by newest first
-                  .map((leave) => {
-                    const startDate = formatDate(leave.start_date);
-                    const statusColor = getStatusColor(leave.status);
 
-                    return (
+              <div className="space-y-2">
+                {monthLeaves.map((leave) => (
+                  <div
+                    key={leave.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    <div className="flex items-center gap-3">
                       <div
-                        key={leave.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                        className={`${leave.statusColor} text-white w-12 h-12 rounded flex flex-col items-center justify-center`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`${statusColor} text-white w-12 h-12 rounded flex flex-col items-center justify-center`}
-                          >
-                            <div className="text-xs font-semibold">
-                              {startDate.day}
-                            </div>
-                            <div className="text-xs">{startDate.dayName}</div>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-[#333333]">
-                              {leave.leave_type}
-                            </p>
-                            <p className="text-xs text-[#757575]">
-                              {leave.start_date === leave.end_date
-                                ? leave.start_date
-                                : `${leave.start_date} - ${leave.end_date}`}
-                            </p>
-                            <span
-                              className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${
-                                leave.status === "Approved"
-                                  ? "bg-green-100 text-green-800"
-                                  : leave.status === "Pending Approval"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : leave.status === "Rejected"
-                                      ? "bg-red-100 text-red-800"
-                                      : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {leave.status}
-                            </span>
-                          </div>
+                        <div className="text-xs font-semibold">
+                          {leave.startDate.day}
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-[#333333]">
-                            {Number(leave.requested_days).toFixed(1)}
-                          </p>
-                          <p className="text-xs text-[#757575]">Day(s)</p>
-                        </div>
+                        <div className="text-xs">{leave.startDate.dayName}</div>
                       </div>
-                    );
-                  })}
+
+                      <div>
+                        <p className="text-sm font-medium text-[#333333]">
+                          {leave.leave_type}
+                        </p>
+
+                        <p className="text-xs text-[#757575]">
+                          {leave.displayDate}
+                        </p>
+
+                        <span
+                          className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${leave.statusClass}`}
+                        >
+                          {leave.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-[#333333]">
+                        {Number(leave.requested_days).toFixed(1)}
+                      </p>
+                      <p className="text-xs text-[#757575]">Day(s)</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))
