@@ -10,6 +10,9 @@ import {
   createEmployee,
   updateEmployee,
   getSupervisors,
+  checkEmailExists,
+  checkEmployeeIdExists,
+  getLastEmployeeId,
 } from "../../api/employee.api";
 import {
   getJobTitles,
@@ -21,13 +24,14 @@ import { getApiErrorMessage } from "../../utils/errors";
 import { validateEmployeeStep } from "../../validations/employee.validation";
 import {
   STEPS,
-  LOCATIONS,
   EMPLOYMENT_STATUSES,
   COUNTRIES,
   NATIONALITIES,
   BLOOD_GROUPS,
 } from "../../constants/employeeOptions";
 import { ISO_DATE_PATTERN } from "../../constants/employeeOptions";
+import { EMAIL_REGEX } from "./validation";
+import { handleMobileInput } from "./components/inputHelpers";
 
 interface Props {
   employee: Employee | null;
@@ -65,32 +69,41 @@ export default function AddEmployeeModal({
   const [jobCategoryOptions, setJobCategoryOptions] = useState<string[]>([]);
   const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
   const [subUnitRecords, setSubUnitRecords] = useState<SubUnit[]>([]);
-
-  // Simple 10-digit mobile number state
-  const [mobileNumber, setMobileNumber] = useState(
-    employee?.mobile?.replace(/\D/g, "")?.slice(0, 10) || "",
-  );
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingEmployeeId, setCheckingEmployeeId] = useState(false);
+  const [lastEmployeeId, setLastEmployeeId] = useState<string | null>(null);
+  const [showCustomLocation, setShowCustomLocation] = useState(false);
+  const [customLocation, setCustomLocation] = useState("");
+  const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
 
   const avatarRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<Record<keyof typeof initialForm, string>>({} as any);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [apiError, setApiError] = useState("");
 
   useEffect(() => {
     getSupervisors()
       .then((res) => setSupervisors(res.data))
-      .catch(() => {});
+      .catch(() => setApiError("Failed to load supervisors"));
+
     getJobTitles()
       .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
-      .catch(() => {});
+      .catch(() => setApiError("Failed to load job titles"));
+
     getJobCategories()
       .then((res) => setJobCategoryOptions(res.data.map((j) => j.category)))
-      .catch(() => {});
+      .catch(() => setApiError("Failed to load job categories"));
+
     getSubUnits()
       .then((res) => {
         setSubUnitRecords(res.data);
         setSubUnitOptions(res.data.map((s) => s.sub_unit_name));
       })
-      .catch(() => {});
+      .catch(() => setApiError("Failed to load sub units"));
+
+    getLastEmployeeId()
+      .then((res) => setLastEmployeeId(res.data.employee_id))
+      .catch(() => setApiError("Failed to load employee ID"));
   }, []);
 
   useEffect(() => {
@@ -98,6 +111,17 @@ export default function AddEmployeeModal({
       setSelectedSupervisors(
         employee.supervisors.map(String).filter((s) => s.trim() !== ""),
       );
+    }
+  }, [employee?.id]);
+
+  useEffect(() => {
+    if (employee?.location) {
+      const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
+      if (!predefinedLocations.includes(employee.location)) {
+        setShowCustomLocation(true);
+        setCustomLocation(employee.location);
+        formRef.current.location = "Other";
+      }
     }
   }, [employee?.id]);
 
@@ -148,7 +172,7 @@ export default function AddEmployeeModal({
     formRef.current = initialForm;
   }, [initialForm]);
 
-  const set =
+  const handleFieldChange =
     (fieldName: keyof typeof initialForm) =>
     (
       event: ChangeEvent<
@@ -158,24 +182,44 @@ export default function AddEmployeeModal({
       formRef.current[fieldName] = event.target.value;
       if (errors[fieldName])
         setErrors((prev) => {
-          const n = { ...prev };
-          delete n[fieldName];
-          return n;
+          const updatedErrors = { ...prev };
+          delete updatedErrors[fieldName];
+          return updatedErrors;
         });
     };
 
   function validateCurrentStep(stepNumber: number) {
-    // Pass 10-digit mobile value into validator
-    const formValues = {
-      ...formRef.current,
-      mobile: mobileNumber,
-    };
     const nextErrors = validateEmployeeStep(
       stepNumber,
-      formValues,
+      formRef.current,
       selectedSupervisors,
       supervisors.length,
     );
+
+    if (stepNumber === 1) {
+      if (formRef.current.location === "Other" && !customLocation.trim()) {
+        nextErrors.customLocation = "Please enter a location";
+      }
+
+      const employeeId = formRef.current.employee_id?.trim();
+      if (errors.employee_id && employeeId) {
+        nextErrors.employee_id = errors.employee_id;
+      }
+    }
+
+    if (stepNumber === 4) {
+      const workEmail = formRef.current.work_email?.trim();
+      const otherEmail = formRef.current.other_email?.trim();
+
+      if (errors.work_email && workEmail) {
+        nextErrors.work_email = errors.work_email;
+      }
+
+      if (errors.other_email && otherEmail) {
+        nextErrors.other_email = errors.other_email;
+      }
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -189,7 +233,39 @@ export default function AddEmployeeModal({
   };
 
   const handleNext = () => {
-    if (validators[step] && !validators[step]()) return;
+    if (validators[step] && !validators[step]()) {
+      const firstErrorField = Object.keys(errors)[0];
+      if (firstErrorField) {
+        setTimeout(() => {
+          const errorElement = document.querySelector(
+            `input[name="${firstErrorField}"], select[name="${firstErrorField}"], textarea[name="${firstErrorField}"]`,
+          ) as HTMLElement;
+          if (!errorElement) {
+            const allInputs = document.querySelectorAll(
+              "input, select, textarea",
+            );
+            for (const input of Array.from(allInputs)) {
+              const inputElement = input as HTMLInputElement;
+              if (inputElement.classList.contains("border-red-500")) {
+                inputElement.focus();
+                inputElement.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                });
+                break;
+              }
+            }
+          } else {
+            errorElement.focus();
+            errorElement.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          }
+        }, 100);
+      }
+      return;
+    }
     setStep((s) => s + 1);
   };
 
@@ -198,9 +274,13 @@ export default function AddEmployeeModal({
     setSaving(true);
     try {
       const formData = new FormData();
-      // Use 10-digit mobile number
-      const assembled = { ...formRef.current, mobile: mobileNumber };
-      Object.entries(assembled).forEach(([key, val]) => {
+      const formDataToSubmit = { ...formRef.current };
+
+      if (formRef.current.location === "Other" && customLocation.trim()) {
+        formDataToSubmit.location = customLocation.trim();
+      }
+
+      Object.entries(formDataToSubmit).forEach(([key, val]) => {
         const value = String(val).trim();
         if (value) formData.append(key, value);
       });
@@ -210,10 +290,212 @@ export default function AddEmployeeModal({
       else await createEmployee(formData);
       onSaved();
       onClose();
-    } catch (err: unknown) {
-      setErrors({ submit: getApiErrorMessage(err) });
+    } catch (err: any) {
+      const errorMessage = getApiErrorMessage(err);
+
+      if (
+        errorMessage.toLowerCase().includes("employee id") &&
+        errorMessage.toLowerCase().includes("exist")
+      ) {
+        setErrors((prev) => ({
+          ...prev,
+          employee_id: "Employee ID already exists",
+        }));
+        setStep(1);
+      } else if (
+        errorMessage.toLowerCase().includes("email") &&
+        errorMessage.toLowerCase().includes("exist")
+      ) {
+        const workEmail = formRef.current.work_email?.trim();
+        const otherEmail = formRef.current.other_email?.trim();
+
+        if (workEmail) {
+          setErrors((prev) => ({
+            ...prev,
+            work_email: "This email address is already registered",
+          }));
+        }
+
+        if (otherEmail && otherEmail === workEmail) {
+          setErrors((prev) => ({
+            ...prev,
+            other_email: "This email address is already registered",
+          }));
+        }
+
+        setStep(4);
+      } else {
+        setErrors({ submit: errorMessage });
+      }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === "Enter" && e.target instanceof HTMLElement) {
+      if (
+        e.target.tagName === "INPUT" ||
+        e.target.tagName === "SELECT" ||
+        e.target.tagName === "TEXTAREA"
+      ) {
+        e.preventDefault();
+
+        const targetElement = e.target as
+          | HTMLInputElement
+          | HTMLSelectElement
+          | HTMLTextAreaElement;
+        const fieldName =
+          targetElement.name || targetElement.getAttribute("name");
+
+        if (fieldName && errors[fieldName]) {
+          targetElement.focus();
+          return;
+        }
+
+        const form = e.currentTarget;
+        const focusableElements = Array.from(
+          form.querySelectorAll(
+            'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])',
+          ),
+        ) as HTMLElement[];
+        const currentIndex = focusableElements.indexOf(e.target);
+        if (currentIndex > -1 && currentIndex < focusableElements.length - 1) {
+          focusableElements[currentIndex + 1].focus();
+        }
+      }
+    }
+  };
+
+  const handleSelectChange = (
+    fieldName: keyof typeof initialForm,
+    event: ChangeEvent<HTMLSelectElement>,
+  ) => {
+    formRef.current[fieldName] = event.target.value;
+
+    if (fieldName === "location") {
+      if (event.target.value === "Other") {
+        setShowCustomLocation(true);
+      } else {
+        setShowCustomLocation(false);
+        setCustomLocation("");
+        if (errors.customLocation) {
+          setErrors((prev) => {
+            const updatedErrors = { ...prev };
+            delete updatedErrors.customLocation;
+            return updatedErrors;
+          });
+        }
+      }
+    }
+
+    if (errors[fieldName]) {
+      setErrors((prev) => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors[fieldName];
+        return updatedErrors;
+      });
+    }
+
+    if (errors[fieldName]) {
+      event.target.focus();
+      return;
+    }
+
+    const selectElement = event.target;
+    const form = selectElement.closest("form");
+    if (form) {
+      const focusableElements = Array.from(
+        form.querySelectorAll(
+          'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])',
+        ),
+      ) as HTMLElement[];
+      const currentIndex = focusableElements.indexOf(selectElement);
+      if (currentIndex > -1 && currentIndex < focusableElements.length - 1) {
+        setTimeout(() => focusableElements[currentIndex + 1].focus(), 0);
+      }
+    }
+  };
+
+  const handleEmailBlur = async (
+    email: string,
+    fieldName: "work_email" | "other_email",
+    element: HTMLInputElement,
+  ) => {
+    if (!email.trim()) {
+      setErrors((prev) => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors[fieldName];
+        return updatedErrors;
+      });
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: "Enter a valid email",
+      }));
+      setTimeout(() => element.focus(), 100);
+      return;
+    }
+
+    setCheckingEmail(true);
+    try {
+      const result = await checkEmailExists(email, employee?.id);
+      if (result.data.exists) {
+        setErrors((prev) => ({
+          ...prev,
+          [fieldName]: "This email address is already registered",
+        }));
+        setTimeout(() => element.focus(), 100);
+      } else {
+        setErrors((prev) => {
+          const updatedErrors = { ...prev };
+          delete updatedErrors[fieldName];
+          return updatedErrors;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking email:", error);
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
+
+  const handleEmployeeIdBlur = async (
+    employeeId: string,
+    element: HTMLInputElement,
+  ) => {
+    if (!employeeId.trim()) {
+      setErrors((prev) => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors.employee_id;
+        return updatedErrors;
+      });
+      return;
+    }
+
+    setCheckingEmployeeId(true);
+    try {
+      const result = await checkEmployeeIdExists(employeeId, employee?.id);
+      if (result.data.exists) {
+        setErrors((prev) => ({
+          ...prev,
+          employee_id: "Employee ID already exists",
+        }));
+        setTimeout(() => element.focus(), 100);
+      } else {
+        setErrors((prev) => {
+          const updatedErrors = { ...prev };
+          delete updatedErrors.employee_id;
+          return updatedErrors;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking employee ID:", error);
+    } finally {
+      setCheckingEmployeeId(false);
     }
   };
 
@@ -224,16 +506,85 @@ export default function AddEmployeeModal({
   ) => (
     <div>
       <input
+        name={name}
         type={type}
         placeholder={placeholder}
         defaultValue={formRef.current[name]}
-        onChange={set(name)}
+        onChange={handleFieldChange(name)}
         className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
             : "border-slate-200 bg-slate-50 focus:border-slate-300"
         }`}
       />
+      {errors[name] && (
+        <span className="text-xs text-red-600 mt-1 block">{errors[name]}</span>
+      )}
+    </div>
+  );
+
+  const renderEmployeeIdInput = () => (
+    <div>
+      <input
+        name="employee_id"
+        type="text"
+        placeholder="e.g. EMP-001"
+        defaultValue={formRef.current.employee_id}
+        onChange={handleFieldChange("employee_id")}
+        onBlur={(e) => handleEmployeeIdBlur(e.target.value, e.target)}
+        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+          errors.employee_id
+            ? "border-red-500 bg-red-50"
+            : checkingEmployeeId
+              ? "border-blue-500 bg-blue-50"
+              : "border-slate-200 bg-slate-50 focus:border-slate-300"
+        }`}
+      />
+      {checkingEmployeeId && (
+        <span className="text-xs text-blue-600 mt-1 block">
+          Checking Employee ID...
+        </span>
+      )}
+      {errors.employee_id && (
+        <span className="text-xs text-red-600 mt-1 block">
+          {errors.employee_id}
+        </span>
+      )}
+      {!errors.employee_id && lastEmployeeId && !checkingEmployeeId && (
+        <span className="text-xs text-slate-500 mt-1 block">
+          Last Employee ID: {lastEmployeeId}
+        </span>
+      )}
+    </div>
+  );
+
+  const renderEmailInput = (
+    name: "work_email" | "other_email",
+    placeholder = "",
+  ) => (
+    <div>
+      <input
+        name={name}
+        type="email"
+        placeholder={placeholder}
+        defaultValue={formRef.current[name]}
+        onChange={handleFieldChange(name)}
+        onBlur={(e) => {
+          handleEmailBlur(e.target.value, name, e.target);
+        }}
+        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+          errors[name]
+            ? "border-red-500 bg-red-50"
+            : checkingEmail
+              ? "border-blue-500 bg-blue-50"
+              : "border-slate-200 bg-slate-50 focus:border-slate-300"
+        }`}
+      />
+      {checkingEmail && (
+        <span className="text-xs text-blue-600 mt-1 block">
+          Checking email...
+        </span>
+      )}
       {errors[name] && (
         <span className="text-xs text-red-600 mt-1 block">{errors[name]}</span>
       )}
@@ -247,8 +598,9 @@ export default function AddEmployeeModal({
   ) => (
     <div className="relative">
       <select
+        name={name}
         defaultValue={formRef.current[name]}
-        onChange={set(name)}
+        onChange={(e) => handleSelectChange(name, e)}
         className={`w-full px-3 py-2 pr-7 border-1.5 rounded-lg text-sm outline-none appearance-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
@@ -304,42 +656,51 @@ export default function AddEmployeeModal({
     </div>
   );
 
-  // Simple 10-digit phone input
-  const renderPhoneField = () => (
-    <div>
-      <input
-        type="tel"
-        inputMode="numeric"
-        placeholder="10-digit mobile number"
-        value={mobileNumber}
-        maxLength={10}
-        onChange={(e) => {
-          const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
-          setMobileNumber(digits);
-          if (errors.mobile)
-            setErrors((prev) => {
-              const n = { ...prev };
-              delete n.mobile;
-              return n;
-            });
-        }}
-        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
-          errors.mobile
-            ? "border-red-500 bg-red-50"
-            : "border-slate-200 bg-slate-50 focus:border-slate-300"
-        }`}
-      />
-      {errors.mobile && (
-        <span className="text-xs text-red-600 mt-1 block">{errors.mobile}</span>
-      )}
-    </div>
-  );
+  const renderPhoneInput = (
+    field: "mobile" | "work_tel" | "home_tel",
+    placeholder: string,
+  ) => {
+    return (
+      <div>
+        <input
+          name={field}
+          type="text"
+          inputMode="numeric"
+          autoComplete="tel"
+          placeholder={placeholder}
+          defaultValue={formRef.current[field]}
+          maxLength={10}
+          onChange={(e) =>
+            handleMobileInput(e, formRef, field, errors, setErrors)
+          }
+          className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+            errors[field]
+              ? "border-red-500 bg-red-50"
+              : "border-slate-200 bg-slate-50 focus:border-slate-300"
+          }`}
+        />
+        {errors[field] && (
+          <span className="text-xs text-red-600 mt-1 block">
+            {errors[field]}
+          </span>
+        )}
+      </div>
+    );
+  };
 
+  const handleCustomLocationChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setCustomLocation(e.target.value);
+
+    if (errors.customLocation) {
+      setErrors((prev) => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors.customLocation;
+        return updatedErrors;
+      });
+    }
+  };
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={(event) => event.target === event.currentTarget && onClose()}
-    >
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-900 to-teal-600">
           <h2 className="m-0 text-base font-bold text-white">
@@ -395,10 +756,15 @@ export default function AddEmployeeModal({
           })}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <form className="flex-1 overflow-y-auto p-4" onKeyDown={handleKeyDown}>
           {errors.submit && (
             <div className="p-2.5 bg-red-50 border-l-4 border-red-300 rounded text-red-800 text-sm mb-3.5">
               {errors.submit}
+            </div>
+          )}
+          {apiError && (
+            <div className="p-2.5 bg-red-50 border-l-4 border-red-300 rounded text-red-800 text-sm mb-3.5">
+              {apiError}
             </div>
           )}
 
@@ -468,10 +834,7 @@ export default function AddEmployeeModal({
                       "Middle Name",
                       renderInput("middle_name", "Optional"),
                     )}
-                    {FormField(
-                      "Employee Id",
-                      renderInput("employee_id", "e.g. EMP-001"),
-                    )}
+                    {FormField("Employee Id", renderEmployeeIdInput())}
                     {FormField(
                       "Joined Date",
                       renderInput("joined_date", "", "date"),
@@ -479,11 +842,38 @@ export default function AddEmployeeModal({
                     )}
                     {FormField(
                       "Location",
-                      renderSelect(
-                        "location",
-                        LOCATIONS,
-                        "-- Select Location --",
-                      ),
+                      <div>
+                        {renderSelect(
+                          "location",
+                          [...predefinedLocations, "Other"],
+                          "-- Select Location --",
+                        )}
+                        {showCustomLocation && (
+                          <div className="mt-2">
+                            <label className="text-xs font-semibold text-slate-600 block mb-1 tracking-wide">
+                              Specify Location
+                              <span className="text-red-600 ml-0.5">*</span>
+                            </label>
+                            <input
+                              name="customLocation"
+                              type="text"
+                              placeholder="Enter custom location"
+                              value={customLocation}
+                              onChange={handleCustomLocationChange}
+                              className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+                                errors.customLocation
+                                  ? "border-red-500 bg-red-50"
+                                  : "border-slate-200 bg-slate-50 focus:border-slate-300"
+                              }`}
+                            />
+                            {errors.customLocation && (
+                              <span className="text-xs text-red-600 mt-1 block">
+                                {errors.customLocation}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>,
                       true,
                     )}
                   </TwoColumnGrid>
@@ -605,7 +995,7 @@ export default function AddEmployeeModal({
                   "Comments",
                   <textarea
                     defaultValue={formRef.current.comments}
-                    onChange={set("comments")}
+                    onChange={handleFieldChange("comments")}
                     placeholder="Any notes…"
                     className="w-full px-3 py-2 border-1.5 border-slate-200 rounded-lg text-sm outline-none bg-slate-50 focus:border-slate-300 resize-none h-16"
                   />,
@@ -619,21 +1009,26 @@ export default function AddEmployeeModal({
               <TwoColumnGrid>
                 {FormField(
                   "Work Email",
-                  renderInput("work_email", "work@company.com", "email"),
+                  renderEmailInput("work_email", "work@company.com"),
                   true,
                 )}
                 {FormField(
                   "Other Email",
-                  renderInput("other_email", "personal@email.com", "email"),
+                  renderEmailInput("other_email", "personal@email.com"),
                 )}
-                {FormField("Mobile", renderPhoneField(), true)}
+
+                {FormField(
+                  "Mobile",
+                  renderPhoneInput("mobile", "10-digit mobile number"),
+                  true,
+                )}
                 {FormField(
                   "Work Tel",
-                  renderInput("work_tel", "e.g. 4224542188", "tel"),
+                  renderPhoneInput("work_tel", "10-digit work telephone"),
                 )}
                 {FormField(
                   "Home Tel",
-                  renderInput("home_tel", "Home telephone", "tel"),
+                  renderPhoneInput("home_tel", "10-digit home telephone"),
                 )}
                 {FormField(
                   "Address Line 1",
@@ -688,16 +1083,19 @@ export default function AddEmployeeModal({
                           onChange={() => {
                             setSelectedSupervisors((prev) =>
                               checked
-                                ? prev.filter((n) => n !== supervis.name)
+                                ? prev.filter(
+                                    (updatedErrors) =>
+                                      updatedErrors !== supervis.name,
+                                  )
                                 : prev.length < 3
                                   ? [...prev, supervis.name]
                                   : prev,
                             );
                             if (errors.supervisors)
                               setErrors((e) => {
-                                const n = { ...e };
-                                delete n.supervisors;
-                                return n;
+                                const updatedErrors = { ...e };
+                                delete updatedErrors.supervisors;
+                                return updatedErrors;
                               });
                           }}
                           className="w-4 h-4 accent-blue-900 flex-shrink-0"
@@ -749,7 +1147,9 @@ export default function AddEmployeeModal({
                       <button
                         onClick={() =>
                           setSelectedSupervisors((prev) =>
-                            prev.filter((n) => n !== name),
+                            prev.filter(
+                              (updatedErrors) => updatedErrors !== name,
+                            ),
                           )
                         }
                         className="bg-none border-0 cursor-pointer text-blue-700 text-base leading-none pl-1"
@@ -762,7 +1162,7 @@ export default function AddEmployeeModal({
               )}
             </Section>
           )}
-        </div>
+        </form>
 
         <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
           <span className="text-xs text-slate-400">
@@ -770,6 +1170,7 @@ export default function AddEmployeeModal({
           </span>
           <div className="flex gap-2.5">
             <button
+              type="button"
               onClick={onClose}
               className="px-5 py-2 rounded-full border border-slate-200 bg-white text-sm font-semibold cursor-pointer text-slate-600 hover:bg-slate-50 transition"
             >
@@ -777,6 +1178,7 @@ export default function AddEmployeeModal({
             </button>
             {step > 1 && (
               <button
+                type="button"
                 onClick={() => setStep((s) => s - 1)}
                 className="px-5 py-2 rounded-full border border-blue-900 bg-white text-sm font-semibold cursor-pointer text-blue-900 hover:bg-blue-50 transition"
               >
@@ -785,6 +1187,7 @@ export default function AddEmployeeModal({
             )}
             {step < 5 ? (
               <button
+                type="button"
                 onClick={handleNext}
                 className="px-7 py-2 rounded-full border-0 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-bold cursor-pointer hover:shadow-lg transition"
               >
@@ -792,6 +1195,7 @@ export default function AddEmployeeModal({
               </button>
             ) : (
               <button
+                type="button"
                 onClick={handleSubmit}
                 disabled={saving}
                 className={`px-7 py-2 rounded-full border-0 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-bold cursor-pointer hover:shadow-lg transition ${saving ? "opacity-65 cursor-not-allowed" : ""}`}

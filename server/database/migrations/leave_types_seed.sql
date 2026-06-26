@@ -1,7 +1,10 @@
--- Additional leave types to match the full spec list
-INSERT INTO tbl_leave_types (name, code, max_days, carry_forward) VALUES
-  ('Carry Forward - Privileged Leave', 'CFPL',  30,  TRUE),
-  ('Leaves for Interns',               'LFI',   10,  FALSE),
-  ('Annual Leave',                     'AL',    21,  FALSE),
-  ('Emergency Leave',                  'EL',    3,   FALSE)
-ON CONFLICT (code) DO NOTHING;
+-- This file is no longer needed as all required leave types are in leave_management.sql
+-- The following leave types are already included:
+-- 1. Privileged Leave (PL)
+-- 2. Carry Forward - Privileged Leave (CFPL)
+-- 3. Sick Leave (SL)
+-- 4. Comp Off (CO)
+-- 5. Loss of Pay (LOP)
+-- 6. Maternity Leave (ML)
+-- 7. Paternity Leave (PTL)
+-- 8. Work From Home (WFH)

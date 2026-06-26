@@ -13,6 +13,13 @@ interface EditableProfileFieldProps {
   type?: string;
   options?: readonly string[];
   wide?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
+  error?: string;
+  required?: boolean;
+  pattern?: string;
+  maxLength?: number;
+  minLength?: number;
 }
 
 interface ProfileDetailPanelProps {
@@ -29,29 +36,55 @@ export function EditableProfileField({
   type = "text",
   options,
   wide = false,
+  disabled = false,
+  readOnly = false,
+  error,
+  required = false,
+  pattern,
+  maxLength,
+  minLength,
 }: EditableProfileFieldProps) {
-  const controlClass =
-    "min-h-[2.75rem] w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-50";
+  const displayValue = value || "Not Assigned";
+  const controlClass = `min-h-[2.75rem] w-full rounded-lg border ${error ? "border-red-300" : "border-slate-200"} ${disabled || readOnly ? "bg-slate-50 cursor-not-allowed text-slate-500" : "bg-white"} px-3 py-2.5 text-sm font-medium ${disabled || readOnly ? "text-slate-500" : "text-slate-700"} outline-none transition ${disabled || readOnly ? "" : "focus:border-blue-300 focus:ring-2 focus:ring-blue-50"}`;
+
+  if (readOnly) {
+    return (
+      <div className={wide ? "md:col-span-2 xl:col-span-3" : ""}>
+        <p className="mb-1.5 text-xs font-semibold text-slate-600">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </p>
+        <div className={`${controlClass} flex items-center`}>
+          {displayValue}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={wide ? "md:col-span-2 xl:col-span-3" : ""}>
-      <p className="mb-1.5 text-xs font-semibold text-slate-600">{label}</p>
+      <p className="mb-1.5 text-xs font-semibold text-slate-600">
+        {label}
+        {required && !disabled && <span className="text-red-500 ml-1">*</span>}
+      </p>
       {type === "textarea" ? (
         <textarea
           name={name}
           value={value}
           onChange={onChange}
+          disabled={disabled}
           className={`${controlClass} min-h-[5.5rem] resize-y`}
         />
-      ) : options ? (
+      ) : (options?.length ?? 0) > 0 ? (
         <select
           name={name}
           value={value}
           onChange={onChange}
+          disabled={disabled}
           className={controlClass}
         >
           <option value="">-- Select --</option>
-          {options.map((option) => (
+          {options?.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
@@ -63,9 +96,14 @@ export function EditableProfileField({
           type={type}
           value={value}
           onChange={onChange}
+          disabled={disabled}
+          pattern={pattern}
+          maxLength={maxLength}
+          minLength={minLength}
           className={controlClass}
         />
       )}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   );
 }

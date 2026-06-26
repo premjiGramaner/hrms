@@ -1,6 +1,10 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
-import { getMyInfo, updateEmployee } from "../../api/employee.api";
+import {
+  getMyInfo,
+  updateEmployee,
+  getSupervisors,
+} from "../../api/employee.api";
 import { Employee } from "../../types";
 import {
   ATTENDANCE_CALCULATION_TYPES,
@@ -8,14 +12,15 @@ import {
   COUNTRIES,
   EMPLOYMENT_STATUSES,
   GENDERS,
-  JOB_CATEGORIES,
   JOB_SPECIFICATIONS,
-  JOB_TITLES,
-  LOCATIONS,
   MARITAL_STATUSES,
   NATIONALITIES,
-  SUB_UNITS,
 } from "../../constants/employeeOptions";
+import {
+  getJobTitles,
+  getJobCategories,
+  getSubUnits,
+} from "../../api/hradmin.api";
 import {
   EditableEmployeeProfileForm,
   employeeToEditableProfileForm,
@@ -29,7 +34,16 @@ import {
 import LeaveBalance from "./components/LeaveBalance";
 import LeaveList from "./components/LeaveList";
 import QuickAccess from "./components/QuickAccess";
-import { useAppSelector } from "../../app/hooks";
+import { useAppSelector, useAppDispatch } from "../../app/hooks";
+import {
+  validatePersonalDetails,
+  validateContactDetails,
+  validateEmploymentDetails,
+  ValidationErrors,
+  hasErrors,
+} from "../../utils/profileValidation";
+import { updateUserAvatar } from "../../store/authSlice";
+import { getNumericValue } from "./components/inputHelpers";
 
 const ADMIN_TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -42,6 +56,7 @@ const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
 
 export default function MyInfoPage() {
   const user = useAppSelector((state) => state.auth.user);
+  const dispatch = useAppDispatch();
   const isAdmin = user?.role === "hradmin" || user?.role === "empmanager";
   const TABS = isAdmin ? ADMIN_TABS : EMPLOYEE_TABS;
 
@@ -52,6 +67,50 @@ export default function MyInfoPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {},
+  );
+  const [jobTitleOptions, setJobTitleOptions] = useState<string[]>([]);
+  const [jobCategoryOptions, setJobCategoryOptions] = useState<
+    { id: number; category: string }[]
+  >([]);
+  const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
+  const [supervisorOptions, setSupervisorOptions] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
+
+  useEffect(() => {
+    if (isAdmin) {
+      getJobTitles()
+        .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+        .catch((err) =>
+          setError(getApiErrorMessage(err, "Failed to load job titles.")),
+        );
+
+      getJobCategories()
+        .then((res) =>
+          setJobCategoryOptions(
+            res.data.map((c) => ({ id: c.id, category: c.category })),
+          ),
+        )
+        .catch((err) =>
+          setError(getApiErrorMessage(err, "Failed to load job categories.")),
+        );
+
+      getSubUnits()
+        .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+        .catch((err) =>
+          setError(getApiErrorMessage(err, "Failed to load sub units.")),
+        );
+    }
+
+    getSupervisors()
+      .then((res) => setSupervisorOptions(res.data || []))
+      .catch((err) =>
+        setError(getApiErrorMessage(err, "Failed to load supervisors.")),
+      );
+  }, [isAdmin]);
 
   const loadProfile = async () => {
     try {
@@ -77,31 +136,83 @@ export default function MyInfoPage() {
     >,
   ) => {
     const { name, value } = event.target;
+    // if (name === "mobile" || name === "work_tel" || name === "home_tel") {
+    //   const numericValue = value.replace(/\D/g, "");
+    //   setForm((current) =>
+    //     current ? { ...current, [name]: numericValue } : current,
+    //   );
+    //   setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+    //   return;
+    // }
+    if (name === "mobile" || name === "work_tel" || name === "home_tel") {
+      const numericValue = getNumericValue(event, 10);
+
+      setForm((current) =>
+        current ? { ...current, [name]: numericValue } : current,
+      );
+
+      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+      return;
+    }
+
     setForm((current) => (current ? { ...current, [name]: value } : current));
+    setValidationErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSave = async () => {
     if (!employee?.id || !form || saving) return;
 
     try {
+      // Validate based on current tab
+      let errors: ValidationErrors = {};
+      const activeLabel = PROFILE_TABS[activeTab];
+
+      if (activeLabel === "Personal Details") {
+        errors = validatePersonalDetails(form, isAdmin);
+      } else if (activeLabel === "Contact Details") {
+        errors = validateContactDetails(form);
+      } else if (activeLabel === "Job") {
+        errors = validateEmploymentDetails(form);
+      }
+
+      if (hasErrors(errors)) {
+        setValidationErrors(errors);
+        setMessage("Please fix the validation errors before saving.");
+        return;
+      }
+
       setSaving(true);
       setMessage("");
+      setValidationErrors({});
+
       const formData = new FormData();
 
       Object.entries(form).forEach(([key, value]) => {
+        if (!isAdmin && (key === "employee_id" || key === "real_dob")) {
+          return;
+        }
         formData.append(key, value.trim());
       });
+
       formData.append("role", employee.role || "employee");
-      formData.append(
-        "supervisors",
-        JSON.stringify(employee.supervisors || []),
-      );
+
+      const supervisorsArray = form.supervisor_id
+        ? [form.supervisor_id]
+        : (employee.supervisors as string[]) || [];
+      formData.append("supervisors", JSON.stringify(supervisorsArray));
 
       await updateEmployee(employee.id, formData);
-      const { data } = await getMyInfo();
-      setEmployee(data);
-      setForm(employeeToEditableProfileForm(data));
+
+      const { data: updatedEmployee } = await getMyInfo();
+      setEmployee(updatedEmployee);
+      setForm(employeeToEditableProfileForm(updatedEmployee));
+
+      if (updatedEmployee.name) {
+        dispatch(updateUserAvatar(updatedEmployee.avatar || ""));
+      }
+
       setMessage("Profile updated successfully.");
+      setTimeout(() => setMessage(""), 3000);
     } catch (err: unknown) {
       setMessage(getApiErrorMessage(err, "Failed to update profile."));
     } finally {
@@ -135,24 +246,31 @@ export default function MyInfoPage() {
             name="employee_id"
             value={form.employee_id}
             onChange={handleFieldChange}
+            disabled={!isAdmin}
+            error={validationErrors.employee_id}
           />
           <EditableProfileField
             label="First Name"
             name="first_name"
             value={form.first_name}
             onChange={handleFieldChange}
+            required
+            error={validationErrors.first_name}
           />
           <EditableProfileField
             label="Middle Name"
             name="middle_name"
             value={form.middle_name}
             onChange={handleFieldChange}
+            error={validationErrors.middle_name}
           />
           <EditableProfileField
             label="Last Name"
             name="last_name"
             value={form.last_name}
             onChange={handleFieldChange}
+            required
+            error={validationErrors.last_name}
           />
           <EditableProfileField
             label="Gender"
@@ -174,6 +292,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.real_dob}
             onChange={handleFieldChange}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Nationality"
@@ -181,6 +300,8 @@ export default function MyInfoPage() {
             value={form.nationality}
             onChange={handleFieldChange}
             options={NATIONALITIES}
+            required
+            error={validationErrors.nationality}
           />
           <EditableProfileField
             label="Marital Status"
@@ -201,6 +322,9 @@ export default function MyInfoPage() {
             name="license_number"
             value={form.license_number}
             onChange={handleFieldChange}
+            maxLength={16}
+            minLength={15}
+            error={validationErrors.license_number}
           />
           <EditableProfileField
             label="License Expiry"
@@ -221,7 +345,10 @@ export default function MyInfoPage() {
             name="job_title"
             value={form.job_title}
             onChange={handleFieldChange}
-            options={JOB_TITLES}
+            options={isAdmin ? jobTitleOptions : undefined}
+            required
+            error={validationErrors.job_title}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Joined Date"
@@ -242,7 +369,10 @@ export default function MyInfoPage() {
             name="job_category"
             value={form.job_category}
             onChange={handleFieldChange}
-            options={JOB_CATEGORIES}
+            options={
+              isAdmin ? jobCategoryOptions.map((c) => c.category) : undefined
+            }
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Job Specification"
@@ -256,14 +386,27 @@ export default function MyInfoPage() {
             name="sub_unit"
             value={form.sub_unit}
             onChange={handleFieldChange}
-            options={SUB_UNITS}
+            options={isAdmin ? subUnitOptions : undefined}
+            required
+            error={validationErrors.sub_unit}
+            readOnly={!isAdmin}
+          />
+          <EditableProfileField
+            label="Supervisor"
+            name="supervisor_id"
+            value={form.supervisor_id}
+            onChange={handleFieldChange}
+            options={supervisorOptions.map((s) => s.name)}
           />
           <EditableProfileField
             label="Location"
             name="location"
             value={form.location}
             onChange={handleFieldChange}
-            options={LOCATIONS}
+            options={isAdmin ? [...predefinedLocations, "Other"] : undefined}
+            required
+            error={validationErrors.location}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Probation End Date"
@@ -321,6 +464,8 @@ export default function MyInfoPage() {
             type="email"
             value={form.work_email}
             onChange={handleFieldChange}
+            required
+            error={validationErrors.work_email}
           />
           <EditableProfileField
             label="Other Email"
@@ -334,18 +479,25 @@ export default function MyInfoPage() {
             name="mobile"
             value={form.mobile}
             onChange={handleFieldChange}
+            required
+            maxLength={10}
+            error={validationErrors.mobile}
           />
           <EditableProfileField
             label="Home Telephone"
             name="home_tel"
             value={form.home_tel}
             onChange={handleFieldChange}
+            maxLength={10}
+            error={validationErrors.home_tel}
           />
           <EditableProfileField
             label="Work Telephone"
             name="work_tel"
             value={form.work_tel}
             onChange={handleFieldChange}
+            maxLength={10}
+            error={validationErrors.work_tel}
           />
           <EditableProfileField
             label="Address Line 1"
@@ -406,7 +558,13 @@ export default function MyInfoPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <EmployeeProfileCard employee={employee} />
+          <EmployeeProfileCard
+            employee={employee}
+            onEmployeeUpdate={(updatedEmployee) => {
+              setEmployee(updatedEmployee);
+              setForm(employeeToEditableProfileForm(updatedEmployee));
+            }}
+          />
           <LeaveList employee={employee} />
         </div>
       </div>

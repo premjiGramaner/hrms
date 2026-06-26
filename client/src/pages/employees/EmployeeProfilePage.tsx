@@ -9,14 +9,16 @@ import {
   COUNTRIES,
   EMPLOYMENT_STATUSES,
   GENDERS,
-  JOB_CATEGORIES,
   JOB_SPECIFICATIONS,
-  JOB_TITLES,
-  LOCATIONS,
   MARITAL_STATUSES,
   NATIONALITIES,
-  SUB_UNITS,
 } from "../../constants/employeeOptions";
+import {
+  getJobTitles,
+  getJobCategories,
+  getSubUnits,
+} from "../../api/hradmin.api";
+import { getSupervisors } from "../../api/employee.api";
 import {
   EditableEmployeeProfileForm,
   employeeToEditableProfileForm,
@@ -51,6 +53,69 @@ export default function EmployeeProfilePage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EditableEmployeeProfileForm | null>(null);
   const [showTerminationModal, setShowTerminationModal] = useState(false);
+  const [jobTitleOptions, setJobTitleOptions] = useState<string[]>([]);
+  const [jobCategoryOptions, setJobCategoryOptions] = useState<
+    { id: number; category: string }[]
+  >([]);
+  const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
+  const [supervisorOptions, setSupervisorOptions] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
+
+  useEffect(() => {
+    // getJobTitles()
+    //   .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+    //   .catch(() => {});
+    // getJobCategories()
+    //   .then((res) =>
+    //     setJobCategoryOptions(
+    //       res.data.map((c) => ({ id: c.id, category: c.category })),
+    //     ),
+    //   )
+    //   .catch(() => {});
+    // getSubUnits()
+    //   .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+    //   .catch(() => {});
+    // getSupervisors()
+    //   .then((res) => setSupervisorOptions(res.data || []))
+    //   .catch(() => {});
+
+    getJobTitles()
+      .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+      .catch((err) => {
+        console.error("Failed to load job titles:", err);
+        setError("Failed to load job titles.");
+      });
+
+    getJobCategories()
+      .then((res) =>
+        setJobCategoryOptions(
+          res.data.map((c) => ({
+            id: c.id,
+            category: c.category,
+          })),
+        ),
+      )
+      .catch((err) => {
+        console.error("Failed to load job categories:", err);
+        setError("Failed to load job categories.");
+      });
+
+    getSubUnits()
+      .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+      .catch((err) => {
+        console.error("Failed to load sub units:", err);
+        setError("Failed to load sub units.");
+      });
+
+    getSupervisors()
+      .then((res) => setSupervisorOptions(res.data || []))
+      .catch((err) => {
+        console.error("Failed to load supervisors:", err);
+        setError("Failed to load supervisors.");
+      });
+  }, []);
 
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -130,6 +195,8 @@ export default function EmployeeProfilePage() {
         JSON.stringify(employee.supervisors || []),
       );
       await updateEmployee(employee.id, formData);
+
+      // CRITICAL: Re-fetch fresh employee data from database
       const { data } = await getEmployee(employee.id);
       setEmployee(data);
       setForm(employeeToEditableProfileForm(data));
@@ -291,7 +358,7 @@ export default function EmployeeProfilePage() {
             name="job_title"
             value={form.job_title}
             onChange={handleFieldChange}
-            options={JOB_TITLES}
+            options={jobTitleOptions}
           />
           <EditableProfileField
             label="Joined Date"
@@ -312,7 +379,7 @@ export default function EmployeeProfilePage() {
             name="job_category"
             value={form.job_category}
             onChange={handleFieldChange}
-            options={JOB_CATEGORIES}
+            options={jobCategoryOptions.map((c) => c.category)}
           />
           <EditableProfileField
             label="Job Specification"
@@ -326,14 +393,21 @@ export default function EmployeeProfilePage() {
             name="sub_unit"
             value={form.sub_unit}
             onChange={handleFieldChange}
-            options={SUB_UNITS}
+            options={subUnitOptions}
+          />
+          <EditableProfileField
+            label="Supervisor"
+            name="supervisor_id"
+            value={form.supervisor_id}
+            onChange={handleFieldChange}
+            options={supervisorOptions.map((s) => s.name)}
           />
           <EditableProfileField
             label="Location"
             name="location"
             value={form.location}
             onChange={handleFieldChange}
-            options={LOCATIONS}
+            options={[...predefinedLocations, "Other"]}
           />
           <EditableProfileField
             label="Probation End Date"

@@ -1,11 +1,18 @@
 import api from "./axios";
 import { Employee, PaginatedResponse } from "../types";
 
-export const getEmployees = async (page = 1) => {
+export const getEmployees = async (page = 1, limit = 10, search?: string) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (search && search.trim()) {
+    params.set("search", search.trim());
+  }
   const response = await api.get<{
     success: boolean;
     data: PaginatedResponse<Employee>;
-  }>(`/employees?page=${page}&_=${Date.now()}`);
+  }>(`/employees?${params.toString()}&_=${Date.now()}`);
   return { data: response.data.data };
 };
 
@@ -59,6 +66,14 @@ export const deleteEmployee = async (id: number) => {
   return { data: response.data.data };
 };
 
+export const checkEmailExists = async (email: string, employeeId?: number) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { exists: boolean };
+  }>("/employees/check-email", { email, employeeId });
+  return { data: response.data.data };
+};
+
 export const terminateEmployee = async (
   id: number,
   terminationData: {
@@ -72,5 +87,34 @@ export const terminateEmployee = async (
     data: { message: string };
   }>(`/employees/${id}/terminate`, terminationData);
 
+  return { data: response.data.data };
+};
+
+export const updateProfileImage = async (id: number, formData: FormData) => {
+  const response = await api.patch<{
+    success: boolean;
+    data: Employee;
+  }>(`/employees/${id}/profile-image`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return { data: response.data.data };
+};
+
+export const checkEmployeeIdExists = async (
+  employeeId: string,
+  excludeId?: number,
+) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { exists: boolean };
+  }>("/employees/check-employee-id", { employee_id: employeeId, excludeId });
+  return { data: response.data.data };
+};
+
+export const getLastEmployeeId = async () => {
+  const response = await api.get<{
+    success: boolean;
+    data: { employee_id: string | null };
+  }>("/employees/last-employee-id");
   return { data: response.data.data };
 };

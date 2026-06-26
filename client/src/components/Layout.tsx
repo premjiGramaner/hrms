@@ -77,9 +77,16 @@ export default function Layout({
     ...(isAdmin
       ? [{ to: "#", label: "Reports and Analytics", icon: <IconChart /> }]
       : []),
-    { to: "/leave/view_leave_list", label: "Leave", icon: <IconCalendar /> },
+    {
+      to: isAdmin ? "/leave/view_leave_list" : "/leave/apply",
+      label: "Leave",
+      icon: <IconCalendar />,
+    },
     { to: "#", label: "Performance", icon: <IconBriefcase /> },
   ];
+
+  // Home button routing based on role
+  const homeRoute = isAdmin ? "/employees" : "/my-info";
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
@@ -318,44 +325,50 @@ export default function Layout({
           </button>
         </header>
 
-        {tabs && tabs.length > 0 && (
-          <div className="bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-x-auto gap-0">
-            <Link
-              to={tabs[0]?.path || "#"}
-              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition"
-            >
-              <IconHome size={15} color="#64748b" />
-            </Link>
-            {tabs.map((tab) => {
-              const isActiveTab =
-                activeTab === tab.label || location.pathname === tab.path;
-              return (
-                <Link
-                  key={tab.label}
-                  to={tab.path}
-                  className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
-                    isActiveTab
-                      ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
-                      : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-            <div className="ml-auto flex items-center gap-1.5">
-              <TabIconBtn>
-                <IconFilter size={14} />
-              </TabIconBtn>
-              <TabIconBtn dark>
-                <span className="font-bold text-sm">?</span>
-              </TabIconBtn>
-              <TabIconBtn>
-                <IconShare size={14} />
-              </TabIconBtn>
-            </div>
-          </div>
-        )}
+        {/* Global Home Button - Always visible */}
+        <div className="bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-x-auto gap-0">
+          <Link
+            to={homeRoute}
+            title="Home"
+            className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition"
+          >
+            <IconHome size={15} color="#64748b" />
+          </Link>
+
+          {/* Tab-specific navigation - Only show if tabs provided */}
+          {tabs && tabs.length > 0 && (
+            <>
+              {tabs.map((tab) => {
+                const isActiveTab =
+                  activeTab === tab.label || location.pathname === tab.path;
+                return (
+                  <Link
+                    key={tab.label}
+                    to={tab.path}
+                    className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
+                      isActiveTab
+                        ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
+                        : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
+                    }`}
+                  >
+                    {tab.label}
+                  </Link>
+                );
+              })}
+              <div className="ml-auto flex items-center gap-1.5">
+                <TabIconBtn>
+                  <IconFilter size={14} />
+                </TabIconBtn>
+                <TabIconBtn dark>
+                  <span className="font-bold text-sm">?</span>
+                </TabIconBtn>
+                <TabIconBtn>
+                  <IconShare size={14} />
+                </TabIconBtn>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="flex-1 overflow-y-auto p-6">{children}</div>
 

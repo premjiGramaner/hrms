@@ -1,4 +1,4 @@
-﻿import ExcelJS from "exceljs";
+import ExcelJS from "exceljs";
 import * as LeaveModel from "../models/leave.model.js";
 import { success, created, error } from "../utils/response.js";
 
@@ -154,14 +154,12 @@ const createLeave = async (req, res, next) => {
     const data = { ...req.body, employee_id: parseInt(employeeId) };
     const requestedDays = parseFloat(data.requested_days) || 1;
     const leaveTypeId = parseInt(data.leave_type_id);
-    // Derive financial year (Apr–Mar): if start_date month >= April (3), year+1; else year
     const startDate = new Date(data.start_date);
     const year =
       startDate.getMonth() >= 3
         ? startDate.getFullYear() + 1
         : startDate.getFullYear();
 
-    // Check balance before attempting to submit
     const netBalance = await LeaveModel.getNetBalance(
       data.employee_id,
       leaveTypeId,
@@ -182,7 +180,6 @@ const createLeave = async (req, res, next) => {
       );
     }
 
-    // Create leave request and deduct balance in a single transaction
     const leave = await LeaveModel.createLeaveRequestWithDeduction(
       data,
       leaveTypeId,
@@ -217,7 +214,6 @@ const approveLeave = async (req, res, next) => {
     const approved = await LeaveModel.approveLeave(id, actorId);
     if (!approved) return error(res, "Failed to approve leave", 500);
 
-    // Balance was already deducted on submission — no further deduction needed
     return success(res, { message: "Leave approved successfully" });
   } catch (err) {
     next(err);
@@ -246,11 +242,12 @@ const rejectLeave = async (req, res, next) => {
       );
     }
 
-    // Restore balance for any active status (Pending Approval, Approved, Scheduled, Taken)
-    // Balance was deducted on submission, so always restore on rejection
     try {
       const starting_date = new Date(leave.start_date);
-      const year = starting_date.getMonth() >= 3 ? starting_date.getFullYear() + 1 : starting_date.getFullYear();
+      const year =
+        starting_date.getMonth() >= 3
+          ? starting_date.getFullYear() + 1
+          : starting_date.getFullYear();
       await LeaveModel.restoreLeaveBalance(
         leave.employee_id,
         leave.leave_type_id,
@@ -271,20 +268,30 @@ const cancelLeave = async (req, res, next) => {
     const id = parseInt(req.params.id);
     const leave = await LeaveModel.findLeaveById(id);
     if (!leave) return error(res, "Leave request not found", 404);
-    if (req.user.role === "employee" && leave.employee_id !== req.user.id) {
+
+    const actorId = parseInt(req.user.id);
+    const actorRole = req.user.role;
+    const leaveEmployeeId = parseInt(leave.employee_id);
+    const isOwner = leaveEmployeeId === actorId;
+    const isAdminOrHR = ["empmanager", "hradmin"].includes(actorRole);
+
+    if (!isOwner && !isAdminOrHR) {
       return error(res, "Forbidden", 403);
     }
+
     if (leave.status === "Cancelled") {
       return error(res, "Leave is already cancelled", 400);
     }
 
-    const cancelled = await LeaveModel.cancelLeave(id, req.user.id);
+    const cancelled = await LeaveModel.cancelLeave(id, actorId);
     if (!cancelled) return error(res, "Failed to cancel leave", 500);
 
-    // Balance was deducted on submission — always restore on cancellation
     try {
       const starting_date = new Date(leave.start_date);
-      const year = starting_date.getMonth() >= 3 ? starting_date.getFullYear() + 1 : starting_date.getFullYear();
+      const year =
+        starting_date.getMonth() >= 3
+          ? starting_date.getFullYear() + 1
+          : starting_date.getFullYear();
       await LeaveModel.restoreLeaveBalance(
         cancelled.employee_id,
         cancelled.leave_type_id,
@@ -347,14 +354,26 @@ const exportSummary = async (req, res, next) => {
     ws.addRow([]);
 
     const hdr = ws.addRow([
-      "Employee ID",
+      "Start Date",
+      "End Date",
+      "Applied On",
+      "Employee Id",
       "Employee Name",
+      "Job Title",
+      "Employment Status",
+      "Sub Unit",
+      "Location",
+      "Job Category",
+      "Work Schedule",
       "Leave Type",
-      "Total Requests",
-      "Total Days",
-      "Approved Days",
-      "Pending Days",
-      "Rejected Days",
+      "Unit",
+      "Entitlements",
+      "Used",
+      "Net Leave Balance",
+      "Requested Duration",
+      "Status",
+      "Attachment Status",
+      "Comments",
     ]);
     hdr.eachCell((cell) => {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
@@ -374,25 +393,50 @@ const exportSummary = async (req, res, next) => {
     hdr.height = 20;
     ws.columns = [
       { width: 14 },
+      { width: 14 },
+      { width: 14 },
+      { width: 16 },
+      { width: 14 },
       { width: 24 },
-      { width: 22 },
-      { width: 14 },
+      { width: 20 },
+      { width: 20 },
+      { width: 20 },
+      { width: 18 },
+      { width: 20 },
+      { width: 18 },
+      { width: 18 },
+      { width: 8 },
       { width: 12 },
-      { width: 14 },
-      { width: 13 },
-      { width: 13 },
+      { width: 8 },
+      { width: 18 },
+      { width: 18 },
+      { width: 16 },
+      { width: 18 },
+      { width: 30 },
     ];
 
     rows.forEach((row, idx) => {
       const dr = ws.addRow([
+        row.start_date || "",
+        row.end_date || "",
+        row.applied_on ? row.applied_on.substring(0, 10) : "",
         row.employee_id || "",
         row.employee_name || "",
+        row.job_title || "",
+        row.employment_status || "",
+        row.sub_unit || "",
+        row.location || "",
+        row.job_category || "",
+        row.work_schedule || "",
         row.leave_type || "",
-        Number(row.total_requests || 0),
-        Number(Number(row.total_days || 0).toFixed(1)),
-        Number(Number(row.approved_days || 0).toFixed(1)),
-        Number(Number(row.pending_days || 0).toFixed(1)),
-        Number(Number(row.rejected_days || 0).toFixed(1)),
+        row.unit || "",
+        row.entitlements ? Number(row.entitlements) : "",
+        row.used ? Number(row.used) : "",
+        row.net_leave_balance ? Number(row.net_leave_balance) : "",
+        row.requested_days ? Number(row.requested_days) : "",
+        row.status || "",
+        row.attachment_status || "",
+        row.comments || "",
       ]);
       const bg = idx % 2 === 0 ? "FFF8F9FA" : "FFFFFFFF";
       dr.eachCell((cell) => {
@@ -451,15 +495,25 @@ const exportDetail = async (req, res, next) => {
     ws.addRow([]);
 
     const hdr = ws.addRow([
-      "Employee ID",
-      "Employee Name",
-      "Leave Type",
-      "Start Date",
-      "End Date",
-      "Days",
+      "Date",
       "Applied On",
+      "Employee Id",
+      "Employee Name",
+      "Job Title",
+      "Employment Status",
+      "Sub Unit",
+      "Location",
+      "Job Category",
+      "Work Schedule",
+      "Leave Type",
+      "Unit",
+      "Entitlements",
+      "Used",
+      "Net Leave Balance",
+      "Duration (Hours)",
       "Status",
-      "Reason",
+      "Attachment Status",
+      "Comments",
     ]);
     hdr.eachCell((cell) => {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
@@ -478,37 +532,48 @@ const exportDetail = async (req, res, next) => {
     });
     hdr.height = 20;
     ws.columns = [
-      { width: 14 },
-      { width: 24 },
-      { width: 22 },
-      { width: 13 },
-      { width: 13 },
-      { width: 8 },
-      { width: 14 },
-      { width: 18 },
-      { width: 30 },
+      { width: 14 }, // Date
+      { width: 16 }, // Applied On
+      { width: 14 }, // Employee Id
+      { width: 24 }, // Employee Name
+      { width: 20 }, // Job Title
+      { width: 20 }, // Employment Status
+      { width: 20 }, // Sub Unit
+      { width: 18 }, // Location
+      { width: 20 }, // Job Category
+      { width: 18 }, // Work Schedule
+      { width: 18 }, // Leave Type
+      { width: 8 }, // Unit
+      { width: 12 }, // Entitlements
+      { width: 8 }, // Used
+      { width: 18 }, // Net Leave Balance
+      { width: 16 }, // Duration (Hours)
+      { width: 16 }, // Status
+      { width: 18 }, // Attachment Status
+      { width: 30 }, // Comments
     ];
-
-    const statusColors = {
-      Approved: "FF16A085",
-      "Pending Approval": "FFD97706",
-      Rejected: "FFE53E3E",
-      Cancelled: "FF94A3B8",
-      Scheduled: "FF3B82F6",
-      Taken: "FF7C3AED",
-    };
 
     rows.forEach((row, idx) => {
       const dr = ws.addRow([
+        row.start_date || "",
+        row.applied_on ? row.applied_on.substring(0, 10) : "",
         row.employee_id || "",
         row.employee_name || "",
+        row.job_title || "",
+        row.employment_status || "",
+        row.sub_unit || "",
+        row.location || "",
+        row.job_category || "",
+        row.work_schedule || "",
         row.leave_type || "",
-        row.start_date || "",
-        row.end_date || "",
-        Number(Number(row.requested_days || 0).toFixed(1)),
-        row.applied_on ? row.applied_on.substring(0, 10) : "",
+        row.unit || "",
+        row.entitlements ? Number(row.entitlements) : "",
+        row.used ? Number(row.used) : "",
+        row.net_leave_balance ? Number(row.net_leave_balance) : "",
+        row.duration_hours ? Number(row.duration_hours) : "",
         row.status || "",
-        row.reason || "",
+        row.attachment_status || "",
+        row.comments || "",
       ]);
       const bg = idx % 2 === 0 ? "FFF8F9FA" : "FFFFFFFF";
       dr.eachCell((cell, colNum) => {
@@ -523,9 +588,22 @@ const exportDetail = async (req, res, next) => {
           left: { style: "thin", color: { argb: "FFE2E8F0" } },
           right: { style: "thin", color: { argb: "FFE2E8F0" } },
         };
-        cell.alignment = { vertical: "middle", wrapText: colNum === 9 };
-        if (colNum === 8 && row.status && statusColors[row.status]) {
-          cell.font = { color: { argb: statusColors[row.status] }, bold: true };
+        cell.alignment = { vertical: "middle", wrapText: colNum === 18 };
+        if (colNum === 15 && row.status) {
+          const statusColors = {
+            Approved: "FF16A085",
+            "Pending Approval": "FFD97706",
+            Rejected: "FFE53E3E",
+            Cancelled: "FF94A3B8",
+            Scheduled: "FF3B82F6",
+            Taken: "FF7C3AED",
+          };
+          if (statusColors[row.status]) {
+            cell.font = {
+              color: { argb: statusColors[row.status] },
+              bold: true,
+            };
+          }
         }
       });
       dr.height = 16;

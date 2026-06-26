@@ -1,16 +1,15 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
 import { Employee } from "../../types";
 import AddEmployeeModal from "./AddEmployeeModal";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { fetchEmployees, setPage, setLimit } from "../../store/employeeSlice";
+import {
+  fetchEmployees,
+  setPage,
+  setLimit,
+  setSearch,
+} from "../../store/employeeSlice";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 
 const TABS: TabItem[] = [
@@ -49,14 +48,13 @@ export default function EmployeeListPage() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const { data, loading, page, limit } = useAppSelector(
+  const { data, loading, page, limit, search } = useAppSelector(
     (state) => state.employees,
   );
 
   const [success, setSuccess] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
-  const [search, setSearch] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flash = useCallback((msg: string) => {
@@ -76,8 +74,8 @@ export default function EmployeeListPage() {
   );
 
   useEffect(() => {
-    dispatch(fetchEmployees({ page, limit }));
-  }, [dispatch, page, limit]);
+    dispatch(fetchEmployees({ page, limit, search }));
+  }, [dispatch, page, limit, search]);
 
   useEffect(() => {
     const message = (location.state as { message?: string } | null)?.message;
@@ -87,23 +85,6 @@ export default function EmployeeListPage() {
   }, [flash, location.pathname, location.state, navigate]);
 
   const allRows = data?.data || [];
-  const filteredRows = useMemo(
-    () =>
-      !search
-        ? allRows
-        : allRows.filter((employee) => {
-            const query = search.toLowerCase();
-            return (
-              (employee.name || "").toLowerCase().includes(query) ||
-              (employee.employee_id || "").toLowerCase().includes(query) ||
-              (employee.email || "").toLowerCase().includes(query) ||
-              (employee.job_title || "").toLowerCase().includes(query) ||
-              (employee.sub_unit || "").toLowerCase().includes(query) ||
-              (employee.location || "").toLowerCase().includes(query)
-            );
-          }),
-    [allRows, search],
-  );
 
   const activeCount = allRows.filter((e) => e.is_active !== false).length;
   const inactiveCount = allRows.length - activeCount;
@@ -292,7 +273,7 @@ export default function EmployeeListPage() {
         title="Employee List"
         subtitle="View and manage employee profile information"
         icon="👥"
-        rows={filteredRows}
+        rows={allRows}
         isLoading={loading}
         columns={columns}
         actions={[
@@ -336,13 +317,13 @@ export default function EmployeeListPage() {
         totalPages={totalPages}
         totalRecords={totalRecords}
         pageSize={limit}
-        pageSizeOptions={[10, 15, 20, 50]}
+        pageSizeOptions={[5, 10, 25, 50, 100]}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         itemLabel="employees"
         searchQuery={search}
         searchPlaceholder="Search by name, ID, email, job title…"
-        onSearchChange={setSearch}
+        onSearchChange={(value) => dispatch(setSearch(value))}
         addLabel="Add Employee"
         onAdd={() => {
           setEditEmployee(null);
@@ -358,7 +339,7 @@ export default function EmployeeListPage() {
             setEditEmployee(null);
           }}
           onSaved={() => {
-            dispatch(fetchEmployees({ page, limit }));
+            dispatch(fetchEmployees({ page, limit, search }));
             flash(
               editEmployee
                 ? "Employee updated successfully."

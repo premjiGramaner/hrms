@@ -163,6 +163,7 @@ function ActionMenu({
   }, [open]);
 
   const canApproveReject = isAdminOrHR && !isRequester;
+  const canCancel = isRequester || isAdminOrHR;
 
   return (
     <>
@@ -206,15 +207,17 @@ function ActionMenu({
               ✓ Approve
             </button>
           )}
-          <button
-            onClick={() => {
-              setOpen(false);
-              onCancel();
-            }}
-            className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-          >
-            ⊘ Cancel
-          </button>
+          {canCancel && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                onCancel();
+              }}
+              className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+            >
+              ⊘ Cancel
+            </button>
+          )}
           {canApproveReject && (
             <button
               onClick={() => {

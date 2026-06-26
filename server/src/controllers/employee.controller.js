@@ -5,8 +5,9 @@ import { writeAuditLog } from "../services/audit.service.js";
 const listEmployees = async (req, res, next) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
-    const result = await EmployeeModel.findAllEmployees(page, limit);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const search = (req.query.search || "").trim();
+    const result = await EmployeeModel.findAllEmployees(page, limit, search);
     return success(res, result);
   } catch (err) {
     next(err);
@@ -65,17 +66,36 @@ const getSupervisors = async (_req, res, next) => {
 
 const createEmployee = async (req, res, next) => {
   try {
-    const email = (req.body.work_email || req.body.email || "").trim();
+    const workEmail = (req.body.work_email || req.body.email || "").trim();
+    const otherEmail = (req.body.other_email || "").trim();
+    const employeeId = (req.body.employee_id || "").trim();
 
-    if (!email) return error(res, "Work email is required", 422);
+    if (!workEmail) return error(res, "Work email is required", 422);
 
-    const existing = await EmployeeModel.findByEmail(email);
-    if (existing)
-      return error(res, "An employee with this email already exists", 422);
+    const existingWork = await EmployeeModel.findByEmail(workEmail);
+    if (existingWork)
+      return error(res, "An employee with this work email already exists", 422);
 
-    const avatarPath = req.file ? `uploads/${req.file.filename}` : undefined;
+    if (otherEmail) {
+      const existingOther = await EmployeeModel.findByEmail(otherEmail);
+      if (existingOther)
+        return error(
+          res,
+          "An employee with this other email already exists",
+          422,
+        );
+    }
+
+    if (employeeId) {
+      const existingEmployeeId =
+        await EmployeeModel.findByEmployeeId(employeeId);
+      if (existingEmployeeId)
+        return error(res, "Employee ID already exists", 409);
+    }
+
+    const avatarPath = req.file ? req.file.filename : undefined;
     const emp = await EmployeeModel.createEmployee(
-      { ...req.body, email, created_by: req.user?.id },
+      { ...req.body, email: workEmail, created_by: req.user?.id },
       avatarPath,
     );
 
@@ -107,8 +127,34 @@ const updateEmployee = async (req, res, next) => {
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
 
-    const avatarPath = req.file ? `uploads/${req.file.filename}` : undefined;
-    const body = { ...req.body, email: req.body.work_email || req.body.email };
+    const workEmail = (req.body.work_email || req.body.email || "")
+      .trim()
+      .toLowerCase();
+    const otherEmail = (req.body.other_email || "").trim().toLowerCase();
+
+    // Only check for duplicates if the email is being changed
+    if (workEmail && workEmail !== existing.email?.toLowerCase()) {
+      const existingWork = await EmployeeModel.findByEmail(workEmail);
+      if (existingWork && Number(existingWork.id) !== id)
+        return error(
+          res,
+          "An employee with this work email already exists",
+          422,
+        );
+    }
+
+    if (otherEmail && otherEmail !== existing.other_email?.toLowerCase()) {
+      const existingOther = await EmployeeModel.findByEmail(otherEmail);
+      if (existingOther && Number(existingOther.id) !== id)
+        return error(
+          res,
+          "An employee with this other email already exists",
+          422,
+        );
+    }
+
+    const avatarPath = req.file ? req.file.filename : undefined;
+    const body = { ...req.body, email: workEmail };
 
     await EmployeeModel.updateEmployee(id, body, avatarPath, req.user?.id);
 
@@ -124,6 +170,39 @@ const updateEmployee = async (req, res, next) => {
     });
 
     return success(res, { message: "Employee updated successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateProfileImage = async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (!req.file) {
+      return error(res, "No image file provided", 422);
+    }
+
+    const existing = await EmployeeModel.findEmployeeById(id);
+    if (!existing) return error(res, "Employee not found", 404);
+
+    // Store only the filename, not the full path
+    const avatarPath = req.file.filename;
+    await EmployeeModel.updateProfileImage(id, avatarPath, req.user?.id);
+
+    await writeAuditLog({
+      employeeId: existing.id,
+      employeeName: existing.name,
+      employeeUsername: existing.username,
+      section: existing.role || "employee",
+      action: "UPDATE",
+      actor: req.user,
+      performedScreen: "My Info",
+      actionDescription: `Profile picture updated: ${existing.name}`,
+    });
+
+    // Fetch the complete updated employee data
+    const updatedEmployee = await EmployeeModel.findEmployeeById(id);
+    return success(res, updatedEmployee);
   } catch (err) {
     next(err);
   }
@@ -151,6 +230,30 @@ const deleteEmployee = async (req, res, next) => {
     });
 
     return success(res, { message: "Employee deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const checkEmailExists = async (req, res, next) => {
+  try {
+    const { email, employeeId } = req.body;
+
+    if (!email) {
+      return success(res, { exists: false });
+    }
+
+    const existing = await EmployeeModel.findByEmail(email.trim());
+
+    if (!existing) {
+      return success(res, { exists: false });
+    }
+
+    if (employeeId && existing.id === parseInt(employeeId)) {
+      return success(res, { exists: false });
+    }
+
+    return success(res, { exists: true });
   } catch (err) {
     next(err);
   }
@@ -202,6 +305,41 @@ const terminateEmployee = async (req, res, next) => {
   }
 };
 
+const checkEmployeeIdExists = async (req, res, next) => {
+  try {
+    const { employee_id, excludeId } = req.body;
+
+    if (!employee_id || !String(employee_id).trim()) {
+      return success(res, { exists: false });
+    }
+
+    const existing = await EmployeeModel.findByEmployeeId(
+      String(employee_id).trim(),
+    );
+
+    if (!existing) {
+      return success(res, { exists: false });
+    }
+
+    if (excludeId && existing.id === parseInt(excludeId)) {
+      return success(res, { exists: false });
+    }
+
+    return success(res, { exists: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getLastEmployeeId = async (req, res, next) => {
+  try {
+    const lastEmployee = await EmployeeModel.getLastEmployeeId();
+    return success(res, { employee_id: lastEmployee?.employee_id || null });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export {
   listEmployees,
   getMyInfo,
@@ -209,6 +347,10 @@ export {
   getSupervisors,
   createEmployee,
   updateEmployee,
+  updateProfileImage,
   deleteEmployee,
+  checkEmailExists,
+  checkEmployeeIdExists,
+  getLastEmployeeId,
   terminateEmployee,
 };

@@ -10,19 +10,29 @@ interface EmployeeState {
   loading: boolean;
   page: number;
   limit: number;
+  search: string;
 }
 
 const initialState: EmployeeState = {
   data: null,
   loading: false,
   page: 1,
-  limit: 15,
+  limit: 10,
+  search: "",
 };
 
 export const fetchEmployees = createAsyncThunk(
   "employees/fetch",
-  async ({ page, limit }: { page: number; limit: number }) => {
-    const res = await getEmployees(page, limit);
+  async ({
+    page,
+    limit,
+    search,
+  }: {
+    page: number;
+    limit?: number;
+    search?: string;
+  }) => {
+    const res = await getEmployees(page, limit, search);
     return res.data;
   },
 );
@@ -44,6 +54,10 @@ const employeeSlice = createSlice({
     },
     setLimit(state, action: PayloadAction<number>) {
       state.limit = action.payload;
+      state.page = 1;
+    },
+    setSearch(state, action: PayloadAction<string>) {
+      state.search = action.payload;
       state.page = 1;
     },
   },
@@ -70,5 +84,5 @@ const employeeSlice = createSlice({
   },
 });
 
-export const { setPage, setLimit } = employeeSlice.actions;
+export const { setPage, setLimit, setSearch } = employeeSlice.actions;
 export default employeeSlice.reducer;

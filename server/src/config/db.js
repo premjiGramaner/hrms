@@ -9,9 +9,34 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const { Pool } = pg;
+const requiredEnvVars = [
+  "DATABASE_URL",
+  "DB_HOST",
+  "DB_USER",
+  "DB_PASSWORD",
+  "DB_NAME",
+];
+const missingEnvVars = requiredEnvVars.filter((v) => !process.env[v]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`Missing environment variables: ${missingEnvVars.join(", ")}`);
+  console.error("Please check your .env file configuration");
+}
+
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+    }
+  : {
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || "5432"),
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+    };
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  ...poolConfig,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
