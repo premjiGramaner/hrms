@@ -12,25 +12,38 @@ export const validatePersonalDetails = (
   isAdmin: boolean,
 ): ValidationErrors => {
   const errors: ValidationErrors = {};
-  if (!form.first_name.trim()) {
+
+  const nameRegex = /^[a-zA-Z\s]+$/;
+  const alphaNumericRegex = /^[a-zA-Z0-9]+$/;
+
+  const firstName = form.first_name.trim();
+  const middleName = form.middle_name.trim();
+  const lastName = form.last_name.trim();
+  const nationality = form.nationality.trim();
+  const licenseNumber = form.license_number.trim();
+
+  if (!firstName) {
     errors.first_name = "First Name is required.";
-  } else if (!/^[a-zA-Z\s]+$/.test(form.first_name)) {
+  } else if (!nameRegex.test(firstName)) {
     errors.first_name = "First Name can only contain letters.";
   }
-  if (form.middle_name && !/^[a-zA-Z\s]+$/.test(form.middle_name)) {
+
+  if (middleName && !nameRegex.test(middleName)) {
     errors.middle_name = "Middle Name can only contain letters.";
   }
-  if (!form.last_name.trim()) {
+
+  if (!lastName) {
     errors.last_name = "Last Name is required.";
-  } else if (!/^[a-zA-Z\s]+$/.test(form.last_name)) {
+  } else if (!nameRegex.test(lastName)) {
     errors.last_name = "Last Name can only contain letters.";
   }
-  if (!form.nationality || form.nationality.trim() === "") {
+
+  if (!nationality) {
     errors.nationality = "Nationality is required.";
   }
-  if (form.license_number) {
-    const licenseNumber = form.license_number.trim();
-    if (!/^[a-zA-Z0-9]+$/.test(licenseNumber)) {
+
+  if (licenseNumber) {
+    if (!alphaNumericRegex.test(licenseNumber)) {
       errors.license_number = "Please enter a valid License Number.";
     } else if (licenseNumber.length < 15 || licenseNumber.length > 16) {
       errors.license_number = "Please enter a valid License Number.";
@@ -44,15 +57,24 @@ export const validateContactDetails = (
   form: EditableEmployeeProfileForm,
 ): ValidationErrors => {
   const errors: ValidationErrors = {};
-  if (!form.mobile.trim()) {
+
+  const phoneRegex = /^\d{10}$/;
+
+  const mobile = form.mobile.trim();
+  const workTel = form.work_tel.trim();
+  const homeTel = form.home_tel.trim();
+
+  if (!mobile) {
     errors.mobile = "Mobile number is required.";
-  } else if (!/^\d{10}$/.test(form.mobile)) {
+  } else if (!phoneRegex.test(mobile)) {
     errors.mobile = "Mobile number must be exactly 10 digits.";
   }
-  if (form.work_tel && !/^\d{10}$/.test(form.work_tel)) {
+
+  if (workTel && !phoneRegex.test(workTel)) {
     errors.work_tel = "Work Telephone must be exactly 10 digits.";
   }
-  if (form.home_tel && !/^\d{10}$/.test(form.home_tel)) {
+
+  if (homeTel && !phoneRegex.test(homeTel)) {
     errors.home_tel = "Home Telephone must be exactly 10 digits.";
   }
 

@@ -64,22 +64,57 @@ export default function EmployeeProfilePage() {
   const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
 
   useEffect(() => {
+    // getJobTitles()
+    //   .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+    //   .catch(() => {});
+    // getJobCategories()
+    //   .then((res) =>
+    //     setJobCategoryOptions(
+    //       res.data.map((c) => ({ id: c.id, category: c.category })),
+    //     ),
+    //   )
+    //   .catch(() => {});
+    // getSubUnits()
+    //   .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+    //   .catch(() => {});
+    // getSupervisors()
+    //   .then((res) => setSupervisorOptions(res.data || []))
+    //   .catch(() => {});
+
     getJobTitles()
       .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Failed to load job titles:", err);
+        setError("Failed to load job titles.");
+      });
+
     getJobCategories()
       .then((res) =>
         setJobCategoryOptions(
-          res.data.map((c) => ({ id: c.id, category: c.category })),
+          res.data.map((c) => ({
+            id: c.id,
+            category: c.category,
+          })),
         ),
       )
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Failed to load job categories:", err);
+        setError("Failed to load job categories.");
+      });
+
     getSubUnits()
       .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Failed to load sub units:", err);
+        setError("Failed to load sub units.");
+      });
+
     getSupervisors()
       .then((res) => setSupervisorOptions(res.data || []))
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Failed to load supervisors:", err);
+        setError("Failed to load supervisors.");
+      });
   }, []);
 
   useEffect(() => {

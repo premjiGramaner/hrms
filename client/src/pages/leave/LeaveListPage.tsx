@@ -447,9 +447,9 @@ export default function LeaveListPage() {
                       className={selectCls}
                     >
                       <option value="">All</option>
-                      {filterOpts.sub_units.map((u) => (
-                        <option key={u.id} value={u.name}>
-                          {u.name}
+                      {filterOpts.sub_units.map((units) => (
+                        <option key={units.id} value={units.name}>
+                          {units.name}
                         </option>
                       ))}
                     </select>
@@ -524,9 +524,9 @@ export default function LeaveListPage() {
                       className={selectCls}
                     >
                       <option value="">All</option>
-                      {filterOpts.job_titles.map((j) => (
-                        <option key={j.id} value={j.name}>
-                          {j.name}
+                      {filterOpts.job_titles.map((JobTitle) => (
+                        <option key={JobTitle.id} value={JobTitle.name}>
+                          {JobTitle.name}
                         </option>
                       ))}
                     </select>
@@ -575,9 +575,9 @@ export default function LeaveListPage() {
                       className={selectCls}
                     >
                       <option value="">All</option>
-                      {filterOpts.job_categories.map((c) => (
-                        <option key={c.id} value={c.name}>
-                          {c.name}
+                      {filterOpts.job_categories.map((categories) => (
+                        <option key={categories.id} value={categories.name}>
+                          {categories.name}
                         </option>
                       ))}
                     </select>
@@ -867,11 +867,6 @@ export default function LeaveListPage() {
     </LeaveLayout>
   );
 }
-
-// ActionDropdown logic:
-// - Employees can cancel their own leave requests
-// - Admins who are NOT the requester can approve/reject/cancel
-// - Admins who ARE the requester can only cancel (their own leave)
 function ActionDropdown({
   row,
   isAdmin,

@@ -49,38 +49,38 @@ export const getLeaveFilterOptions = async (): Promise<{
 };
 
 export const searchLeaveEmployees = async (
-  q: string,
+  searchQuery: string,
 ): Promise<
   { id: number; employee_id: string; name: string; username: string }[]
 > => {
-  if (!q.trim()) return [];
+  if (!searchQuery.trim()) return [];
   const res = await api.get<{
     success: boolean;
     data: { id: number; employee_id: string; name: string; username: string }[];
-  }>(`/leaves/employees/search?q=${encodeURIComponent(q)}`);
+  }>(`/leaves/employees/search?q=${encodeURIComponent(searchQuery)}`);
   return res.data.data;
 };
 
 export const getLeaveBalance = async (employeeId?: number, year?: number) => {
-  const qs = toQueryString({ employee_id: employeeId, year });
+  const queryString = toQueryString({ employee_id: employeeId, year });
   const res = await api.get<{ success: boolean; data: LeaveBalance[] }>(
-    `/leaves/balance${qs}`,
+    `/leaves/balance${queryString}`,
   );
   return res.data.data;
 };
 
 export const getLeaves = async (filters: LeaveFilters = {}) => {
-  const qs = toQueryString(filters as Record<string, unknown>);
+  const queryString = toQueryString(filters as Record<string, unknown>);
   const res = await api.get<{
     success: boolean;
     data: PaginatedResponse<LeaveRequest>;
-  }>(`/leaves${qs}&_=${Date.now()}`);
+  }>(`/leaves${queryString}&_=${Date.now()}`);
   return res.data.data;
 };
 
 export const getLeave = async (id: number) => {
   const res = await api.get<{ success: boolean; data: LeaveRequest }>(
-    `/leaves/${id}`,
+    `/leaves/${queryString}`,
   );
   return res.data.data;
 };
@@ -155,11 +155,17 @@ async function downloadExport(url: string, filename: string) {
 }
 
 export const exportSummaryExcel = async (filters: LeaveFilters = {}) => {
-  const qs = toQueryString(filters as Record<string, unknown>);
-  await downloadExport(`/api/leaves/export/summary${qs}`, "leave_summary.xlsx");
+  const queryString = toQueryString(filters as Record<string, unknown>);
+  await downloadExport(
+    `/api/leaves/export/summary${queryString}`,
+    "leave_summary.xlsx",
+  );
 };
 
 export const exportDetailExcel = async (filters: LeaveFilters = {}) => {
-  const qs = toQueryString(filters as Record<string, unknown>);
-  await downloadExport(`/api/leaves/export/detail${qs}`, "leave_detail.xlsx");
+  const queryString = toQueryString(filters as Record<string, unknown>);
+  await downloadExport(
+    `/api/leaves/export/detail${queryString}`,
+    "leave_detail.xlsx",
+  );
 };

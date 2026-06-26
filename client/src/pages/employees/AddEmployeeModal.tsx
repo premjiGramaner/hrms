@@ -30,6 +30,8 @@ import {
   BLOOD_GROUPS,
 } from "../../constants/employeeOptions";
 import { ISO_DATE_PATTERN } from "../../constants/employeeOptions";
+import { EMAIL_REGEX } from "./validation";
+import { handleMobileInput } from "./components/inputHelpers";
 
 interface Props {
   employee: Employee | null;
@@ -77,26 +79,31 @@ export default function AddEmployeeModal({
   const avatarRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<Record<keyof typeof initialForm, string>>({} as any);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [apiError, setApiError] = useState("");
 
   useEffect(() => {
     getSupervisors()
       .then((res) => setSupervisors(res.data))
-      .catch(() => {});
+      .catch(() => setApiError("Failed to load supervisors"));
+
     getJobTitles()
       .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
-      .catch(() => {});
+      .catch(() => setApiError("Failed to load job titles"));
+
     getJobCategories()
       .then((res) => setJobCategoryOptions(res.data.map((j) => j.category)))
-      .catch(() => {});
+      .catch(() => setApiError("Failed to load job categories"));
+
     getSubUnits()
       .then((res) => {
         setSubUnitRecords(res.data);
         setSubUnitOptions(res.data.map((s) => s.sub_unit_name));
       })
-      .catch(() => {});
+      .catch(() => setApiError("Failed to load sub units"));
+
     getLastEmployeeId()
       .then((res) => setLastEmployeeId(res.data.employee_id))
-      .catch(() => {});
+      .catch(() => setApiError("Failed to load employee ID"));
   }, []);
 
   useEffect(() => {
@@ -165,7 +172,7 @@ export default function AddEmployeeModal({
     formRef.current = initialForm;
   }, [initialForm]);
 
-  const set =
+  const handleFieldChange =
     (fieldName: keyof typeof initialForm) =>
     (
       event: ChangeEvent<
@@ -175,9 +182,9 @@ export default function AddEmployeeModal({
       formRef.current[fieldName] = event.target.value;
       if (errors[fieldName])
         setErrors((prev) => {
-          const n = { ...prev };
-          delete n[fieldName];
-          return n;
+          const updatedErrors = { ...prev };
+          delete updatedErrors[fieldName];
+          return updatedErrors;
         });
     };
 
@@ -193,9 +200,7 @@ export default function AddEmployeeModal({
       if (formRef.current.location === "Other" && !customLocation.trim()) {
         nextErrors.customLocation = "Please enter a location";
       }
-    }
 
-    if (stepNumber === 1) {
       const employeeId = formRef.current.employee_id?.trim();
       if (errors.employee_id && employeeId) {
         nextErrors.employee_id = errors.employee_id;
@@ -376,9 +381,9 @@ export default function AddEmployeeModal({
         setCustomLocation("");
         if (errors.customLocation) {
           setErrors((prev) => {
-            const n = { ...prev };
-            delete n.customLocation;
-            return n;
+            const updatedErrors = { ...prev };
+            delete updatedErrors.customLocation;
+            return updatedErrors;
           });
         }
       }
@@ -386,9 +391,9 @@ export default function AddEmployeeModal({
 
     if (errors[fieldName]) {
       setErrors((prev) => {
-        const n = { ...prev };
-        delete n[fieldName];
-        return n;
+        const updatedErrors = { ...prev };
+        delete updatedErrors[fieldName];
+        return updatedErrors;
       });
     }
 
@@ -419,15 +424,14 @@ export default function AddEmployeeModal({
   ) => {
     if (!email.trim()) {
       setErrors((prev) => {
-        const n = { ...prev };
-        delete n[fieldName];
-        return n;
+        const updatedErrors = { ...prev };
+        delete updatedErrors[fieldName];
+        return updatedErrors;
       });
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!EMAIL_REGEX.test(email)) {
       setErrors((prev) => ({
         ...prev,
         [fieldName]: "Enter a valid email",
@@ -447,9 +451,9 @@ export default function AddEmployeeModal({
         setTimeout(() => element.focus(), 100);
       } else {
         setErrors((prev) => {
-          const n = { ...prev };
-          delete n[fieldName];
-          return n;
+          const updatedErrors = { ...prev };
+          delete updatedErrors[fieldName];
+          return updatedErrors;
         });
       }
     } catch (error) {
@@ -465,9 +469,9 @@ export default function AddEmployeeModal({
   ) => {
     if (!employeeId.trim()) {
       setErrors((prev) => {
-        const n = { ...prev };
-        delete n.employee_id;
-        return n;
+        const updatedErrors = { ...prev };
+        delete updatedErrors.employee_id;
+        return updatedErrors;
       });
       return;
     }
@@ -483,9 +487,9 @@ export default function AddEmployeeModal({
         setTimeout(() => element.focus(), 100);
       } else {
         setErrors((prev) => {
-          const n = { ...prev };
-          delete n.employee_id;
-          return n;
+          const updatedErrors = { ...prev };
+          delete updatedErrors.employee_id;
+          return updatedErrors;
         });
       }
     } catch (error) {
@@ -506,7 +510,7 @@ export default function AddEmployeeModal({
         type={type}
         placeholder={placeholder}
         defaultValue={formRef.current[name]}
-        onChange={set(name)}
+        onChange={handleFieldChange(name)}
         className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
@@ -526,7 +530,7 @@ export default function AddEmployeeModal({
         type="text"
         placeholder="e.g. EMP-001"
         defaultValue={formRef.current.employee_id}
-        onChange={set("employee_id")}
+        onChange={handleFieldChange("employee_id")}
         onBlur={(e) => handleEmployeeIdBlur(e.target.value, e.target)}
         className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
           errors.employee_id
@@ -564,7 +568,7 @@ export default function AddEmployeeModal({
         type="email"
         placeholder={placeholder}
         defaultValue={formRef.current[name]}
-        onChange={set(name)}
+        onChange={handleFieldChange(name)}
         onBlur={(e) => {
           handleEmailBlur(e.target.value, name, e.target);
         }}
@@ -652,131 +656,49 @@ export default function AddEmployeeModal({
     </div>
   );
 
-  const renderMobileInput = () => {
-    const handleMobileInput = (e: ChangeEvent<HTMLInputElement>) => {
-      const rawValue = e.target.value;
-      const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 10);
-      e.target.value = digitsOnly;
-      formRef.current.mobile = digitsOnly;
-      if (errors.mobile) {
-        setErrors((prev) => {
-          const n = { ...prev };
-          delete n.mobile;
-          return n;
-        });
-      }
-    };
-
+  const renderPhoneInput = (
+    field: "mobile" | "work_tel" | "home_tel",
+    placeholder: string,
+  ) => {
     return (
       <div>
         <input
-          name="mobile"
+          name={field}
           type="text"
           inputMode="numeric"
           autoComplete="tel"
-          placeholder="10-digit mobile number"
-          defaultValue={formRef.current.mobile}
+          placeholder={placeholder}
+          defaultValue={formRef.current[field]}
           maxLength={10}
-          onChange={handleMobileInput}
+          onChange={(e) =>
+            handleMobileInput(e, formRef, field, errors, setErrors)
+          }
           className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
-            errors.mobile
+            errors[field]
               ? "border-red-500 bg-red-50"
               : "border-slate-200 bg-slate-50 focus:border-slate-300"
           }`}
         />
-        {errors.mobile && (
+        {errors[field] && (
           <span className="text-xs text-red-600 mt-1 block">
-            {errors.mobile}
+            {errors[field]}
           </span>
         )}
       </div>
     );
   };
 
-  const renderWorkTelInput = () => {
-    const handleWorkTelInput = (e: ChangeEvent<HTMLInputElement>) => {
-      const rawValue = e.target.value;
-      const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 10);
-      e.target.value = digitsOnly;
-      formRef.current.work_tel = digitsOnly;
-      if (errors.work_tel) {
-        setErrors((prev) => {
-          const n = { ...prev };
-          delete n.work_tel;
-          return n;
-        });
-      }
-    };
+  const handleCustomLocationChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setCustomLocation(e.target.value);
 
-    return (
-      <div>
-        <input
-          name="work_tel"
-          type="text"
-          inputMode="numeric"
-          autoComplete="tel"
-          placeholder="10-digit work telephone"
-          defaultValue={formRef.current.work_tel}
-          maxLength={10}
-          onChange={handleWorkTelInput}
-          className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
-            errors.work_tel
-              ? "border-red-500 bg-red-50"
-              : "border-slate-200 bg-slate-50 focus:border-slate-300"
-          }`}
-        />
-        {errors.work_tel && (
-          <span className="text-xs text-red-600 mt-1 block">
-            {errors.work_tel}
-          </span>
-        )}
-      </div>
-    );
+    if (errors.customLocation) {
+      setErrors((prev) => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors.customLocation;
+        return updatedErrors;
+      });
+    }
   };
-
-  const renderHomeTelInput = () => {
-    const handleHomeTelInput = (e: ChangeEvent<HTMLInputElement>) => {
-      const rawValue = e.target.value;
-      const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 10);
-      e.target.value = digitsOnly;
-      formRef.current.home_tel = digitsOnly;
-      if (errors.home_tel) {
-        setErrors((prev) => {
-          const n = { ...prev };
-          delete n.home_tel;
-          return n;
-        });
-      }
-    };
-
-    return (
-      <div>
-        <input
-          name="home_tel"
-          type="text"
-          inputMode="numeric"
-          autoComplete="tel"
-          placeholder="10-digit home telephone"
-          defaultValue={formRef.current.home_tel}
-          maxLength={10}
-          onChange={handleHomeTelInput}
-          className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
-            errors.home_tel
-              ? "border-red-500 bg-red-50"
-              : "border-slate-200 bg-slate-50 focus:border-slate-300"
-          }`}
-        />
-        {errors.home_tel && (
-          <span className="text-xs text-red-600 mt-1 block">
-            {errors.home_tel}
-          </span>
-        )}
-      </div>
-    );
-  };
-
-  const renderPhoneField = () => renderMobileInput();
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
@@ -838,6 +760,11 @@ export default function AddEmployeeModal({
           {errors.submit && (
             <div className="p-2.5 bg-red-50 border-l-4 border-red-300 rounded text-red-800 text-sm mb-3.5">
               {errors.submit}
+            </div>
+          )}
+          {apiError && (
+            <div className="p-2.5 bg-red-50 border-l-4 border-red-300 rounded text-red-800 text-sm mb-3.5">
+              {apiError}
             </div>
           )}
 
@@ -932,16 +859,7 @@ export default function AddEmployeeModal({
                               type="text"
                               placeholder="Enter custom location"
                               value={customLocation}
-                              onChange={(e) => {
-                                setCustomLocation(e.target.value);
-                                if (errors.customLocation) {
-                                  setErrors((prev) => {
-                                    const n = { ...prev };
-                                    delete n.customLocation;
-                                    return n;
-                                  });
-                                }
-                              }}
+                              onChange={handleCustomLocationChange}
                               className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
                                 errors.customLocation
                                   ? "border-red-500 bg-red-50"
@@ -1077,7 +995,7 @@ export default function AddEmployeeModal({
                   "Comments",
                   <textarea
                     defaultValue={formRef.current.comments}
-                    onChange={set("comments")}
+                    onChange={handleFieldChange("comments")}
                     placeholder="Any notes…"
                     className="w-full px-3 py-2 border-1.5 border-slate-200 rounded-lg text-sm outline-none bg-slate-50 focus:border-slate-300 resize-none h-16"
                   />,
@@ -1098,9 +1016,20 @@ export default function AddEmployeeModal({
                   "Other Email",
                   renderEmailInput("other_email", "personal@email.com"),
                 )}
-                {FormField("Mobile", renderPhoneField(), true)}
-                {FormField("Work Tel", renderWorkTelInput())}
-                {FormField("Home Tel", renderHomeTelInput())}
+
+                {FormField(
+                  "Mobile",
+                  renderPhoneInput("mobile", "10-digit mobile number"),
+                  true,
+                )}
+                {FormField(
+                  "Work Tel",
+                  renderPhoneInput("work_tel", "10-digit work telephone"),
+                )}
+                {FormField(
+                  "Home Tel",
+                  renderPhoneInput("home_tel", "10-digit home telephone"),
+                )}
                 {FormField(
                   "Address Line 1",
                   renderInput("address1", "Street address"),
@@ -1154,16 +1083,19 @@ export default function AddEmployeeModal({
                           onChange={() => {
                             setSelectedSupervisors((prev) =>
                               checked
-                                ? prev.filter((n) => n !== supervis.name)
+                                ? prev.filter(
+                                    (updatedErrors) =>
+                                      updatedErrors !== supervis.name,
+                                  )
                                 : prev.length < 3
                                   ? [...prev, supervis.name]
                                   : prev,
                             );
                             if (errors.supervisors)
                               setErrors((e) => {
-                                const n = { ...e };
-                                delete n.supervisors;
-                                return n;
+                                const updatedErrors = { ...e };
+                                delete updatedErrors.supervisors;
+                                return updatedErrors;
                               });
                           }}
                           className="w-4 h-4 accent-blue-900 flex-shrink-0"
@@ -1215,7 +1147,9 @@ export default function AddEmployeeModal({
                       <button
                         onClick={() =>
                           setSelectedSupervisors((prev) =>
-                            prev.filter((n) => n !== name),
+                            prev.filter(
+                              (updatedErrors) => updatedErrors !== name,
+                            ),
                           )
                         }
                         className="bg-none border-0 cursor-pointer text-blue-700 text-base leading-none pl-1"

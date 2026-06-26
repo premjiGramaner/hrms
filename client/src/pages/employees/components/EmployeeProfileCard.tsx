@@ -5,15 +5,19 @@ import { getApiErrorMessage } from "../../../utils/errors";
 import { useAppDispatch } from "../../../app/hooks";
 import { updateUserAvatar } from "../../../store/authSlice";
 
-interface Props {
+interface EmployeeProfileCardProps {
   employee: Employee;
   onEmployeeUpdate?: (updatedEmployee: Employee) => void;
+}
+
+interface Supervisor {
+  name: string;
 }
 
 export default function EmployeeProfileCard({
   employee,
   onEmployeeUpdate,
-}: Props) {
+}: EmployeeProfileCardProps) {
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -28,21 +32,29 @@ export default function EmployeeProfileCard({
     fileInputRef.current?.click();
   };
 
+  const MAX_FILE_SIZE_MB = 5;
+  const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+  const validateImageFile = (file: File): string | null => {
+    if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
+      return "Please select a JPG, JPEG, or PNG image.";
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return `File size must be less than ${MAX_FILE_SIZE_MB} MB.`;
+    }
+
+    return null;
+  };
+
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
-      setUploadMessage("Please select a JPG, JPEG, or PNG image.");
-      return;
-    }
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadMessage("File size must be less than 5 MB.");
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setUploadMessage(validationError);
       return;
     }
 
@@ -53,13 +65,11 @@ export default function EmployeeProfileCard({
       const formData = new FormData();
       formData.append("avatar", file);
 
-      // Use dedicated profile image update endpoint (no email validation)
       const { data: updatedEmployee } = await updateProfileImage(
         employee.id,
         formData,
       );
 
-      // Update timestamp for cache busting
       const newTimestamp = Date.now();
       setAvatarTimestamp(newTimestamp);
 
@@ -92,6 +102,29 @@ export default function EmployeeProfileCard({
   const avatarUrl = employee.avatar
     ? `/uploads/${employee.avatar}?t=${avatarTimestamp}`
     : null;
+
+  //supervisorNames
+  const getSupervisorNames = () => {
+    let supervisorsData: unknown = employee.supervisors;
+
+    if (typeof supervisorsData === "string") {
+      try {
+        supervisorsData = JSON.parse(supervisorsData);
+      } catch {
+        supervisorsData = [];
+      }
+    }
+
+    if (Array.isArray(supervisorsData) && supervisorsData.length > 0) {
+      return supervisorsData
+        .map((supervisor: string | Supervisor) =>
+          typeof supervisor === "string" ? supervisor : supervisor.name,
+        )
+        .join(", ");
+    }
+
+    return "N/A";
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -274,29 +307,7 @@ export default function EmployeeProfileCard({
               </div>
               <div>
                 <p className="text-xs text-[#757575]">Supervisor</p>
-                <p className="text-sm text-[#333333]">
-                  {(() => {
-                    let supervisorsData: any = employee.supervisors;
-                    if (typeof supervisorsData === "string") {
-                      try {
-                        supervisorsData = JSON.parse(supervisorsData);
-                      } catch {
-                        supervisorsData = [];
-                      }
-                    }
-                    if (
-                      Array.isArray(supervisorsData) &&
-                      supervisorsData.length > 0
-                    ) {
-                      return supervisorsData
-                        .map((s: any) =>
-                          typeof s === "string" ? s : s.name || s,
-                        )
-                        .join(", ");
-                    }
-                    return "N/A";
-                  })()}
-                </p>
+                <p className="text-sm text-[#333333]">{getSupervisorNames()}</p>
               </div>
             </div>
           </div>

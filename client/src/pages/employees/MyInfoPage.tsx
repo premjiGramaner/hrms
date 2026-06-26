@@ -43,6 +43,7 @@ import {
   hasErrors,
 } from "../../utils/profileValidation";
 import { updateUserAvatar } from "../../store/authSlice";
+import { getNumericValue } from "./components/inputHelpers";
 
 const ADMIN_TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -79,25 +80,89 @@ export default function MyInfoPage() {
   >([]);
   const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
 
+  // useEffect(() => {
+  //   if (isAdmin) {
+  //     getJobTitles()
+  //       .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+  //       .catch(() => {});
+  //     getJobCategories()
+  //       .then((res) =>
+  //         setJobCategoryOptions(
+  //           res.data.map((c) => ({ id: c.id, category: c.category })),
+  //         ),
+  //       )
+  //       .catch(() => {});
+  //     getSubUnits()
+  //       .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+  //       .catch(() => {});
+  //   }
+  //   getSupervisors()
+  //     .then((res) => setSupervisorOptions(res.data || []))
+  //     .catch(() => {});
+  // }, [isAdmin]);
+
+  //   useEffect(() => {
+  //   if (isAdmin) {
+  //     getJobTitles()
+  //       .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+  //       .catch((err) =>
+  //         setError(getApiErrorMessage(err, "Failed to load job titles."))
+  //       );
+
+  //     getJobCategories()
+  //       .then((res) =>
+  //         setJobCategoryOptions(
+  //           res.data.map((c) => ({ id: c.id, category: c.category })),
+  //         ),
+  //       )
+  //       .catch((err) =>
+  //         setError(getApiErrorMessage(err, "Failed to load job categories."))
+  //       );
+
+  //     getSubUnits()
+  //       .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+  //       .catch((err) =>
+  //         setError(getApiErrorMessage(err, "Failed to load sub units."))
+  //       );
+  //   }
+
+  //   getSupervisors()
+  //     .then((res) => setSupervisorOptions(res.data || []))
+  //     .catch((err) =>
+  //       setError(getApiErrorMessage(err, "Failed to load supervisors."))
+  //     );
+  // }, [isAdmin]);
+
   useEffect(() => {
     if (isAdmin) {
       getJobTitles()
         .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
-        .catch(() => {});
+        .catch((err) =>
+          setError(getApiErrorMessage(err, "Failed to load job titles.")),
+        );
+
       getJobCategories()
         .then((res) =>
           setJobCategoryOptions(
             res.data.map((c) => ({ id: c.id, category: c.category })),
           ),
         )
-        .catch(() => {});
+        .catch((err) =>
+          setError(getApiErrorMessage(err, "Failed to load job categories.")),
+        );
+
       getSubUnits()
         .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
-        .catch(() => {});
+        .catch((err) =>
+          setError(getApiErrorMessage(err, "Failed to load sub units.")),
+        );
     }
+
     getSupervisors()
       .then((res) => setSupervisorOptions(res.data || []))
-      .catch(() => {});
+      .catch((err) =>
+        setError(getApiErrorMessage(err, "Failed to load supervisors.")),
+      );
   }, [isAdmin]);
 
   const loadProfile = async () => {
@@ -124,11 +189,21 @@ export default function MyInfoPage() {
     >,
   ) => {
     const { name, value } = event.target;
+    // if (name === "mobile" || name === "work_tel" || name === "home_tel") {
+    //   const numericValue = value.replace(/\D/g, "");
+    //   setForm((current) =>
+    //     current ? { ...current, [name]: numericValue } : current,
+    //   );
+    //   setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+    //   return;
+    // }
     if (name === "mobile" || name === "work_tel" || name === "home_tel") {
-      const numericValue = value.replace(/\D/g, "");
+      const numericValue = getNumericValue(event, 10);
+
       setForm((current) =>
         current ? { ...current, [name]: numericValue } : current,
       );
+
       setValidationErrors((prev) => ({ ...prev, [name]: "" }));
       return;
     }

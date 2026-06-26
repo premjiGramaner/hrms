@@ -75,7 +75,7 @@ export function EditableProfileField({
           disabled={disabled}
           className={`${controlClass} min-h-[5.5rem] resize-y`}
         />
-      ) : options && options.length > 0 ? (
+      ) : (options?.length ?? 0) > 0 ? (
         <select
           name={name}
           value={value}
@@ -84,7 +84,7 @@ export function EditableProfileField({
           className={controlClass}
         >
           <option value="">-- Select --</option>
-          {options.map((option) => (
+          {options?.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
@@ -129,4 +129,3 @@ export function ProfileDetailPanel({
     </div>
   );
 }
-

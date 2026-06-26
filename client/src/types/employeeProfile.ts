@@ -44,15 +44,12 @@ export interface EditableEmployeeProfileForm {
 export function employeeToEditableProfileForm(
   employee: Employee,
 ): EditableEmployeeProfileForm {
-  // Map supervisors array to supervisor_id string (first supervisor name)
-  let supervisorId = "";
-  if (Array.isArray(employee.supervisors) && employee.supervisors.length > 0) {
-    const firstSupervisor = employee.supervisors[0];
-    supervisorId =
-      typeof firstSupervisor === "string"
-        ? firstSupervisor
-        : firstSupervisor.name || "";
-  }
+  const firstSupervisor = employee.supervisors?.[0];
+
+  const supervisorId =
+    typeof firstSupervisor === "string"
+      ? firstSupervisor
+      : (firstSupervisor?.name ?? "");
 
   return {
     first_name: employee.first_name || "",
