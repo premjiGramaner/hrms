@@ -64,6 +64,28 @@ const getSupervisors = async (_req, res, next) => {
   }
 };
 
+const getSupervisorsByIds = async (req, res, next) => {
+  try {
+    const { supervisorIds } = req.body;
+    if (!Array.isArray(supervisorIds) || supervisorIds.length === 0) {
+      return success(res, []);
+    }
+    const supervisors = await EmployeeModel.getSupervisorsByIds(supervisorIds);
+    return success(res, supervisors);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getLocations = async (_req, res, next) => {
+  try {
+    const locations = await EmployeeModel.getLocations();
+    return success(res, locations);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const createEmployee = async (req, res, next) => {
   try {
     const workEmail = (req.body.work_email || req.body.email || "").trim();
@@ -132,7 +154,6 @@ const updateEmployee = async (req, res, next) => {
       .toLowerCase();
     const otherEmail = (req.body.other_email || "").trim().toLowerCase();
 
-    // Only check for duplicates if the email is being changed
     if (workEmail && workEmail !== existing.email?.toLowerCase()) {
       const existingWork = await EmployeeModel.findByEmail(workEmail);
       if (existingWork && Number(existingWork.id) !== id)
@@ -185,7 +206,6 @@ const updateProfileImage = async (req, res, next) => {
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
 
-    // Store only the filename, not the full path
     const avatarPath = req.file.filename;
     await EmployeeModel.updateProfileImage(id, avatarPath, req.user?.id);
 
@@ -200,7 +220,6 @@ const updateProfileImage = async (req, res, next) => {
       actionDescription: `Profile picture updated: ${existing.name}`,
     });
 
-    // Fetch the complete updated employee data
     const updatedEmployee = await EmployeeModel.findEmployeeById(id);
     return success(res, updatedEmployee);
   } catch (err) {
@@ -345,6 +364,8 @@ export {
   getMyInfo,
   getEmployee,
   getSupervisors,
+  getSupervisorsByIds,
+  getLocations,
   createEmployee,
   updateEmployee,
   updateProfileImage,

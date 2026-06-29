@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { logout as logoutAction } from "../store/authSlice";
@@ -17,6 +17,8 @@ import {
   IconFilter,
   IconShare,
 } from "./Icons";
+import { fetchAllEmployees, fetchEmployees } from "../store/employeeSlice";
+import { getMyInfo } from "../api/employee.api";
 
 export interface TabItem {
   label: string;
@@ -31,6 +33,9 @@ interface Props {
   onFab?: () => void;
 }
 
+
+
+
 export default function Layout({
   children,
   title,
@@ -40,9 +45,15 @@ export default function Layout({
 }: Props) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+
+  useEffect(() => {
+    fetchAllEmployees();
+  }, []);
+
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [useName, setUseName] = useState("");
 
   const role = user?.role || "employee";
   const isAdmin = role === "hradmin" || role === "empmanager";
@@ -87,6 +98,18 @@ export default function Layout({
 
   // Home button routing based on role
   const homeRoute = isAdmin ? "/employees" : "/my-info";
+
+  
+const getDataName = (async ()=>{
+
+   const data = await getMyInfo();
+   setUseName(data.data.name as string);
+})
+
+
+useEffect(() => {
+  getDataName();
+}, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
@@ -178,7 +201,9 @@ export default function Layout({
                 margin: "2px 0 0",
               }}
             >
-              {username}
+              {useName}
+            
+          
             </p>
             <p
               className="truncate w-full"

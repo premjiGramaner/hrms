@@ -59,6 +59,8 @@ export interface AuthUser {
   role: string;
   name: string;
   avatar?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 export interface UserRole {

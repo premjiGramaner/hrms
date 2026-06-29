@@ -8,6 +8,8 @@ import {
   getEmployee,
   getMyInfo,
   getSupervisors,
+  getSupervisorsByIds,
+  getLocations,
   createEmployee,
   updateEmployee,
   updateProfileImage,
@@ -23,6 +25,8 @@ router.use(authenticate);
 
 router.get("/my-info", getMyInfo);
 router.get("/supervisors", getSupervisors);
+router.post("/supervisors-by-ids", getSupervisorsByIds);
+router.get("/locations", getLocations);
 router.get("/last-employee-id", getLastEmployeeId);
 router.post("/check-email", checkEmailExists);
 router.post("/check-employee-id", checkEmployeeIdExists);

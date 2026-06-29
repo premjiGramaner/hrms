@@ -21,7 +21,6 @@ import AddEntitlementsPage from "./pages/leave/entitlements/AddEntitlementsPage"
 import EntitlementListPage from "./pages/leave/entitlements/EntitlementListPage";
 import MyEntitlementsPage from "./pages/leave/entitlements/MyEntitlementsPage";
 
-// Roles that can access admin features
 const ADMIN_ROLES = ["empmanager", "hradmin"];
 
 export default function App() {

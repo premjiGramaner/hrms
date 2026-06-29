@@ -38,8 +38,23 @@ const authSlice = createSlice({
         writeJson(STORAGE_KEYS.user, state.user);
       }
     },
+    updateUserName(state, action: PayloadAction<{ name?: string; first_name?: string; last_name?: string }>) {
+      if (state.user) {
+        const firstName = action.payload.first_name ?? state.user.first_name;
+        const lastName = action.payload.last_name ?? state.user.last_name;
+        const fullName = action.payload.name || (firstName && lastName ? `${firstName} ${lastName}`.trim() : firstName || lastName || state.user.name);
+        
+        state.user = {
+          ...state.user,
+          name: fullName,
+          first_name: firstName,
+          last_name: lastName,
+        };
+        writeJson(STORAGE_KEYS.user, state.user);
+      }
+    },
   },
 });
 
-export const { loginSuccess, logout, updateUserAvatar } = authSlice.actions;
+export const { loginSuccess, logout, updateUserAvatar, updateUserName } = authSlice.actions;
 export default authSlice.reducer;

@@ -45,11 +45,12 @@ export function employeeToEditableProfileForm(
   employee: Employee,
 ): EditableEmployeeProfileForm {
   const firstSupervisor = employee.supervisors?.[0];
-
   const supervisorId =
-    typeof firstSupervisor === "string"
-      ? firstSupervisor
-      : (firstSupervisor?.name ?? "");
+    typeof firstSupervisor === "number"
+      ? firstSupervisor.toString()
+      : typeof firstSupervisor === "string"
+        ? firstSupervisor
+        : "";
 
   return {
     first_name: employee.first_name || "",
