@@ -1,7 +1,11 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
-import { getEmployee, updateEmployee, getLocations } from "../../api/employee.api";
+import {
+  getEmployee,
+  updateEmployee,
+  getLocations,
+} from "../../api/employee.api";
 import { Employee } from "../../types";
 import {
   ATTENDANCE_CALCULATION_TYPES,
@@ -76,12 +80,16 @@ export default function EmployeeProfilePage() {
     { id: number; name: string }[]
   >([]);
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {},
+  );
   const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     getJobTitles()
-      .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+      .then((res) =>
+        setJobTitleOptions(res.data.map((jobtitle) => jobtitle.title)),
+      )
       .catch((err) => {
         console.error("Failed to load job titles:", err);
         setError("Failed to load job titles.");
@@ -102,7 +110,9 @@ export default function EmployeeProfilePage() {
       });
 
     getSubUnits()
-      .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+      .then((res) =>
+        setSubUnitOptions(res.data.map((subunit) => subunit.sub_unit_name)),
+      )
       .catch((err) => {
         console.error("Failed to load sub units:", err);
         setError("Failed to load sub units.");
@@ -129,9 +139,9 @@ export default function EmployeeProfilePage() {
     getSupervisors()
       .then((res) =>
         setSupervisorOptions(
-          (res.data || []).map((s: any) => ({
-            id: Number(s.id),
-            name: s.name,
+          (res.data || []).map((supervisor: any) => ({
+            id: Number(supervisor.id),
+            name: supervisor.name,
           })),
         ),
       )
@@ -252,10 +262,7 @@ export default function EmployeeProfilePage() {
       });
       formData.append("role", employee.role || "employee");
       const supervisorsArray = form.supervisor_id ? [form.supervisor_id] : [];
-      formData.append(
-        "supervisors",
-        JSON.stringify(supervisorsArray),
-      );
+      formData.append("supervisors", JSON.stringify(supervisorsArray));
       await updateEmployee(employee.id, formData);
 
       const { data } = await getEmployee(employee.id);
@@ -268,10 +275,12 @@ export default function EmployeeProfilePage() {
           dispatch(updateUserAvatar(data.avatar));
         }
 
-        dispatch(updateUserName({
-          first_name: data.first_name,
-          last_name: data.last_name,
-        }));
+        dispatch(
+          updateUserName({
+            first_name: data.first_name,
+            last_name: data.last_name,
+          }),
+        );
       }
 
       setActionMessage("Employee details saved successfully.");
@@ -475,8 +484,17 @@ export default function EmployeeProfilePage() {
             name="supervisor_id"
             value={form.supervisor_id}
             onChange={handleFieldChange}
-            options={supervisorOptions.map((s) => s.id.toString())}
-            optionLabels={new Map(supervisorOptions.map((s) => [s.id.toString(), s.name]))}
+            options={supervisorOptions.map((supervisor) =>
+              supervisor.id.toString(),
+            )}
+            optionLabels={
+              new Map(
+                supervisorOptions.map((supervisor) => [
+                  supervisor.id.toString(),
+                  supervisor.name,
+                ]),
+              )
+            }
           />
           <EditableProfileField
             label="Location"

@@ -70,7 +70,16 @@ const getSupervisorsByIds = async (req, res, next) => {
     if (!Array.isArray(supervisorIds) || supervisorIds.length === 0) {
       return success(res, []);
     }
-    const supervisors = await EmployeeModel.getSupervisorsByIds(supervisorIds);
+    // Convert all IDs to integers and filter out invalid ones
+    const validIds = supervisorIds
+      .map((id) => parseInt(id, 10))
+      .filter((id) => !isNaN(id) && id > 0);
+
+    if (validIds.length === 0) {
+      return success(res, []);
+    }
+
+    const supervisors = await EmployeeModel.getSupervisorsByIds(validIds);
     return success(res, supervisors);
   } catch (err) {
     next(err);

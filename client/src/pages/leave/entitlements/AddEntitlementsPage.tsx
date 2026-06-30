@@ -271,15 +271,15 @@ export default function AddEntitlementsPage() {
     <EntitlementsLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
 
-      <div className="w-full max-w-3xl mx-auto px-4">
+      <div className="w-full max-w-9xl mx-auto px-4">
         <h2 className="text-base font-bold text-slate-800 mb-6">
           Add Leave Entitlement
         </h2>
 
         <form onSubmit={handleSubmit}>
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2 lg:col-span-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-1">
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Employee <span className="text-red-500">*</span>
                 </label>
@@ -308,7 +308,7 @@ export default function AddEntitlementsPage() {
                 </label>
               </div>
 
-              <div>
+              <div className="md:col-span-1">
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Leave Type <span className="text-red-500">*</span>
                 </label>
@@ -346,7 +346,7 @@ export default function AddEntitlementsPage() {
                 )}
               </div>
 
-              <div>
+              <div className="md:col-span-1">
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Leave Period <span className="text-red-500">*</span>
                 </label>
@@ -378,7 +378,7 @@ export default function AddEntitlementsPage() {
                 )}
               </div>
 
-              <div>
+              <div className="md:col-span-1">
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Entitlement (Days) <span className="text-red-500">*</span>
                 </label>
@@ -399,7 +399,16 @@ export default function AddEntitlementsPage() {
                 )}
               </div>
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-1">
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Entitlement Type
+                </label>
+                <div className="px-3 py-2 text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-lg">
+                  Added
+                </div>
+              </div>
+
+              <div className="md:col-span-3">
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Comment
                 </label>
@@ -410,15 +419,6 @@ export default function AddEntitlementsPage() {
                   placeholder="Optional comments…"
                   className={`${inputCls()} resize-none`}
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Entitlement Type
-                </label>
-                <div className="px-3 py-2 text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-lg">
-                  Added
-                </div>
               </div>
             </div>
 

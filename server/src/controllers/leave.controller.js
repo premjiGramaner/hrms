@@ -160,6 +160,20 @@ const createLeave = async (req, res, next) => {
         ? startDate.getFullYear() + 1
         : startDate.getFullYear();
 
+    // Check for overlapping leave requests
+    const overlap = await LeaveModel.checkLeaveOverlap(
+      data.employee_id,
+      data.start_date,
+      data.end_date,
+    );
+    if (overlap) {
+      return error(
+        res,
+        "A leave request already exists for the selected date(s).",
+        400,
+      );
+    }
+
     const netBalance = await LeaveModel.getNetBalance(
       data.employee_id,
       leaveTypeId,
@@ -242,19 +256,17 @@ const rejectLeave = async (req, res, next) => {
       );
     }
 
-    try {
-      const starting_date = new Date(leave.start_date);
-      const year =
-        starting_date.getMonth() >= 3
-          ? starting_date.getFullYear() + 1
-          : starting_date.getFullYear();
-      await LeaveModel.restoreLeaveBalance(
-        leave.employee_id,
-        leave.leave_type_id,
-        year,
-        leave.requested_days,
-      );
-    } catch {}
+    const starting_date = new Date(leave.start_date);
+    const year =
+      starting_date.getMonth() >= 3
+        ? starting_date.getFullYear() + 1
+        : starting_date.getFullYear();
+    await LeaveModel.restoreLeaveBalance(
+      leave.employee_id,
+      leave.leave_type_id,
+      year,
+      leave.requested_days,
+    );
 
     await LeaveModel.rejectLeave(id, actorId, rejection_reason);
     return success(res, { message: "Leave rejected successfully" });
@@ -283,22 +295,28 @@ const cancelLeave = async (req, res, next) => {
       return error(res, "Leave is already cancelled", 400);
     }
 
+    if (isOwner && leave.status !== "Pending Approval") {
+      return error(
+        res,
+        "This leave request has already been processed and cannot be cancelled.",
+        400,
+      );
+    }
+
+    const starting_date = new Date(leave.start_date);
+    const year =
+      starting_date.getMonth() >= 3
+        ? starting_date.getFullYear() + 1
+        : starting_date.getFullYear();
+    await LeaveModel.restoreLeaveBalance(
+      leave.employee_id,
+      leave.leave_type_id,
+      year,
+      leave.requested_days,
+    );
+
     const cancelled = await LeaveModel.cancelLeave(id, actorId);
     if (!cancelled) return error(res, "Failed to cancel leave", 500);
-
-    try {
-      const starting_date = new Date(leave.start_date);
-      const year =
-        starting_date.getMonth() >= 3
-          ? starting_date.getFullYear() + 1
-          : starting_date.getFullYear();
-      await LeaveModel.restoreLeaveBalance(
-        cancelled.employee_id,
-        cancelled.leave_type_id,
-        year,
-        leave.requested_days,
-      );
-    } catch {}
 
     return success(res, { message: "Leave cancelled successfully" });
   } catch (err) {

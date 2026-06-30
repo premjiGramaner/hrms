@@ -1,5 +1,5 @@
 import api from "./axios";
-import { Employee, PaginatedResponse } from "../types";
+import { Employee, PaginatedResponse, Supervisor } from "../types";
 
 export const getEmployees = async (page = 1, limit = 10, search?: string) => {
   const params = new URLSearchParams({
@@ -33,7 +33,7 @@ export const getMyInfo = async () => {
 export const getSupervisors = async () => {
   const response = await api.get<{
     success: boolean;
-    data: { id: number; name: string }[];
+    data: Supervisor[];
   }>("/employees/supervisors");
   return { data: response.data.data };
 };
@@ -47,7 +47,6 @@ export const getSupervisorsByIds = async (
   }>("/employees/supervisors-by-ids", { supervisorIds });
   return { data: response.data.data };
 };
-
 
 export const getLocations = async () => {
   const response = await api.get<{
@@ -137,5 +136,3 @@ export const getLastEmployeeId = async () => {
   }>("/employees/last-employee-id");
   return { data: response.data.data };
 };
-
-

@@ -1,6 +1,9 @@
 import { useRef, useState, useEffect } from "react";
 import { Employee } from "../../../types";
-import { updateProfileImage, getSupervisorsByIds } from "../../../api/employee.api";
+import {
+  updateProfileImage,
+  getSupervisorsByIds,
+} from "../../../api/employee.api";
 import { getApiErrorMessage } from "../../../utils/errors";
 import { useAppDispatch } from "../../../app/hooks";
 import { updateUserAvatar, updateUserName } from "../../../store/authSlice";
@@ -49,9 +52,9 @@ export default function EmployeeProfileCard({
             const { data: supervisors } =
               await getSupervisorsByIds(supervisorIds);
             const map = new Map<string | number, string>();
-            supervisors.forEach((s: Supervisor) => {
-              map.set(s.id, s.name);
-              map.set(s.id.toString(), s.name);
+            supervisors.forEach((supervisor: Supervisor) => {
+              map.set(supervisor.id, supervisor.name);
+              map.set(supervisor.id.toString(), supervisor.name);
             });
             setSupervisorMap(map);
           }
@@ -116,11 +119,13 @@ export default function EmployeeProfileCard({
       if (updatedEmployee.avatar) {
         dispatch(updateUserAvatar(updatedEmployee.avatar));
       }
-      
-      dispatch(updateUserName({
-        first_name: updatedEmployee.first_name,
-        last_name: updatedEmployee.last_name,
-      }));
+
+      dispatch(
+        updateUserName({
+          first_name: updatedEmployee.first_name,
+          last_name: updatedEmployee.last_name,
+        }),
+      );
 
       // Update parent component with fresh employee data
       if (onEmployeeUpdate) {
@@ -162,7 +167,11 @@ export default function EmployeeProfileCard({
       return supervisorsData
         .map((supervisor: string | number | Supervisor) => {
           if (typeof supervisor === "number") {
-            return supervisorMap.get(supervisor) ?? supervisorMap.get(supervisor.toString()) ?? supervisor.toString();
+            return (
+              supervisorMap.get(supervisor) ??
+              supervisorMap.get(supervisor.toString()) ??
+              supervisor.toString()
+            );
           }
           if (typeof supervisor === "string") {
             return supervisorMap.get(supervisor) || supervisor;

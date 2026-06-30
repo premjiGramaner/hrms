@@ -6,7 +6,7 @@ import {
   getSupervisors,
   getLocations,
 } from "../../api/employee.api";
-import { Employee } from "../../types";
+import { Employee, Supervisor } from "../../types";
 import {
   ATTENDANCE_CALCULATION_TYPES,
   BLOOD_GROUPS,
@@ -58,12 +58,7 @@ const EMPLOYEE_TABS: TabItem[] = [{ label: "My Info", path: "/my-info" }];
 const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
 
 export default function MyInfoPage() {
-  
   const user = useAppSelector((state) => state.auth.user);
-
-
-
-
 
   const dispatch = useAppDispatch();
   const isAdmin = user?.role === "hradmin" || user?.role === "empmanager";
@@ -85,9 +80,7 @@ export default function MyInfoPage() {
     { id: number; category: string }[]
   >([]);
   const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
-  const [supervisorOptions, setSupervisorOptions] = useState<
-    { id: number; name: string }[]
-  >([]);
+  const [supervisorOptions, setSupervisorOptions] = useState<Supervisor[]>([]);
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
 
   useEffect(() => {
@@ -133,14 +126,7 @@ export default function MyInfoPage() {
     }
 
     getSupervisors()
-      .then((res) =>
-        setSupervisorOptions(
-          (res.data || []).map((s: any, index: number) => ({
-            id: s.id ?? index + 1,
-            name: s.name,
-          })),
-        ),
-      )
+      .then((res) => setSupervisorOptions(res.data))
       .catch((err) =>
         setError(getApiErrorMessage(err, "Failed to load supervisors.")),
       );
@@ -193,7 +179,11 @@ export default function MyInfoPage() {
 
       if (activeLabel === "Personal Details") {
         errors = validatePersonalDetails(form, isAdmin);
-        if (!hasErrors(errors) && modifiedFields.has("employee_id") && form.employee_id.trim()) {
+        if (
+          !hasErrors(errors) &&
+          modifiedFields.has("employee_id") &&
+          form.employee_id.trim()
+        ) {
           const empIdError = await validateEmployeeIdUniqueness(
             form.employee_id,
             employee.id,
@@ -202,7 +192,11 @@ export default function MyInfoPage() {
         }
       } else if (activeLabel === "Contact Details") {
         errors = validateContactDetails(form);
-        if (!hasErrors(errors) && modifiedFields.has("work_email") && form.work_email.trim()) {
+        if (
+          !hasErrors(errors) &&
+          modifiedFields.has("work_email") &&
+          form.work_email.trim()
+        ) {
           const emailError = await validateEmailUniqueness(
             form.work_email,
             employee.id,
@@ -248,10 +242,12 @@ export default function MyInfoPage() {
         dispatch(updateUserAvatar(updatedEmployee.avatar));
       }
 
-      dispatch(updateUserName({
-        first_name: updatedEmployee.first_name,
-        last_name: updatedEmployee.last_name,
-      }));
+      dispatch(
+        updateUserName({
+          first_name: updatedEmployee.first_name,
+          last_name: updatedEmployee.last_name,
+        }),
+      );
 
       setMessage("Profile updated successfully.");
       setTimeout(() => setMessage(""), 3000);
@@ -439,7 +435,9 @@ export default function MyInfoPage() {
             value={form.supervisor_id}
             onChange={handleFieldChange}
             options={supervisorOptions.map((s) => s.id.toString())}
-            optionLabels={new Map(supervisorOptions.map((s) => [s.id.toString(), s.name]))}
+            optionLabels={
+              new Map(supervisorOptions.map((s) => [s.id.toString(), s.name]))
+            }
           />
           <EditableProfileField
             label="Location"
@@ -591,7 +589,6 @@ export default function MyInfoPage() {
           </div>
         </ProfileDetailPanel>
       );
-
     }
 
     return (

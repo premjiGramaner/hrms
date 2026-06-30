@@ -112,12 +112,14 @@ function CancelModal({
 }
 
 function ActionMenu({
+  leave,
   isRequester,
   isAdminOrHR,
   onApprove,
   onReject,
   onCancel,
 }: {
+  leave: LeaveRequest;
   isRequester: boolean;
   isAdminOrHR: boolean;
   onApprove: () => void;
@@ -163,7 +165,21 @@ function ActionMenu({
   }, [open]);
 
   const canApproveReject = isAdminOrHR && !isRequester;
-  const canCancel = isRequester || isAdminOrHR;
+  const canCancel =
+    (isRequester && leave.status === "Pending Approval") ||
+    (isAdminOrHR && leave.status !== "Cancelled");
+  const hasAnyAction = canApproveReject || canCancel;
+
+  if (!hasAnyAction) {
+    return (
+      <button
+        disabled
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-300 rounded-lg bg-slate-50 text-slate-400 cursor-not-allowed opacity-50"
+      >
+        No Actions
+      </button>
+    );
+  }
 
   return (
     <>
@@ -502,6 +518,7 @@ export default function LeaveDetailsPage() {
                         <div className="w-4 h-4 border-2 border-blue-900 border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <ActionMenu
+                          leave={leave}
                           isRequester={isRequester}
                           isAdminOrHR={isAdminOrHR}
                           onApprove={handleApprove}

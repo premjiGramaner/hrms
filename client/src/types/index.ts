@@ -43,6 +43,7 @@ export interface Employee {
   contract_end_date?: string;
   comments?: string;
   supervisors?: string[];
+  supervisor_names?: string;
   is_active?: boolean;
 }
 
@@ -138,4 +139,14 @@ export interface LeaveFilters {
   statuses?: string[];
   page?: number;
   limit?: number;
+}
+export interface Supervisor {
+  id: number;
+  name: string;
+}
+
+export interface UpdateUserNamePayload {
+  name?: string;
+  first_name?: string;
+  last_name?: string;
 }

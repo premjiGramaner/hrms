@@ -39,9 +39,13 @@ export default function LeaveBalance({ employee }: LeaveBalanceProps) {
     navigate("/leave/apply");
   };
 
-  if (loading) {
-    return <LoaderCard title="Leave Balance" />;
-  }
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      loadLeaveBalance();
+    }, 5000);
+
+    return () => clearInterval(refreshInterval);
+  }, [employee?.id]);
 
   const leaveBalanceData = leaveBalances.map((leave) => {
     const totalEntitlement =

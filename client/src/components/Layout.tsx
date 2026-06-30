@@ -18,7 +18,6 @@ import {
   IconShare,
 } from "./Icons";
 import { fetchAllEmployees, fetchEmployees } from "../store/employeeSlice";
-import { getMyInfo } from "../api/employee.api";
 
 export interface TabItem {
   label: string;
@@ -33,9 +32,6 @@ interface Props {
   onFab?: () => void;
 }
 
-
-
-
 export default function Layout({
   children,
   title,
@@ -47,13 +43,13 @@ export default function Layout({
   const user = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
-    fetchAllEmployees();
+    dispatch(fetchAllEmployees());
   }, []);
 
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const [useName, setUseName] = useState("");
+  const [userNames, setUserName] = useState("");
 
   const role = user?.role || "employee";
   const isAdmin = role === "hradmin" || role === "empmanager";
@@ -96,20 +92,12 @@ export default function Layout({
     { to: "#", label: "Performance", icon: <IconBriefcase /> },
   ];
 
-  // Home button routing based on role
   const homeRoute = isAdmin ? "/employees" : "/my-info";
-
-  
-const getDataName = (async ()=>{
-
-   const data = await getMyInfo();
-   setUseName(data.data.name as string);
-})
-
-
-useEffect(() => {
-  getDataName();
-}, []);
+  useEffect(() => {
+    if (user?.name) {
+      setUserName(user.name);
+    }
+  }, [user?.name]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
@@ -201,9 +189,7 @@ useEffect(() => {
                 margin: "2px 0 0",
               }}
             >
-              {useName}
-            
-          
+              {userNames}
             </p>
             <p
               className="truncate w-full"

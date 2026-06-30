@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AuthUser } from "../types";
+import { AuthUser, UpdateUserNamePayload } from "../types";
 import { STORAGE_KEYS } from "../constants/storage";
 import { readJson, writeJson } from "../utils/storage";
 
@@ -38,12 +38,16 @@ const authSlice = createSlice({
         writeJson(STORAGE_KEYS.user, state.user);
       }
     },
-    updateUserName(state, action: PayloadAction<{ name?: string; first_name?: string; last_name?: string }>) {
+    updateUserName(state, action: PayloadAction<UpdateUserNamePayload>) {
       if (state.user) {
         const firstName = action.payload.first_name ?? state.user.first_name;
         const lastName = action.payload.last_name ?? state.user.last_name;
-        const fullName = action.payload.name || (firstName && lastName ? `${firstName} ${lastName}`.trim() : firstName || lastName || state.user.name);
-        
+        const fullName =
+          action.payload.name ||
+          (firstName && lastName
+            ? `${firstName} ${lastName}`.trim()
+            : firstName || lastName || state.user.name);
+
         state.user = {
           ...state.user,
           name: fullName,
@@ -56,5 +60,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { loginSuccess, logout, updateUserAvatar, updateUserName } = authSlice.actions;
+export const { loginSuccess, logout, updateUserAvatar, updateUserName } =
+  authSlice.actions;
 export default authSlice.reducer;
