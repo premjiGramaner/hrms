@@ -1,9 +1,12 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Employee } from "../../../types";
-import { updateProfileImage } from "../../../api/employee.api";
+import {
+  updateProfileImage,
+  getSupervisorsByIds,
+} from "../../../api/employee.api";
 import { getApiErrorMessage } from "../../../utils/errors";
 import { useAppDispatch } from "../../../app/hooks";
-import { updateUserAvatar } from "../../../store/authSlice";
+import { updateUserAvatar, updateUserName } from "../../../store/authSlice";
 
 interface EmployeeProfileCardProps {
   employee: Employee;
@@ -12,6 +15,7 @@ interface EmployeeProfileCardProps {
 
 interface Supervisor {
   name: string;
+  id: number;
 }
 
 export default function EmployeeProfileCard({
@@ -22,7 +26,46 @@ export default function EmployeeProfileCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
-  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now()); // For cache busting
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
+  const [supervisorMap, setSupervisorMap] = useState<
+    Map<string | number, string>
+  >(new Map());
+
+  useEffect(() => {
+    const fetchSupervisors = async () => {
+      try {
+        let supervisorsData: unknown = employee.supervisors;
+        if (typeof supervisorsData === "string") {
+          try {
+            supervisorsData = JSON.parse(supervisorsData);
+          } catch {
+            supervisorsData = [];
+          }
+        }
+
+        if (Array.isArray(supervisorsData) && supervisorsData.length > 0) {
+          const supervisorIds = supervisorsData.filter(
+            (id): id is string | number =>
+              typeof id === "string" || typeof id === "number",
+          );
+          if (supervisorIds.length > 0) {
+            const { data: supervisors } =
+              await getSupervisorsByIds(supervisorIds);
+            const map = new Map<string | number, string>();
+            supervisors.forEach((supervisor: Supervisor) => {
+              map.set(supervisor.id, supervisor.name);
+              map.set(supervisor.id.toString(), supervisor.name);
+            });
+            setSupervisorMap(map);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch supervisor names:", err);
+      }
+    };
+
+    fetchSupervisors();
+  }, [employee.supervisors]);
 
   const fullName =
     employee.name ||
@@ -73,10 +116,16 @@ export default function EmployeeProfileCard({
       const newTimestamp = Date.now();
       setAvatarTimestamp(newTimestamp);
 
-      // Update Redux store so sidebar avatar updates immediately
       if (updatedEmployee.avatar) {
         dispatch(updateUserAvatar(updatedEmployee.avatar));
       }
+
+      dispatch(
+        updateUserName({
+          first_name: updatedEmployee.first_name,
+          last_name: updatedEmployee.last_name,
+        }),
+      );
 
       // Update parent component with fresh employee data
       if (onEmployeeUpdate) {
@@ -103,7 +152,6 @@ export default function EmployeeProfileCard({
     ? `/uploads/${employee.avatar}?t=${avatarTimestamp}`
     : null;
 
-  //supervisorNames
   const getSupervisorNames = () => {
     let supervisorsData: unknown = employee.supervisors;
 
@@ -117,9 +165,20 @@ export default function EmployeeProfileCard({
 
     if (Array.isArray(supervisorsData) && supervisorsData.length > 0) {
       return supervisorsData
-        .map((supervisor: string | Supervisor) =>
-          typeof supervisor === "string" ? supervisor : supervisor.name,
-        )
+        .map((supervisor: string | number | Supervisor) => {
+          if (typeof supervisor === "number") {
+            return (
+              supervisorMap.get(supervisor) ??
+              supervisorMap.get(supervisor.toString()) ??
+              supervisor.toString()
+            );
+          }
+          if (typeof supervisor === "string") {
+            return supervisorMap.get(supervisor) || supervisor;
+          }
+          return supervisor.name || "";
+        })
+        .filter((name) => name)
         .join(", ");
     }
 

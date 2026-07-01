@@ -595,6 +595,24 @@ async function getLeavesDetailForExport(filters = {}) {
   return rows;
 }
 
+async function checkLeaveOverlap(employeeId, startDate, endDate) {
+  const { rows } = await pool.query(
+    `SELECT id, start_date, end_date, status
+     FROM tbl_leave_requests
+     WHERE employee_id = $1
+       AND is_deleted = FALSE
+       AND status IN ('Pending Approval', 'Approved', 'Scheduled', 'Taken')
+       AND (
+         (start_date <= $2 AND end_date >= $2) OR
+         (start_date <= $3 AND end_date >= $3) OR
+         (start_date >= $2 AND end_date <= $3)
+       )
+     LIMIT 1`,
+    [employeeId, startDate, endDate],
+  );
+  return rows.length > 0 ? rows[0] : null;
+}
+
 export {
   findAllLeaveTypes,
   getLeaveBalance,
@@ -607,6 +625,7 @@ export {
   updateLeaveAttachment,
   createLeaveRequest,
   createLeaveRequestWithDeduction,
+  checkLeaveOverlap,
   approveLeave,
   rejectLeave,
   cancelLeave,

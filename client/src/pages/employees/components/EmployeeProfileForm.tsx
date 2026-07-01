@@ -12,6 +12,7 @@ interface EditableProfileFieldProps {
   onChange: (event: ProfileFieldChangeEvent) => void;
   type?: string;
   options?: readonly string[];
+  optionLabels?: Map<string, string>;
   wide?: boolean;
   disabled?: boolean;
   readOnly?: boolean;
@@ -35,6 +36,7 @@ export function EditableProfileField({
   onChange,
   type = "text",
   options,
+  optionLabels,
   wide = false,
   disabled = false,
   readOnly = false,
@@ -86,7 +88,7 @@ export function EditableProfileField({
           <option value="">-- Select --</option>
           {options?.map((option) => (
             <option key={option} value={option}>
-              {option}
+              {optionLabels?.get(option) || option}
             </option>
           ))}
         </select>

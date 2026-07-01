@@ -1,8 +1,10 @@
 import { EditableEmployeeProfileForm } from "../types/employeeProfile";
+import { checkEmailExists, checkEmployeeIdExists } from "../api/employee.api";
 
 export interface ValidationErrors {
   [key: string]: string;
 }
+
 const NON_EMPTY_REGEX = /\S/;
 const isEmpty = (value?: string | null): boolean =>
   !NON_EMPTY_REGEX.test(value ?? "");
@@ -59,10 +61,12 @@ export const validateContactDetails = (
   const errors: ValidationErrors = {};
 
   const phoneRegex = /^\d{10}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const mobile = form.mobile.trim();
   const workTel = form.work_tel.trim();
   const homeTel = form.home_tel.trim();
+  const workEmail = form.work_email.trim();
 
   if (!mobile) {
     errors.mobile = "Mobile number is required.";
@@ -76,6 +80,12 @@ export const validateContactDetails = (
 
   if (homeTel && !phoneRegex.test(homeTel)) {
     errors.home_tel = "Home Telephone must be exactly 10 digits.";
+  }
+
+  if (!workEmail) {
+    errors.work_email = "Work Email is required.";
+  } else if (!emailRegex.test(workEmail)) {
+    errors.work_email = "Work Email must be valid.";
   }
 
   return errors;
@@ -111,9 +121,11 @@ export const validateAllSections = (
     ...validateEmploymentDetails(form),
   };
 };
+
 export const hasErrors = (errors: ValidationErrors): boolean => {
   return Object.keys(errors).length > 0;
 };
+
 export const filterErrorsForRole = (
   errors: ValidationErrors,
   isAdmin: boolean,
@@ -121,4 +133,36 @@ export const filterErrorsForRole = (
   if (isAdmin) return errors;
   const { employee_id, real_dob, ...employeeEditableErrors } = errors;
   return employeeEditableErrors;
+};
+
+export const validateEmailUniqueness = async (
+  email: string,
+  currentEmployeeId?: number,
+): Promise<string> => {
+  if (!email.trim()) return "";
+  try {
+    const { data } = await checkEmailExists(email, currentEmployeeId);
+    if (data.exists) {
+      return "This email already exists";
+    }
+  } catch (err) {
+    console.error("Error checking email uniqueness:", err);
+  }
+  return "";
+};
+
+export const validateEmployeeIdUniqueness = async (
+  employeeId: string,
+  currentEmployeeId?: number,
+): Promise<string> => {
+  if (!employeeId.trim()) return "";
+  try {
+    const { data } = await checkEmployeeIdExists(employeeId, currentEmployeeId);
+    if (data.exists) {
+      return "This Employee ID already exists";
+    }
+  } catch (err) {
+    console.error("Error checking employee ID uniqueness:", err);
+  }
+  return "";
 };

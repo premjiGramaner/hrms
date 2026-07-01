@@ -1,7 +1,11 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
-import { getEmployee, updateEmployee } from "../../api/employee.api";
+import {
+  getEmployee,
+  updateEmployee,
+  getLocations,
+} from "../../api/employee.api";
 import { Employee } from "../../types";
 import {
   ATTENDANCE_CALCULATION_TYPES,
@@ -19,6 +23,8 @@ import {
   getSubUnits,
 } from "../../api/hradmin.api";
 import { getSupervisors } from "../../api/employee.api";
+import { useAppSelector, useAppDispatch } from "../../app/hooks";
+import { updateUserAvatar, updateUserName } from "../../store/authSlice";
 import {
   EditableEmployeeProfileForm,
   employeeToEditableProfileForm,
@@ -33,6 +39,16 @@ import LeaveBalance from "./components/LeaveBalance";
 import LeaveList from "./components/LeaveList";
 import QuickAccess from "./components/QuickAccess";
 import TerminationModal from "./components/TerminationModal";
+import {
+  validatePersonalDetails,
+  validateContactDetails,
+  validateEmploymentDetails,
+  validateEmailUniqueness,
+  validateEmployeeIdUniqueness,
+  ValidationErrors,
+  hasErrors,
+} from "../../utils/profileValidation";
+import { getNumericValue } from "./components/inputHelpers";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -44,6 +60,8 @@ const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
 export default function EmployeeProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const user = useAppSelector((state) => state.auth.user);
+  const dispatch = useAppDispatch();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -61,28 +79,17 @@ export default function EmployeeProfilePage() {
   const [supervisorOptions, setSupervisorOptions] = useState<
     { id: number; name: string }[]
   >([]);
-  const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {},
+  );
+  const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // getJobTitles()
-    //   .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
-    //   .catch(() => {});
-    // getJobCategories()
-    //   .then((res) =>
-    //     setJobCategoryOptions(
-    //       res.data.map((c) => ({ id: c.id, category: c.category })),
-    //     ),
-    //   )
-    //   .catch(() => {});
-    // getSubUnits()
-    //   .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
-    //   .catch(() => {});
-    // getSupervisors()
-    //   .then((res) => setSupervisorOptions(res.data || []))
-    //   .catch(() => {});
-
     getJobTitles()
-      .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+      .then((res) =>
+        setJobTitleOptions(res.data.map((jobtitle) => jobtitle.title)),
+      )
       .catch((err) => {
         console.error("Failed to load job titles:", err);
         setError("Failed to load job titles.");
@@ -103,14 +110,41 @@ export default function EmployeeProfilePage() {
       });
 
     getSubUnits()
-      .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+      .then((res) =>
+        setSubUnitOptions(res.data.map((subunit) => subunit.sub_unit_name)),
+      )
       .catch((err) => {
         console.error("Failed to load sub units:", err);
         setError("Failed to load sub units.");
       });
 
+    getLocations()
+      .then((res) => {
+        const seenMap = new Map<string, string>();
+        const deduped = res.data.filter((loc: string) => {
+          const lowerLoc = loc.toLowerCase();
+          if (seenMap.has(lowerLoc)) {
+            return false;
+          }
+          seenMap.set(lowerLoc, loc);
+          return true;
+        });
+        setLocationOptions(deduped);
+      })
+      .catch((err) => {
+        console.error("Failed to load locations:", err);
+        setError("Failed to load locations.");
+      });
+
     getSupervisors()
-      .then((res) => setSupervisorOptions(res.data || []))
+      .then((res) =>
+        setSupervisorOptions(
+          (res.data || []).map((supervisor: any) => ({
+            id: Number(supervisor.id),
+            name: supervisor.name,
+          })),
+        ),
+      )
       .catch((err) => {
         console.error("Failed to load supervisors:", err);
         setError("Failed to load supervisors.");
@@ -176,30 +210,79 @@ export default function EmployeeProfilePage() {
     >,
   ) => {
     const { name, value } = event.target;
+    if (name === "mobile" || name === "work_tel" || name === "home_tel") {
+      const numericValue = getNumericValue(event, 10);
+      setForm((current) =>
+        current ? { ...current, [name]: numericValue } : current,
+      );
+      setModifiedFields((prev) => new Set(prev).add(name));
+      return;
+    }
     setForm((current) => (current ? { ...current, [name]: value } : current));
+    setModifiedFields((prev) => new Set(prev).add(name));
   };
 
   const handleSave = async () => {
     if (!employee.id || !form || saving) return;
 
     try {
+      let errors: ValidationErrors = {};
+      const activeLabel = PROFILE_TABS[activeTab];
+
+      if (activeLabel === "Personal Details") {
+        if (modifiedFields.has("employee_id") && form.employee_id.trim()) {
+          const empIdError = await validateEmployeeIdUniqueness(
+            form.employee_id,
+            employee.id,
+          );
+          if (empIdError) errors.employee_id = empIdError;
+        }
+      } else if (activeLabel === "Contact Details") {
+        if (modifiedFields.has("work_email") && form.work_email.trim()) {
+          const emailError = await validateEmailUniqueness(
+            form.work_email,
+            employee.id,
+          );
+          if (emailError) errors.work_email = emailError;
+        }
+      }
+
+      if (hasErrors(errors)) {
+        setValidationErrors(errors);
+        setActionMessage("Please fix the validation errors before saving.");
+        return;
+      }
+
       setSaving(true);
       setActionMessage("");
+      setValidationErrors({});
       const formData = new FormData();
       Object.entries(form).forEach(([key, value]) => {
         formData.append(key, value.trim());
       });
       formData.append("role", employee.role || "employee");
-      formData.append(
-        "supervisors",
-        JSON.stringify(employee.supervisors || []),
-      );
+      const supervisorsArray = form.supervisor_id ? [form.supervisor_id] : [];
+      formData.append("supervisors", JSON.stringify(supervisorsArray));
       await updateEmployee(employee.id, formData);
 
-      // CRITICAL: Re-fetch fresh employee data from database
       const { data } = await getEmployee(employee.id);
       setEmployee(data);
       setForm(employeeToEditableProfileForm(data));
+      setModifiedFields(new Set());
+
+      if (user?.id === data.id) {
+        if (data.avatar) {
+          dispatch(updateUserAvatar(data.avatar));
+        }
+
+        dispatch(
+          updateUserName({
+            first_name: data.first_name,
+            last_name: data.last_name,
+          }),
+        );
+      }
+
       setActionMessage("Employee details saved successfully.");
     } catch (err: unknown) {
       setActionMessage(
@@ -237,6 +320,7 @@ export default function EmployeeProfilePage() {
             name="employee_id"
             value={form.employee_id}
             onChange={handleFieldChange}
+            error={validationErrors.employee_id}
           />
           <EditableProfileField
             label="First Name"
@@ -400,14 +484,24 @@ export default function EmployeeProfilePage() {
             name="supervisor_id"
             value={form.supervisor_id}
             onChange={handleFieldChange}
-            options={supervisorOptions.map((s) => s.name)}
+            options={supervisorOptions.map((supervisor) =>
+              supervisor.id.toString(),
+            )}
+            optionLabels={
+              new Map(
+                supervisorOptions.map((supervisor) => [
+                  supervisor.id.toString(),
+                  supervisor.name,
+                ]),
+              )
+            }
           />
           <EditableProfileField
             label="Location"
             name="location"
             value={form.location}
             onChange={handleFieldChange}
-            options={[...predefinedLocations, "Other"]}
+            options={locationOptions}
           />
           <EditableProfileField
             label="Probation End Date"
@@ -479,6 +573,7 @@ export default function EmployeeProfilePage() {
             type="email"
             value={form.work_email}
             onChange={handleFieldChange}
+            error={validationErrors.work_email}
           />
           <EditableProfileField
             label="Other Email"

@@ -32,7 +32,14 @@ const login = async (req, res, next) => {
       const token = signToken({ id: 0, role: "empmanager", username: "admin" });
       return success(res, {
         token,
-        user: { id: 0, username: "admin", role: "empmanager", name: "Admin" },
+        user: {
+          id: 0,
+          username: "admin",
+          role: "empmanager",
+          name: "Admin",
+          first_name: "Admin",
+          last_name: "",
+        },
       });
     }
 
@@ -64,6 +71,8 @@ const login = async (req, res, next) => {
         username: user.username,
         role: user.role,
         name: user.name || user.username,
+        first_name: user.first_name,
+        last_name: user.last_name,
         avatar: user.avatar,
       },
     });

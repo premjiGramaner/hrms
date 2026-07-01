@@ -167,9 +167,13 @@ async function createEmployee(data, avatarPath) {
             typeof data.supervisors === "string"
               ? JSON.parse(data.supervisors)
               : data.supervisors;
-          return Array.isArray(parsed) && parsed.length > 0
-            ? JSON.stringify(parsed)
-            : null;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const validIds = parsed
+              .map((id) => parseInt(id, 10))
+              .filter((id) => !isNaN(id) && id > 0);
+            return validIds.length > 0 ? JSON.stringify(validIds) : null;
+          }
+          return null;
         } catch {
           return null;
         }
@@ -281,9 +285,13 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
             typeof data.supervisors === "string"
               ? JSON.parse(data.supervisors)
               : data.supervisors;
-          return Array.isArray(parsed) && parsed.length > 0
-            ? JSON.stringify(parsed)
-            : null;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const validIds = parsed
+              .map((id) => parseInt(id, 10))
+              .filter((id) => !isNaN(id) && id > 0);
+            return validIds.length > 0 ? JSON.stringify(validIds) : null;
+          }
+          return null;
         } catch {
           return null;
         }
@@ -350,6 +358,28 @@ async function getSupervisors() {
   return rows;
 }
 
+async function getSupervisorsByIds(supervisorIds) {
+  if (!supervisorIds || supervisorIds.length === 0) {
+    return [];
+  }
+  const ids = supervisorIds
+    .map((id) => Number.parseInt(id, 10))
+    .filter(Number.isInteger);
+
+  if (ids.length === 0) {
+    return [];
+  }
+  const { rows } = await pool.query(
+    `SELECT id::int, supervisor_name AS name
+     FROM tbl_sub_units
+     WHERE id = ANY($1::int[])
+       AND is_active = true
+     ORDER BY supervisor_name ASC`,
+    [ids],
+  );
+  return rows;
+}
+
 async function updateProfileImage(id, profileImagePath, updatedBy) {
   const result = await pool.query(
     `UPDATE tbl_appusers SET
@@ -389,6 +419,17 @@ async function getLastEmployeeId() {
   return rows[0] || null;
 }
 
+async function getLocations() {
+  const { rows } = await pool.query(
+    `SELECT DISTINCT ON (LOWER(location)) location FROM tbl_appusers 
+     WHERE location IS NOT NULL 
+       AND TRIM(location) <> ''
+       AND is_deleted = false
+     ORDER BY LOWER(location) ASC, location ASC`,
+  );
+  return rows.map((r) => r.location);
+}
+
 export {
   findAllEmployees,
   findEmployeeById,
@@ -398,7 +439,9 @@ export {
   softDeleteEmployee,
   terminateEmployee,
   getSupervisors,
+  getSupervisorsByIds,
   findByEmail,
   findByEmployeeId,
   getLastEmployeeId,
+  getLocations,
 };

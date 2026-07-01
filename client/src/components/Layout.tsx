@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { logout as logoutAction } from "../store/authSlice";
@@ -17,6 +17,10 @@ import {
   IconFilter,
   IconShare,
 } from "./Icons";
+import {
+  fetchEmployeesWithLimit,
+  fetchEmployees,
+} from "../store/employeeSlice";
 
 export interface TabItem {
   label: string;
@@ -40,9 +44,15 @@ export default function Layout({
 }: Props) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+
+  useEffect(() => {
+    dispatch(fetchEmployeesWithLimit());
+  }, []);
+
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [userNames, setUserName] = useState("");
 
   const role = user?.role || "employee";
   const isAdmin = role === "hradmin" || role === "empmanager";
@@ -85,8 +95,12 @@ export default function Layout({
     { to: "#", label: "Performance", icon: <IconBriefcase /> },
   ];
 
-  // Home button routing based on role
   const homeRoute = isAdmin ? "/employees" : "/my-info";
+  useEffect(() => {
+    if (user?.name) {
+      setUserName(user.name);
+    }
+  }, [user?.name]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
@@ -178,7 +192,7 @@ export default function Layout({
                 margin: "2px 0 0",
               }}
             >
-              {username}
+              {userNames}
             </p>
             <p
               className="truncate w-full"
