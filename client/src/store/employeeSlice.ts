@@ -41,7 +41,7 @@ export const fetchEmployees = createAsyncThunk(
   },
 );
 
-export const fetchAllEmployees = createAsyncThunk(
+export const fetchEmployeesWithLimit = createAsyncThunk(
   "employees/fetchAll",
   async () => {
     const res = await getEmployees(1, 1000, "");
@@ -85,14 +85,14 @@ const employeeSlice = createSlice({
       .addCase(fetchEmployees.rejected, (state) => {
         state.loading = false;
       })
-      .addCase(fetchAllEmployees.pending, (state) => {
+      .addCase(fetchEmployeesWithLimit.pending, (state) => {
         state.allLoading = true;
       })
-      .addCase(fetchAllEmployees.fulfilled, (state, action) => {
+      .addCase(fetchEmployeesWithLimit.fulfilled, (state, action) => {
         state.allLoading = false;
         state.allEmployees = action.payload.data;
       })
-      .addCase(fetchAllEmployees.rejected, (state) => {
+      .addCase(fetchEmployeesWithLimit.rejected, (state) => {
         state.allLoading = false;
       })
       .addCase(removeEmployee.fulfilled, (state, action) => {

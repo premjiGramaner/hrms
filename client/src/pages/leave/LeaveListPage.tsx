@@ -927,13 +927,10 @@ function ActionDropdown({
       <div className="w-4 h-4 border-2 border-blue-900 border-t-transparent rounded-full animate-spin mx-2" />
     );
 
-  // Admin who is NOT the requester can approve/reject/cancel
   const canApproveReject = isAdmin && !isRequester;
-  // Employee can cancel only pending approval leaves, or admin can cancel any leave except already cancelled
   const canCancel =
-    (isRequester && row.status === "Pending Approval") ||
-    (isAdmin && row.status !== "Cancelled");
-
+    (isRequester && row.status === STATUS_OPTIONS[1]) ||
+    (isAdmin && row.status !== STATUS_OPTIONS[0]);
   return (
     <>
       <button

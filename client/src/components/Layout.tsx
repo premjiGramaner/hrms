@@ -17,7 +17,10 @@ import {
   IconFilter,
   IconShare,
 } from "./Icons";
-import { fetchAllEmployees, fetchEmployees } from "../store/employeeSlice";
+import {
+  fetchEmployeesWithLimit,
+  fetchEmployees,
+} from "../store/employeeSlice";
 
 export interface TabItem {
   label: string;
@@ -43,7 +46,7 @@ export default function Layout({
   const user = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
-    dispatch(fetchAllEmployees());
+    dispatch(fetchEmployeesWithLimit());
   }, []);
 
   const navigate = useNavigate();
