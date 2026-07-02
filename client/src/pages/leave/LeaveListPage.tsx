@@ -927,10 +927,23 @@ function ActionDropdown({
       <div className="w-4 h-4 border-2 border-blue-900 border-t-transparent rounded-full animate-spin mx-2" />
     );
 
-  const canApproveReject = isAdmin && !isRequester;
-  const canCancel =
-    (isRequester && row.status === STATUS_OPTIONS[1]) ||
-    (isAdmin && row.status !== STATUS_OPTIONS[0]);
+  const isPending = row.status === "Pending Approval";
+
+  if (isRequester) {
+    return <span className="text-xs text-slate-400">—</span>;
+  }
+
+  const canApproveReject = isAdmin && !isRequester && isPending;
+  const canCancel = isPending && (isRequester || (isAdmin && !isRequester));
+
+  // If no actions available, don't show the dropdown
+  if (!canApproveReject && !canCancel && !isAdmin) {
+    return <span className="text-xs text-slate-400">—</span>;
+  }
+
+  const shouldShowNoActions =
+    !canApproveReject && !canCancel && isAdmin && !isRequester;
+
   return (
     <>
       <button
@@ -962,15 +975,26 @@ function ActionDropdown({
           className="bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-36"
         >
           {canApproveReject && (
-            <button
-              onClick={() => {
-                setOpen(false);
-                onApprove();
-              }}
-              className="w-full text-left px-4 py-2 text-xs text-green-700 hover:bg-green-50 transition cursor-pointer"
-            >
-              ✓ Approve
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onApprove();
+                }}
+                className="w-full text-left px-4 py-2 text-xs text-green-700 hover:bg-green-50 transition cursor-pointer"
+              >
+                ✓ Approve
+              </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onReject();
+                }}
+                className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition cursor-pointer"
+              >
+                ✕ Reject
+              </button>
+            </>
           )}
           {canCancel && (
             <button
@@ -983,16 +1007,10 @@ function ActionDropdown({
               ⊘ Cancel
             </button>
           )}
-          {canApproveReject && (
-            <button
-              onClick={() => {
-                setOpen(false);
-                onReject();
-              }}
-              className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition cursor-pointer"
-            >
-              ✕ Reject
-            </button>
+          {shouldShowNoActions && (
+            <div className="px-4 py-2 text-xs text-slate-400">
+              No actions available
+            </div>
           )}
         </div>
       )}

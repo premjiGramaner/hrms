@@ -184,19 +184,7 @@ async function findLeaveRequests(filters = {}, page = 1, limit = 15) {
       lr.rejection_reason,
       lr.attachment_status,
       lr.comments,
-      COALESCE(
-        (SELECT (e.total_days + e.carried_days - e.used_days)
-         FROM tbl_leave_entitlements e
-         WHERE e.employee_id = lr.employee_id
-           AND e.leave_type_id = lr.leave_type_id
-           AND e.year = CASE 
-             WHEN EXTRACT(MONTH FROM lr.start_date) >= 4 
-             THEN EXTRACT(YEAR FROM lr.start_date) + 1
-             ELSE EXTRACT(YEAR FROM lr.start_date)
-           END
-           AND e.is_deleted = FALSE
-         LIMIT 1), 0
-      ) AS net_leave_balance
+      COALESCE(lr.net_leave_balance_at_request, 0) AS net_leave_balance
     FROM tbl_leave_requests lr
     JOIN tbl_appusers u  ON u.id = lr.employee_id AND u.is_deleted = FALSE
     JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id
@@ -274,19 +262,7 @@ async function findLeaveDetails(id) {
        lr.rejected_on::text,
        lr.cancelled_by,
        lr.cancelled_on::text,
-       COALESCE(
-         (SELECT (e.total_days + e.carried_days - e.used_days)
-          FROM tbl_leave_entitlements e
-          WHERE e.employee_id = lr.employee_id
-            AND e.leave_type_id = lr.leave_type_id
-            AND e.year = CASE 
-              WHEN EXTRACT(MONTH FROM lr.start_date) >= 4 
-              THEN EXTRACT(YEAR FROM lr.start_date) + 1
-              ELSE EXTRACT(YEAR FROM lr.start_date)
-            END
-            AND e.is_deleted = FALSE
-          LIMIT 1), 0
-       ) AS net_leave_balance
+       COALESCE(lr.net_leave_balance_at_request, 0) AS net_leave_balance
      FROM tbl_leave_requests lr
      JOIN tbl_appusers u  ON u.id = lr.employee_id
      JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id
@@ -353,20 +329,24 @@ async function createLeaveRequestWithDeduction(
         { statusCode: 422 },
       );
     }
-    if (Number(balRows[0].net_balance) < requestedDays) {
+    const currentBalance = Number(balRows[0].net_balance);
+    if (currentBalance < requestedDays) {
       throw Object.assign(
         new Error(
-          `Insufficient leave balance. Available: ${Number(balRows[0].net_balance).toFixed(2)} day(s).`,
+          `Insufficient leave balance. Available: ${currentBalance.toFixed(2)} day(s).`,
         ),
         { statusCode: 422 },
       );
     }
 
+    // Store the balance BEFORE deduction - this is the balance at time of request
+    const balanceAtRequest = currentBalance;
+
     const { rows } = await client.query(
       `INSERT INTO tbl_leave_requests
          (employee_id, leave_type_id, start_date, end_date, requested_days, reason,
-          status, attachment_status, comments)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+          status, attachment_status, comments, net_leave_balance_at_request)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        RETURNING id`,
       [
         data.employee_id,
@@ -378,6 +358,7 @@ async function createLeaveRequestWithDeduction(
         data.status || "Pending Approval",
         data.attachment_status || "Not Required",
         data.comments || null,
+        balanceAtRequest,
       ],
     );
     await client.query(
@@ -507,10 +488,7 @@ async function getLeavesSummaryForExport(filters = {}) {
 
        e.total_days AS entitlements,
        COALESCE(e.used_days,0) AS used,
-       COALESCE(
-         (e.total_days + e.carried_days - e.used_days),
-         0
-       ) AS net_leave_balance,
+       COALESCE(lr.net_leave_balance_at_request, 0) AS net_leave_balance,
 
        lr.requested_days,
        lr.status,
@@ -562,10 +540,7 @@ async function getLeavesDetailForExport(filters = {}) {
        COALESCE(e.total_days, 0) AS entitlements,
        COALESCE(e.used_days, 0) AS used,
 
-       COALESCE(
-         (e.total_days + e.carried_days - e.used_days),
-         0
-       ) AS net_leave_balance,
+       COALESCE(lr.net_leave_balance_at_request, 0) AS net_leave_balance,
 
        lr.requested_days,
        lr.status,
