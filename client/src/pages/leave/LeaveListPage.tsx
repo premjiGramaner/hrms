@@ -928,15 +928,12 @@ function ActionDropdown({
     );
 
   const isPending = row.status === "Pending Approval";
-  const processedStatuses = ["Approved", "Rejected", "Cancelled"];
-  const isProcessed = processedStatuses.includes(row.status);
 
   // Employee viewing own leave
   if (!isAdmin && isRequester) {
     // Only show Cancel for Pending status
-    if (isPending) {
-      const canCancel = true;
-      if (!canCancel) return <span className="text-xs text-slate-400">—</span>;
+    if (!isPending) {
+      return <span className="text-xs text-slate-400">—</span>;
     } else {
       // Processed leave - hide actions
       return <span className="text-xs text-slate-400">—</span>;
@@ -946,26 +943,20 @@ function ActionDropdown({
   // Admin viewing own leave
   if (isAdmin && isRequester) {
     // Admin can only cancel their own pending leave
-    if (isPending) {
-      const canCancel = true;
-      if (!canCancel) return <span className="text-xs text-slate-400">—</span>;
+    if (!isPending) {
+      return <span className="text-xs text-slate-400">—</span>;
     } else {
       // Processed leave - hide actions
       return <span className="text-xs text-slate-400">—</span>;
     }
   }
 
-  // Admin viewing another user's leave - ALWAYS show dropdown
-  // Do NOT hide after processing
   if (isAdmin && !isRequester) {
-    // Admin can see actions for all statuses
-    // The menu will determine which actions to show
   }
 
   const canApproveReject = isAdmin && !isRequester && isPending;
   const canCancel = isPending && (isRequester || (isAdmin && !isRequester));
 
-  // If no actions available, don't show the dropdown
   if (!canApproveReject && !canCancel && !isAdmin) {
     return <span className="text-xs text-slate-400">—</span>;
   }
