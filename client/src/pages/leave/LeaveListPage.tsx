@@ -929,26 +929,8 @@ function ActionDropdown({
 
   const isPending = row.status === "Pending Approval";
 
-  // Employee viewing own leave
-  if (!isAdmin && isRequester) {
-    // Only show Cancel for Pending status
-    if (!isPending) {
-      return <span className="text-xs text-slate-400">—</span>;
-    } else {
-      // Processed leave - hide actions
-      return <span className="text-xs text-slate-400">—</span>;
-    }
-  }
-
-  // Admin viewing own leave
-  if (isAdmin && isRequester) {
-    // Admin can only cancel their own pending leave
-    if (!isPending) {
-      return <span className="text-xs text-slate-400">—</span>;
-    } else {
-      // Processed leave - hide actions
-      return <span className="text-xs text-slate-400">—</span>;
-    }
+  if (isRequester) {
+    return <span className="text-xs text-slate-400">—</span>;
   }
 
   const canApproveReject = isAdmin && !isRequester && isPending;
