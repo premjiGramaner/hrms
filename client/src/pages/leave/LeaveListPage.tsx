@@ -951,15 +951,16 @@ function ActionDropdown({
     }
   }
 
-  if (isAdmin && !isRequester) {
-  }
-
   const canApproveReject = isAdmin && !isRequester && isPending;
   const canCancel = isPending && (isRequester || (isAdmin && !isRequester));
 
+  // If no actions available, don't show the dropdown
   if (!canApproveReject && !canCancel && !isAdmin) {
     return <span className="text-xs text-slate-400">—</span>;
   }
+
+  const shouldShowNoActions =
+    !canApproveReject && !canCancel && isAdmin && !isRequester;
 
   return (
     <>
@@ -1024,7 +1025,7 @@ function ActionDropdown({
               ⊘ Cancel
             </button>
           )}
-          {!canApproveReject && !canCancel && isAdmin && !isRequester && (
+          {shouldShowNoActions && (
             <div className="px-4 py-2 text-xs text-slate-400">
               No actions available
             </div>
