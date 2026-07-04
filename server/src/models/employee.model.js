@@ -55,36 +55,57 @@ async function findAllEmployees(page, limit = 10, search = "") {
       args,
     );
 
-    // Get supervisor names for each employee
-    const employeesWithSupervisors = await Promise.all(
-      rows.map(async (employee) => {
-        let supervisorNames = [];
-        try {
-          const supervisors = employee.supervisors || [];
-          if (Array.isArray(supervisors) && supervisors.length > 0) {
-            const supervisorIds = supervisors
-              .map((id) => parseInt(id, 10))
-              .filter((id) => !isNaN(id));
-            if (supervisorIds.length > 0) {
-              const { rows: supervisorRows } = await pool.query(
-                `SELECT supervisor_name FROM tbl_sub_units WHERE id = ANY($1) AND is_active = true`,
-                [supervisorIds],
-              );
-              supervisorNames = supervisorRows.map(
-                (row) => row.supervisor_name,
-              );
-            }
-          }
-        } catch (err) {
-          console.error("Error fetching supervisor names:", err);
-        }
-        return {
-          ...employee,
-          supervisor_names: supervisorNames,
-        };
-      }),
-    );
+    const supervisorIdSet = new Set();
 
+    rows.forEach((employee) => {
+      const supervisors = employee.supervisors || [];
+
+      if (Array.isArray(supervisors) && supervisors.length > 0) {
+        supervisors
+          .map((id) => parseInt(id, 10))
+          .filter((id) => !Number.isNaN(id))
+          .forEach((id) => supervisorIdSet.add(id));
+      }
+    });
+
+    const allSupervisorIds = Array.from(supervisorIdSet);
+    let supervisorNameById = new Map();
+
+    // CHANGE: Fetch all supervisor names in a single query instead of querying once per employee.
+    if (allSupervisorIds.length > 0) {
+      try {
+        const { rows: supervisorRows } = await pool.query(
+          `SELECT id::int, supervisor_name
+       FROM tbl_sub_units
+       WHERE id = ANY($1::int[]) AND is_active = true`,
+          [allSupervisorIds],
+        );
+
+        // CHANGE: Create an in-memory lookup map for fast access.
+        supervisorNameById = new Map(
+          supervisorRows.map((row) => [row.id, row.supervisor_name]),
+        );
+      } catch (err) {
+        console.error("Error fetching supervisor names:", err);
+      }
+    }
+
+    const employeesWithSupervisors = rows.map((employee) => {
+      const supervisors = employee.supervisors || [];
+
+      const supervisorNames = Array.isArray(supervisors)
+        ? supervisors
+            .map((id) => parseInt(id, 10))
+            .filter((id) => !Number.isNaN(id))
+            .map((id) => supervisorNameById.get(id))
+            .filter((name) => typeof name === "string")
+        : [];
+
+      return {
+        ...employee,
+        supervisor_names: supervisorNames,
+      };
+    });
     const countQuery = searchCondition
       ? `SELECT COUNT(*)::int as count FROM tbl_appusers u WHERE ${baseWhere}${searchCondition.replace(/\$3/g, "$1")}`
       : `SELECT COUNT(*)::int as count FROM tbl_appusers u WHERE ${baseWhere}`;

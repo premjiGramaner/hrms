@@ -420,7 +420,7 @@ export default function LeaveListPage() {
                   </label>
                   <input
                     type="date"
-                    value={form.from_date || ""}
+                    value={form.to_date || ""}
                     onChange={(e) =>
                       setForm((p) => ({ ...p, to_date: e.target.value }))
                     }

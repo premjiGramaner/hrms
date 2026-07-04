@@ -209,7 +209,7 @@ const resetExpiredPassword = async (req, res, next) => {
 
     // Check if password is actually expired
     if (
-      user.password_expiry_at &&
+      !user.password_expiry_at ||
       new Date(user.password_expiry_at) > new Date()
     ) {
       return error(res, "Password has not expired yet", 400);
