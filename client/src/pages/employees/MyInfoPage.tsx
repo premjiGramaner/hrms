@@ -394,6 +394,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.joined_date}
             onChange={handleFieldChange}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Employment Status"
@@ -401,6 +402,7 @@ export default function MyInfoPage() {
             value={form.employment_status}
             onChange={handleFieldChange}
             options={EMPLOYMENT_STATUSES}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Job Category"
@@ -418,6 +420,7 @@ export default function MyInfoPage() {
             value={form.job_specification}
             onChange={handleFieldChange}
             options={JOB_SPECIFICATIONS}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Sub Unit"
@@ -438,6 +441,7 @@ export default function MyInfoPage() {
             optionLabels={
               new Map(supervisorOptions.map((s) => [s.id.toString(), s.name]))
             }
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Location"
@@ -455,6 +459,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.probation_end_date}
             onChange={handleFieldChange}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Date of Permanence"
@@ -462,6 +467,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.date_of_permanence}
             onChange={handleFieldChange}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Attendance Calculation"
@@ -469,6 +475,7 @@ export default function MyInfoPage() {
             value={form.attendance_calc}
             onChange={handleFieldChange}
             options={ATTENDANCE_CALCULATION_TYPES}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Contract Start Date"
@@ -476,6 +483,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.contract_start_date}
             onChange={handleFieldChange}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Contract End Date"
@@ -483,6 +491,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.contract_end_date}
             onChange={handleFieldChange}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Comments"

@@ -162,11 +162,7 @@ export default function LeaveList({ employee }: Props) {
                           {leave.displayDate}
                         </p>
 
-                        <span
-                          className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${leave.statusClass}`}
-                        >
-                          {leave.status}
-                        </span>
+                        <span className="text-xs mt-1">{leave.status}</span>
                       </div>
                     </div>
 

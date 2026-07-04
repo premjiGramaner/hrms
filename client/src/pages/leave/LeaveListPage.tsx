@@ -16,6 +16,8 @@ import { LeaveType, LeaveRequest, LeaveFilters } from "../../types";
 import { getApiErrorMessage } from "../../utils/errors";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
+import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
+import Pagination from "../../components/Pagination";
 
 const ATTACH_STATUSES = ["Available", "Pending"];
 const STATUS_OPTIONS = [
@@ -24,12 +26,14 @@ const STATUS_OPTIONS = [
   "Scheduled",
   "Taken",
   "Rejected",
+  "Approved",
 ];
 const YEAR_START = `${new Date().getFullYear()}-01-01`;
 const YEAR_END = `${new Date().getFullYear()}-12-31`;
+const TODAY = new Date().toISOString().split("T")[0];
 
 const EMPTY_FORM: LeaveFilters = {
-  from_date: YEAR_START,
+  from_date: TODAY,
   to_date: YEAR_END,
   employee_name: "",
   sub_unit: "",
@@ -43,7 +47,7 @@ const EMPTY_FORM: LeaveFilters = {
   only_subordinates: false,
   statuses: [],
   page: 1,
-  limit: 15,
+  limit: 10,
 };
 
 interface EmployeeSuggestion {
@@ -113,21 +117,7 @@ function RejectModal({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    "Pending Approval": "bg-amber-50 text-amber-700 border-amber-200",
-    Approved: "bg-green-50 text-green-700 border-green-200",
-    Scheduled: "bg-blue-50 text-blue-700 border-blue-200",
-    Taken: "bg-purple-50 text-purple-700 border-purple-200",
-    Rejected: "bg-red-50 text-red-700 border-red-200",
-    Cancelled: "bg-slate-100 text-slate-500 border-slate-200",
-  };
-  return (
-    <span
-      className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${map[status] || "bg-slate-50 text-slate-500 border-slate-200"}`}
-    >
-      {status}
-    </span>
-  );
+  return <span>{status}</span>;
 }
 
 function EmployeeAutocomplete({
@@ -254,6 +244,10 @@ export default function LeaveListPage() {
 
   const handleSearch = () => {
     const f = { ...form, page: 1 };
+    // If "Taken" is selected, automatically include "Approved" status
+    if (f.statuses?.includes("Taken") && !f.statuses.includes("Approved")) {
+      f.statuses = [...f.statuses, "Approved"];
+    }
     dispatch(setFilters(f));
     dispatch(fetchLeaves(f));
     setSearchTriggered(true);
@@ -360,7 +354,6 @@ export default function LeaveListPage() {
     "w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition";
   const selectCls =
     "w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition appearance-none cursor-pointer";
-
   return (
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
@@ -369,6 +362,22 @@ export default function LeaveListPage() {
           leaveId={rejectTarget}
           onConfirm={handleRejectConfirm}
           onCancel={() => setRejectTarget(null)}
+        />
+      )}
+
+      {/* Employee Filter Section */}
+      {!isAdmin && (
+        <EmployeeLeaveFilter
+          from_date={form.from_date || ""}
+          to_date={form.to_date || ""}
+          statuses={form.statuses || []}
+          onFromDateChange={(value) =>
+            setForm((p) => ({ ...p, from_date: value }))
+          }
+          onToDateChange={(value) => setForm((p) => ({ ...p, to_date: value }))}
+          onStatusesChange={(statuses) => setForm((p) => ({ ...p, statuses }))}
+          onSearch={handleSearch}
+          onReset={handleReset}
         />
       )}
 
@@ -411,7 +420,7 @@ export default function LeaveListPage() {
                   </label>
                   <input
                     type="date"
-                    value={form.to_date || ""}
+                    value={form.from_date || ""}
                     onChange={(e) =>
                       setForm((p) => ({ ...p, to_date: e.target.value }))
                     }
@@ -842,26 +851,23 @@ export default function LeaveListPage() {
             </tbody>
           </table>
         </div>
-        {data && data.totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-3 text-sm text-slate-600">
-            <button
-              onClick={() => handlePageChange((filters.page || 1) - 1)}
-              disabled={(filters.page || 1) <= 1}
-              className="px-4 py-1.5 rounded border border-slate-200 bg-white cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
-            >
-              ← Prev
-            </button>
-            <span className="text-xs text-slate-500">
-              Page {data.page} of {data.totalPages} · {data.total} records
-            </span>
-            <button
-              onClick={() => handlePageChange((filters.page || 1) + 1)}
-              disabled={(filters.page || 1) >= data.totalPages}
-              className="px-4 py-1.5 rounded border border-slate-200 bg-white cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
-            >
-              Next →
-            </button>
-          </div>
+        {data && data.total > 0 && (
+          <Pagination
+            currentPage={data.page}
+            totalPages={data.totalPages}
+            totalRecords={data.total}
+            pageSize={filters.limit || 10}
+            onPageChange={(page) => {
+              handlePageChange(page);
+            }}
+            onPageSizeChange={(size) => {
+              const f = { ...filters, limit: size, page: 1 };
+              dispatch(setFilters(f));
+              dispatch(fetchLeaves(f));
+              setForm((prev) => ({ ...prev, limit: size, page: 1 }));
+            }}
+            itemLabel="leave records"
+          />
         )}
       </div>
     </LeaveLayout>
@@ -936,7 +942,6 @@ function ActionDropdown({
   const canApproveReject = isAdmin && !isRequester && isPending;
   const canCancel = isPending && (isRequester || (isAdmin && !isRequester));
 
-  // If no actions available, don't show the dropdown
   if (!canApproveReject && !canCancel && !isAdmin) {
     return <span className="text-xs text-slate-400">—</span>;
   }

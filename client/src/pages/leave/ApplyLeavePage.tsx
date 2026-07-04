@@ -75,33 +75,64 @@ export default function ApplyLeavePage() {
   const financialYear =
     new Date().getMonth() >= 3 ? currentYear + 1 : currentYear;
 
-  useEffect(() => {
-    Promise.all([
-      getLeaveTypes(),
-      user?.id && user.id > 0
-        ? getLeaveBalance(user.id, financialYear)
-        : Promise.resolve([]),
-      getLeaves({ page: 1, limit: 1, statuses: [] }),
-      getLeaves({
-        page: 1,
-        limit: 1000,
-        statuses: ["Pending Approval", "Approved", "Scheduled", "Taken"],
-      }),
-    ])
-      .then(([types, balances, leaveData, allLeavesData]) => {
-        setLeaveTypes(types);
-        setBalances(balances as LeaveBalance[]);
-        const leavePage = leaveData as { data: LeaveRequest[] };
-        if (leavePage.data?.length) setLatestLeave(leavePage.data[0]);
+  const fetchData = async () => {
+    console.log("🔍 ApplyLeavePage fetchData - user?.id:", user?.id, "user:", user);
+    setLoadingTypes(true);
+    try {
+      const [types, balances, leaveData, allLeavesData] = await Promise.all([
+        getLeaveTypes(),
+        user?.id && user.id > 0
+          ? getLeaveBalance(user.id, financialYear)
+          : Promise.resolve([]),
+        getLeaves({ page: 1, limit: 1, statuses: [] }),
+        getLeaves({
+          page: 1,
+          limit: 1000,
+          statuses: ["Pending Approval", "Approved", "Scheduled", "Taken"],
+        }),
+      ]);
+      
+      console.log("🔍 ApplyLeavePage - fetched balances:", balances);
+      setLeaveTypes(types);
+      setBalances(balances as LeaveBalance[]);
+      const leavePage = leaveData as { data: LeaveRequest[] };
+      if (leavePage.data?.length) setLatestLeave(leavePage.data[0]);
 
-        const allLeavesPage = allLeavesData as { data: LeaveRequest[] };
-        if (allLeavesPage.data) {
-          setExistingLeaves(allLeavesPage.data);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingTypes(false));
-  }, []);
+      const allLeavesPage = allLeavesData as { data: LeaveRequest[] };
+      if (allLeavesPage.data) {
+        setExistingLeaves(allLeavesPage.data);
+      }
+    } catch (error) {
+      console.error("Failed to load leave data:", error);
+    } finally {
+      setLoadingTypes(false);
+    }
+  };
+
+  useEffect(() => {
+    // Only fetch if user is available and has an ID
+    if (user?.id && user.id > 0) {
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, financialYear]); // Re-fetch when user ID changes or financial year changes
+
+  // Refetch balance when page becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && user?.id) {
+        // Refetch only the balance (not all data) when page becomes visible
+        getLeaveBalance(user.id, financialYear)
+          .then((balances) => setBalances(balances as LeaveBalance[]))
+          .catch((error) => console.error("Failed to refresh balance:", error));
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user?.id, financialYear]);
 
   const getBalance = (typeId: number): number => {
     const balance = balances.find((bal) => bal.leave_type_id === typeId);
@@ -240,7 +271,7 @@ export default function ApplyLeavePage() {
             <div className="relative mb-6">
               <div
                 ref={scrollRef}
-                className="flex gap-3 overflow-x-auto pb-1 scroll-smooth"
+                className="flex gap-3 overflow-x-auto pb-1 scroll-smooth "
                 style={{ scrollbarWidth: "none" }}
               >
                 {leaveTypes.map((leaveType) => {
@@ -253,24 +284,24 @@ export default function ApplyLeavePage() {
                       onClick={() =>
                         setSelectedTypeId(active ? null : leaveType.id)
                       }
-                      className={`flex-shrink-0 w-36 rounded-xl border-2 px-3 py-3 text-left cursor-pointer transition
+                      className={`flex-shrink-0 w-36 rounded-xl border-2 px-3 py-3 text-left cursor-pointer transition text-center
                         ${
                           active
-                            ? "border-blue-700 bg-blue-50 shadow-md"
+                            ? "border-blue-700 bg-blue-950 shadow-md"
                             : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                         }`}
                     >
                       <p
-                        className={`text-xs font-semibold leading-tight mb-1 ${active ? "text-blue-800" : "text-slate-700"}`}
+                        className={`text-sm font-bold  leading-tight mb-1 ${active ? "text-white" : "text-slate-700"}`}
                       >
                         {leaveType.name}
                       </p>
                       <p
-                        className={`text-2xl font-bold leading-none ${active ? "text-blue-900" : "text-slate-800"}`}
+                        className={`text-2xl font-bold leading-none ${active ? "text-white" : "text-slate-800"}`}
                       >
                         {balance.toFixed(2)}
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-white mt-0.5">
                         Balance Day(s)
                       </p>
                     </button>

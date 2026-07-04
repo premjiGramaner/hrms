@@ -14,21 +14,7 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    "Pending Approval": "bg-amber-50 text-amber-700 border-amber-200",
-    Approved: "bg-green-50 text-green-700 border-green-200",
-    Scheduled: "bg-blue-50 text-blue-700 border-blue-200",
-    Taken: "bg-purple-50 text-purple-700 border-purple-200",
-    Rejected: "bg-red-50 text-red-700 border-red-200",
-    Cancelled: "bg-slate-100 text-slate-500 border-slate-200",
-  };
-  return (
-    <span
-      className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full border ${map[status] || "bg-slate-50 text-slate-500 border-slate-200"}`}
-    >
-      {status}
-    </span>
-  );
+  return <span>{status}</span>;
 }
 
 function RejectModal({

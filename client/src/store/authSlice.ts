@@ -31,6 +31,7 @@ const authSlice = createSlice({
       state.user = null;
       localStorage.removeItem(STORAGE_KEYS.token);
       localStorage.removeItem(STORAGE_KEYS.user);
+      // Cookie will be cleared by the server
     },
     updateUserAvatar(state, action: PayloadAction<string>) {
       if (state.user) {

@@ -386,7 +386,6 @@ const exportSummary = async (req, res, next) => {
       "Leave Type",
       "Unit",
       "Entitlements",
-      "Used",
       "Net Leave Balance",
       "Requested Duration",
       "Status",
@@ -449,7 +448,6 @@ const exportSummary = async (req, res, next) => {
         row.leave_type || "",
         row.unit || "",
         row.entitlements ? Number(row.entitlements) : "",
-        row.used ? Number(row.used) : "",
         row.net_leave_balance ? Number(row.net_leave_balance) : "",
         row.requested_days ? Number(row.requested_days) : "",
         row.status || "",
@@ -526,7 +524,6 @@ const exportDetail = async (req, res, next) => {
       "Leave Type",
       "Unit",
       "Entitlements",
-      "Used",
       "Net Leave Balance",
       "Duration (Hours)",
       "Status",
@@ -563,7 +560,6 @@ const exportDetail = async (req, res, next) => {
       { width: 18 }, // Leave Type
       { width: 8 }, // Unit
       { width: 12 }, // Entitlements
-      { width: 8 }, // Used
       { width: 18 }, // Net Leave Balance
       { width: 16 }, // Duration (Hours)
       { width: 16 }, // Status
@@ -586,7 +582,7 @@ const exportDetail = async (req, res, next) => {
         row.leave_type || "",
         row.unit || "",
         row.entitlements ? Number(row.entitlements) : "",
-        row.used ? Number(row.used) : "",
+        // row.used ? Number(row.used) : "",
         row.net_leave_balance ? Number(row.net_leave_balance) : "",
         row.duration_hours ? Number(row.duration_hours) : "",
         row.status || "",

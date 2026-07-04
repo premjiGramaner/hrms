@@ -3,12 +3,21 @@ import { jwtSecret } from "../config/env.js";
 import AppError from "../utils/AppError.js";
 
 const authenticate = (req, res, next) => {
+  // Check for token in Authorization header first
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  let token = null;
+
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.split(" ")[1];
+  } else if (req.cookies && req.cookies.auth_token) {
+    // Fallback to cookie if no Authorization header
+    token = req.cookies.auth_token;
+  }
+
+  if (!token) {
     return next(new AppError("Unauthorized", 401));
   }
 
-  const token = authHeader.split(" ")[1];
   try {
     req.user = jwt.verify(token, jwtSecret);
     next();

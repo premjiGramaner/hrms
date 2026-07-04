@@ -43,7 +43,7 @@ export interface Employee {
   contract_end_date?: string;
   comments?: string;
   supervisors?: string[];
-  supervisor_names?: string;
+  supervisor_names?: string[];
   is_active?: boolean;
 }
 

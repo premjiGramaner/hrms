@@ -5,7 +5,7 @@ import {
   getSupervisorsByIds,
 } from "../../../api/employee.api";
 import { getApiErrorMessage } from "../../../utils/errors";
-import { useAppDispatch } from "../../../app/hooks";
+import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { updateUserAvatar, updateUserName } from "../../../store/authSlice";
 
 interface EmployeeProfileCardProps {
@@ -23,6 +23,7 @@ export default function EmployeeProfileCard({
   onEmployeeUpdate,
 }: EmployeeProfileCardProps) {
   const dispatch = useAppDispatch();
+  const currentUser = useAppSelector((state) => state.auth.user);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
@@ -116,16 +117,23 @@ export default function EmployeeProfileCard({
       const newTimestamp = Date.now();
       setAvatarTimestamp(newTimestamp);
 
-      if (updatedEmployee.avatar) {
-        dispatch(updateUserAvatar(updatedEmployee.avatar));
-      }
+      // Only update Redux if this is the logged-in user's own profile
+      const isOwnProfile =
+        currentUser && Number(currentUser.id) === Number(employee.id);
 
-      dispatch(
-        updateUserName({
-          first_name: updatedEmployee.first_name,
-          last_name: updatedEmployee.last_name,
-        }),
-      );
+      if (isOwnProfile && updatedEmployee.avatar) {
+        // Update Redux store with timestamp to force re-render everywhere
+        dispatch(
+          updateUserAvatar(`${updatedEmployee.avatar}?t=${newTimestamp}`),
+        );
+
+        dispatch(
+          updateUserName({
+            first_name: updatedEmployee.first_name,
+            last_name: updatedEmployee.last_name,
+          }),
+        );
+      }
 
       // Update parent component with fresh employee data
       if (onEmployeeUpdate) {
@@ -278,7 +286,7 @@ export default function EmployeeProfileCard({
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6 border-l pl-6">
           {/* Basic Info */}
           <div>
-            <h4 className="text-xs font-semibold text-[#757575] uppercase mb-3">
+            <h4 className="text-xs font-semibold text-[#757575] mb-3">
               Basic Info
             </h4>
             <div className="space-y-2">
@@ -320,7 +328,7 @@ export default function EmployeeProfileCard({
 
           {/* Job */}
           <div>
-            <h4 className="text-xs font-semibold text-[#757575] uppercase mb-3">
+            <h4 className="text-xs font-semibold text-[#757575] mb-3">
               Employment
             </h4>
             <div className="space-y-2">
@@ -373,7 +381,7 @@ export default function EmployeeProfileCard({
 
           {/* Contact */}
           <div>
-            <h4 className="text-xs font-semibold text-[#757575] uppercase mb-3">
+            <h4 className="text-xs font-semibold text-[#757575] mb-3">
               Contact
             </h4>
             <div className="space-y-2">

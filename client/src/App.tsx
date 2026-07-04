@@ -1,7 +1,11 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "./app/hooks";
+import { loginSuccess, logout } from "./store/authSlice";
+import { verifyCookie, self } from "./api/auth.api";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
+import ResetExpiredPasswordPage from "./pages/ResetExpiredPasswordPage.tsx";
 import EmployeeListPage from "./pages/employees/EmployeeListPage";
 import EmployeeProfilePage from "./pages/employees/EmployeeProfilePage";
 import MyInfoPage from "./pages/employees/MyInfoPage";
@@ -24,10 +28,64 @@ import MyEntitlementsPage from "./pages/leave/entitlements/MyEntitlementsPage";
 const ADMIN_ROLES = ["empmanager", "hradmin"];
 
 export default function App() {
+  const [isCheckingAuth, setIsCheckingAuth] = React.useState(true);
+  const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
+
+  React.useEffect(() => {
+    const checkCookieAuth = async () => {
+      const isPlaceholderToken =
+        token === "cookie_auth" || token === "cookie_authenticated";
+
+      if (token && !isPlaceholderToken) {
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      try {
+        await verifyCookie();
+        const userResponse = await self();
+        const userData = userResponse.data; // userResponse is { success, data: user }
+        console.log("🔍 Cookie restore - userData:", userData);
+        const tempToken = "cookie_authenticated";
+
+        dispatch(
+          loginSuccess({
+            token: tempToken,
+            user: userData,
+          }),
+        );
+      } catch (error) {
+        if (isPlaceholderToken) {
+          dispatch(logout());
+        }
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkCookieAuth();
+  }, [dispatch, token]);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-teal-600 mx-auto"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/reset-expired-password"
+          element={<ResetExpiredPasswordPage />}
+        />
 
         <Route
           path="/"

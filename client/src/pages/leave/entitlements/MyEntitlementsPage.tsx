@@ -6,11 +6,14 @@ import {
 import { getApiErrorMessage } from "../../../utils/errors";
 import Toast, { useToast } from "../../../components/Toast";
 import EntitlementsLayout from "./EntitlementsLayout";
+import Pagination from "../../../components/Pagination";
 
 export default function MyEntitlementsPage() {
   const { toasts, addToast, removeToast } = useToast();
   const [records, setRecords] = useState<MyEntitlementRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     setLoading(true);
@@ -29,6 +32,22 @@ export default function MyEntitlementsPage() {
     (sum, record) => sum + Number(record.leave_entitlement),
     0,
   );
+
+  // Pagination calculations
+  const totalRecords = records.length;
+  const totalPages = Math.ceil(totalRecords / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedRecords = records.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
 
   return (
     <EntitlementsLayout>
@@ -83,7 +102,7 @@ export default function MyEntitlementsPage() {
               </thead>
 
               <tbody>
-                {records.map((record) => (
+                {paginatedRecords.map((record) => (
                   <tr
                     key={record.id}
                     className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
@@ -130,6 +149,18 @@ export default function MyEntitlementsPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!loading && totalRecords > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalRecords={totalRecords}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            itemLabel="entitlement records"
+          />
         )}
       </div>
     </EntitlementsLayout>
