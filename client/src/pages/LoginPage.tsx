@@ -32,12 +32,6 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const response = await loginApi(username, password, rememberMe);
-      if (response.passwordExpired) {
-        navigate("/reset-expired-password", {
-          state: { username: response.username || username },
-        });
-        return;
-      }
 
       if (response.data) {
         const tokenToStore = rememberMe ? "cookie_auth" : response.data.token;

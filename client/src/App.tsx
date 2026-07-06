@@ -5,7 +5,6 @@ import { loginSuccess, logout } from "./store/authSlice";
 import { verifyCookie, self } from "./api/auth.api";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
-import ResetExpiredPasswordPage from "./pages/ResetExpiredPasswordPage.tsx";
 import EmployeeListPage from "./pages/employees/EmployeeListPage";
 import EmployeeProfilePage from "./pages/employees/EmployeeProfilePage";
 import MyInfoPage from "./pages/employees/MyInfoPage";
@@ -82,10 +81,6 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/reset-expired-password"
-          element={<ResetExpiredPasswordPage />}
-        />
 
         <Route
           path="/"

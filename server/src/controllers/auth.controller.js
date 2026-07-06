@@ -76,7 +76,7 @@ const login = async (req, res, next) => {
     }
 
     const { rows } = await pool.query(
-      `SELECT id, username, password, role, name, avatar, is_active, password_expiry_at
+      `SELECT id, username, password, role, name, avatar, is_active
        FROM tbl_appusers WHERE username = $1 AND is_deleted = false`,
       [username],
     );
@@ -88,19 +88,6 @@ const login = async (req, res, next) => {
 
     if (!user.is_active) {
       return error(res, "This account has been deactivated", 403);
-    }
-
-    // Check if password is expired
-    if (
-      user.password_expiry_at &&
-      new Date(user.password_expiry_at) < new Date()
-    ) {
-      return res.status(403).json({
-        status: "error",
-        message: "Password has expired",
-        passwordExpired: true,
-        username: user.username,
-      });
     }
 
     const token = signToken({
@@ -172,69 +159,4 @@ const logout = async (req, res, next) => {
   }
 };
 
-const resetExpiredPassword = async (req, res, next) => {
-  try {
-    const { username, newPassword, confirmPassword } = req.body;
-
-    if (!username || !newPassword || !confirmPassword) {
-      return error(res, "All fields are required", 400);
-    }
-
-    if (newPassword !== confirmPassword) {
-      return error(res, "Passwords do not match", 400);
-    }
-
-    // Password validation rules
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordRegex.test(newPassword)) {
-      return error(
-        res,
-        "Password must be at least 8 characters with uppercase, lowercase, number, and special character",
-        400,
-      );
-    }
-
-    // Get user and check if password is expired
-    const { rows } = await pool.query(
-      `SELECT id, username, password_expiry_at FROM tbl_appusers 
-       WHERE username = $1 AND is_deleted = false`,
-      [username],
-    );
-
-    const user = rows[0];
-    if (!user) {
-      return error(res, "User not found", 404);
-    }
-
-    // Check if password is actually expired
-    if (
-      !user.password_expiry_at ||
-      new Date(user.password_expiry_at) > new Date()
-    ) {
-      return error(res, "Password has not expired yet", 400);
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update password and clear expiry (password is now valid)
-    await pool.query(
-      `UPDATE tbl_appusers 
-       SET password = $1, 
-           password_changed_at = NOW(), 
-           password_expiry_at = NULL
-       WHERE id = $2`,
-      [hashedPassword, user.id],
-    );
-
-    return success(res, {
-      message:
-        "Password reset successfully. Please login with your new password.",
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export { login, self, logout, resetExpiredPassword };
+export { login, self, logout };

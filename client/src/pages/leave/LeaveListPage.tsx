@@ -91,7 +91,7 @@ function RejectModal({
         </label>
         <textarea
           value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          onChange={(event) => setReason(event.target.value)}
           rows={4}
           placeholder="Enter reason…"
           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-blue-400 transition"
@@ -149,10 +149,10 @@ function EmployeeAutocomplete({
   }, [value]);
 
   useEffect(() => {
-    const h = (e: MouseEvent) => {
+    const h = (event: MouseEvent) => {
       if (
         containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        !containerRef.current.contains(event.target as Node)
       )
         setOpen(false);
     };
@@ -165,7 +165,7 @@ function EmployeeAutocomplete({
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         placeholder="Type name, ID or username…"
         className="w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition"
         onFocus={() => suggestions.length > 0 && setOpen(true)}
@@ -245,13 +245,16 @@ export default function LeaveListPage() {
   }, []);
 
   const handleSearch = () => {
-    const f = { ...form, page: 1 };
+    const forms = { ...form, page: 1 };
     // If "Taken" is selected, automatically include "Approved" status
-    if (f.statuses?.includes("Taken") && !f.statuses.includes("Approved")) {
-      f.statuses = [...f.statuses, "Approved"];
+    if (
+      forms.statuses?.includes("Taken") &&
+      !forms.statuses.includes("Approved")
+    ) {
+      forms.statuses = [...forms.statuses, "Approved"];
     }
-    dispatch(setFilters(f));
-    dispatch(fetchLeaves(f));
+    dispatch(setFilters(forms));
+    dispatch(fetchLeaves(forms));
     setSearchTriggered(true);
   };
 
@@ -267,9 +270,9 @@ export default function LeaveListPage() {
   };
 
   const handlePageChange = (newPage: number) => {
-    const f = { ...filters, page: newPage };
-    dispatch(setFilters(f));
-    dispatch(fetchLeaves(f));
+    const filter = { ...filters, page: newPage };
+    dispatch(setFilters(filter));
+    dispatch(fetchLeaves(filter));
     setForm((prev) => ({ ...prev, page: newPage }));
   };
 
@@ -301,8 +304,8 @@ export default function LeaveListPage() {
         await approveLeave(id);
         addToast("Leave approved.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (e) {
-        addToast(getApiErrorMessage(e, "Failed to approve."), "error");
+      } catch (event) {
+        addToast(getApiErrorMessage(event, "Failed to approve."), "error");
       } finally {
         setActionLoading(null);
       }
@@ -319,8 +322,8 @@ export default function LeaveListPage() {
         await rejectLeave(rejectTarget, reason);
         addToast("Leave rejected.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (e) {
-        addToast(getApiErrorMessage(e, "Failed to reject."), "error");
+      } catch (event) {
+        addToast(getApiErrorMessage(event, "Failed to reject."), "error");
       } finally {
         setActionLoading(null);
       }
@@ -336,8 +339,8 @@ export default function LeaveListPage() {
         await cancelLeave(id);
         addToast("Leave cancelled.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (e) {
-        addToast(getApiErrorMessage(e, "Failed to cancel."), "error");
+      } catch (event) {
+        addToast(getApiErrorMessage(event, "Failed to cancel."), "error");
       } finally {
         setActionLoading(null);
       }
@@ -350,8 +353,8 @@ export default function LeaveListPage() {
       type === "summary"
         ? await exportSummaryExcel(filters)
         : await exportDetailExcel(filters);
-    } catch (e) {
-      addToast(getApiErrorMessage(e, "Export failed."), "error");
+    } catch (event) {
+      addToast(getApiErrorMessage(event, "Export failed."), "error");
     }
   };
 
@@ -413,8 +416,8 @@ export default function LeaveListPage() {
                   <input
                     type="date"
                     value={form.from_date || ""}
-                    onChange={(e) => {
-                      const newFromDate = e.target.value;
+                    onChange={(event) => {
+                      const newFromDate = event.target.value;
                       setForm((p) => {
                         // If to_date is before new from_date, update to_date to from_date
                         if (
@@ -442,8 +445,8 @@ export default function LeaveListPage() {
                     type="date"
                     value={form.to_date || ""}
                     min={form.from_date || undefined}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, to_date: e.target.value }))
+                    onChange={(event) =>
+                      setForm((p) => ({ ...p, to_date: event.target.value }))
                     }
                     className={inputCls}
                   />
@@ -471,8 +474,8 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.sub_unit || ""}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, sub_unit: e.target.value }))
+                      onChange={(event) =>
+                        setForm((p) => ({ ...p, sub_unit: event.target.value }))
                       }
                       className={selectCls}
                     >
@@ -495,8 +498,8 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.location || ""}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, location: e.target.value }))
+                      onChange={(event) =>
+                        setForm((p) => ({ ...p, location: event.target.value }))
                       }
                       className={selectCls}
                     >
@@ -519,10 +522,10 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.leave_type_id || ""}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setForm((p) => ({
                           ...p,
-                          leave_type_id: e.target.value,
+                          leave_type_id: event.target.value,
                         }))
                       }
                       className={selectCls}
@@ -548,8 +551,11 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.job_title || ""}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, job_title: e.target.value }))
+                      onChange={(event) =>
+                        setForm((p) => ({
+                          ...p,
+                          job_title: event.target.value,
+                        }))
                       }
                       className={selectCls}
                     >
@@ -572,10 +578,10 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.employment_status || ""}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setForm((p) => ({
                           ...p,
-                          employment_status: e.target.value,
+                          employment_status: event.target.value,
                         }))
                       }
                       className={selectCls}
@@ -599,8 +605,11 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.job_category || ""}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, job_category: e.target.value }))
+                      onChange={(event) =>
+                        setForm((p) => ({
+                          ...p,
+                          job_category: event.target.value,
+                        }))
                       }
                       className={selectCls}
                     >
@@ -625,10 +634,10 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.attachment_status || ""}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setForm((p) => ({
                           ...p,
-                          attachment_status: e.target.value,
+                          attachment_status: event.target.value,
                         }))
                       }
                       className={selectCls}
@@ -651,8 +660,11 @@ export default function LeaveListPage() {
                   <input
                     type="checkbox"
                     checked={form.include_past || false}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, include_past: e.target.checked }))
+                    onChange={(event) =>
+                      setForm((p) => ({
+                        ...p,
+                        include_past: event.target.checked,
+                      }))
                     }
                     className="w-4 h-4 accent-blue-900"
                   />
@@ -662,10 +674,10 @@ export default function LeaveListPage() {
                   <input
                     type="checkbox"
                     checked={form.only_subordinates || false}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       setForm((p) => ({
                         ...p,
-                        only_subordinates: e.target.checked,
+                        only_subordinates: event.target.checked,
                       }))
                     }
                     className="w-4 h-4 accent-blue-900"
@@ -810,9 +822,9 @@ export default function LeaveListPage() {
                   return (
                     <tr
                       key={row.id}
-                      onClick={(e) => {
+                      onClick={(event) => {
                         if (
-                          (e.target as HTMLElement).closest(
+                          (event.target as HTMLElement).closest(
                             "[data-action-cell]",
                           )
                         )
@@ -882,9 +894,9 @@ export default function LeaveListPage() {
               handlePageChange(page);
             }}
             onPageSizeChange={(size) => {
-              const f = { ...filters, limit: size, page: 1 };
-              dispatch(setFilters(f));
-              dispatch(fetchLeaves(f));
+              const filter = { ...filters, limit: size, page: 1 };
+              dispatch(setFilters(filter));
+              dispatch(fetchLeaves(filter));
               setForm((prev) => ({ ...prev, limit: size, page: 1 }));
             }}
             itemLabel="leave records"
@@ -929,12 +941,12 @@ function ActionDropdown({
 
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent) => {
+    const h = (event: MouseEvent) => {
       if (
         menuRef.current &&
-        !menuRef.current.contains(e.target as Node) &&
+        !menuRef.current.contains(event.target as Node) &&
         btnRef.current &&
-        !btnRef.current.contains(e.target as Node)
+        !btnRef.current.contains(event.target as Node)
       )
         setOpen(false);
     };
@@ -957,8 +969,7 @@ function ActionDropdown({
   const isPending = row.status === "Pending Approval";
   const canApproveReject = isAdmin && !isRequester && isPending;
   const canCancel =
-    (isRequester && isPending) ||
-    (isAdmin && row.status !== "Cancelled");
+    (isRequester && isPending) || (isAdmin && row.status !== "Cancelled");
 
   if (!canApproveReject && !canCancel) {
     return <span className="text-xs text-slate-400">—</span>;

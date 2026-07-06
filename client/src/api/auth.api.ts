@@ -34,22 +34,6 @@ export const verifyCookie = async () => {
   return response.data;
 };
 
-export const resetExpiredPassword = async (
-  username: string,
-  newPassword: string,
-  confirmPassword: string,
-) => {
-  const response = await api.post<{
-    success: boolean;
-    data: { message: string };
-  }>("/auth/reset-expired-password", {
-    username,
-    newPassword,
-    confirmPassword,
-  });
-  return response.data;
-};
-
 export const self = async () => {
   const response = await api.get<{
     success: boolean;
