@@ -1,6 +1,17 @@
 import * as EmployeeModel from "../models/employee.model.js";
 import { success, created, error } from "../utils/response.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import { sendWelcomeEmail } from "../../email.service.js";
+import { clientBaseUrl } from "../config/env.js";
+
+function getClientUrl(req) {
+  if (clientBaseUrl) return clientBaseUrl.replace(/\/$/, "");
+  const host = req.get("origin") || `${req.protocol}://${req.get("host")}`;
+  return host
+    .replace(/\/$/, "")
+    .replace(/:5000$/, ":5173")
+    .replace(/:5001$/, ":5173");
+}
 
 const listEmployees = async (req, res, next) => {
   try {
@@ -8,6 +19,21 @@ const listEmployees = async (req, res, next) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     const search = (req.query.search || "").trim();
     const result = await EmployeeModel.findAllEmployees(page, limit, search);
+    return success(res, result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const listSuperiorUsers = async (req, res, next) => {
+  try {
+    const result = await EmployeeModel.findSuperiorUsers({
+      page: parseInt(req.query.page || "1", 10),
+      limit: parseInt(req.query.limit || "10", 10),
+      search: (req.query.search || "").trim(),
+      role: (req.query.role || "").trim(),
+      status: (req.query.status || "").trim(),
+    });
     return success(res, result);
   } catch (err) {
     next(err);
@@ -131,9 +157,32 @@ const createEmployee = async (req, res, next) => {
       actionDescription: `Employee created: ${emp.name} (${emp.email})`,
     });
 
+    let emailSent = true;
+    let emailMessage = "Welcome email sent successfully.";
+    const loginUrl = `${getClientUrl(req)}/login`;
+    console.log(
+      `[EMPLOYEE] Created employee: ${emp.name} (${emp.email}), temp password: ${emp.temporaryPassword}, loginUrl: ${loginUrl}`,
+    );
+    try {
+      await sendWelcomeEmail({
+        to: emp.email,
+        name: emp.name,
+        username: emp.username,
+        password: emp.temporaryPassword,
+        loginUrl,
+      });
+    } catch (err) {
+      console.error(`[EMPLOYEE] Failed to send welcome email:`, err.message);
+      emailSent = false;
+      emailMessage =
+        "Employee created, but welcome email could not be sent. Check SMTP configuration.";
+    }
+
     return created(res, {
       message: "Employee created successfully",
       id: emp.id,
+      emailSent,
+      emailMessage,
     });
   } catch (err) {
     if (err.code === "23505")
@@ -360,6 +409,7 @@ const getLastEmployeeId = async (req, res, next) => {
 
 export {
   listEmployees,
+  listSuperiorUsers,
   getMyInfo,
   getEmployee,
   getSupervisors,

@@ -52,6 +52,7 @@ import { getNumericValue } from "./components/inputHelpers";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
+  { label: "Superior Section", path: "/employees/superior-section" },
   { label: "My Info", path: "/my-info" },
 ];
 
@@ -104,8 +105,7 @@ export default function EmployeeProfilePage() {
           })),
         ),
       )
-      .catch((err) => {
-        console.error("Failed to load job categories:", err);
+      .catch(() => {
         setError("Failed to load job categories.");
       });
 
@@ -139,10 +139,12 @@ export default function EmployeeProfilePage() {
     getSupervisors()
       .then((res) =>
         setSupervisorOptions(
-          (res.data || []).map((supervisor: any) => ({
-            id: Number(supervisor.id),
-            name: supervisor.name,
-          })),
+          (res.data || [])
+            .filter((supervisor: any) => supervisor.id != null)
+            .map((supervisor: any) => ({
+              id: Number(supervisor.id),
+              name: supervisor.name,
+            })),
         ),
       )
       .catch((err) => {

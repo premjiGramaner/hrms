@@ -211,10 +211,9 @@ export default function EmployeeProfileCard({
       )}
 
       <div className="flex flex-col sm:flex-row gap-6">
-        {/* Avatar */}
         <div className="flex-shrink-0">
           <div
-            className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center border-4 border-white shadow-lg cursor-pointer hover:shadow-xl transition-shadow group"
+            className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-blue-950 to-teal-500 flex items-center justify-center border-4 border-white shadow-lg cursor-pointer hover:shadow-xl transition-shadow group"
             onClick={handleImageClick}
           >
             {avatarUrl ? (
@@ -224,12 +223,11 @@ export default function EmployeeProfileCard({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-4xl font-bold text-gray-500">
+              <span className="text-4xl font-bold text-white">
                 {(fullName[0] || "E").toUpperCase()}
               </span>
             )}
 
-            {/* Upload overlay */}
             <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               {uploading ? (
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -379,7 +377,6 @@ export default function EmployeeProfileCard({
             </div>
           </div>
 
-          {/* Contact */}
           <div>
             <h4 className="text-xs font-semibold text-[#757575] mb-3">
               Contact

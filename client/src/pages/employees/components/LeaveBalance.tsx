@@ -23,8 +23,7 @@ export default function LeaveBalance({ employee }: LeaveBalanceProps) {
       setLoading(true);
       const balances = await getLeaveBalance(employee.id, financialYear);
       setLeaveBalances(balances);
-    } catch (error) {
-      console.error("Failed to load leave balance:", error);
+    } catch {
       setLeaveBalances([]);
     } finally {
       setLoading(false);
@@ -119,7 +118,7 @@ export default function LeaveBalance({ employee }: LeaveBalanceProps) {
         {leaveBalanceData.length > 0 && (
           <div className="mt-4 pt-3 border-t border-gray-100">
             <p className="text-xs text-center text-[#007bff] font-medium">
-              Click to apply for leave →
+              Click to apply for leave
             </p>
           </div>
         )}

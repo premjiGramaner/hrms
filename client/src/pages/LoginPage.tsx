@@ -31,19 +31,20 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const response = await loginApi(username, password, rememberMe);
-
-      if (response.data) {
-        const tokenToStore = rememberMe ? "cookie_auth" : response.data.token;
-
-        dispatch(
-          loginSuccess({
-            token: tokenToStore,
-            user: response.data.user,
-          }),
+      const response = await loginApi(username, password);
+      const { data } = response;
+      if (response.passwordExpired && data.user) {
+        navigate(
+          `/create-password?userId=${encodeURIComponent(String(data.user.id))}&username=${encodeURIComponent(data.user.username)}`,
         );
-        navigate("/employees");
+        return;
       }
+      if (!data.token) {
+        setError("Login could not be completed. Please try again.");
+        return;
+      }
+      dispatch(loginSuccess({ token: data.token, user: data.user }));
+      navigate("/employees");
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Invalid username or password."));
     } finally {
@@ -149,6 +150,7 @@ export default function LoginPage() {
               Forgot Your{" "}
               <button
                 type="button"
+                onClick={() => navigate("/forgot-password")}
                 className="font-bold text-blue-950 hover:text-teal-600"
               >
                 Password?

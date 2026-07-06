@@ -34,10 +34,48 @@ export const verifyCookie = async () => {
   return response.data;
 };
 
-export const self = async () => {
-  const response = await api.get<{
+export const self = () => api.get<AuthUser>("/auth/profile");
+
+export const forgotPassword = async (email: string) => {
+  const response = await api.post<{
     success: boolean;
-    data: AuthUser;
-  }>("/auth/profile");
-  return response.data;
+    data: { message: string };
+  }>("/auth/forgot-password", { email });
+  return { data: response.data.data };
+};
+
+export const resetPassword = async (
+  token: string,
+  password: string,
+  confirmPassword: string,
+) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { message: string };
+  }>("/auth/reset-password", { token, password, confirmPassword });
+  return { data: response.data.data };
+};
+
+export const createPassword = async (
+  token: string,
+  password: string,
+  confirmPassword: string,
+) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { message: string };
+  }>("/auth/create-password", { token, password, confirmPassword });
+  return { data: response.data.data };
+};
+
+export const createFirstTimePassword = async (
+  userId: number,
+  password: string,
+  confirmPassword: string,
+) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { message: string };
+  }>("/auth/create-first-time-password", { userId, password, confirmPassword });
+  return { data: response.data.data };
 };

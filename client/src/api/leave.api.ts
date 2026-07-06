@@ -80,7 +80,7 @@ export const getLeaves = async (filters: LeaveFilters = {}) => {
 
 export const getLeave = async (id: number) => {
   const res = await api.get<{ success: boolean; data: LeaveRequest }>(
-    `/leaves/${queryString}`,
+    `/leaves/${id}`,
   );
   return res.data.data;
 };

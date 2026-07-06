@@ -14,6 +14,7 @@ import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
+  { label: "Superior Section", path: "/employees/superior-section" },
   { label: "My Info", path: "/my-info" },
 ];
 

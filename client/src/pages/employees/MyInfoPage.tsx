@@ -50,6 +50,7 @@ import { getNumericValue } from "./components/inputHelpers";
 
 const ADMIN_TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
+  { label: "Superior Section", path: "/employees/superior-section" },
   { label: "My Info", path: "/my-info" },
 ];
 
@@ -126,7 +127,14 @@ export default function MyInfoPage() {
     }
 
     getSupervisors()
-      .then((res) => setSupervisorOptions(res.data))
+      .then((res) =>
+        setSupervisorOptions(
+          (res.data || []).map((s: any, index: number) => ({
+            id: s.id ?? index + 1,
+            name: s.name,
+          })),
+        ),
+      )
       .catch((err) =>
         setError(getApiErrorMessage(err, "Failed to load supervisors.")),
       );

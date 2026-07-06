@@ -5,7 +5,13 @@ import { loginSuccess, logout } from "./store/authSlice";
 import { verifyCookie, self } from "./api/auth.api";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
+import {
+  CreatePasswordPage,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+} from "./pages/AuthPasswordPages";
 import EmployeeListPage from "./pages/employees/EmployeeListPage";
+import SuperiorSectionPage from "./pages/employees/SuperiorSectionPage";
 import EmployeeProfilePage from "./pages/employees/EmployeeProfilePage";
 import MyInfoPage from "./pages/employees/MyInfoPage";
 import RolesPage from "./pages/roles/RolesPage";
@@ -23,8 +29,39 @@ import ApplyLeavePage from "./pages/leave/ApplyLeavePage";
 import AddEntitlementsPage from "./pages/leave/entitlements/AddEntitlementsPage";
 import EntitlementListPage from "./pages/leave/entitlements/EntitlementListPage";
 import MyEntitlementsPage from "./pages/leave/entitlements/MyEntitlementsPage";
+import AppraisalConfiguration from "./pages/performance/AppraisalConfiguration";
+import AppraisalCycleDetails from "./pages/performance/AppraisalCycleDetails";
+import AppraisalCycles from "./pages/performance/AppraisalCycles";
+import AppraisalList from "./pages/performance/AppraisalList";
+import AppraisalCompactView from "./pages/performance/AppraisalCompactView";
+import AppraisalMultipleView from "./pages/performance/AppraisalMultipleView";
+import AddEmployeesToCycle from "./pages/performance/AddEmployeesToCycle";
+import CompetencyProfiles from "./pages/performance/CompetencyProfiles";
+import CreateAppraisalCycle from "./pages/performance/CreateAppraisalCycle";
+import PerformanceTrackers from "./pages/performance/PerformanceTrackers";
+import TemplateFormDesign from "./pages/performance/TemplateFormDesign";
+import { ADMIN_ROLES } from "./config/roles";
 
-const ADMIN_ROLES = ["empmanager", "hradmin"];
+function PerformanceHomeRedirect() {
+  const role = useAppSelector((state) => state.auth.user?.role || "employee");
+  return (
+    <Navigate
+      to={
+        ADMIN_ROLES.includes(role)
+          ? "/performance/appraisals_list"
+          : "/performance/my_appraisals"
+      }
+      replace
+    />
+  );
+}
+
+function PerformanceAdminOnly({ children }: { children: React.ReactNode }) {
+  const role = useAppSelector((state) => state.auth.user?.role || "employee");
+  if (!ADMIN_ROLES.includes(role))
+    return <Navigate to="/performance/my_appraisals" replace />;
+  return <>{children}</>;
+}
 
 export default function App() {
   const [isCheckingAuth, setIsCheckingAuth] = React.useState(true);
@@ -44,7 +81,7 @@ export default function App() {
       try {
         await verifyCookie();
         const userResponse = await self();
-        const userData = userResponse.data; // userResponse is { success, data: user }
+        const userData = userResponse.data;
         console.log("🔍 Cookie restore - userData:", userData);
         const tempToken = "cookie_authenticated";
 
@@ -81,6 +118,9 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/create-password" element={<CreatePasswordPage />} />
 
         <Route
           path="/"
@@ -91,12 +131,19 @@ export default function App() {
           }
         />
 
-        {/* ── Employee Management ── */}
         <Route
           path="/employees"
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <EmployeeListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/superior-section"
+          element={
+            <ProtectedRoute roles={ADMIN_ROLES}>
+              <SuperiorSectionPage />
             </ProtectedRoute>
           }
         />
@@ -117,7 +164,6 @@ export default function App() {
           }
         />
 
-        {/* ── Roles (admin only) ── */}
         <Route
           path="/roles"
           element={
@@ -127,7 +173,6 @@ export default function App() {
           }
         />
 
-        {/* ── HR Administration (admin only) ── */}
         <Route
           path="/hradmin"
           element={
@@ -185,7 +230,6 @@ export default function App() {
           }
         />
 
-        {/* ── Leave ── */}
         <Route
           path="/leave"
           element={
@@ -202,7 +246,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* Both /leave/view_leave_list/details/:id and /view_my_leave_list/detail/:id/my */}
         <Route
           path="/leave/view_leave_list/details/:id"
           element={
@@ -228,7 +271,6 @@ export default function App() {
           }
         />
 
-        {/* ── Leave Entitlements ── */}
         <Route
           path="/leave/entitlements"
           element={
@@ -237,7 +279,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* Add & List are admin-only */}
         <Route
           path="/leave/entitlements/add"
           element={
@@ -254,7 +295,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* My Entitlements is accessible by everyone */}
         <Route
           path="/leave/entitlements/my"
           element={
@@ -272,8 +312,138 @@ export default function App() {
           }
         />
 
-        {/* Catch-all — redirect to my-info (works for both roles; employees can't reach /employees) */}
-        <Route path="*" element={<Navigate to="/my-info" replace />} />
+        <Route
+          path="/performance"
+          element={
+            <ProtectedRoute>
+              <PerformanceHomeRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/appraisals_list"
+          element={
+            <ProtectedRoute>
+              <PerformanceAdminOnly>
+                <AppraisalList />
+              </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/appraisal_cycles"
+          element={
+            <ProtectedRoute>
+              <PerformanceAdminOnly>
+                <AppraisalCycles />
+              </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/appraisal_cycles/create"
+          element={
+            <ProtectedRoute>
+              <PerformanceAdminOnly>
+                <CreateAppraisalCycle />
+              </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/appraisal_cycles/:id"
+          element={
+            <ProtectedRoute>
+              <PerformanceAdminOnly>
+                <AppraisalCycleDetails />
+              </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/appraisal_cycles/:id/add-employees"
+          element={
+            <ProtectedRoute>
+              <PerformanceAdminOnly>
+                <AddEmployeesToCycle />
+              </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/appraisals/:id/view"
+          element={
+            <ProtectedRoute>
+              <AppraisalCompactView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/appraisals/:id/review"
+          element={
+            <ProtectedRoute>
+              <AppraisalMultipleView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/my_appraisals"
+          element={
+            <ProtectedRoute>
+              <AppraisalList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/team_appraisals"
+          element={
+            <ProtectedRoute>
+              <AppraisalList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/trackers"
+          element={
+            <ProtectedRoute>
+              <PerformanceAdminOnly>
+                <PerformanceTrackers />
+              </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/competency_profiles"
+          element={
+            <ProtectedRoute>
+              <PerformanceAdminOnly>
+                <CompetencyProfiles />
+              </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/configuration/appraisal"
+          element={
+            <ProtectedRoute>
+              <PerformanceAdminOnly>
+                <AppraisalConfiguration />
+              </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/performance/configuration/appraisal/templates/:templateId/design"
+          element={
+            <ProtectedRoute>
+              <PerformanceAdminOnly>
+                <TemplateFormDesign />
+              </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/employees" replace />} />
       </Routes>
     </BrowserRouter>
   );

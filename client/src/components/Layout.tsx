@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { logout as logoutAction } from "../store/authSlice";
 import { logout as logoutApi } from "../api/auth.api";
+import { getRoleLabel, isAdminRole } from "../config/roles";
 import cannyforeLogo from "../assets/cannyfore_title_logo.png";
 
 import {
@@ -56,14 +57,9 @@ export default function Layout({
   const [userNames, setUserName] = useState("");
 
   const role = user?.role || "employee";
-  const isAdmin = role === "hradmin" || role === "empmanager";
+  const isAdmin = isAdminRole(role);
   const username = user?.name || user?.username || "User";
-  const roleLabel =
-    role === "empmanager"
-      ? "Employee Manager"
-      : role === "hradmin"
-        ? "HR Administrator"
-        : "Employee";
+  const roleLabel = getRoleLabel(role);
 
   const isActive = (path: string) => location.pathname.startsWith(path);
   const pageTitle =
@@ -74,7 +70,9 @@ export default function Layout({
         ? "HR Administration"
         : isActive("/leave")
           ? "Leave"
-          : "HRMS");
+          : isActive("/performance")
+            ? "Performance"
+            : "HRMS");
 
   const navItems = [
     ...(isAdmin
@@ -93,7 +91,7 @@ export default function Layout({
       label: "Leave",
       icon: <IconCalendar />,
     },
-    { to: "#", label: "Performance", icon: <IconBriefcase /> },
+    { to: "/performance", label: "Performance", icon: <IconBriefcase /> },
   ];
 
   const homeRoute = isAdmin ? "/employees" : "/my-info";
@@ -354,7 +352,6 @@ export default function Layout({
           </button>
         </header>
 
-        {/* Global Home Button - Always visible */}
         <div className="bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-x-auto gap-0">
           <Link
             to={homeRoute}
@@ -364,7 +361,6 @@ export default function Layout({
             <IconHome size={15} color="#64748b" />
           </Link>
 
-          {/* Tab-specific navigation - Only show if tabs provided */}
           {tabs && tabs.length > 0 && (
             <>
               {tabs.map((tab) => {
@@ -400,16 +396,6 @@ export default function Layout({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">{children}</div>
-
-        {onFab && (
-          <button
-            onClick={onFab}
-            className="fixed bottom-8 right-8 w-13 h-13 rounded-full bg-blue-900 text-white border-none text-3xl cursor-pointer shadow-2xl z-50 flex items-center justify-center hover:bg-blue-800 transition"
-            aria-label="Add"
-          >
-            +
-          </button>
-        )}
       </div>
     </div>
   );
