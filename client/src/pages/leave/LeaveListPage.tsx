@@ -34,7 +34,7 @@ const TODAY = new Date().toISOString().split("T")[0];
 
 const EMPTY_FORM: LeaveFilters = {
   from_date: TODAY,
-  to_date: YEAR_END,
+  to_date: TODAY,
   employee_name: "",
   sub_unit: "",
   location: "",
@@ -408,9 +408,24 @@ export default function LeaveListPage() {
                   <input
                     type="date"
                     value={form.from_date || ""}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, from_date: e.target.value }))
-                    }
+                    onChange={(e) => {
+                      const newFromDate = e.target.value;
+                      setForm((p) => {
+                        // If to_date is before new from_date, update to_date to from_date
+                        if (
+                          p.to_date &&
+                          newFromDate &&
+                          p.to_date < newFromDate
+                        ) {
+                          return {
+                            ...p,
+                            from_date: newFromDate,
+                            to_date: newFromDate,
+                          };
+                        }
+                        return { ...p, from_date: newFromDate };
+                      });
+                    }}
                     className={inputCls}
                   />
                 </div>
@@ -421,6 +436,7 @@ export default function LeaveListPage() {
                   <input
                     type="date"
                     value={form.to_date || ""}
+                    min={form.from_date || undefined}
                     onChange={(e) =>
                       setForm((p) => ({ ...p, to_date: e.target.value }))
                     }
