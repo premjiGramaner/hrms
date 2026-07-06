@@ -236,7 +236,9 @@ export default function LeaveListPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    const init = { ...EMPTY_FORM, page: 1 };
+    const init = isAdmin
+      ? { ...EMPTY_FORM, page: 1 }
+      : { from_date: "", to_date: "", statuses: [], page: 1, limit: 10 };
     dispatch(setFilters(init));
     dispatch(fetchLeaves(init));
     setSearchTriggered(true);
@@ -254,10 +256,13 @@ export default function LeaveListPage() {
   };
 
   const handleReset = () => {
-    setForm({ ...EMPTY_FORM });
+    const init = isAdmin
+      ? { ...EMPTY_FORM }
+      : { from_date: "", to_date: "", statuses: [], page: 1, limit: 10 };
+    setForm(init);
     setPanelOpen(true);
-    dispatch(setFilters({ ...EMPTY_FORM }));
-    dispatch(fetchLeaves({ ...EMPTY_FORM }));
+    dispatch(setFilters(init));
+    dispatch(fetchLeaves(init));
     setSearchTriggered(true);
   };
 
@@ -950,20 +955,14 @@ function ActionDropdown({
     );
 
   const isPending = row.status === "Pending Approval";
-
-  if (isRequester) {
-    return <span className="text-xs text-slate-400">—</span>;
-  }
-
   const canApproveReject = isAdmin && !isRequester && isPending;
-  const canCancel = isPending && (isRequester || (isAdmin && !isRequester));
+  const canCancel =
+    (isRequester && isPending) ||
+    (isAdmin && row.status !== "Cancelled");
 
-  if (!canApproveReject && !canCancel && !isAdmin) {
+  if (!canApproveReject && !canCancel) {
     return <span className="text-xs text-slate-400">—</span>;
   }
-
-  const shouldShowNoActions =
-    !canApproveReject && !canCancel && isAdmin && !isRequester;
 
   return (
     <>
@@ -1027,11 +1026,6 @@ function ActionDropdown({
             >
               ⊘ Cancel
             </button>
-          )}
-          {shouldShowNoActions && (
-            <div className="px-4 py-2 text-xs text-slate-400">
-              No actions available
-            </div>
           )}
         </div>
       )}
