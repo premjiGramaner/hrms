@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import { Employee } from "../../types";
+import { Employee, Supervisor } from "../../types";
 import {
   createEmployee,
   updateEmployee,
@@ -39,10 +39,6 @@ interface Props {
   onSaved: () => void;
 }
 
-interface Supervisor {
-  name: string;
-}
-
 function toDateStr(val?: string | null): string {
   if (!val) return "";
   if (ISO_DATE_PATTERN.test(val)) return val;
@@ -64,12 +60,15 @@ export default function AddEmployeeModal({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
-  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>([]);
+  const [selectedSupervisors, setSelectedSupervisors] = useState<number[]>([]);
   const [jobTitleOptions, setJobTitleOptions] = useState<string[]>([]);
   const [jobCategoryOptions, setJobCategoryOptions] = useState<string[]>([]);
   const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
   const [subUnitRecords, setSubUnitRecords] = useState<SubUnit[]>([]);
-  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState<{
+    work_email: boolean;
+    other_email: boolean;
+  }>({ work_email: false, other_email: false });
   const [checkingEmployeeId, setCheckingEmployeeId] = useState(false);
   const [lastEmployeeId, setLastEmployeeId] = useState<string | null>(null);
   const [showCustomLocation, setShowCustomLocation] = useState(false);
@@ -109,7 +108,9 @@ export default function AddEmployeeModal({
   useEffect(() => {
     if (employee?.supervisors && Array.isArray(employee.supervisors)) {
       setSelectedSupervisors(
-        employee.supervisors.map(String).filter((s) => s.trim() !== ""),
+        employee.supervisors
+          .map((s) => parseInt(String(s), 10))
+          .filter((id) => !isNaN(id)),
       );
     }
   }, [employee?.id]);
@@ -192,7 +193,7 @@ export default function AddEmployeeModal({
     const nextErrors = validateEmployeeStep(
       stepNumber,
       formRef.current,
-      selectedSupervisors,
+      selectedSupervisors.map(String),
       supervisors.length,
     );
 
@@ -316,7 +317,7 @@ export default function AddEmployeeModal({
           }));
         }
 
-        if (otherEmail && otherEmail === workEmail) {
+        if (otherEmail === workEmail) {
           setErrors((prev) => ({
             ...prev,
             other_email: "This email address is already registered",
@@ -440,7 +441,7 @@ export default function AddEmployeeModal({
       return;
     }
 
-    setCheckingEmail(true);
+    setCheckingEmail((prev) => ({ ...prev, [fieldName]: true }));
     try {
       const result = await checkEmailExists(email, employee?.id);
       if (result.data.exists) {
@@ -459,7 +460,7 @@ export default function AddEmployeeModal({
     } catch (error) {
       console.error("Error checking email:", error);
     } finally {
-      setCheckingEmail(false);
+      setCheckingEmail((prev) => ({ ...prev, [fieldName]: false }));
     }
   };
 
@@ -575,12 +576,12 @@ export default function AddEmployeeModal({
         className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
-            : checkingEmail
+            : checkingEmail[name]
               ? "border-blue-500 bg-blue-50"
               : "border-slate-200 bg-slate-50 focus:border-slate-300"
         }`}
       />
-      {checkingEmail && (
+      {checkingEmail[name] && (
         <span className="text-xs text-blue-600 mt-1 block">
           Checking email...
         </span>
@@ -1059,7 +1060,7 @@ export default function AddEmployeeModal({
               ) : (
                 <div className="border border-slate-300 rounded-xl overflow-hidden">
                   {supervisors.map((supervis, idx) => {
-                    const checked = selectedSupervisors.includes(supervis.name);
+                    const checked = selectedSupervisors.includes(supervis.id);
                     const subUnitMatch = subUnitRecords.find(
                       (su) =>
                         su.supervisor_name?.toLowerCase() ===
@@ -1067,7 +1068,7 @@ export default function AddEmployeeModal({
                     );
                     return (
                       <label
-                        key={supervis.name}
+                        key={supervis.id}
                         className={`flex items-center gap-3 p-2.75 cursor-pointer transition-colors ${
                           checked
                             ? "bg-emerald-50"
@@ -1083,12 +1084,9 @@ export default function AddEmployeeModal({
                           onChange={() => {
                             setSelectedSupervisors((prev) =>
                               checked
-                                ? prev.filter(
-                                    (updatedErrors) =>
-                                      updatedErrors !== supervis.name,
-                                  )
+                                ? prev.filter((id) => id !== supervis.id)
                                 : prev.length < 3
-                                  ? [...prev, supervis.name]
+                                  ? [...prev, supervis.id]
                                   : prev,
                             );
                             if (errors.supervisors)
@@ -1138,26 +1136,30 @@ export default function AddEmployeeModal({
                   <span className="text-xs text-slate-400 self-center">
                     Assigned:
                   </span>
-                  {selectedSupervisors.map((name) => (
-                    <span
-                      key={name}
-                      className="flex items-center gap-1.5 bg-blue-100 text-blue-700 rounded-full py-1 px-3 text-xs font-semibold"
-                    >
-                      {name}
-                      <button
-                        onClick={() =>
-                          setSelectedSupervisors((prev) =>
-                            prev.filter(
-                              (updatedErrors) => updatedErrors !== name,
-                            ),
-                          )
-                        }
-                        className="bg-none border-0 cursor-pointer text-blue-700 text-base leading-none pl-1"
+                  {selectedSupervisors.map((supervisorId) => {
+                    const supervisor = supervisors.find(
+                      (s) => s.id === supervisorId,
+                    );
+                    const name = supervisor?.name || String(supervisorId);
+                    return (
+                      <span
+                        key={supervisorId}
+                        className="flex items-center gap-1.5 bg-blue-100 text-blue-700 rounded-full py-1 px-3 text-xs font-semibold"
                       >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+                        {name}
+                        <button
+                          onClick={() =>
+                            setSelectedSupervisors((prev) =>
+                              prev.filter((id) => id !== supervisorId),
+                            )
+                          }
+                          className="bg-none border-0 cursor-pointer text-blue-700 text-base leading-none pl-1"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </Section>

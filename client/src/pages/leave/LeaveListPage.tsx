@@ -16,6 +16,8 @@ import { LeaveType, LeaveRequest, LeaveFilters } from "../../types";
 import { getApiErrorMessage } from "../../utils/errors";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
+import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
+import Pagination from "../../components/Pagination";
 
 const ATTACH_STATUSES = ["Available", "Pending"];
 const STATUS_OPTIONS = [
@@ -24,13 +26,15 @@ const STATUS_OPTIONS = [
   "Scheduled",
   "Taken",
   "Rejected",
+  "Approved",
 ];
 const YEAR_START = `${new Date().getFullYear()}-01-01`;
 const YEAR_END = `${new Date().getFullYear()}-12-31`;
+const TODAY = new Date().toISOString().split("T")[0];
 
 const EMPTY_FORM: LeaveFilters = {
-  from_date: YEAR_START,
-  to_date: YEAR_END,
+  from_date: TODAY,
+  to_date: TODAY,
   employee_name: "",
   sub_unit: "",
   location: "",
@@ -43,7 +47,7 @@ const EMPTY_FORM: LeaveFilters = {
   only_subordinates: false,
   statuses: [],
   page: 1,
-  limit: 15,
+  limit: 10,
 };
 
 interface EmployeeSuggestion {
@@ -87,7 +91,7 @@ function RejectModal({
         </label>
         <textarea
           value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          onChange={(event) => setReason(event.target.value)}
           rows={4}
           placeholder="Enter reason…"
           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-blue-400 transition"
@@ -113,21 +117,7 @@ function RejectModal({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    "Pending Approval": "bg-amber-50 text-amber-700 border-amber-200",
-    Approved: "bg-green-50 text-green-700 border-green-200",
-    Scheduled: "bg-blue-50 text-blue-700 border-blue-200",
-    Taken: "bg-purple-50 text-purple-700 border-purple-200",
-    Rejected: "bg-red-50 text-red-700 border-red-200",
-    Cancelled: "bg-slate-100 text-slate-500 border-slate-200",
-  };
-  return (
-    <span
-      className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${map[status] || "bg-slate-50 text-slate-500 border-slate-200"}`}
-    >
-      {status}
-    </span>
-  );
+  return <span>{status}</span>;
 }
 
 function EmployeeAutocomplete({
@@ -159,10 +149,10 @@ function EmployeeAutocomplete({
   }, [value]);
 
   useEffect(() => {
-    const h = (e: MouseEvent) => {
+    const h = (event: MouseEvent) => {
       if (
         containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        !containerRef.current.contains(event.target as Node)
       )
         setOpen(false);
     };
@@ -175,7 +165,7 @@ function EmployeeAutocomplete({
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         placeholder="Type name, ID or username…"
         className="w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition"
         onFocus={() => suggestions.length > 0 && setOpen(true)}
@@ -246,31 +236,43 @@ export default function LeaveListPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    const init = { ...EMPTY_FORM, page: 1 };
+    const init = isAdmin
+      ? { ...EMPTY_FORM, page: 1 }
+      : { from_date: "", to_date: "", statuses: [], page: 1, limit: 10 };
     dispatch(setFilters(init));
     dispatch(fetchLeaves(init));
     setSearchTriggered(true);
   }, []);
 
   const handleSearch = () => {
-    const f = { ...form, page: 1 };
-    dispatch(setFilters(f));
-    dispatch(fetchLeaves(f));
+    const forms = { ...form, page: 1 };
+    // If "Taken" is selected, automatically include "Approved" status
+    if (
+      forms.statuses?.includes("Taken") &&
+      !forms.statuses.includes("Approved")
+    ) {
+      forms.statuses = [...forms.statuses, "Approved"];
+    }
+    dispatch(setFilters(forms));
+    dispatch(fetchLeaves(forms));
     setSearchTriggered(true);
   };
 
   const handleReset = () => {
-    setForm({ ...EMPTY_FORM });
+    const init = isAdmin
+      ? { ...EMPTY_FORM }
+      : { from_date: "", to_date: "", statuses: [], page: 1, limit: 10 };
+    setForm(init);
     setPanelOpen(true);
-    dispatch(setFilters({ ...EMPTY_FORM }));
-    dispatch(fetchLeaves({ ...EMPTY_FORM }));
+    dispatch(setFilters(init));
+    dispatch(fetchLeaves(init));
     setSearchTriggered(true);
   };
 
   const handlePageChange = (newPage: number) => {
-    const f = { ...filters, page: newPage };
-    dispatch(setFilters(f));
-    dispatch(fetchLeaves(f));
+    const filter = { ...filters, page: newPage };
+    dispatch(setFilters(filter));
+    dispatch(fetchLeaves(filter));
     setForm((prev) => ({ ...prev, page: newPage }));
   };
 
@@ -302,8 +304,8 @@ export default function LeaveListPage() {
         await approveLeave(id);
         addToast("Leave approved.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (e) {
-        addToast(getApiErrorMessage(e, "Failed to approve."), "error");
+      } catch (event) {
+        addToast(getApiErrorMessage(event, "Failed to approve."), "error");
       } finally {
         setActionLoading(null);
       }
@@ -320,8 +322,8 @@ export default function LeaveListPage() {
         await rejectLeave(rejectTarget, reason);
         addToast("Leave rejected.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (e) {
-        addToast(getApiErrorMessage(e, "Failed to reject."), "error");
+      } catch (event) {
+        addToast(getApiErrorMessage(event, "Failed to reject."), "error");
       } finally {
         setActionLoading(null);
       }
@@ -337,8 +339,8 @@ export default function LeaveListPage() {
         await cancelLeave(id);
         addToast("Leave cancelled.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (e) {
-        addToast(getApiErrorMessage(e, "Failed to cancel."), "error");
+      } catch (event) {
+        addToast(getApiErrorMessage(event, "Failed to cancel."), "error");
       } finally {
         setActionLoading(null);
       }
@@ -351,8 +353,8 @@ export default function LeaveListPage() {
       type === "summary"
         ? await exportSummaryExcel(filters)
         : await exportDetailExcel(filters);
-    } catch (e) {
-      addToast(getApiErrorMessage(e, "Export failed."), "error");
+    } catch (event) {
+      addToast(getApiErrorMessage(event, "Export failed."), "error");
     }
   };
 
@@ -360,7 +362,6 @@ export default function LeaveListPage() {
     "w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition";
   const selectCls =
     "w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition appearance-none cursor-pointer";
-
   return (
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
@@ -369,6 +370,22 @@ export default function LeaveListPage() {
           leaveId={rejectTarget}
           onConfirm={handleRejectConfirm}
           onCancel={() => setRejectTarget(null)}
+        />
+      )}
+
+      {/* Employee Filter Section */}
+      {!isAdmin && (
+        <EmployeeLeaveFilter
+          from_date={form.from_date || ""}
+          to_date={form.to_date || ""}
+          statuses={form.statuses || []}
+          onFromDateChange={(value) =>
+            setForm((p) => ({ ...p, from_date: value }))
+          }
+          onToDateChange={(value) => setForm((p) => ({ ...p, to_date: value }))}
+          onStatusesChange={(statuses) => setForm((p) => ({ ...p, statuses }))}
+          onSearch={handleSearch}
+          onReset={handleReset}
         />
       )}
 
@@ -399,9 +416,24 @@ export default function LeaveListPage() {
                   <input
                     type="date"
                     value={form.from_date || ""}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, from_date: e.target.value }))
-                    }
+                    onChange={(event) => {
+                      const newFromDate = event.target.value;
+                      setForm((p) => {
+                        // If to_date is before new from_date, update to_date to from_date
+                        if (
+                          p.to_date &&
+                          newFromDate &&
+                          p.to_date < newFromDate
+                        ) {
+                          return {
+                            ...p,
+                            from_date: newFromDate,
+                            to_date: newFromDate,
+                          };
+                        }
+                        return { ...p, from_date: newFromDate };
+                      });
+                    }}
                     className={inputCls}
                   />
                 </div>
@@ -412,8 +444,9 @@ export default function LeaveListPage() {
                   <input
                     type="date"
                     value={form.to_date || ""}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, to_date: e.target.value }))
+                    min={form.from_date || undefined}
+                    onChange={(event) =>
+                      setForm((p) => ({ ...p, to_date: event.target.value }))
                     }
                     className={inputCls}
                   />
@@ -441,8 +474,8 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.sub_unit || ""}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, sub_unit: e.target.value }))
+                      onChange={(event) =>
+                        setForm((p) => ({ ...p, sub_unit: event.target.value }))
                       }
                       className={selectCls}
                     >
@@ -465,8 +498,8 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.location || ""}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, location: e.target.value }))
+                      onChange={(event) =>
+                        setForm((p) => ({ ...p, location: event.target.value }))
                       }
                       className={selectCls}
                     >
@@ -489,10 +522,10 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.leave_type_id || ""}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setForm((p) => ({
                           ...p,
-                          leave_type_id: e.target.value,
+                          leave_type_id: event.target.value,
                         }))
                       }
                       className={selectCls}
@@ -518,8 +551,11 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.job_title || ""}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, job_title: e.target.value }))
+                      onChange={(event) =>
+                        setForm((p) => ({
+                          ...p,
+                          job_title: event.target.value,
+                        }))
                       }
                       className={selectCls}
                     >
@@ -542,10 +578,10 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.employment_status || ""}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setForm((p) => ({
                           ...p,
-                          employment_status: e.target.value,
+                          employment_status: event.target.value,
                         }))
                       }
                       className={selectCls}
@@ -569,8 +605,11 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.job_category || ""}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, job_category: e.target.value }))
+                      onChange={(event) =>
+                        setForm((p) => ({
+                          ...p,
+                          job_category: event.target.value,
+                        }))
                       }
                       className={selectCls}
                     >
@@ -595,10 +634,10 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.attachment_status || ""}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setForm((p) => ({
                           ...p,
-                          attachment_status: e.target.value,
+                          attachment_status: event.target.value,
                         }))
                       }
                       className={selectCls}
@@ -621,8 +660,11 @@ export default function LeaveListPage() {
                   <input
                     type="checkbox"
                     checked={form.include_past || false}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, include_past: e.target.checked }))
+                    onChange={(event) =>
+                      setForm((p) => ({
+                        ...p,
+                        include_past: event.target.checked,
+                      }))
                     }
                     className="w-4 h-4 accent-blue-900"
                   />
@@ -632,10 +674,10 @@ export default function LeaveListPage() {
                   <input
                     type="checkbox"
                     checked={form.only_subordinates || false}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       setForm((p) => ({
                         ...p,
-                        only_subordinates: e.target.checked,
+                        only_subordinates: event.target.checked,
                       }))
                     }
                     className="w-4 h-4 accent-blue-900"
@@ -780,9 +822,9 @@ export default function LeaveListPage() {
                   return (
                     <tr
                       key={row.id}
-                      onClick={(e) => {
+                      onClick={(event) => {
                         if (
-                          (e.target as HTMLElement).closest(
+                          (event.target as HTMLElement).closest(
                             "[data-action-cell]",
                           )
                         )
@@ -842,26 +884,23 @@ export default function LeaveListPage() {
             </tbody>
           </table>
         </div>
-        {data && data.totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-3 text-sm text-slate-600">
-            <button
-              onClick={() => handlePageChange((filters.page || 1) - 1)}
-              disabled={(filters.page || 1) <= 1}
-              className="px-4 py-1.5 rounded border border-slate-200 bg-white cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
-            >
-              ← Prev
-            </button>
-            <span className="text-xs text-slate-500">
-              Page {data.page} of {data.totalPages} · {data.total} records
-            </span>
-            <button
-              onClick={() => handlePageChange((filters.page || 1) + 1)}
-              disabled={(filters.page || 1) >= data.totalPages}
-              className="px-4 py-1.5 rounded border border-slate-200 bg-white cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
-            >
-              Next →
-            </button>
-          </div>
+        {data && data.total > 0 && (
+          <Pagination
+            currentPage={data.page}
+            totalPages={data.totalPages}
+            totalRecords={data.total}
+            pageSize={filters.limit || 10}
+            onPageChange={(page) => {
+              handlePageChange(page);
+            }}
+            onPageSizeChange={(size) => {
+              const filter = { ...filters, limit: size, page: 1 };
+              dispatch(setFilters(filter));
+              dispatch(fetchLeaves(filter));
+              setForm((prev) => ({ ...prev, limit: size, page: 1 }));
+            }}
+            itemLabel="leave records"
+          />
         )}
       </div>
     </LeaveLayout>
@@ -902,12 +941,12 @@ function ActionDropdown({
 
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent) => {
+    const h = (event: MouseEvent) => {
       if (
         menuRef.current &&
-        !menuRef.current.contains(e.target as Node) &&
+        !menuRef.current.contains(event.target as Node) &&
         btnRef.current &&
-        !btnRef.current.contains(e.target as Node)
+        !btnRef.current.contains(event.target as Node)
       )
         setOpen(false);
     };
@@ -928,21 +967,13 @@ function ActionDropdown({
     );
 
   const isPending = row.status === "Pending Approval";
-
-  if (isRequester) {
-    return <span className="text-xs text-slate-400">—</span>;
-  }
-
   const canApproveReject = isAdmin && !isRequester && isPending;
-  const canCancel = isPending && (isRequester || (isAdmin && !isRequester));
+  const canCancel =
+    (isRequester && isPending) || (isAdmin && row.status !== "Cancelled");
 
-  // If no actions available, don't show the dropdown
-  if (!canApproveReject && !canCancel && !isAdmin) {
+  if (!canApproveReject && !canCancel) {
     return <span className="text-xs text-slate-400">—</span>;
   }
-
-  const shouldShowNoActions =
-    !canApproveReject && !canCancel && isAdmin && !isRequester;
 
   return (
     <>
@@ -1006,11 +1037,6 @@ function ActionDropdown({
             >
               ⊘ Cancel
             </button>
-          )}
-          {shouldShowNoActions && (
-            <div className="px-4 py-2 text-xs text-slate-400">
-              No actions available
-            </div>
           )}
         </div>
       )}

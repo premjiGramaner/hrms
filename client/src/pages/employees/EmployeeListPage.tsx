@@ -35,12 +35,22 @@ const getInitials = (employee: Employee) => {
 };
 
 const getSupervisor = (employee: Employee): string => {
+  // Check for supervisor_names first (new field with actual names)
+  if (employee.supervisor_names) {
+    const names = Array.isArray(employee.supervisor_names)
+      ? employee.supervisor_names
+      : [];
+    return names.length > 0 ? names.join(", ") : "—";
+  }
+
+  // Fallback to old supervisors field if it exists
   if (
     !employee.supervisors ||
     !Array.isArray(employee.supervisors) ||
     employee.supervisors.length === 0
   )
     return "—";
+
   return String(employee.supervisors[0]);
 };
 

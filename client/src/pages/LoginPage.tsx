@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
@@ -31,9 +31,19 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const { data } = await loginApi(username, password);
-      dispatch(loginSuccess({ token: data.token, user: data.user }));
-      navigate("/employees");
+      const response = await loginApi(username, password, rememberMe);
+
+      if (response.data) {
+        const tokenToStore = rememberMe ? "cookie_auth" : response.data.token;
+
+        dispatch(
+          loginSuccess({
+            token: tokenToStore,
+            user: response.data.user,
+          }),
+        );
+        navigate("/employees");
+      }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Invalid username or password."));
     } finally {
@@ -118,8 +128,8 @@ export default function LoginPage() {
               <label className="mb-5 flex cursor-pointer items-center gap-2 text-sm text-slate-600">
                 <input
                   type="checkbox"
-                  checked={remember}
-                  onChange={(event) => setRemember(event.target.checked)}
+                  checked={rememberMe}
+                  onChange={(event) => setRememberMe(event.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 accent-teal-600"
                 />
                 Keep me logged in for 30 days

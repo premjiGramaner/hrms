@@ -2,13 +2,32 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
-import { jwtSecret, jwtExpiresIn } from "../config/env.js";
+import { jwtSecret, jwtExpiresIn, rememberMeDuration } from "../config/env.js";
 import { success, error } from "../utils/response.js";
 
 const signToken = (payload) =>
   jwt.sign(payload, jwtSecret, {
     expiresIn: jwtExpiresIn,
   });
+
+const parseDuration = (duration) => {
+  const match = duration.match(/^(\d+)([mhd])$/);
+  if (!match) return 30 * 24 * 60 * 60 * 1000; // Default 30 days
+
+  const value = parseInt(match[1]);
+  const unit = match[2];
+
+  switch (unit) {
+    case "m":
+      return value * 60 * 1000; // minutes
+    case "h":
+      return value * 60 * 60 * 1000; // hours
+    case "d":
+      return value * 24 * 60 * 60 * 1000; // days
+    default:
+      return 30 * 24 * 60 * 60 * 1000;
+  }
+};
 
 const timingSafeCompare = (a, b) => {
   const bufA = Buffer.from(String(a));
@@ -19,8 +38,7 @@ const timingSafeCompare = (a, b) => {
 
 const login = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
-
+    const { username, password, rememberMe } = req.body;
     if (!username || !password) {
       return error(res, "Username and password are required", 400);
     }
@@ -30,6 +48,20 @@ const login = async (req, res, next) => {
       timingSafeCompare(password, "admin")
     ) {
       const token = signToken({ id: 0, role: "empmanager", username: "admin" });
+
+      // Set cookie if remember me is checked
+      if (rememberMe) {
+        const cookieMaxAge = parseDuration(rememberMeDuration);
+
+        const cookieOptions = {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+          maxAge: cookieMaxAge,
+        };
+        res.cookie("auth_token", token, cookieOptions);
+      }
+
       return success(res, {
         token,
         user: {
@@ -63,6 +95,18 @@ const login = async (req, res, next) => {
       role: user.role,
       username: user.username,
     });
+
+    // Set cookie if remember me is checked
+    if (rememberMe) {
+      const cookieMaxAge = parseDuration(rememberMeDuration);
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+        maxAge: cookieMaxAge,
+      };
+      res.cookie("auth_token", token, cookieOptions);
+    }
 
     return success(res, {
       token,
@@ -100,4 +144,19 @@ const self = async (req, res, next) => {
   }
 };
 
-export { login, self };
+const logout = async (req, res, next) => {
+  try {
+    // Clear the auth cookie
+    res.clearCookie("auth_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    });
+
+    return success(res, { message: "Logged out successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export { login, self, logout };

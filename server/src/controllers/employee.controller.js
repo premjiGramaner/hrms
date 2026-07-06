@@ -107,16 +107,6 @@ const createEmployee = async (req, res, next) => {
     if (existingWork)
       return error(res, "An employee with this work email already exists", 422);
 
-    if (otherEmail) {
-      const existingOther = await EmployeeModel.findByEmail(otherEmail);
-      if (existingOther)
-        return error(
-          res,
-          "An employee with this other email already exists",
-          422,
-        );
-    }
-
     if (employeeId) {
       const existingEmployeeId =
         await EmployeeModel.findByEmployeeId(employeeId);

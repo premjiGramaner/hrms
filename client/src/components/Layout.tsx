@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { logout as logoutAction } from "../store/authSlice";
+import { logout as logoutApi } from "../api/auth.api";
 import cannyforeLogo from "../assets/cannyfore_title_logo.png";
 
 import {
@@ -161,7 +162,15 @@ export default function Layout({
             >
               {user?.avatar ? (
                 <img
-                  src={`/uploads/${user.avatar}`}
+                  key={user.avatar}
+                  src={
+                    user.avatar.startsWith("/uploads/") ||
+                    user.avatar.includes("?")
+                      ? user.avatar.startsWith("/uploads/")
+                        ? user.avatar
+                        : `/uploads/${user.avatar}`
+                      : `/uploads/${user.avatar}`
+                  }
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   alt="avatar"
                 />
@@ -327,9 +336,15 @@ export default function Layout({
             {pageTitle}
           </span>
           <button
-            onClick={() => {
-              dispatch(logoutAction());
-              navigate("/login");
+            onClick={async () => {
+              try {
+                await logoutApi();
+              } catch (error) {
+                console.error("Logout error:", error);
+              } finally {
+                dispatch(logoutAction());
+                navigate("/login");
+              }
             }}
             className="flex items-center gap-1.75 bg-white/20 border border-white/35 text-white rounded-full px-4 py-1.5 text-sm font-medium cursor-pointer hover:bg-white/30 transition"
           >

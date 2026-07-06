@@ -31,34 +31,98 @@ async function findAllEmployees(page, limit = 10, search = "") {
   const offset = (page - 1) * limit;
   const searchTerm = search.trim();
   const baseWhere =
-    "is_deleted = false AND role = 'employee' AND (employment_status IS NULL OR employment_status != 'Terminated')";
+    "u.is_deleted = false AND u.role = 'employee' AND (u.employment_status IS NULL OR u.employment_status != 'Terminated')";
   const searchCondition = searchTerm
-    ? ` AND (employee_id ILIKE $3 OR first_name ILIKE $3 OR last_name ILIKE $3 OR email ILIKE $3 OR job_title ILIKE $3)`
+    ? ` AND (u.employee_id ILIKE $3 OR u.first_name ILIKE $3 OR u.last_name ILIKE $3 OR u.email ILIKE $3 OR u.job_title ILIKE $3)`
     : "";
   const args = searchTerm
     ? [limit, offset, `%${searchTerm}%`]
     : [limit, offset];
-  const { rows } = await pool.query(
-    `SELECT id::int, employee_id, name, first_name, last_name, username, email, mobile,
-            status, avatar, job_title, role, joined_date::text, is_active,
-            sub_unit, location,
-            CASE
-              WHEN supervisors IS NULL OR TRIM(supervisors) = '' THEN '[]'::json
-              ELSE supervisors::json
-            END AS supervisors
-     FROM tbl_appusers
-     WHERE ${baseWhere}${searchCondition}
-     ORDER BY created_at DESC
-     LIMIT $1 OFFSET $2`,
-    args,
-  );
-  const countQuery = searchCondition
-    ? `SELECT COUNT(*)::int as count FROM tbl_appusers WHERE ${baseWhere}${searchCondition.replace(/\$3/g, "$1")}`
-    : `SELECT COUNT(*)::int as count FROM tbl_appusers WHERE ${baseWhere}`;
-  const countArgs = searchTerm ? [`%${searchTerm}%`] : [];
-  const { rows: cnt } = await pool.query(countQuery, countArgs);
-  const total = cnt[0].count;
-  return { data: rows, total, page, totalPages: Math.ceil(total / limit) };
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.id::int, u.employee_id, u.name, u.first_name, u.last_name, u.username, u.email, u.mobile,
+              u.status, u.avatar, u.job_title, u.role, u.joined_date::text, u.is_active,
+              u.sub_unit, u.location,
+              CASE
+                WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' THEN '[]'::json
+                ELSE u.supervisors::json
+              END AS supervisors
+       FROM tbl_appusers u
+       WHERE ${baseWhere}${searchCondition}
+       ORDER BY u.created_at DESC
+       LIMIT $1 OFFSET $2`,
+      args,
+    );
+
+    const supervisorIdSet = new Set();
+
+    rows.forEach((employee) => {
+      const supervisors = employee.supervisors || [];
+
+      if (Array.isArray(supervisors) && supervisors.length > 0) {
+        supervisors
+          .map((id) => parseInt(id, 10))
+          .filter((id) => !Number.isNaN(id))
+          .forEach((id) => supervisorIdSet.add(id));
+      }
+    });
+
+    const allSupervisorIds = Array.from(supervisorIdSet);
+    let supervisorNameById = new Map();
+
+    // CHANGE: Fetch all supervisor names in a single query instead of querying once per employee.
+    if (allSupervisorIds.length > 0) {
+      try {
+        const { rows: supervisorRows } = await pool.query(
+          `SELECT id::int, supervisor_name
+       FROM tbl_sub_units
+       WHERE id = ANY($1::int[]) AND is_active = true`,
+          [allSupervisorIds],
+        );
+
+        // CHANGE: Create an in-memory lookup map for fast access.
+        supervisorNameById = new Map(
+          supervisorRows.map((row) => [row.id, row.supervisor_name]),
+        );
+      } catch (err) {
+        console.error("Error fetching supervisor names:", err);
+      }
+    }
+
+    const employeesWithSupervisors = rows.map((employee) => {
+      const supervisors = employee.supervisors || [];
+
+      const supervisorNames = Array.isArray(supervisors)
+        ? supervisors
+            .map((id) => parseInt(id, 10))
+            .filter((id) => !Number.isNaN(id))
+            .map((id) => supervisorNameById.get(id))
+            .filter((name) => typeof name === "string")
+        : [];
+
+      return {
+        ...employee,
+        supervisor_names: supervisorNames,
+      };
+    });
+    const countQuery = searchCondition
+      ? `SELECT COUNT(*)::int as count FROM tbl_appusers u WHERE ${baseWhere}${searchCondition.replace(/\$3/g, "$1")}`
+      : `SELECT COUNT(*)::int as count FROM tbl_appusers u WHERE ${baseWhere}`;
+    const countArgs = searchTerm ? [`%${searchTerm}%`] : [];
+    const { rows: cnt } = await pool.query(countQuery, countArgs);
+    const total = cnt[0].count;
+
+    return {
+      data: employeesWithSupervisors,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  } catch (err) {
+    console.error("Error in findAllEmployees:", err);
+    throw err;
+  }
 }
 
 async function findEmployeeById(id) {
