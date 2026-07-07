@@ -18,9 +18,12 @@ const listEmployees = async (req, res, next) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     const search = (req.query.search || "").trim();
+    console.log('[Employee Search] page:', page, 'limit:', limit, 'search:', search);
     const result = await EmployeeModel.findAllEmployees(page, limit, search);
+    console.log('[Employee Search] result count:', result.total);
     return success(res, result);
   } catch (err) {
+    console.error('[Employee Search Error]', err.message, err.stack);
     next(err);
   }
 };
@@ -140,10 +143,14 @@ const createEmployee = async (req, res, next) => {
         return error(res, "Employee ID already exists", 409);
     }
 
-    const avatarPath = req.file ? req.file.filename : undefined;
+    // Convert file buffer to base64 data URL
+    const avatarBase64 = req.file
+      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
+      : undefined;
+
     const emp = await EmployeeModel.createEmployee(
       { ...req.body, email: workEmail, created_by: req.user?.id },
-      avatarPath,
+      avatarBase64,
     );
 
     await writeAuditLog({
@@ -197,6 +204,9 @@ const updateEmployee = async (req, res, next) => {
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
 
+    console.log("📝 Updating employee ID:", id);
+    console.log("📝 Request body keys:", Object.keys(req.body));
+
     const workEmail = (req.body.work_email || req.body.email || "")
       .trim()
       .toLowerCase();
@@ -222,10 +232,14 @@ const updateEmployee = async (req, res, next) => {
         );
     }
 
-    const avatarPath = req.file ? req.file.filename : undefined;
+    // Convert file buffer to base64 data URL
+    const avatarBase64 = req.file
+      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
+      : undefined;
+
     const body = { ...req.body, email: workEmail };
 
-    await EmployeeModel.updateEmployee(id, body, avatarPath, req.user?.id);
+    await EmployeeModel.updateEmployee(id, body, avatarBase64, req.user?.id);
 
     await writeAuditLog({
       employeeId: existing.id,
@@ -238,8 +252,10 @@ const updateEmployee = async (req, res, next) => {
       actionDescription: `Employee updated: ${existing.name}`,
     });
 
+    console.log("✅ Employee updated successfully:", id);
     return success(res, { message: "Employee updated successfully" });
   } catch (err) {
+    console.error("❌ Update employee error:", err);
     next(err);
   }
 };
@@ -254,8 +270,14 @@ const updateProfileImage = async (req, res, next) => {
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
 
-    const avatarPath = req.file.filename;
-    await EmployeeModel.updateProfileImage(id, avatarPath, req.user?.id);
+    // Convert file buffer to base64 data URL
+    const avatarBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const updatedEmployee = await EmployeeModel.updateProfileImage(
+      id,
+      avatarBase64,
+      req.user?.id,
+    );
 
     await writeAuditLog({
       employeeId: existing.id,
@@ -268,7 +290,6 @@ const updateProfileImage = async (req, res, next) => {
       actionDescription: `Profile picture updated: ${existing.name}`,
     });
 
-    const updatedEmployee = await EmployeeModel.findEmployeeById(id);
     return success(res, updatedEmployee);
   } catch (err) {
     next(err);

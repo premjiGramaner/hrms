@@ -11,6 +11,7 @@ import { getApiErrorMessage } from "../../utils/errors";
 import { useAppSelector } from "../../app/hooks";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
+import UserAvatar from "../../components/UserAvatar";
 
 function initials(name = "") {
   return (
@@ -239,17 +240,11 @@ export default function ApplyLeavePage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-4">
           <div className="flex items-start gap-5 mb-6">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-900 to-teal-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 overflow-hidden border-2 border-white shadow">
-              {user?.avatar ? (
-                <img
-                  src={`/uploads/${user.avatar}`}
-                  className="w-full h-full object-cover"
-                  alt=""
-                />
-              ) : (
-                initials(user?.name || "")
-              )}
-            </div>
+            {/* Reusable UserAvatar component */}
+            <UserAvatar
+              size={64}
+              className="border-2 border-white shadow"
+            />
             <div>
               <p className="font-bold text-slate-900 text-sm">
                 {user?.name || "Employee"}

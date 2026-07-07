@@ -256,18 +256,7 @@ const rejectLeave = async (req, res, next) => {
       );
     }
 
-    const starting_date = new Date(leave.start_date);
-    const year =
-      starting_date.getMonth() >= 3
-        ? starting_date.getFullYear() + 1
-        : starting_date.getFullYear();
-    await LeaveModel.restoreLeaveBalance(
-      leave.employee_id,
-      leave.leave_type_id,
-      year,
-      leave.requested_days,
-    );
-
+    // Do NOT restore balance on rejection - balance remains deducted
     await LeaveModel.rejectLeave(id, actorId, rejection_reason);
     return success(res, { message: "Leave rejected successfully" });
   } catch (err) {

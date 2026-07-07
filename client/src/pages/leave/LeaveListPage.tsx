@@ -968,9 +968,9 @@ function ActionDropdown({
 
   const isPending = row.status === "Pending Approval";
   const canApproveReject = isAdmin && !isRequester && isPending;
-  const canCancel =
-    (isRequester && isPending) || (isAdmin && row.status !== "Cancelled");
+  const canCancel = isPending && (isRequester || isAdmin);
 
+  // Don't show any actions if leave is already approved, rejected, or cancelled
   if (!canApproveReject && !canCancel) {
     return <span className="text-xs text-slate-400">—</span>;
   }

@@ -31,14 +31,41 @@ async function createUniqueUsername(email, name) {
 async function findAllEmployees(page, limit = 10, search = "") {
   const offset = (page - 1) * limit;
   const searchTerm = search.trim();
-  const baseWhere =
-    "u.is_deleted = false AND u.role = 'employee' AND (u.employment_status IS NULL OR u.employment_status != 'Terminated')";
-  const searchCondition = searchTerm
-    ? ` AND (u.employee_id ILIKE $3 OR u.first_name ILIKE $3 OR u.last_name ILIKE $3 OR u.email ILIKE $3 OR u.job_title ILIKE $3)`
-    : "";
-  const args = searchTerm
-    ? [limit, offset, `%${searchTerm}%`]
-    : [limit, offset];
+  
+  const baseWhere = "u.is_deleted = false AND (u.employment_status IS NULL OR u.employment_status != 'Terminated')";
+  
+  // Build dynamic SQL based on whether search exists
+  const values = [];
+  let whereClause = baseWhere;
+  
+  // Add search condition only if search term exists
+  if (searchTerm) {
+    values.push(searchTerm);
+    const searchIndex = values.length;
+    whereClause += `
+      AND (
+        u.employee_id::text ILIKE '%' || $${searchIndex}::text || '%'
+        OR u.first_name::text ILIKE '%' || $${searchIndex}::text || '%'
+        OR u.middle_name::text ILIKE '%' || $${searchIndex}::text || '%'
+        OR u.last_name::text ILIKE '%' || $${searchIndex}::text || '%'
+        OR u.name::text ILIKE '%' || $${searchIndex}::text || '%'
+        OR u.username::text ILIKE '%' || $${searchIndex}::text || '%'
+        OR u.email::text ILIKE '%' || $${searchIndex}::text || '%'
+        OR CONCAT_WS(' ', u.first_name, u.middle_name, u.last_name)::text ILIKE '%' || $${searchIndex}::text || '%'
+      )
+    `;
+  }
+  
+  // Add pagination parameters
+  values.push(limit);
+  const limitIndex = values.length;
+  
+  values.push(offset);
+  const offsetIndex = values.length;
+
+  console.log('[findAllEmployees] whereClause:', whereClause);
+  console.log('[findAllEmployees] values:', values);
+  console.log('[findAllEmployees] limitIndex:', limitIndex, 'offsetIndex:', offsetIndex);
 
   try {
     const { rows } = await pool.query(
@@ -48,71 +75,31 @@ async function findAllEmployees(page, limit = 10, search = "") {
               CASE
                 WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' THEN '[]'::json
                 ELSE u.supervisors::json
-              END AS supervisors
+              END AS supervisors,
+              CASE
+                WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' THEN '[]'::json
+                ELSE u.supervisors::json
+              END AS supervisor_names
        FROM tbl_appusers u
-       WHERE ${baseWhere}${searchCondition}
+       WHERE ${whereClause}
        ORDER BY u.created_at DESC
-       LIMIT $1 OFFSET $2`,
-      args,
+       LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+      values,
     );
 
-    const supervisorIdSet = new Set();
+    // Since supervisors column now contains names, we can directly use it
+    const employeesWithSupervisors = rows.map((employee) => ({
+      ...employee,
+      supervisor_names: employee.supervisors || [],
+    }));
 
-    rows.forEach((employee) => {
-      const supervisors = employee.supervisors || [];
-
-      if (Array.isArray(supervisors) && supervisors.length > 0) {
-        supervisors
-          .map((id) => parseInt(id, 10))
-          .filter((id) => !Number.isNaN(id))
-          .forEach((id) => supervisorIdSet.add(id));
-      }
-    });
-
-    const allSupervisorIds = Array.from(supervisorIdSet);
-    let supervisorNameById = new Map();
-
-    // CHANGE: Fetch all supervisor names in a single query instead of querying once per employee.
-    if (allSupervisorIds.length > 0) {
-      try {
-        const { rows: supervisorRows } = await pool.query(
-          `SELECT id::int, supervisor_name
-       FROM tbl_sub_units
-       WHERE id = ANY($1::int[]) AND is_active = true`,
-          [allSupervisorIds],
-        );
-
-        // CHANGE: Create an in-memory lookup map for fast access.
-        supervisorNameById = new Map(
-          supervisorRows.map((row) => [row.id, row.supervisor_name]),
-        );
-      } catch (err) {
-        console.error("Error fetching supervisor names:", err);
-      }
-    }
-
-    const employeesWithSupervisors = rows.map((employee) => {
-      const supervisors = employee.supervisors || [];
-
-      const supervisorNames = Array.isArray(supervisors)
-        ? supervisors
-            .map((id) => parseInt(id, 10))
-            .filter((id) => !Number.isNaN(id))
-            .map((id) => supervisorNameById.get(id))
-            .filter((name) => typeof name === "string")
-        : [];
-
-      return {
-        ...employee,
-        supervisor_names: supervisorNames,
-      };
-    });
-    const countQuery = searchCondition
-      ? `SELECT COUNT(*)::int as count FROM tbl_appusers u WHERE ${baseWhere}${searchCondition.replace(/\$3/g, "$1")}`
-      : `SELECT COUNT(*)::int as count FROM tbl_appusers u WHERE ${baseWhere}`;
-    const countArgs = searchTerm ? [`%${searchTerm}%`] : [];
-    const { rows: cnt } = await pool.query(countQuery, countArgs);
-    const total = cnt[0].count;
+    // Use same whereClause for count, but only with search parameter (no limit/offset)
+    const countValues = searchTerm ? [searchTerm] : [];
+    const { rows: countRows } = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM tbl_appusers u WHERE ${whereClause}`,
+      countValues,
+    );
+    const total = countRows[0]?.total || 0;
 
     return {
       data: employeesWithSupervisors,
@@ -222,11 +209,54 @@ async function findEmployeeById(id) {
   return rows[0] || null;
 }
 
-async function createEmployee(data, avatarPath) {
+// Helper function to convert supervisor IDs to names
+async function convertSupervisorIdsToNames(supervisors) {
+  if (!supervisors) return null;
+  
+  try {
+    const parsed =
+      typeof supervisors === "string"
+        ? JSON.parse(supervisors)
+        : supervisors;
+    
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return null;
+    }
+
+    // Extract valid IDs
+    const validIds = parsed
+      .map((id) => parseInt(id, 10))
+      .filter((id) => !isNaN(id) && id > 0);
+    
+    if (validIds.length === 0) return null;
+
+    // Fetch supervisor names from database
+    const { rows } = await pool.query(
+      `SELECT name FROM tbl_appusers 
+       WHERE id = ANY($1::int[]) 
+       AND is_deleted = false 
+       ORDER BY name`,
+      [validIds]
+    );
+
+    if (rows.length === 0) return null;
+
+    // Extract names and return as JSON array
+    const names = rows.map(row => row.name);
+    return JSON.stringify(names);
+  } catch {
+    return null;
+  }
+}
+
+async function createEmployee(data, avatarBase64) {
   const name = `${data.first_name} ${data.last_name}`.trim();
   const username = await createUniqueUsername(data.email, name);
   const plainPassword = generateTemporaryPassword();
   const password = await bcrypt.hash(plainPassword, 10);
+
+  // Convert supervisor IDs to names
+  const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
 
   const { rows } = await pool.query(
     `INSERT INTO tbl_appusers (
@@ -276,7 +306,7 @@ async function createEmployee(data, avatarPath) {
       data.home_tel || null,
       data.work_tel || null,
       data.other_email || null,
-      avatarPath || null,
+      avatarBase64 || null,
       data.address1 || null,
       data.address2 || null,
       data.city || null,
@@ -296,24 +326,7 @@ async function createEmployee(data, avatarPath) {
       data.contract_start_date || null,
       data.contract_end_date || null,
       data.comments || null,
-      (() => {
-        if (!data.supervisors) return null;
-        try {
-          const parsed =
-            typeof data.supervisors === "string"
-              ? JSON.parse(data.supervisors)
-              : data.supervisors;
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const validIds = parsed
-              .map((id) => parseInt(id, 10))
-              .filter((id) => !isNaN(id) && id > 0);
-            return validIds.length > 0 ? JSON.stringify(validIds) : null;
-          }
-          return null;
-        } catch {
-          return null;
-        }
-      })(),
+      supervisorNames, // Now stores names instead of IDs
       data.created_by || null,
     ],
   );
@@ -340,7 +353,7 @@ function generateTemporaryPassword() {
   return required.join("");
 }
 
-async function updateEmployee(id, data, avatarPath, updatedBy) {
+async function updateEmployee(id, data, avatarBase64, updatedBy) {
   const name =
     data.first_name && data.last_name
       ? `${data.first_name} ${data.last_name}`.trim()
@@ -350,6 +363,9 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
     value && String(value).trim() !== "" ? String(value).trim() : null;
   const d = (value) =>
     !value || String(value).trim() === "" ? null : String(value).trim();
+
+  // Convert supervisor IDs to names
+  const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
 
   const result = await pool.query(
     `UPDATE tbl_appusers SET
@@ -414,7 +430,7 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       n(data.home_tel),
       n(data.work_tel),
       n(data.other_email),
-      avatarPath || null,
+      avatarBase64 || null,
       n(data.address1),
       n(data.address2),
       n(data.city),
@@ -434,24 +450,7 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       d(data.contract_start_date),
       d(data.contract_end_date),
       n(data.comments),
-      (() => {
-        if (!data.supervisors) return null;
-        try {
-          const parsed =
-            typeof data.supervisors === "string"
-              ? JSON.parse(data.supervisors)
-              : data.supervisors;
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const validIds = parsed
-              .map((id) => parseInt(id, 10))
-              .filter((id) => !isNaN(id) && id > 0);
-            return validIds.length > 0 ? JSON.stringify(validIds) : null;
-          }
-          return null;
-        } catch {
-          return null;
-        }
-      })(),
+      supervisorNames, // Now stores names instead of IDs
       updatedBy || null,
       id,
     ],
@@ -509,45 +508,22 @@ async function getSupervisors() {
      WHERE is_deleted = false
        AND is_active = true
        AND (employment_status IS NULL OR employment_status != 'Terminated')
-       AND role IN ('supervisor', 'manager', 'empmanager', 'hradmin')
+       AND role = 'supervisor'
        AND name IS NOT NULL
        AND TRIM(name) <> ''
      ORDER BY name ASC`,
   );
-  const { rows: subUnitRows } = await pool.query(
-    `SELECT DISTINCT supervisor_name AS name
-     FROM tbl_sub_units
-     WHERE supervisor_name IS NOT NULL
-       AND TRIM(supervisor_name) <> ''
-       AND is_active = true
-     ORDER BY supervisor_name ASC`,
-  );
 
-  const supervisorMap = new Map();
-  const addSupervisor = (item) => {
-    const name = String(item.name || "").trim();
-    if (!name) return;
-    const key = name.toLowerCase().replace(/[^a-z0-9]+/g, "");
-    if (!key || supervisorMap.has(key)) return;
-    supervisorMap.set(key, {
-      id: item.id || null,
-      employee_id: item.employee_id || null,
-      name,
-      username: item.username || null,
-      email: item.email || null,
-      role: item.role || "supervisor",
-      job_title: item.job_title || "Supervisor",
-      sub_unit: item.sub_unit || null,
-    });
-  };
-
-  userRows.forEach(addSupervisor);
-  subUnitRows.forEach((row) =>
-    addSupervisor({ ...row, role: "supervisor", job_title: "Supervisor" }),
-  );
-  return [...supervisorMap.values()].sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
+  return userRows.map((row) => ({
+    id: row.id,
+    employee_id: row.employee_id,
+    name: row.name,
+    username: row.username,
+    email: row.email,
+    role: row.role,
+    job_title: row.job_title,
+    sub_unit: row.sub_unit,
+  }));
 }
 
 async function getSupervisorsByIds(supervisorIds) {
@@ -572,17 +548,35 @@ async function getSupervisorsByIds(supervisorIds) {
   return rows;
 }
 
-async function updateProfileImage(id, profileImagePath, updatedBy) {
+async function updateProfileImage(id, avatarBase64, updatedBy) {
   const result = await pool.query(
     `UPDATE tbl_appusers SET
       avatar = $1,
       updated_by = $2,
       updated_at = NOW()
      WHERE id = $3::bigint AND is_deleted = false`,
-    [profileImagePath, updatedBy || null, id],
+    [avatarBase64, updatedBy || null, id],
   );
 
   if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
+
+  // Return full updated employee data
+  const { rows } = await pool.query(
+    `SELECT id::int, employee_id, first_name, middle_name, last_name, name,
+            email, username, role, status, mobile, home_tel, work_tel, other_email,
+            avatar, joined_date::text, location, job_title, employment_status,
+            job_specification, job_category, sub_unit, attendance_calc,
+            dob::text, real_dob::text, nationality, marital_status, gender, blood_group,
+            license_number, license_expiry::text,
+            address1, address2, city, country, state, zip,
+            probation_end_date::text, date_of_permanence::text,
+            contract_start_date::text, contract_end_date::text,
+            comments, supervisors, is_active
+     FROM tbl_appusers WHERE id = $1::bigint AND is_deleted = false`,
+    [id],
+  );
+
+  return rows[0];
 }
 
 async function findByEmail(email) {
