@@ -85,7 +85,8 @@ export default function EmployeeProfilePage() {
     {},
   );
   const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
-  const [originalForm, setOriginalForm] = useState<EditableEmployeeProfileForm | null>(null);
+  const [originalForm, setOriginalForm] =
+    useState<EditableEmployeeProfileForm | null>(null);
 
   useEffect(() => {
     getJobTitles()
@@ -164,20 +165,24 @@ export default function EmployeeProfilePage() {
         }
         const { data } = await getEmployee(parseInt(id));
         setEmployee(data);
-        
+
         // Map supervisor names to IDs
-        const supervisorNames = Array.isArray(data.supervisors) ? data.supervisors : [];
+        const supervisorNames = Array.isArray(data.supervisors)
+          ? data.supervisors
+          : [];
         let supervisorId = "";
-        
+
         if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
           const supervisorName = supervisorNames[0];
-          const foundSupervisor = supervisorOptions.find((s) => s.name === supervisorName);
+          const foundSupervisor = supervisorOptions.find(
+            (s) => s.name === supervisorName,
+          );
           supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
         }
-        
+
         const initialForm = employeeToEditableProfileForm(data);
         initialForm.supervisor_id = supervisorId;
-        
+
         setForm(initialForm);
         setOriginalForm({ ...initialForm });
       } catch {
@@ -245,34 +250,66 @@ export default function EmployeeProfilePage() {
   // Check if current tab has any modifications
   const hasTabChanges = () => {
     if (!form || !originalForm) return false;
-    
+
     const activeLabel = PROFILE_TABS[activeTab];
-    
+
     // Define fields for each tab
     const tabFields: Record<string, string[]> = {
       "Personal Details": [
-        "employee_id", "first_name", "middle_name", "last_name", "gender", 
-        "dob", "real_dob", "nationality", "marital_status", "blood_group",
-        "license_number", "license_expiry"
+        "employee_id",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "gender",
+        "dob",
+        "real_dob",
+        "nationality",
+        "marital_status",
+        "blood_group",
+        "license_number",
+        "license_expiry",
       ],
-      "Job": [
-        "job_title", "joined_date", "employment_status", "job_category",
-        "job_specification", "sub_unit", "supervisor_id", "location",
-        "probation_end_date", "date_of_permanence", "attendance_calc",
-        "contract_start_date", "contract_end_date", "comments"
+      Job: [
+        "job_title",
+        "joined_date",
+        "employment_status",
+        "job_category",
+        "job_specification",
+        "sub_unit",
+        "supervisor_id",
+        "location",
+        "probation_end_date",
+        "date_of_permanence",
+        "attendance_calc",
+        "contract_start_date",
+        "contract_end_date",
+        "comments",
       ],
       "Contact Details": [
-        "work_email", "other_email", "mobile", "home_tel", "work_tel",
-        "address1", "address2", "city", "state", "country", "zip"
-      ]
+        "work_email",
+        "other_email",
+        "mobile",
+        "home_tel",
+        "work_tel",
+        "address1",
+        "address2",
+        "city",
+        "state",
+        "country",
+        "zip",
+      ],
     };
 
     const fieldsToCheck = tabFields[activeLabel] || [];
-    
+
     // Check if any field in the current tab has changed
-    return fieldsToCheck.some(field => {
-      const currentValue = String(form[field as keyof EditableEmployeeProfileForm] || '').trim();
-      const originalValue = String(originalForm[field as keyof EditableEmployeeProfileForm] || '').trim();
+    return fieldsToCheck.some((field) => {
+      const currentValue = String(
+        form[field as keyof EditableEmployeeProfileForm] || "",
+      ).trim();
+      const originalValue = String(
+        originalForm[field as keyof EditableEmployeeProfileForm] || "",
+      ).trim();
       return currentValue !== originalValue;
     });
   };
@@ -312,15 +349,15 @@ export default function EmployeeProfilePage() {
       setActionMessage("");
       setValidationErrors({});
       const formData = new FormData();
-      
+
       // Exclude avatar from regular profile updates - avatar is updated separately via updateProfileImage
       Object.entries(form).forEach(([key, value]) => {
-        if (key !== 'avatar') {
-          const stringValue = String(value || '');
+        if (key !== "avatar") {
+          const stringValue = String(value || "");
           formData.append(key, stringValue.trim());
         }
       });
-      
+
       formData.append("role", employee.role || "employee");
       const supervisorsArray = form.supervisor_id ? [form.supervisor_id] : [];
       formData.append("supervisors", JSON.stringify(supervisorsArray));
@@ -328,20 +365,24 @@ export default function EmployeeProfilePage() {
 
       const { data } = await getEmployee(employee.id);
       setEmployee(data);
-      
+
       // Map supervisor names back to IDs after save
-      const supervisorNames = Array.isArray(data.supervisors) ? data.supervisors : [];
+      const supervisorNames = Array.isArray(data.supervisors)
+        ? data.supervisors
+        : [];
       let supervisorId = "";
-      
+
       if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
         const supervisorName = supervisorNames[0];
-        const foundSupervisor = supervisorOptions.find((s) => s.name === supervisorName);
+        const foundSupervisor = supervisorOptions.find(
+          (s) => s.name === supervisorName,
+        );
         supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
       }
-      
+
       const updatedForm = employeeToEditableProfileForm(data);
       updatedForm.supervisor_id = supervisorId;
-      
+
       setForm(updatedForm);
       setOriginalForm({ ...updatedForm });
       setModifiedFields(new Set());
@@ -365,7 +406,7 @@ export default function EmployeeProfilePage() {
       console.error("❌ Error details:", {
         message: (err as any)?.message,
         response: (err as any)?.response?.data,
-        status: (err as any)?.response?.status
+        status: (err as any)?.response?.status,
       });
       setActionMessage(
         getApiErrorMessage(err, "Failed to save employee details."),
@@ -756,11 +797,7 @@ export default function EmployeeProfilePage() {
   };
 
   return (
-    <Layout
-      title="Employee Profile"
-      tabs={TABS}
-      activeTab="Employee List"
-    >
+    <Layout title="Employee Profile" tabs={TABS} activeTab="Employee List">
       {actionMessage && (
         <div
           className={`mb-3.5 p-2.5 border-l-4 rounded text-sm ${

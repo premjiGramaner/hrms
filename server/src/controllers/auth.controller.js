@@ -115,15 +115,18 @@ const login = async (req, res, next) => {
 
     // Determine JWT expiry and cookie maxAge based on rememberMe
     const tokenExpiry = rememberMe ? rememberMeDuration : jwtExpiresIn; // 30d or 24h
-    const cookieMaxAge = rememberMe 
-      ? parseDuration(rememberMeDuration)  // 30 days
-      : parseDuration(jwtExpiresIn);       // 1 day
+    const cookieMaxAge = rememberMe
+      ? parseDuration(rememberMeDuration) // 30 days
+      : parseDuration(jwtExpiresIn); // 1 day
 
     if (
       timingSafeCompare(username, "admin") &&
       timingSafeCompare(password, "admin")
     ) {
-      const token = signToken({ id: 0, role: "empmanager", username: "admin" }, tokenExpiry);
+      const token = signToken(
+        { id: 0, role: "empmanager", username: "admin" },
+        tokenExpiry,
+      );
 
       // Always set cookie with appropriate expiry
       const cookieOptions = {
@@ -180,11 +183,14 @@ const login = async (req, res, next) => {
       });
     }
 
-    const token = signToken({
-      id: user.id,
-      role: user.role,
-      username: user.username,
-    }, tokenExpiry);
+    const token = signToken(
+      {
+        id: user.id,
+        role: user.role,
+        username: user.username,
+      },
+      tokenExpiry,
+    );
 
     // Always set cookie with appropriate expiry (1 day or 30 days)
     const cookieOptions = {

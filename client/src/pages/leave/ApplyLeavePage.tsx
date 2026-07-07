@@ -77,7 +77,12 @@ export default function ApplyLeavePage() {
     new Date().getMonth() >= 3 ? currentYear + 1 : currentYear;
 
   const fetchData = async () => {
-    console.log("🔍 ApplyLeavePage fetchData - user?.id:", user?.id, "user:", user);
+    console.log(
+      "🔍 ApplyLeavePage fetchData - user?.id:",
+      user?.id,
+      "user:",
+      user,
+    );
     setLoadingTypes(true);
     try {
       const [types, balances, leaveData, allLeavesData] = await Promise.all([
@@ -92,7 +97,7 @@ export default function ApplyLeavePage() {
           statuses: ["Pending Approval", "Approved", "Scheduled", "Taken"],
         }),
       ]);
-      
+
       console.log("🔍 ApplyLeavePage - fetched balances:", balances);
       setLeaveTypes(types);
       setBalances(balances as LeaveBalance[]);
@@ -241,10 +246,7 @@ export default function ApplyLeavePage() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-4">
           <div className="flex items-start gap-5 mb-6">
             {/* Reusable UserAvatar component */}
-            <UserAvatar
-              size={64}
-              className="border-2 border-white shadow"
-            />
+            <UserAvatar size={64} className="border-2 border-white shadow" />
             <div>
               <p className="font-bold text-slate-900 text-sm">
                 {user?.name || "Employee"}

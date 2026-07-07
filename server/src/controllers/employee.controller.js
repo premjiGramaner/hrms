@@ -18,12 +18,19 @@ const listEmployees = async (req, res, next) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     const search = (req.query.search || "").trim();
-    console.log('[Employee Search] page:', page, 'limit:', limit, 'search:', search);
+    console.log(
+      "[Employee Search] page:",
+      page,
+      "limit:",
+      limit,
+      "search:",
+      search,
+    );
     const result = await EmployeeModel.findAllEmployees(page, limit, search);
-    console.log('[Employee Search] result count:', result.total);
+    console.log("[Employee Search] result count:", result.total);
     return success(res, result);
   } catch (err) {
-    console.error('[Employee Search Error]', err.message, err.stack);
+    console.error("[Employee Search Error]", err.message, err.stack);
     next(err);
   }
 };

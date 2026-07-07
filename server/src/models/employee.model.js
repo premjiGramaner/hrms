@@ -31,13 +31,14 @@ async function createUniqueUsername(email, name) {
 async function findAllEmployees(page, limit = 10, search = "") {
   const offset = (page - 1) * limit;
   const searchTerm = search.trim();
-  
-  const baseWhere = "u.is_deleted = false AND (u.employment_status IS NULL OR u.employment_status != 'Terminated')";
-  
+
+  const baseWhere =
+    "u.is_deleted = false AND (u.employment_status IS NULL OR u.employment_status != 'Terminated')";
+
   // Build dynamic SQL based on whether search exists
   const values = [];
   let whereClause = baseWhere;
-  
+
   // Add search condition only if search term exists
   if (searchTerm) {
     values.push(searchTerm);
@@ -55,17 +56,22 @@ async function findAllEmployees(page, limit = 10, search = "") {
       )
     `;
   }
-  
+
   // Add pagination parameters
   values.push(limit);
   const limitIndex = values.length;
-  
+
   values.push(offset);
   const offsetIndex = values.length;
 
-  console.log('[findAllEmployees] whereClause:', whereClause);
-  console.log('[findAllEmployees] values:', values);
-  console.log('[findAllEmployees] limitIndex:', limitIndex, 'offsetIndex:', offsetIndex);
+  console.log("[findAllEmployees] whereClause:", whereClause);
+  console.log("[findAllEmployees] values:", values);
+  console.log(
+    "[findAllEmployees] limitIndex:",
+    limitIndex,
+    "offsetIndex:",
+    offsetIndex,
+  );
 
   try {
     const { rows } = await pool.query(
@@ -212,13 +218,11 @@ async function findEmployeeById(id) {
 // Helper function to convert supervisor IDs to names
 async function convertSupervisorIdsToNames(supervisors) {
   if (!supervisors) return null;
-  
+
   try {
     const parsed =
-      typeof supervisors === "string"
-        ? JSON.parse(supervisors)
-        : supervisors;
-    
+      typeof supervisors === "string" ? JSON.parse(supervisors) : supervisors;
+
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return null;
     }
@@ -227,7 +231,7 @@ async function convertSupervisorIdsToNames(supervisors) {
     const validIds = parsed
       .map((id) => parseInt(id, 10))
       .filter((id) => !isNaN(id) && id > 0);
-    
+
     if (validIds.length === 0) return null;
 
     // Fetch supervisor names from database
@@ -236,13 +240,13 @@ async function convertSupervisorIdsToNames(supervisors) {
        WHERE id = ANY($1::int[]) 
        AND is_deleted = false 
        ORDER BY name`,
-      [validIds]
+      [validIds],
     );
 
     if (rows.length === 0) return null;
 
     // Extract names and return as JSON array
-    const names = rows.map(row => row.name);
+    const names = rows.map((row) => row.name);
     return JSON.stringify(names);
   } catch {
     return null;

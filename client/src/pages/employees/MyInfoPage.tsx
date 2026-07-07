@@ -76,7 +76,8 @@ export default function MyInfoPage() {
     {},
   );
   const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
-  const [originalForm, setOriginalForm] = useState<EditableEmployeeProfileForm | null>(null);
+  const [originalForm, setOriginalForm] =
+    useState<EditableEmployeeProfileForm | null>(null);
   const [jobTitleOptions, setJobTitleOptions] = useState<string[]>([]);
   const [jobCategoryOptions, setJobCategoryOptions] = useState<
     { id: number; category: string }[]
@@ -240,8 +241,8 @@ export default function MyInfoPage() {
           return;
         }
         // Exclude avatar from regular profile updates - avatar is updated separately via updateProfileImage
-        if (key !== 'avatar') {
-          const stringValue = String(value || '');
+        if (key !== "avatar") {
+          const stringValue = String(value || "");
           formData.append(key, stringValue.trim());
         }
       });
@@ -283,34 +284,66 @@ export default function MyInfoPage() {
   // Check if current tab has any modifications
   const hasTabChanges = () => {
     if (!form || !originalForm) return false;
-    
+
     const activeLabel = PROFILE_TABS[activeTab];
-    
+
     // Define fields for each tab
     const tabFields: Record<string, string[]> = {
       "Personal Details": [
-        "employee_id", "first_name", "middle_name", "last_name", "gender", 
-        "dob", "real_dob", "nationality", "marital_status", "blood_group",
-        "license_number", "license_expiry"
+        "employee_id",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "gender",
+        "dob",
+        "real_dob",
+        "nationality",
+        "marital_status",
+        "blood_group",
+        "license_number",
+        "license_expiry",
       ],
-      "Job": [
-        "job_title", "joined_date", "employment_status", "job_category",
-        "job_specification", "sub_unit", "supervisor_id", "location",
-        "probation_end_date", "date_of_permanence", "attendance_calc",
-        "contract_start_date", "contract_end_date", "comments"
+      Job: [
+        "job_title",
+        "joined_date",
+        "employment_status",
+        "job_category",
+        "job_specification",
+        "sub_unit",
+        "supervisor_id",
+        "location",
+        "probation_end_date",
+        "date_of_permanence",
+        "attendance_calc",
+        "contract_start_date",
+        "contract_end_date",
+        "comments",
       ],
       "Contact Details": [
-        "work_email", "other_email", "mobile", "home_tel", "work_tel",
-        "address1", "address2", "city", "state", "country", "zip"
-      ]
+        "work_email",
+        "other_email",
+        "mobile",
+        "home_tel",
+        "work_tel",
+        "address1",
+        "address2",
+        "city",
+        "state",
+        "country",
+        "zip",
+      ],
     };
 
     const fieldsToCheck = tabFields[activeLabel] || [];
-    
+
     // Check if any field in the current tab has changed
-    return fieldsToCheck.some(field => {
-      const currentValue = String(form[field as keyof EditableEmployeeProfileForm] || '').trim();
-      const originalValue = String(originalForm[field as keyof EditableEmployeeProfileForm] || '').trim();
+    return fieldsToCheck.some((field) => {
+      const currentValue = String(
+        form[field as keyof EditableEmployeeProfileForm] || "",
+      ).trim();
+      const originalValue = String(
+        originalForm[field as keyof EditableEmployeeProfileForm] || "",
+      ).trim();
       return currentValue !== originalValue;
     });
   };
@@ -709,11 +742,7 @@ export default function MyInfoPage() {
   }
 
   return (
-    <Layout
-      title="Employee Profile"
-      tabs={TABS}
-      activeTab="My Info"
-    >
+    <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
       {message && (
         <div
           className={`mb-3.5 p-2.5 border-l-4 rounded text-sm ${

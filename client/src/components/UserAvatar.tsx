@@ -9,14 +9,6 @@ interface UserAvatarProps {
   showInitials?: boolean;
 }
 
-/**
- * Reusable UserAvatar component that:
- * 1. Displays the logged-in user's avatar from Redux state
- * 2. On mount, fetches latest user data to detect admin-updated avatars
- * 3. Updates Redux if avatar or name has changed
- * 4. Uses key={avatar} to force re-render when avatar changes
- * 5. Handles Base64 avatars correctly (no /uploads/ prefix)
- */
 export default function UserAvatar({
   size = 72,
   className = "",
@@ -66,7 +58,10 @@ export default function UserAvatar({
           );
         }
       } catch (error) {
-        console.error("❌ UserAvatar - Failed to fetch latest user data:", error);
+        console.error(
+          "❌ UserAvatar - Failed to fetch latest user data:",
+          error,
+        );
       } finally {
         setIsLoading(false);
       }
@@ -112,7 +107,9 @@ export default function UserAvatar({
         />
       ) : (
         showInitials && (
-          <span style={{ color: "#fff", fontSize: size / 2.77, fontWeight: 700 }}>
+          <span
+            style={{ color: "#fff", fontSize: size / 2.77, fontWeight: 700 }}
+          >
             {username.charAt(0).toUpperCase()}
           </span>
         )

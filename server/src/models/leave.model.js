@@ -142,8 +142,8 @@ function buildFilters(filters, startIndex = 1) {
   ) {
     // Handle "Scheduled" status specially
     const hasScheduled = filters.statuses.includes("Scheduled");
-    const otherStatuses = filters.statuses.filter(s => s !== "Scheduled");
-    
+    const otherStatuses = filters.statuses.filter((s) => s !== "Scheduled");
+
     if (hasScheduled && otherStatuses.length > 0) {
       // Both Scheduled and other statuses
       const placeholders = otherStatuses

@@ -160,7 +160,7 @@ export default function Layout({
                 size={72}
                 className="border-[3px] border-white shadow-[0_2px_8px_rgba(0,0,0,0.14)]"
               />
-              
+
               <div
                 className="absolute flex items-center justify-center bg-white rounded-full"
                 style={{
