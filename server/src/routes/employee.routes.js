@@ -5,6 +5,7 @@ import upload from "../services/upload.service.js";
 import { employeeSchema } from "../validators/employee.validator.js";
 import {
   listEmployees,
+  listSuperiorUsers,
   getEmployee,
   getMyInfo,
   getSupervisors,
@@ -30,6 +31,7 @@ router.get("/locations", getLocations);
 router.get("/last-employee-id", getLastEmployeeId);
 router.post("/check-email", checkEmailExists);
 router.post("/check-employee-id", checkEmployeeIdExists);
+router.get("/superiors", listSuperiorUsers);
 router.get("/", listEmployees);
 router.get("/:id", getEmployee);
 router.post(

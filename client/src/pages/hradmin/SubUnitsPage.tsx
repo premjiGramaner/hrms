@@ -57,7 +57,6 @@ export default function SubUnitsPage() {
       subUnitList.filter(
         (su) =>
           su.sub_unit_name.toLowerCase().includes(term) ||
-          (su.supervisor_name || "").toLowerCase().includes(term) ||
           (su.description || "").toLowerCase().includes(term),
       ),
     );
@@ -136,14 +135,14 @@ export default function SubUnitsPage() {
               height: 36,
               borderRadius: 10,
               flexShrink: 0,
-              background: "linear-gradient(135deg,#0369a1,#0ea5e9)",
+              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "#fff",
               fontSize: 13,
               fontWeight: 700,
-              boxShadow: "0 2px 8px rgba(3,105,161,0.2)",
+              boxShadow: "0 2px 8px rgba(27,42,107,0.2)",
             }}
           >
             {row.sub_unit_name.charAt(0).toUpperCase()}
@@ -193,7 +192,7 @@ export default function SubUnitsPage() {
           </div>
         ) : (
           <span
-            style={{ color: "#cbd5e1", fontSize: 12.5, fontStyle: "italic" }}
+            style={{ fontSize: 12.5, color: "#94a3b8", fontStyle: "italic" }}
           >
             No supervisor
           </span>
@@ -328,7 +327,7 @@ export default function SubUnitsPage() {
         icon="🏢"
         rows={pagedList}
         isLoading={isLoading}
-        columns={columns}
+        columns={columns.filter((column) => column.key !== "supervisor_name")}
         actions={actions}
         getKey={(row) => row.id}
         emptyIcon="🏢"
@@ -340,7 +339,7 @@ export default function SubUnitsPage() {
             ? "Try a different search term"
             : "Click 'Add Sub Unit' to create one"
         }
-        stats={stats}
+        stats={stats.filter((stat) => stat.label !== "With Supervisor")}
         currentPage={currentPage}
         totalPages={totalPages}
         totalRecords={filteredList.length}
@@ -491,7 +490,7 @@ function SubUnitFormModal({
         <div
           style={{
             padding: "22px 26px 18px",
-            background: "linear-gradient(135deg,#0369a1,#0ea5e9)",
+            background: "linear-gradient(135deg,#1b2a6b,#16a085)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -596,7 +595,7 @@ function SubUnitFormModal({
               }}
               placeholder="e.g. Delivery – IT Services"
               style={inputStyle}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#0369a1")}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#1b2a6b")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
             />
           </div>
@@ -612,7 +611,7 @@ function SubUnitFormModal({
               onChange={(e) => setSupervisorName(e.target.value)}
               placeholder="e.g. John Smith"
               style={inputStyle}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#0369a1")}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#1b2a6b")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
             />
             <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
@@ -637,7 +636,7 @@ function SubUnitFormModal({
                 resize: "vertical",
                 fontFamily: "inherit",
               }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#0369a1")}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#1b2a6b")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
             />
           </div>
@@ -732,14 +731,14 @@ function SubUnitFormModal({
                 border: "none",
                 background: isSaving
                   ? "#94a3b8"
-                  : "linear-gradient(135deg,#0369a1,#0ea5e9)",
+                  : "linear-gradient(135deg,#1b2a6b,#16a085)",
                 color: "#fff",
                 fontSize: 13.5,
                 fontWeight: 700,
                 cursor: isSaving ? "not-allowed" : "pointer",
                 boxShadow: isSaving
                   ? "none"
-                  : "0 2px 10px rgba(3,105,161,0.25)",
+                  : "0 2px 10px rgba(27,42,107,0.25)",
               }}
             >
               {isSaving

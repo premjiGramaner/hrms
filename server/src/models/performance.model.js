@@ -1,0 +1,1269 @@
+import { randomUUID } from "crypto";
+import pool from "../config/db.js";
+import {
+  defaultAppraisalRatingType,
+  defaultPerformanceEvaluationHeader,
+} from "../config/performance.config.js";
+import appraisalTemplateSeed from "../data/appraisalTemplateSeed.js";
+
+let schemaPromise = null;
+let seedPromise = null;
+
+const toSlug = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+const compact = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+
+const toDate = (value) =>
+  value ? new Date(value).toISOString().slice(0, 10) : "";
+const toNumber = (value, fallback = 0) =>
+  Number.isFinite(Number(value)) ? Number(value) : fallback;
+const normalizeLookup = (value) => compact(value);
+
+const displayTextFor = (question) =>
+  question.displayText ||
+  `${question.category}_${question.title}_${question.description || ""}`;
+
+function parseSupervisors(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "object") return [value];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return String(value)
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+}
+
+function getSupervisorKey(item) {
+  if (!item) return "";
+  if (typeof item === "string") return item.trim();
+  return String(
+    item.name ||
+      item.employeeName ||
+      item.username ||
+      item.email ||
+      item.employee_id ||
+      item.employeeId ||
+      item.id ||
+      "",
+  ).trim();
+}
+
+function matchSupervisorUser(supervisor, supervisorUsers = []) {
+  const rawKey = getSupervisorKey(supervisor);
+  const idKey =
+    typeof supervisor === "object"
+      ? supervisor.id || supervisor.employee_id || supervisor.employeeId
+      : "";
+  if (idKey && /^\d+$/.test(String(idKey))) {
+    const byId = supervisorUsers.find(
+      (user) => String(user.id) === String(idKey),
+    );
+    if (byId) return byId;
+  }
+
+  const key = normalizeLookup(rawKey);
+  if (!key) return null;
+  return (
+    supervisorUsers.find((user) => {
+      const possibleValues = [
+        user.name,
+        user.username,
+        user.email,
+        user.employee_id,
+        user.first_name && user.last_name
+          ? `${user.first_name} ${user.last_name}`
+          : "",
+      ];
+      return possibleValues.some((value) => {
+        const normalized = normalizeLookup(value);
+        return (
+          normalized &&
+          (normalized === key ||
+            normalized.includes(key) ||
+            key.includes(normalized))
+        );
+      });
+    }) || null
+  );
+}
+
+async function ensurePerformanceSchema() {
+  if (schemaPromise) return schemaPromise;
+  schemaPromise = (async () => {
+    await pool.query(`
+    CREATE TABLE IF NOT EXISTS appraisal_templates (
+      id TEXT PRIMARY KEY,
+      job_title TEXT NOT NULL,
+      template_name TEXT NOT NULL,
+      description TEXT,
+      weight NUMERIC(8, 2) NOT NULL DEFAULT 100,
+      header TEXT,
+      is_default BOOLEAN NOT NULL DEFAULT FALSE,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS appraisal_template_sections (
+      id TEXT PRIMARY KEY,
+      template_id TEXT NOT NULL REFERENCES appraisal_templates(id) ON DELETE CASCADE,
+      name TEXT NOT NULL DEFAULT 'KPIs',
+      weight NUMERIC(8, 2) NOT NULL DEFAULT 100,
+      display_order INTEGER NOT NULL DEFAULT 1,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS appraisal_template_kpis (
+      id TEXT PRIMARY KEY,
+      section_id TEXT NOT NULL REFERENCES appraisal_template_sections(id) ON DELETE CASCADE,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      display_text TEXT NOT NULL,
+      weight NUMERIC(8, 2) DEFAULT 0,
+      display_order INTEGER NOT NULL,
+      mandatory BOOLEAN NOT NULL DEFAULT TRUE,
+      rating_type TEXT NOT NULL DEFAULT '${defaultAppraisalRatingType.replace(/'/g, "''")}',
+      comments_required BOOLEAN NOT NULL DEFAULT FALSE,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS appraisal_cycles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      location TEXT NOT NULL DEFAULT 'All',
+      from_date DATE NOT NULL,
+      to_date DATE NOT NULL,
+      due_date DATE NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Created',
+      template_id TEXT NOT NULL REFERENCES appraisal_templates(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS appraisal_cycle_employees (
+      cycle_id TEXT NOT NULL REFERENCES appraisal_cycles(id) ON DELETE CASCADE,
+      employee_id BIGINT NOT NULL REFERENCES tbl_appusers(id) ON DELETE CASCADE,
+      main_evaluator_id BIGINT REFERENCES tbl_appusers(id),
+      status TEXT NOT NULL DEFAULT 'Not Created',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (cycle_id, employee_id)
+    );
+    CREATE TABLE IF NOT EXISTS appraisals (
+      id TEXT PRIMARY KEY,
+      cycle_id TEXT NOT NULL REFERENCES appraisal_cycles(id) ON DELETE CASCADE,
+      template_id TEXT NOT NULL REFERENCES appraisal_templates(id),
+      employee_id BIGINT NOT NULL REFERENCES tbl_appusers(id) ON DELETE CASCADE,
+      main_evaluator_id BIGINT REFERENCES tbl_appusers(id),
+      from_date DATE NOT NULL,
+      to_date DATE NOT NULL,
+      due_date DATE NOT NULL,
+      description TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'INITIATED',
+      self_weight NUMERIC(8, 2) NOT NULL DEFAULT 50,
+      supervisor_weight NUMERIC(8, 2) NOT NULL DEFAULT 50,
+      self_rating NUMERIC(8, 2) NOT NULL DEFAULT 0,
+      supervisor_rating NUMERIC(8, 2) NOT NULL DEFAULT 0,
+      self_submitted BOOLEAN NOT NULL DEFAULT FALSE,
+      supervisor_submitted BOOLEAN NOT NULL DEFAULT FALSE,
+      review_progress INTEGER NOT NULL DEFAULT 0,
+      final_rating NUMERIC(8, 2),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (cycle_id, employee_id)
+    );
+    CREATE TABLE IF NOT EXISTS appraisal_ratings (
+      id BIGSERIAL PRIMARY KEY,
+      appraisal_id TEXT NOT NULL REFERENCES appraisals(id) ON DELETE CASCADE,
+      question_id TEXT NOT NULL REFERENCES appraisal_template_kpis(id) ON DELETE CASCADE,
+      reviewer_type TEXT NOT NULL CHECK (reviewer_type IN ('self', 'supervisor')),
+      score NUMERIC(8, 2) NOT NULL DEFAULT 0,
+      comment TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (appraisal_id, question_id, reviewer_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_appraisal_templates_job_title ON appraisal_templates (LOWER(TRIM(job_title)));
+    CREATE INDEX IF NOT EXISTS idx_appraisal_template_sections_template ON appraisal_template_sections (template_id);
+    CREATE INDEX IF NOT EXISTS idx_appraisal_template_kpis_section ON appraisal_template_kpis (section_id, display_order);
+    CREATE INDEX IF NOT EXISTS idx_appraisal_cycles_status ON appraisal_cycles (status);
+    CREATE INDEX IF NOT EXISTS idx_appraisals_employee ON appraisals (employee_id);
+    CREATE INDEX IF NOT EXISTS idx_appraisals_evaluator ON appraisals (main_evaluator_id);
+    `);
+    await pool.query(`
+      ALTER TABLE appraisal_template_kpis
+      DROP CONSTRAINT IF EXISTS appraisal_template_kpis_section_id_display_order_key
+    `);
+  })();
+  return schemaPromise;
+}
+
+function normalizeEmployee(row, supervisorUsers = []) {
+  const supervisorEntries = parseSupervisors(row.supervisors);
+  const supervisors = supervisorEntries.map((entry) => {
+    const name = getSupervisorKey(entry);
+    const matchedUser = matchSupervisorUser(entry, supervisorUsers);
+    return {
+      id: matchedUser?.id ? String(matchedUser.id) : toSlug(name),
+      name: matchedUser?.name || name,
+      role: matchedUser?.job_title || "Supervisor",
+      employeeId: matchedUser?.employee_id || null,
+      jobTitle: matchedUser?.job_title || null,
+      avatar: matchedUser?.avatar || null,
+    };
+  });
+
+  return {
+    id: String(row.id),
+    employeeId: row.employee_id || String(row.id),
+    name: row.name,
+    jobTitle: row.job_title || "",
+    subUnit: row.sub_unit || "",
+    location: row.location || "",
+    employmentStatus: row.employment_status || row.status || "",
+    avatar: row.avatar || null,
+    supervisors,
+  };
+}
+
+async function getSupervisorUsers() {
+  const { rows } = await pool.query(
+    `SELECT id::int, employee_id, username, email, first_name, last_name, name, job_title, avatar
+     FROM tbl_appusers
+     WHERE is_deleted = false AND name IS NOT NULL`,
+  );
+  return rows;
+}
+
+async function findEmployees({
+  page = 1,
+  limit = 100,
+  search = "",
+  location = "",
+  subUnit = "",
+  jobTitle = "",
+  employmentStatus = "",
+} = {}) {
+  await ensurePerformanceSchema();
+  const offset = (page - 1) * limit;
+  const filters = [
+    "is_deleted = false",
+    "(employment_status IS NULL OR employment_status != 'Terminated')",
+  ];
+  const values = [];
+
+  const pushFilter = (sql, value) => {
+    values.push(value);
+    filters.push(sql.replace("?", `$${values.length}`));
+  };
+
+  if (search) {
+    values.push(`%${search}%`, `%${search}%`);
+    filters.push(
+      `(name ILIKE $${values.length - 1} OR employee_id ILIKE $${values.length})`,
+    );
+  }
+  if (location && location !== "All") pushFilter("location = ?", location);
+  if (subUnit) pushFilter("sub_unit = ?", subUnit);
+  if (jobTitle) pushFilter("job_title ILIKE ?", `%${jobTitle}%`);
+  if (employmentStatus)
+    pushFilter("employment_status ILIKE ?", `%${employmentStatus}%`);
+
+  const where = filters.join(" AND ");
+  const supervisorUsers = await getSupervisorUsers();
+  const { rows } = await pool.query(
+    `SELECT id::int, employee_id, name, status, avatar, job_title, employment_status,
+            sub_unit, location, supervisors
+     FROM tbl_appusers
+     WHERE ${where}
+     ORDER BY name ASC
+     LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+    [...values, limit, offset],
+  );
+  const { rows: countRows } = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM tbl_appusers WHERE ${where}`,
+    values,
+  );
+
+  return {
+    data: rows.map((row) => normalizeEmployee(row, supervisorUsers)),
+    total: countRows[0]?.count || 0,
+    page,
+    totalPages: Math.ceil((countRows[0]?.count || 0) / limit),
+  };
+}
+
+async function seedTemplatesIfEmpty() {
+  await ensurePerformanceSchema();
+  const { rows } = await pool.query(
+    "SELECT COUNT(*)::int AS count FROM appraisal_templates",
+  );
+  if ((rows[0]?.count || 0) > 0) return;
+  if (seedPromise) return seedPromise;
+
+  seedPromise = (async () => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      for (const template of appraisalTemplateSeed) {
+        await client.query(
+          `INSERT INTO appraisal_templates (id, job_title, template_name, description, weight, header, is_default)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (id) DO NOTHING`,
+          [
+            template.id,
+            template.jobTitle,
+            template.templateName,
+            template.description || "",
+            template.weight || 100,
+            template.header || defaultPerformanceEvaluationHeader,
+            Boolean(template.isDefault),
+          ],
+        );
+        for (const [sectionIndex, section] of (
+          template.sections || []
+        ).entries()) {
+          await client.query(
+            `INSERT INTO appraisal_template_sections (id, template_id, name, weight, display_order)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (id) DO NOTHING`,
+            [
+              section.id,
+              template.id,
+              section.name || "KPIs",
+              section.weight || 100,
+              sectionIndex + 1,
+            ],
+          );
+          for (const [questionIndex, question] of (
+            section.questions || []
+          ).entries()) {
+            await client.query(
+              `INSERT INTO appraisal_template_kpis
+                (id, section_id, category, title, description, display_text, weight, display_order, mandatory, rating_type, comments_required)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+               ON CONFLICT (id) DO NOTHING`,
+              [
+                question.id,
+                section.id,
+                question.category || "General",
+                question.title,
+                question.description || "",
+                displayTextFor(question),
+                question.weight || 0,
+                question.order || questionIndex + 1,
+                question.mandatory ?? true,
+                question.ratingType || defaultAppraisalRatingType,
+                question.commentsRequired ?? false,
+              ],
+            );
+          }
+        }
+      }
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+      seedPromise = null;
+    }
+  })();
+
+  return seedPromise;
+}
+
+function mapTemplateRows(templateRows, sectionRows, questionRows) {
+  const sectionMap = new Map();
+  sectionRows.forEach((section) => {
+    sectionMap.set(section.id, {
+      id: section.id,
+      name: section.name,
+      weight: toNumber(section.weight, 100),
+      questions: [],
+    });
+  });
+  questionRows.forEach((question) => {
+    const section = sectionMap.get(question.section_id);
+    if (!section) return;
+    section.questions.push({
+      id: question.id,
+      category: question.category,
+      title: question.title,
+      description: question.description || "",
+      displayText: question.display_text,
+      order: question.display_order,
+      weight: toNumber(question.weight, 0),
+      mandatory: question.mandatory,
+      ratingType: question.rating_type,
+      commentsRequired: question.comments_required,
+    });
+  });
+
+  return templateRows.map((template) => ({
+    id: template.id,
+    jobTitle: template.job_title,
+    templateName: template.template_name,
+    description: template.description || "",
+    weight: toNumber(template.weight, 100),
+    header: template.header || "",
+    isDefault: template.is_default,
+    sections: sectionRows
+      .filter((section) => section.template_id === template.id)
+      .sort((a, b) => a.display_order - b.display_order)
+      .map((section) => {
+        const mapped = sectionMap.get(section.id);
+        return {
+          ...mapped,
+          questions: mapped.questions.sort((a, b) => a.order - b.order),
+        };
+      }),
+  }));
+}
+
+async function listTemplates() {
+  await seedTemplatesIfEmpty();
+  const [templates, sections, questions] = await Promise.all([
+    pool.query(
+      "SELECT * FROM appraisal_templates WHERE is_active = true ORDER BY template_name ASC",
+    ),
+    pool.query(
+      "SELECT * FROM appraisal_template_sections ORDER BY display_order ASC",
+    ),
+    pool.query(
+      "SELECT * FROM appraisal_template_kpis WHERE is_active = true ORDER BY display_order ASC",
+    ),
+  ]);
+  return mapTemplateRows(templates.rows, sections.rows, questions.rows);
+}
+
+async function findTemplateById(id) {
+  await seedTemplatesIfEmpty();
+  const templates = await pool.query(
+    "SELECT * FROM appraisal_templates WHERE id = $1 AND is_active = true",
+    [id],
+  );
+  if (templates.rows.length === 0) return null;
+  const sections = await pool.query(
+    "SELECT * FROM appraisal_template_sections WHERE template_id = $1 ORDER BY display_order ASC",
+    [id],
+  );
+  const sectionIds = sections.rows.map((section) => section.id);
+  const questions = sectionIds.length
+    ? await pool.query(
+        "SELECT * FROM appraisal_template_kpis WHERE section_id = ANY($1::text[]) AND is_active = true ORDER BY display_order ASC",
+        [sectionIds],
+      )
+    : { rows: [] };
+  return mapTemplateRows(templates.rows, sections.rows, questions.rows)[0];
+}
+
+async function findTemplateByJobTitle(jobTitle) {
+  const templates = await listTemplates();
+  const normalized = String(jobTitle || "").toLowerCase();
+  return (
+    templates.find(
+      (template) => template.jobTitle.toLowerCase() === normalized,
+    ) ||
+    templates.find((template) =>
+      normalized.includes(template.jobTitle.toLowerCase()),
+    ) ||
+    templates[0] ||
+    null
+  );
+}
+
+async function createTemplate(data) {
+  await seedTemplatesIfEmpty();
+  const baseId = toSlug(`${data.jobTitle}-${data.templateName}`) || "template";
+  const id = data.id || `${baseId}-${Date.now().toString(36)}`;
+  const sectionId = `${id}-kpis`;
+  await pool.query(
+    `INSERT INTO appraisal_templates (id, job_title, template_name, description, weight, header, is_default)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      id,
+      data.jobTitle,
+      data.templateName,
+      data.description || "",
+      data.weight || 100,
+      data.header || defaultPerformanceEvaluationHeader,
+      Boolean(data.isDefault),
+    ],
+  );
+  await pool.query(
+    `INSERT INTO appraisal_template_sections (id, template_id, name, weight, display_order)
+     VALUES ($1, $2, 'KPIs', $3, 1)`,
+    [sectionId, id, data.weight || 100],
+  );
+  return findTemplateById(id);
+}
+
+async function updateTemplate(id, data) {
+  await seedTemplatesIfEmpty();
+  await pool.query(
+    `UPDATE appraisal_templates
+     SET job_title = COALESCE($2, job_title),
+         template_name = COALESCE($3, template_name),
+         description = COALESCE($4, description),
+         weight = COALESCE($5, weight),
+         header = COALESCE($6, header),
+         is_default = COALESCE($7, is_default),
+         updated_at = NOW()
+     WHERE id = $1`,
+    [
+      id,
+      data.jobTitle,
+      data.templateName,
+      data.description,
+      data.weight,
+      data.header,
+      data.isDefault,
+    ],
+  );
+  return findTemplateById(id);
+}
+
+async function cloneTemplate(id) {
+  const template = await findTemplateById(id);
+  if (!template) return null;
+  const client = await pool.connect();
+  const cloneId = `${template.id}-copy-${randomUUID()}`;
+
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `INSERT INTO appraisal_templates (id, job_title, template_name, description, weight, header, is_default)
+       VALUES ($1, $2, $3, $4, $5, $6, false)`,
+      [
+        cloneId,
+        template.jobTitle,
+        `${template.templateName} Copy`,
+        template.description || "",
+        template.weight || 100,
+        template.header || defaultPerformanceEvaluationHeader,
+      ],
+    );
+
+    for (const [sectionIndex, section] of template.sections.entries()) {
+      const sectionId = `${cloneId}-section-${sectionIndex + 1}-${randomUUID()}`;
+      await client.query(
+        `INSERT INTO appraisal_template_sections (id, template_id, name, weight, display_order)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          sectionId,
+          cloneId,
+          section.name || "KPIs",
+          section.weight || 100,
+          sectionIndex + 1,
+        ],
+      );
+
+      for (const question of section.questions) {
+        await client.query(
+          `INSERT INTO appraisal_template_kpis
+            (id, section_id, category, title, description, display_text, weight, display_order, mandatory, rating_type, comments_required)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [
+            `${cloneId}-kpi-${randomUUID()}`,
+            sectionId,
+            question.category || "General",
+            question.title,
+            question.description || "",
+            displayTextFor(question),
+            question.weight || 0,
+            question.order || 1,
+            question.mandatory ?? true,
+            question.ratingType || defaultAppraisalRatingType,
+            question.commentsRequired ?? false,
+          ],
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  return findTemplateById(cloneId);
+}
+
+async function deleteTemplate(id) {
+  await pool.query(
+    "UPDATE appraisal_templates SET is_active = false, updated_at = NOW() WHERE id = $1",
+    [id],
+  );
+  return { id };
+}
+
+async function createTemplateKpi(templateId, data) {
+  const template = await findTemplateById(templateId);
+  if (!template) return null;
+  const section = template.sections[0];
+  const nextOrder = data.order || section.questions.length + 1;
+  const id = data.id || `${templateId}-kpi-${randomUUID()}`;
+  await pool.query(
+    `INSERT INTO appraisal_template_kpis
+      (id, section_id, category, title, description, display_text, weight, display_order, mandatory, rating_type, comments_required)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      id,
+      data.sectionId || section.id,
+      data.category,
+      data.title,
+      data.description || "",
+      displayTextFor(data),
+      data.weight || 0,
+      nextOrder,
+      data.mandatory ?? true,
+      data.ratingType || defaultAppraisalRatingType,
+      data.commentsRequired ?? false,
+    ],
+  );
+  return findTemplateById(templateId);
+}
+
+async function updateTemplateKpi(templateId, questionId, data) {
+  await pool.query(
+    `UPDATE appraisal_template_kpis
+     SET category = COALESCE($3, category),
+         title = COALESCE($4, title),
+         description = COALESCE($5, description),
+         display_text = COALESCE($6, display_text),
+         weight = COALESCE($7, weight),
+         display_order = COALESCE($8, display_order),
+         mandatory = COALESCE($9, mandatory),
+         rating_type = COALESCE($10, rating_type),
+         comments_required = COALESCE($11, comments_required),
+         updated_at = NOW()
+     WHERE id = $2
+       AND section_id IN (SELECT id FROM appraisal_template_sections WHERE template_id = $1)`,
+    [
+      templateId,
+      questionId,
+      data.category,
+      data.title,
+      data.description,
+      data.category || data.title || data.description
+        ? displayTextFor(data)
+        : data.displayText,
+      data.weight,
+      data.order,
+      data.mandatory,
+      data.ratingType,
+      data.commentsRequired,
+    ],
+  );
+  return findTemplateById(templateId);
+}
+
+async function deleteTemplateKpi(templateId, questionId) {
+  await pool.query(
+    `UPDATE appraisal_template_kpis
+     SET is_active = false, updated_at = NOW()
+     WHERE id = $2
+       AND section_id IN (SELECT id FROM appraisal_template_sections WHERE template_id = $1)`,
+    [templateId, questionId],
+  );
+  return findTemplateById(templateId);
+}
+
+async function getEmployeeById(id) {
+  const employees = await findEmployees({ limit: 1000 });
+  return employees.data.find((employee) => employee.id === String(id)) || null;
+}
+
+async function resolveMainEvaluatorId(employee) {
+  const supervisor = employee?.supervisors?.find((item) =>
+    /^\d+$/.test(String(item.id)),
+  );
+  return supervisor ? Number(supervisor.id) : null;
+}
+
+function resolveMainEvaluator(employee, storedEvaluator) {
+  if (storedEvaluator) return storedEvaluator;
+  const supervisor = employee?.supervisors?.find((item) =>
+    /^\d+$/.test(String(item.id)),
+  );
+  return supervisor
+    ? {
+        id: supervisor.id,
+        name: supervisor.name,
+        role: supervisor.jobTitle || supervisor.role || "Supervisor",
+        avatar: supervisor.avatar || null,
+      }
+    : null;
+}
+
+async function mapCycle(row, includeEmployees = true) {
+  const cycle = {
+    id: row.id,
+    name: row.name,
+    location: row.location,
+    fromDate: toDate(row.from_date),
+    toDate: toDate(row.to_date),
+    dueDate: toDate(row.due_date),
+    status: row.status,
+    templateId: row.template_id,
+    employeeIds: [],
+    employees: [],
+  };
+  if (!includeEmployees) return cycle;
+
+  const { rows } = await pool.query(
+    `SELECT ace.employee_id, ace.main_evaluator_id, ace.status
+     FROM appraisal_cycle_employees ace
+     WHERE ace.cycle_id = $1
+     ORDER BY ace.created_at ASC`,
+    [row.id],
+  );
+  cycle.employeeIds = rows.map((item) => String(item.employee_id));
+  const employees = await Promise.all(
+    rows.map((item) => getEmployeeById(item.employee_id)),
+  );
+  const evaluators = await Promise.all(
+    rows.map((item) =>
+      item.main_evaluator_id ? getEmployeeById(item.main_evaluator_id) : null,
+    ),
+  );
+  cycle.employees = employees.filter(Boolean).map((employee, index) => {
+    const storedEvaluator = evaluators[index]
+      ? {
+          id: evaluators[index].id,
+          name: evaluators[index].name,
+          role: evaluators[index].jobTitle || "Supervisor",
+          avatar: evaluators[index].avatar,
+        }
+      : null;
+    const evaluator = resolveMainEvaluator(employee, storedEvaluator);
+    return {
+      ...employee,
+      mainEvaluator: evaluator,
+      evaluators: [evaluator].filter(Boolean),
+      status: rows[index].status,
+    };
+  });
+  return cycle;
+}
+
+async function listCycles() {
+  await seedTemplatesIfEmpty();
+  const { rows } = await pool.query(
+    "SELECT * FROM appraisal_cycles ORDER BY created_at DESC",
+  );
+  return Promise.all(rows.map((row) => mapCycle(row, false)));
+}
+
+async function createCycle(data) {
+  await seedTemplatesIfEmpty();
+  const template = await findTemplateById(data.templateId);
+  if (!template) throw new Error("Template not found");
+  const id = data.id || `cycle-${Date.now().toString(36)}`;
+  await pool.query(
+    `INSERT INTO appraisal_cycles (id, name, location, from_date, to_date, due_date, status, template_id)
+     VALUES ($1, $2, $3, $4, $5, $6, 'Created', $7)`,
+    [
+      id,
+      data.name,
+      data.location || "All",
+      data.fromDate,
+      data.toDate,
+      data.dueDate,
+      template.id,
+    ],
+  );
+  return findCycle(id);
+}
+
+async function findCycle(id) {
+  await seedTemplatesIfEmpty();
+  const { rows } = await pool.query(
+    "SELECT * FROM appraisal_cycles WHERE id = $1",
+    [id],
+  );
+  if (!rows[0]) return null;
+  return mapCycle(rows[0], true);
+}
+
+async function addEmployeesToCycle(cycleId, employeeIds = []) {
+  const cycle = await findCycle(cycleId);
+  if (!cycle) return null;
+  const uniqueIds = [...new Set(employeeIds.map(String).filter(Boolean))];
+  for (const id of uniqueIds) {
+    const employee = await getEmployeeById(id);
+    if (!employee) continue;
+    const evaluatorId = await resolveMainEvaluatorId(employee);
+    await pool.query(
+      `INSERT INTO appraisal_cycle_employees (cycle_id, employee_id, main_evaluator_id, status)
+       VALUES ($1, $2, $3, 'Not Created')
+       ON CONFLICT (cycle_id, employee_id) DO UPDATE
+       SET main_evaluator_id = EXCLUDED.main_evaluator_id, updated_at = NOW()`,
+      [cycleId, Number(id), evaluatorId],
+    );
+  }
+  return findCycle(cycleId);
+}
+
+async function removeEmployeeFromCycle(cycleId, employeeId) {
+  await pool.query(
+    "DELETE FROM appraisal_cycle_employees WHERE cycle_id = $1 AND employee_id = $2",
+    [cycleId, employeeId],
+  );
+  await pool.query(
+    "DELETE FROM appraisals WHERE cycle_id = $1 AND employee_id = $2",
+    [cycleId, employeeId],
+  );
+  return findCycle(cycleId);
+}
+
+async function deleteCycle(cycleId) {
+  const cycle = await findCycle(cycleId);
+  if (!cycle) return null;
+  await pool.query("DELETE FROM appraisal_cycles WHERE id = $1", [cycleId]);
+  return cycle;
+}
+
+async function updateCycleStatus(cycleId, status) {
+  await pool.query(
+    "UPDATE appraisal_cycles SET status = $2, updated_at = NOW() WHERE id = $1",
+    [cycleId, status],
+  );
+  return findCycle(cycleId);
+}
+
+async function getCycleCompletionSummary(cycleId) {
+  const { rows } = await pool.query(
+    `SELECT
+       COUNT(*)::int AS total,
+       COUNT(*) FILTER (WHERE status = 'COMPLETED')::int AS completed
+     FROM appraisals
+     WHERE cycle_id = $1`,
+    [cycleId],
+  );
+  const total = rows[0]?.total || 0;
+  const completed = rows[0]?.completed || 0;
+  return {
+    total,
+    completed,
+    incomplete: Math.max(total - completed, 0),
+    canClose: total > 0 && total === completed,
+  };
+}
+
+async function autoAssignEmployeesToCycle(cycleId) {
+  const cycle = await findCycle(cycleId);
+  if (!cycle) return null;
+  const template = await findTemplateById(cycle.templateId);
+  const employeeResult = await findEmployees({
+    limit: 1000,
+    location: cycle.location,
+  });
+  const templateJob = compact(template?.jobTitle);
+  const matchingEmployees = employeeResult.data.filter((employee) => {
+    const employeeJob = compact(employee.jobTitle);
+    return (
+      employeeJob === templateJob ||
+      employeeJob.includes(templateJob) ||
+      templateJob.includes(employeeJob)
+    );
+  });
+  const selectedEmployees =
+    matchingEmployees.length > 0 ? matchingEmployees : employeeResult.data;
+  return addEmployeesToCycle(
+    cycleId,
+    selectedEmployees.map((employee) => employee.id),
+  );
+}
+
+async function createAppraisalsForCycle(cycleId) {
+  const cycle = await findCycle(cycleId);
+  if (!cycle) return null;
+  for (const employee of cycle.employees || []) {
+    const appraisalId = `appraisal-${cycle.id}-${employee.id}`;
+    await pool.query(
+      `INSERT INTO appraisals
+        (id, cycle_id, template_id, employee_id, main_evaluator_id, from_date, to_date, due_date, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (cycle_id, employee_id) DO UPDATE
+       SET main_evaluator_id = COALESCE(EXCLUDED.main_evaluator_id, appraisals.main_evaluator_id),
+           template_id = EXCLUDED.template_id,
+           from_date = EXCLUDED.from_date,
+           to_date = EXCLUDED.to_date,
+           due_date = EXCLUDED.due_date,
+           description = EXCLUDED.description,
+           updated_at = NOW()`,
+      [
+        appraisalId,
+        cycle.id,
+        cycle.templateId,
+        Number(employee.id),
+        employee.mainEvaluator?.id &&
+        /^\d+$/.test(String(employee.mainEvaluator.id))
+          ? Number(employee.mainEvaluator.id)
+          : null,
+        cycle.fromDate,
+        cycle.toDate,
+        cycle.dueDate,
+        `${cycle.name} - ${employee.name}`,
+      ],
+    );
+  }
+  await pool.query(
+    "UPDATE appraisal_cycle_employees SET status = 'Created', updated_at = NOW() WHERE cycle_id = $1",
+    [cycleId],
+  );
+  await pool.query(
+    "UPDATE appraisal_cycles SET status = 'Activated', updated_at = NOW() WHERE id = $1",
+    [cycleId],
+  );
+  return listAppraisals({ cycleId });
+}
+
+async function ensureDefaultPerformanceData() {
+  await seedTemplatesIfEmpty();
+}
+
+function mapAppraisalRow(row) {
+  return {
+    id: row.id,
+    cycleId: row.cycle_id ? String(row.cycle_id) : null,
+    employeeId: String(row.employee_id),
+    employeeName: row.employee_name,
+    from: toDate(row.from_date),
+    to: toDate(row.to_date),
+    dueDate: toDate(row.due_date),
+    description: row.description,
+    status: row.status,
+    reviewProgress: Number(row.review_progress || 0),
+    finalRating: row.final_rating === null ? null : toNumber(row.final_rating),
+  };
+}
+
+async function listAppraisals({
+  userId,
+  onlyMine = false,
+  cycleId,
+  from,
+  to,
+  status,
+} = {}) {
+  await seedTemplatesIfEmpty();
+  const filters = ["1 = 1"];
+  const values = [];
+
+  const push = (val) => {
+    values.push(val);
+    return `$${values.length}`;
+  };
+
+  if (onlyMine && userId) {
+    const p1 = push(Number(userId));
+    const p2 = push(Number(userId));
+    filters.push(`(a.employee_id = ${p1} OR a.main_evaluator_id = ${p2})`);
+  }
+  if (cycleId && cycleId !== "open") {
+    filters.push(`a.cycle_id = ${push(cycleId)}`);
+  }
+  if (cycleId === "open") {
+    filters.push(
+      `a.cycle_id IN (SELECT id FROM appraisal_cycles WHERE status NOT IN ('Completed', 'Closed'))`,
+    );
+  }
+  // Overlap: show appraisals whose period intersects the selected range
+  if (from) {
+    filters.push(`a.to_date >= ${push(from)}::date`);
+  }
+  if (to) {
+    filters.push(`a.from_date <= ${push(to)}::date`);
+  }
+  if (status) {
+    const statuses = status
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (statuses.length > 0) {
+      filters.push(`a.status = ANY(${push(statuses)}::text[])`);
+    }
+  }
+
+  const { rows } = await pool.query(
+    `SELECT a.*, u.name AS employee_name
+     FROM appraisals a
+     JOIN tbl_appusers u ON u.id = a.employee_id
+     WHERE ${filters.join(" AND ")}
+     ORDER BY a.created_at DESC`,
+    values,
+  );
+  return rows.map(mapAppraisalRow);
+}
+
+async function listSupervisorAppraisals({
+  userId,
+  cycleId,
+  from,
+  to,
+  status,
+} = {}) {
+  await seedTemplatesIfEmpty();
+  const filters = ["a.main_evaluator_id = $1"];
+  const values = [Number(userId)];
+
+  const push = (val) => {
+    values.push(val);
+    return `$${values.length}`;
+  };
+
+  if (cycleId && cycleId !== "open") {
+    filters.push(`a.cycle_id = ${push(cycleId)}`);
+  }
+  if (cycleId === "open") {
+    filters.push(
+      `a.cycle_id IN (SELECT id FROM appraisal_cycles WHERE status NOT IN ('Completed', 'Closed'))`,
+    );
+  }
+  // Overlap: show appraisals whose period intersects the selected range
+  if (from) {
+    filters.push(`a.to_date >= ${push(from)}::date`);
+  }
+  if (to) {
+    filters.push(`a.from_date <= ${push(to)}::date`);
+  }
+  if (status) {
+    const statuses = status
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (statuses.length > 0) {
+      filters.push(`a.status = ANY(${push(statuses)}::text[])`);
+    }
+  }
+
+  const { rows } = await pool.query(
+    `SELECT a.*, u.name AS employee_name
+     FROM appraisals a
+     JOIN tbl_appusers u ON u.id = a.employee_id
+     WHERE ${filters.join(" AND ")}
+     ORDER BY a.created_at DESC`,
+    values,
+  );
+  return rows.map(mapAppraisalRow);
+}
+
+function calculateAverage(scores) {
+  const numericScores = scores
+    .map(Number)
+    .filter((score) => Number.isFinite(score) && score > 0);
+  if (numericScores.length === 0) return 0;
+  return Number(
+    (
+      numericScores.reduce((sum, score) => sum + score, 0) /
+      numericScores.length
+    ).toFixed(2),
+  );
+}
+
+async function recalculateAppraisal(appraisalId, reviewerType) {
+  const { rows: ratingRows } = await pool.query(
+    "SELECT score FROM appraisal_ratings WHERE appraisal_id = $1 AND reviewer_type = $2",
+    [appraisalId, reviewerType],
+  );
+  const average = calculateAverage(ratingRows.map((row) => row.score));
+  const column =
+    reviewerType === "supervisor" ? "supervisor_rating" : "self_rating";
+  await pool.query(
+    `UPDATE appraisals SET ${column} = $2, updated_at = NOW() WHERE id = $1`,
+    [appraisalId, average],
+  );
+}
+
+async function updateAppraisalRatings({
+  appraisalId,
+  reviewerType,
+  ratings = [],
+}) {
+  const appraisal = await findAppraisal(appraisalId);
+  if (!appraisal) return null;
+  const key = reviewerType === "supervisor" ? "supervisor" : "self";
+  for (const rating of ratings) {
+    await pool.query(
+      `INSERT INTO appraisal_ratings (appraisal_id, question_id, reviewer_type, score, comment)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (appraisal_id, question_id, reviewer_type) DO UPDATE
+       SET score = EXCLUDED.score, comment = EXCLUDED.comment, updated_at = NOW()`,
+      [
+        appraisalId,
+        rating.questionId,
+        key,
+        Number(rating.score) || 0,
+        rating.comment || "",
+      ],
+    );
+  }
+  await recalculateAppraisal(appraisalId, key);
+  return findAppraisal(appraisalId);
+}
+
+async function submitAppraisalReview({
+  appraisalId,
+  reviewerType,
+  ratings = [],
+}) {
+  const updated = await updateAppraisalRatings({
+    appraisalId,
+    reviewerType,
+    ratings,
+  });
+  if (!updated) return null;
+  const isSupervisor = reviewerType === "supervisor";
+  await pool.query(
+    `UPDATE appraisals
+     SET self_submitted = CASE WHEN $2 = false THEN true ELSE self_submitted END,
+         supervisor_submitted = CASE WHEN $2 = true THEN true ELSE supervisor_submitted END,
+         updated_at = NOW()
+     WHERE id = $1`,
+    [appraisalId, isSupervisor],
+  );
+  await pool.query(
+    `UPDATE appraisals
+     SET review_progress = ROUND((
+           (CASE WHEN self_submitted THEN self_weight ELSE 0 END) +
+           (CASE WHEN supervisor_submitted THEN supervisor_weight ELSE 0 END)
+         )::numeric)::int,
+         final_rating = CASE
+           WHEN self_submitted AND supervisor_submitted THEN
+             ROUND(((self_rating * self_weight / 100.0) + (supervisor_rating * supervisor_weight / 100.0))::numeric, 2)
+           ELSE NULL
+         END,
+         status = CASE WHEN self_submitted AND supervisor_submitted THEN 'COMPLETED' ELSE 'INITIATED' END,
+         updated_at = NOW()
+     WHERE id = $1`,
+    [appraisalId],
+  );
+  return findAppraisal(appraisalId);
+}
+
+async function findAppraisal(id) {
+  await seedTemplatesIfEmpty();
+  const { rows } = await pool.query("SELECT * FROM appraisals WHERE id = $1", [
+    id,
+  ]);
+  const row = rows[0];
+  if (!row) return null;
+  const [template, employee, evaluator, ratings] = await Promise.all([
+    findTemplateById(row.template_id),
+    getEmployeeById(row.employee_id),
+    row.main_evaluator_id
+      ? getEmployeeById(row.main_evaluator_id)
+      : Promise.resolve(null),
+    pool.query("SELECT * FROM appraisal_ratings WHERE appraisal_id = $1", [id]),
+  ]);
+  const ratingMap = new Map();
+  ratings.rows.forEach((rating) => {
+    const current = ratingMap.get(rating.question_id) || {};
+    current[rating.reviewer_type] = toNumber(rating.score);
+    current[`${rating.reviewer_type}Comment`] = rating.comment || "";
+    ratingMap.set(rating.question_id, current);
+  });
+  const questions = (template?.sections || [])
+    .flatMap((section) => section.questions)
+    .sort((a, b) => a.order - b.order)
+    .map((question) => ({
+      ...question,
+      selfScore: ratingMap.get(question.id)?.self || 0,
+      supervisorScore: ratingMap.get(question.id)?.supervisor || 0,
+      selfComment: ratingMap.get(question.id)?.selfComment || "",
+      supervisorComment: ratingMap.get(question.id)?.supervisorComment || "",
+    }));
+
+  const mainEvaluator = evaluator
+    ? {
+        id: evaluator.id,
+        name: evaluator.name,
+        role: evaluator.jobTitle || "Supervisor",
+        avatar: evaluator.avatar,
+      }
+    : null;
+
+  return {
+    id: row.id,
+    cycleId: row.cycle_id,
+    templateId: row.template_id,
+    employee: employee ? { ...employee, mainEvaluator } : null,
+    mainEvaluator,
+    from: toDate(row.from_date),
+    to: toDate(row.to_date),
+    dueDate: toDate(row.due_date),
+    description: row.description,
+    status: row.status,
+    selfWeight: toNumber(row.self_weight, 50),
+    supervisorWeight: toNumber(row.supervisor_weight, 50),
+    selfRating: toNumber(row.self_rating),
+    supervisorRating: toNumber(row.supervisor_rating),
+    selfSubmitted: row.self_submitted,
+    supervisorSubmitted: row.supervisor_submitted,
+    reviewProgress: Number(row.review_progress || 0),
+    finalRating: row.final_rating === null ? null : toNumber(row.final_rating),
+    template,
+    questions,
+  };
+}
+
+async function listTrackers() {
+  return [];
+}
+
+async function listCompetencyProfiles() {
+  const templates = await listTemplates();
+  return templates.map((template) => ({
+    id: `competency-${template.id}`,
+    jobTitle: template.jobTitle,
+    subUnits: [...new Set(template.sections.map((section) => section.name))],
+    status: "Active",
+  }));
+}
+
+export {
+  addEmployeesToCycle,
+  autoAssignEmployeesToCycle,
+  cloneTemplate,
+  createAppraisalsForCycle,
+  createCycle,
+  createTemplate,
+  createTemplateKpi,
+  deleteCycle,
+  deleteTemplate,
+  deleteTemplateKpi,
+  ensureDefaultPerformanceData,
+  findAppraisal,
+  findCycle,
+  findEmployees,
+  findTemplateById,
+  listAppraisals,
+  listCompetencyProfiles,
+  listCycles,
+  listSupervisorAppraisals,
+  listTemplates,
+  listTrackers,
+  removeEmployeeFromCycle,
+  submitAppraisalReview,
+  updateAppraisalRatings,
+  updateCycleStatus,
+  updateTemplate,
+  updateTemplateKpi,
+  getCycleCompletionSummary,
+};

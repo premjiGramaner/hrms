@@ -47,8 +47,7 @@ export default function LeaveList({ employee }: Props) {
         limit: 10,
       });
       setLeaves(response.data || []);
-    } catch (error) {
-      console.error("Failed to load leave list:", error);
+    } catch {
       setLeaves([]);
     } finally {
       setLoading(false);
@@ -126,7 +125,7 @@ export default function LeaveList({ employee }: Props) {
       <div className="space-y-4">
         {Object.keys(groupedLeaves).length === 0 ? (
           <div className="text-center text-gray-500 py-8">
-            <div className="text-4xl mb-2">📋</div>
+            <div className="text-4xl mb-2">No Data</div>
             <p className="text-sm">No leave requests found</p>
             <p className="text-xs mt-1">Your leave history will appear here</p>
           </div>
@@ -181,7 +180,7 @@ export default function LeaveList({ employee }: Props) {
         {leaves.length > 0 && (
           <div className="mt-4 pt-3 border-t border-gray-100">
             <p className="text-xs text-center text-[#007bff] font-medium">
-              Click to view all leaves →
+              Click to view all leaves
             </p>
           </div>
         )}

@@ -44,7 +44,7 @@ export interface EditableEmployeeProfileForm {
 export function employeeToEditableProfileForm(
   employee: Employee,
 ): EditableEmployeeProfileForm {
-  const supervisorId = employee.supervisors?.[0]?.toString() ?? "";
+  const supervisorId = employee.supervisors?.[0] || "";
 
   return {
     first_name: employee.first_name || "",

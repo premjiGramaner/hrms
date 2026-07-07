@@ -115,14 +115,14 @@ export default function JobCategoriesPage() {
               height: 36,
               borderRadius: 10,
               flexShrink: 0,
-              background: "linear-gradient(135deg,#7c3aed,#a78bfa)",
+              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "#fff",
               fontSize: 13,
               fontWeight: 700,
-              boxShadow: "0 2px 8px rgba(124,58,237,0.2)",
+              boxShadow: "0 2px 8px rgba(27,42,107,0.2)",
             }}
           >
             {row.category.charAt(0).toUpperCase()}
@@ -411,7 +411,7 @@ function JobCategoryFormModal({
         <div
           style={{
             padding: "22px 26px 18px",
-            background: "linear-gradient(135deg,#7c3aed,#a78bfa)",
+            background: "linear-gradient(135deg,#1b2a6b,#16a085)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -515,7 +515,7 @@ function JobCategoryFormModal({
               }}
               placeholder="e.g. Delivery Team"
               style={inputStyle}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#7c3aed")}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#1b2a6b")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
             />
           </div>
@@ -536,7 +536,7 @@ function JobCategoryFormModal({
                 resize: "vertical",
                 fontFamily: "inherit",
               }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#7c3aed")}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#1b2a6b")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
             />
           </div>
@@ -630,14 +630,14 @@ function JobCategoryFormModal({
                 border: "none",
                 background: isSaving
                   ? "#94a3b8"
-                  : "linear-gradient(135deg,#7c3aed,#a78bfa)",
+                  : "linear-gradient(135deg,#1b2a6b,#16a085)",
                 color: "#fff",
                 fontSize: 13.5,
                 fontWeight: 700,
                 cursor: isSaving ? "not-allowed" : "pointer",
                 boxShadow: isSaving
                   ? "none"
-                  : "0 2px 10px rgba(124,58,237,0.25)",
+                  : "0 2px 10px rgba(27,42,107,0.25)",
               }}
             >
               {isSaving

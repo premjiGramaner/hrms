@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import { Employee, Supervisor } from "../../types";
+import { Employee } from "../../types";
 import {
   createEmployee,
   updateEmployee,
@@ -37,6 +37,17 @@ interface Props {
   employee: Employee | null;
   onClose: () => void;
   onSaved: () => void;
+}
+
+interface Supervisor {
+  id?: number | null;
+  employee_id?: string | null;
+  name: string;
+  username?: string | null;
+  email?: string | null;
+  role?: string | null;
+  job_title?: string | null;
+  sub_unit?: string | null;
 }
 
 function toDateStr(val?: string | null): string {
@@ -82,9 +93,12 @@ export default function AddEmployeeModal({
 
   useEffect(() => {
     getSupervisors()
-      .then((res) => setSupervisors(res.data))
+      .then((res) =>
+        setSupervisors(
+          res.data.filter((item) => !employee?.id || item.id !== employee.id),
+        ),
+      )
       .catch(() => setApiError("Failed to load supervisors"));
-
     getJobTitles()
       .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
       .catch(() => setApiError("Failed to load job titles"));
@@ -103,7 +117,7 @@ export default function AddEmployeeModal({
     getLastEmployeeId()
       .then((res) => setLastEmployeeId(res.data.employee_id))
       .catch(() => setApiError("Failed to load employee ID"));
-  }, []);
+  }, [employee?.id]);
 
   useEffect(() => {
     if (employee?.supervisors && Array.isArray(employee.supervisors)) {
@@ -457,8 +471,11 @@ export default function AddEmployeeModal({
           return updatedErrors;
         });
       }
-    } catch (error) {
-      console.error("Error checking email:", error);
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: "Could not validate this email right now",
+      }));
     } finally {
       setCheckingEmail((prev) => ({ ...prev, [fieldName]: false }));
     }
@@ -493,8 +510,11 @@ export default function AddEmployeeModal({
           return updatedErrors;
         });
       }
-    } catch (error) {
-      console.error("Error checking employee ID:", error);
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        employee_id: "Could not validate this employee ID right now",
+      }));
     } finally {
       setCheckingEmployeeId(false);
     }
@@ -1048,19 +1068,24 @@ export default function AddEmployeeModal({
           )}
 
           {step === 5 && (
-            <Section title="Report To — Assign Supervisors (Max 3)">
+            <Section title="Report To - Assign Supervisors (Max 3)">
               <p className="text-sm text-slate-600 mb-3.5">
-                Select up to 3 supervisors from the sub unit list below.
+                Select up to 3 supervisors from the available supervisor list
+                below.
               </p>
               {supervisors.length === 0 ? (
                 <p className="text-sm text-slate-400 italic">
-                  No supervisors available. Add supervisor names in HR
-                  Administration → Sub Units first.
+                  No supervisors available. Add a user with Supervisor or
+                  Manager role in HR Administration.
                 </p>
               ) : (
                 <div className="border border-slate-300 rounded-xl overflow-hidden">
                   {supervisors.map((supervis, idx) => {
-                    const checked = selectedSupervisors.includes(supervis.id);
+                    const supervisorId =
+                      typeof supervis.id === "number" ? supervis.id : -1;
+                    const checked =
+                      supervisorId !== -1 &&
+                      selectedSupervisors.includes(supervisorId);
                     const subUnitMatch = subUnitRecords.find(
                       (su) =>
                         su.supervisor_name?.toLowerCase() ===
@@ -1082,13 +1107,16 @@ export default function AddEmployeeModal({
                           checked={checked}
                           disabled={!checked && selectedSupervisors.length >= 3}
                           onChange={() => {
-                            setSelectedSupervisors((prev) =>
-                              checked
-                                ? prev.filter((id) => id !== supervis.id)
-                                : prev.length < 3
-                                  ? [...prev, supervis.id]
-                                  : prev,
-                            );
+                            if (typeof supervis.id === "number") {
+                              const supervisorId = supervis.id;
+                              setSelectedSupervisors((prev) =>
+                                checked
+                                  ? prev.filter((id) => id !== supervisorId)
+                                  : prev.length < 3
+                                    ? [...prev, supervisorId]
+                                    : prev,
+                              );
+                            }
                             if (errors.supervisors)
                               setErrors((e) => {
                                 const updatedErrors = { ...e };
@@ -1110,9 +1138,19 @@ export default function AddEmployeeModal({
                           <div className="text-sm font-semibold text-slate-900">
                             {supervis.name}
                           </div>
-                          {subUnitMatch && (
+                          {(subUnitMatch ||
+                            supervis.job_title ||
+                            supervis.sub_unit ||
+                            supervis.email) && (
                             <div className="text-xs text-slate-500">
-                              {subUnitMatch.sub_unit_name}
+                              {[
+                                supervis.job_title,
+                                supervis.sub_unit ||
+                                  subUnitMatch?.sub_unit_name,
+                                supervis.email,
+                              ]
+                                .filter(Boolean)
+                                .join(" - ")}
                             </div>
                           )}
                         </div>

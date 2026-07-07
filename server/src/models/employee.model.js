@@ -1,5 +1,6 @@
 import pool from "../config/db.js";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const SPACE_REGEX = /\s+/g;
 const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
@@ -125,6 +126,78 @@ async function findAllEmployees(page, limit = 10, search = "") {
   }
 }
 
+async function findSuperiorUsers({
+  page = 1,
+  limit = 10,
+  search = "",
+  role = "",
+  status = "",
+} = {}) {
+  const currentPage = Math.max(1, Number(page) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(limit) || 10));
+  const offset = (currentPage - 1) * pageSize;
+  const params = [];
+  const conditions = [
+    "u.is_deleted = false",
+    "(u.employment_status IS NULL OR u.employment_status != 'Terminated')",
+  ];
+
+  if (role === "supervisor") {
+    conditions.push("u.role IN ('supervisor', 'manager')");
+  } else if (role === "hradmin") {
+    conditions.push("u.role IN ('hradmin', 'empmanager')");
+  } else {
+    conditions.push(
+      "u.role IN ('supervisor', 'manager', 'hradmin', 'empmanager')",
+    );
+  }
+
+  if (search) {
+    params.push(`%${search}%`);
+    const searchIndex = params.length;
+    conditions.push(
+      `(u.name ILIKE $${searchIndex}
+        OR u.username ILIKE $${searchIndex}
+        OR u.email ILIKE $${searchIndex}
+        OR u.employee_id ILIKE $${searchIndex}
+        OR u.job_title ILIKE $${searchIndex}
+        OR u.sub_unit ILIKE $${searchIndex})`,
+    );
+  }
+
+  if (status === "active") conditions.push("u.is_active = true");
+  if (status === "inactive") conditions.push("u.is_active = false");
+
+  const where = conditions.join(" AND ");
+  const { rows: countRows } = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM tbl_appusers u WHERE ${where}`,
+    params,
+  );
+  const total = countRows[0]?.count || 0;
+  const limitIndex = params.length + 1;
+  const offsetIndex = params.length + 2;
+  const { rows } = await pool.query(
+    `SELECT id::int, employee_id, name, first_name, last_name, username, email, mobile,
+            status, avatar, job_title, role, joined_date::text, is_active,
+            sub_unit, location, employment_status, gender
+     FROM tbl_appusers u
+     WHERE ${where}
+     ORDER BY
+       CASE WHEN u.role IN ('hradmin', 'empmanager') THEN 0 ELSE 1 END,
+       u.name ASC
+     LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+    [...params, pageSize, offset],
+  );
+
+  return {
+    data: rows,
+    total,
+    page: currentPage,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    limit: pageSize,
+  };
+}
+
 async function findEmployeeById(id) {
   const { rows } = await pool.query(
     `SELECT id::int, employee_id, first_name, middle_name, last_name, name,
@@ -152,11 +225,8 @@ async function findEmployeeById(id) {
 async function createEmployee(data, avatarPath) {
   const name = `${data.first_name} ${data.last_name}`.trim();
   const username = await createUniqueUsername(data.email, name);
-  const plainPassword = Math.random().toString(36).slice(2) + "Aa1!";
+  const plainPassword = generateTemporaryPassword();
   const password = await bcrypt.hash(plainPassword, 10);
-  console.log(
-    `Generated password for employee ${data.email}: ${plainPassword} (username: ${username})`,
-  );
 
   const { rows } = await pool.query(
     `INSERT INTO tbl_appusers (
@@ -171,6 +241,7 @@ async function createEmployee(data, avatarPath) {
       probation_end_date, date_of_permanence,
       contract_start_date, contract_end_date,
       comments, supervisors,
+      must_change_password,
       is_active, is_deleted, created_by, updated_by
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
@@ -179,6 +250,7 @@ async function createEmployee(data, avatarPath) {
       $24,$25,$26,$27,$28,$29,
       $30,$31,$32,$33,$34,$35,$36,$37,
       $38,$39,$40,$41,$42,$43,
+      true,
       true, false, $44, $44
     ) RETURNING id, name, email, username`,
     [
@@ -245,7 +317,27 @@ async function createEmployee(data, avatarPath) {
       data.created_by || null,
     ],
   );
-  return rows[0];
+  return { ...rows[0], temporaryPassword: plainPassword };
+}
+
+function generateTemporaryPassword() {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const special = "!@#$%^&*";
+  const all = `${upper}${lower}${digits}${special}`;
+  const required = [upper, lower, digits, special].map(
+    (chars) => chars[crypto.randomInt(chars.length)],
+  );
+  while (required.length < 12) required.push(all[crypto.randomInt(all.length)]);
+  for (let index = required.length - 1; index > 0; index -= 1) {
+    const swapIndex = crypto.randomInt(index + 1);
+    [required[index], required[swapIndex]] = [
+      required[swapIndex],
+      required[index],
+    ];
+  }
+  return required.join("");
 }
 
 async function updateEmployee(id, data, avatarPath, updatedBy) {
@@ -411,15 +503,51 @@ async function terminateEmployee(
 }
 
 async function getSupervisors() {
-  const { rows } = await pool.query(
-    `SELECT id::int, supervisor_name AS name
+  const { rows: userRows } = await pool.query(
+    `SELECT id::int, employee_id, name, username, email, role, job_title, sub_unit
+     FROM tbl_appusers
+     WHERE is_deleted = false
+       AND is_active = true
+       AND (employment_status IS NULL OR employment_status != 'Terminated')
+       AND role IN ('supervisor', 'manager', 'empmanager', 'hradmin')
+       AND name IS NOT NULL
+       AND TRIM(name) <> ''
+     ORDER BY name ASC`,
+  );
+  const { rows: subUnitRows } = await pool.query(
+    `SELECT DISTINCT supervisor_name AS name
      FROM tbl_sub_units
      WHERE supervisor_name IS NOT NULL
        AND TRIM(supervisor_name) <> ''
        AND is_active = true
      ORDER BY supervisor_name ASC`,
   );
-  return rows;
+
+  const supervisorMap = new Map();
+  const addSupervisor = (item) => {
+    const name = String(item.name || "").trim();
+    if (!name) return;
+    const key = name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    if (!key || supervisorMap.has(key)) return;
+    supervisorMap.set(key, {
+      id: item.id || null,
+      employee_id: item.employee_id || null,
+      name,
+      username: item.username || null,
+      email: item.email || null,
+      role: item.role || "supervisor",
+      job_title: item.job_title || "Supervisor",
+      sub_unit: item.sub_unit || null,
+    });
+  };
+
+  userRows.forEach(addSupervisor);
+  subUnitRows.forEach((row) =>
+    addSupervisor({ ...row, role: "supervisor", job_title: "Supervisor" }),
+  );
+  return [...supervisorMap.values()].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 }
 
 async function getSupervisorsByIds(supervisorIds) {
@@ -496,6 +624,7 @@ async function getLocations() {
 
 export {
   findAllEmployees,
+  findSuperiorUsers,
   findEmployeeById,
   createEmployee,
   updateEmployee,

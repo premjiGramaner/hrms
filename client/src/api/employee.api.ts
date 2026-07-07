@@ -16,6 +16,33 @@ export const getEmployees = async (page = 1, limit = 10, search?: string) => {
   return { data: response.data.data };
 };
 
+export const getSuperiorEmployees = async ({
+  page = 1,
+  limit = 10,
+  search = "",
+  role = "",
+  status = "",
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+  status?: string;
+} = {}) => {
+  const queryString = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    ...(search ? { search } : {}),
+    ...(role ? { role } : {}),
+    ...(status ? { status } : {}),
+  }).toString();
+  const response = await api.get<{
+    success: boolean;
+    data: PaginatedResponse<Employee> & { limit?: number };
+  }>(`/employees/superiors?${queryString}`);
+  return { data: response.data.data };
+};
+
 export const getEmployee = async (id: number) => {
   const response = await api.get<{ success: boolean; data: Employee }>(
     `/employees/${id}`,
@@ -33,7 +60,16 @@ export const getMyInfo = async () => {
 export const getSupervisors = async () => {
   const response = await api.get<{
     success: boolean;
-    data: Supervisor[];
+    data: {
+      id?: number | null;
+      employee_id?: string | null;
+      name: string;
+      username?: string | null;
+      email?: string | null;
+      role?: string | null;
+      job_title?: string | null;
+      sub_unit?: string | null;
+    }[];
   }>("/employees/supervisors");
   return { data: response.data.data };
 };

@@ -31,6 +31,7 @@ interface AuditRecord {
   source: string;
   performed_screen: string;
   action_description: string;
+  notes: string;
   event_time: string;
   created_at: string;
 }
@@ -152,6 +153,7 @@ export default function AuditTrailPage() {
           (allRecord.employee_username || "").toLowerCase().includes(term) ||
           allRecord.section.toLowerCase().includes(term) ||
           allRecord.action_description.toLowerCase().includes(term) ||
+          (allRecord.notes || "").toLowerCase().includes(term) ||
           allRecord.performed_screen.toLowerCase().includes(term);
         return (
           matchesSearch &&
@@ -247,7 +249,7 @@ export default function AuditTrailPage() {
   const columns: ColumnDef<AuditRecord>[] = [
     {
       key: "event_time",
-      header: "Date & Time",
+      header: "Date",
       render: (row) => (
         <span
           style={{ color: "#475569", fontSize: 12.5, whiteSpace: "nowrap" }}
@@ -404,6 +406,25 @@ export default function AuditTrailPage() {
           }}
         >
           {row.action_description || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "notes",
+      header: "Notes",
+      render: (row) => (
+        <span
+          style={{
+            color: "#64748b",
+            fontSize: 12.5,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical" as const,
+            overflow: "hidden",
+            maxWidth: 240,
+          }}
+        >
+          {row.notes || "—"}
         </span>
       ),
     },

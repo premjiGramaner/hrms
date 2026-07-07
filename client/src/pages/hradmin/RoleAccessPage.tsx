@@ -25,6 +25,13 @@ const ROLE_OPTIONS = [
     border: "#bbf7d0",
   },
   {
+    value: "supervisor",
+    label: "Supervisor",
+    color: "#075985",
+    bg: "#e0f2fe",
+    border: "#bae6fd",
+  },
+  {
     value: "hradmin",
     label: "Global Admin",
     color: "#7c3aed",
@@ -33,9 +40,15 @@ const ROLE_OPTIONS = [
   },
 ];
 
+function roleValue(role: string) {
+  if (role === "manager") return "supervisor";
+  if (role === "empmanager") return "hradmin";
+  return role;
+}
+
 function getRoleStyle(role: string) {
   return (
-    ROLE_OPTIONS.find((r) => r.value === role) ?? {
+    ROLE_OPTIONS.find((r) => r.value === roleValue(role)) ?? {
       color: "#64748b",
       bg: "#f1f5f9",
       border: "#e2e8f0",
@@ -79,7 +92,7 @@ function RoleDropdown({
   return (
     <div style={{ position: "relative", display: "inline-block" }}>
       <select
-        value={user.role}
+        value={roleValue(user.role)}
         onChange={handleChange}
         disabled={saving}
         style={{
@@ -275,8 +288,12 @@ export default function RoleAccessPage() {
     statusFilter !== "";
 
   const employeeCount = users.filter((u) => u.role === "employee").length;
-  const adminCount = users.filter((u) => u.role === "empmanager").length;
-  const globalCount = users.filter((u) => u.role === "hradmin").length;
+  const supervisorCount = users.filter((u) =>
+    ["supervisor", "manager"].includes(u.role),
+  ).length;
+  const globalCount = users.filter((u) =>
+    ["hradmin", "empmanager"].includes(u.role),
+  ).length;
 
   const stats: StatCard[] = [
     {
@@ -296,8 +313,8 @@ export default function RoleAccessPage() {
       border: "#bbf7d0",
     },
     {
-      label: "Admin ",
-      value: adminCount,
+      label: "Supervisors",
+      value: supervisorCount,
       icon: "🛡️",
       color: "#0369a1",
       bg: "#e0f2fe",
@@ -454,6 +471,7 @@ export default function RoleAccessPage() {
         onChange={setRoleFilter}
         options={[
           { value: "employee", label: "Employee" },
+          { value: "supervisor", label: "Supervisor" },
           { value: "hradmin", label: "Global Admin" },
         ]}
         placeholder="All Roles"

@@ -2,6 +2,9 @@ import pool from "../config/db.js";
 import { success, created } from "../utils/response.js";
 import AppError from "../utils/AppError.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { sendWelcomeEmail } from "../../email.service.js";
 
 const SPACE_REGEX = /\s+/g;
 const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
@@ -27,6 +30,23 @@ async function generateUniqueUsername(email, fullName) {
     username = `${base}_${counter++}`;
   }
   return username;
+}
+
+function generateTemporaryPassword() {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const special = "!@#$%^&*";
+  const all = `${upper}${lower}${digits}${special}`;
+  const chars = [upper, lower, digits, special].map(
+    (set) => set[crypto.randomInt(set.length)],
+  );
+  while (chars.length < 12) chars.push(all[crypto.randomInt(all.length)]);
+  for (let index = chars.length - 1; index > 0; index -= 1) {
+    const swapIndex = crypto.randomInt(index + 1);
+    [chars[index], chars[swapIndex]] = [chars[swapIndex], chars[index]];
+  }
+  return chars.join("");
 }
 
 const getUsers = async (req, res, next) => {
@@ -111,23 +131,17 @@ const createUser = async (req, res, next) => {
     }
 
     const username = await generateUniqueUsername(email, employee_name);
+    const temporaryPassword = generateTemporaryPassword();
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
     const isActive = status === "Enabled";
     const createdBy = req.user?.id || null;
 
     const { rows } = await pool.query(
       `INSERT INTO tbl_appusers
-         (name, username, email, password, role, status, is_active, is_deleted, created_by, updated_by)
-       VALUES ($1, $2, $3, $4, $5, 'Active', $6, false, $7, $7)
+         (name, username, email, password, role, status, must_change_password, is_active, is_deleted, created_by, updated_by)
+       VALUES ($1, $2, $3, $4, $5, 'Active', true, $6, false, $7, $7)
        RETURNING id, username, name, email, role, status, is_active`,
-      [
-        employee_name,
-        username,
-        email,
-        Math.random().toString(36).slice(2) + "Aa1!",
-        role,
-        isActive,
-        createdBy,
-      ],
+      [employee_name, username, email, passwordHash, role, isActive, createdBy],
     );
 
     await writeAuditLog({
@@ -140,7 +154,22 @@ const createUser = async (req, res, next) => {
       actionDescription: `User created: ${rows[0].name} (${rows[0].email})`,
     });
 
-    return created(res, rows[0]);
+    let emailSent = true;
+    let emailMessage = "Welcome email sent successfully.";
+    try {
+      await sendWelcomeEmail({
+        to: rows[0].email,
+        name: rows[0].name,
+        username: rows[0].username,
+        password: temporaryPassword,
+      });
+    } catch {
+      emailSent = false;
+      emailMessage =
+        "User created, but welcome email could not be sent. Check SMTP configuration.";
+    }
+
+    return created(res, { ...rows[0], emailSent, emailMessage });
   } catch (err) {
     next(err);
   }
@@ -774,8 +803,14 @@ const getRoleAccess = async (req, res, next) => {
       );
     }
     if (roleFilter) {
-      params.push(roleFilter);
-      conditions.push(`u.role = $${params.length}`);
+      if (roleFilter === "supervisor") {
+        conditions.push("u.role IN ('supervisor', 'manager')");
+      } else if (roleFilter === "hradmin") {
+        conditions.push("u.role IN ('hradmin', 'empmanager')");
+      } else {
+        params.push(roleFilter);
+        conditions.push(`u.role = $${params.length}`);
+      }
     }
     if (genderFilter) {
       params.push(genderFilter);
@@ -839,11 +874,11 @@ const updateUserRole = async (req, res, next) => {
     const userId = parseInt(req.params.id, 10);
     const { role } = req.body;
 
-    const allowedRoles = ["employee", "empmanager", "hradmin"];
+    const allowedRoles = ["employee", "supervisor", "hradmin"];
     if (!role || !allowedRoles.includes(role)) {
       return next(
         new AppError(
-          "Invalid role. Must be employee, empmanager, or hradmin",
+          "Invalid role. Must be employee, supervisor, or hradmin",
           400,
         ),
       );
@@ -888,9 +923,13 @@ const getAuditTrail = async (_req, res, next) => {
            COALESCE(al.source, 'Web Application')             AS source,
            COALESCE(al.performed_screen, 'HR Administration') AS performed_screen,
            COALESCE(al.action_description, '')  AS action_description,
+           COALESCE(emp.note, '')               AS notes,
            al.event_time,
            al.created_at
          FROM tbl_audit_log al
+         LEFT JOIN tbl_appusers emp
+                ON al.employee_id IS NOT NULL
+               AND emp.id = al.employee_id
          ORDER BY al.event_time DESC`,
       );
       rows = logRows;
@@ -920,6 +959,7 @@ const getAuditTrail = async (_req, res, next) => {
             WHEN emp.created_by = '0' OR emp.created_by IS NULL THEN 'Admin'
             ELSE COALESCE(actor_cre.name, actor_cre.username, 'System')
           END                                         AS action_description,
+        COALESCE(emp.note, '')                        AS notes,
         emp.created_at                                AS event_time,
         emp.created_at
       FROM tbl_appusers emp
@@ -953,6 +993,7 @@ const getAuditTrail = async (_req, res, next) => {
             WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'Admin'
             ELSE COALESCE(actor_upd.name, actor_upd.username, 'System')
           END                                         AS action_description,
+        COALESCE(emp.note, '')                        AS notes,
         emp.updated_at                                AS event_time,
         emp.updated_at                                AS created_at
       FROM tbl_appusers emp
@@ -989,6 +1030,7 @@ const getAuditTrail = async (_req, res, next) => {
             WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'Admin'
             ELSE COALESCE(actor_del.name, actor_del.username, 'System')
           END                                         AS action_description,
+        COALESCE(emp.note, '')                        AS notes,
         COALESCE(emp.updated_at, emp.created_at)      AS event_time,
         COALESCE(emp.updated_at, emp.created_at)      AS created_at
       FROM tbl_appusers emp
