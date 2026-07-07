@@ -21,7 +21,6 @@ import {
 } from "./Icons";
 import {
   fetchEmployeesWithLimit,
-  fetchEmployees,
 } from "../store/employeeSlice";
 
 export interface TabItem {
@@ -72,26 +71,30 @@ export default function Layout({
           ? "Leave"
           : isActive("/performance")
             ? "Performance"
-            : "HRMS");
+            : isActive("/reports")
+              ? "Reports and Analytics"
+              : "HRMS");
 
   const navItems = [
-    ...(isAdmin
+    ...(role === "hradmin" || role === "empmanager"
       ? [{ to: "/hradmin", label: "HR Administration", icon: <IconBuilding /> }]
       : []),
-    {
-      to: isAdmin ? "/employees" : "/my-info",
-      label: "Employee Management",
-      icon: <IconPeople />,
-    },
-    ...(isAdmin
-      ? [{ to: "#", label: "Reports and Analytics", icon: <IconChart /> }]
-      : []),
+    { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
     {
       to: isAdmin ? "/leave/view_leave_list" : "/leave/apply",
       label: "Leave",
       icon: <IconCalendar />,
     },
     { to: "/performance", label: "Performance", icon: <IconBriefcase /> },
+    ...(role === "hradmin"
+      ? [
+          {
+            to: "/reports",
+            label: "Reports and Analytics",
+            icon: <IconChart />,
+          },
+        ]
+      : []),
   ];
 
   const homeRoute = isAdmin ? "/employees" : "/my-info";
@@ -152,7 +155,7 @@ export default function Layout({
               style={{
                 width: 72,
                 height: 72,
-                background: "linear-gradient(135deg, #fcd34d, #f97316)",
+                background: "linear-gradient(135deg, #172554, #14b8a6)",
                 border: "3px solid #ffffff",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.14)",
                 marginBottom: 8,
@@ -395,7 +398,26 @@ export default function Layout({
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto p-6">
+          {children}
+          
+          {/* Footer Copyright */}
+          <footer className="mt-8 pt-4 border-t border-slate-200 text-center">
+            <p className="text-xs text-slate-400">
+              Cannyfore © {new Date().getFullYear()} All rights reserved.
+            </p>
+          </footer>
+        </div>
+
+        {onFab && (
+          <button
+            onClick={onFab}
+            className="fixed bottom-8 right-8 w-13 h-13 rounded-full bg-blue-900 text-white border-none text-3xl cursor-pointer shadow-2xl z-50 flex items-center justify-center hover:bg-blue-800 transition"
+            aria-label="Add"
+          >
+            +
+          </button>
+        )}
       </div>
     </div>
   );

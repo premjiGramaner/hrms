@@ -284,8 +284,8 @@ export default function EmployeeProfileCard({
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6 border-l pl-6">
           {/* Basic Info */}
           <div>
-            <h4 className="text-xs font-semibold text-[#757575] mb-3">
-              Basic Info
+            <h4 className="text-sm font-semibold text-[#757575] mb-3">
+              Basic info
             </h4>
             <div className="space-y-2">
               <div>
@@ -326,7 +326,7 @@ export default function EmployeeProfileCard({
 
           {/* Job */}
           <div>
-            <h4 className="text-xs font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-[#757575] mb-3">
               Employment
             </h4>
             <div className="space-y-2">
@@ -378,7 +378,7 @@ export default function EmployeeProfileCard({
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-[#757575] mb-3">
               Contact
             </h4>
             <div className="space-y-2">

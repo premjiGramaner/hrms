@@ -462,8 +462,21 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
 
 async function softDeleteEmployee(id, deletedBy) {
   const result = await pool.query(
-    `UPDATE tbl_appusers SET is_deleted = true, updated_by = $1, updated_at = NOW()
-      WHERE id = $2::bigint AND is_deleted = false`,
+    `UPDATE tbl_appusers SET 
+      is_deleted = TRUE,
+      is_active = FALSE,
+      termination_date = CURRENT_DATE,
+      last_working_day = CURRENT_DATE,
+      termination_reason = 'Employee Terminated',
+      termination_type = 'Involuntary',
+      notice_period_days = 0,
+      exit_interview_completed = FALSE,
+      rehire_eligible = FALSE,
+      termination_notes = 'Terminated through employee management system',
+      terminated_by_user_id = $1,
+      updated_by = $1,
+      updated_at = NOW()
+    WHERE id = $2::bigint AND is_deleted = FALSE`,
     [deletedBy || null, id],
   );
   if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
@@ -474,26 +487,47 @@ async function terminateEmployee(
   terminationReason,
   terminationDateTimeFull,
   terminationDate,
+  terminationType,
+  lastWorkingDay,
+  noticePeriodDays,
+  exitInterviewCompleted,
+  rehireEligible,
   notes,
   terminatedBy,
 ) {
   const notesValue = notes !== null && notes !== undefined ? notes : null;
-  const notesForComments = notesValue !== null ? notesValue : "";
 
+  // Set is_deleted = TRUE to trigger the termination history recording
   const result = await pool.query(
     `UPDATE tbl_appusers SET 
            employment_status = 'Terminated',
            is_active = false,
-           contract_end_date = $1,
-           comments = COALESCE(comments, '') || $2,
-           note = $3,
-           updated_by = $4,
+           is_deleted = TRUE,
+           termination_date = $1::date,
+           termination_reason = $2,
+           termination_type = $3,
+           last_working_day = $4::date,
+           notice_period_days = $5::int,
+           exit_interview_completed = $6::boolean,
+           rehire_eligible = $7::boolean,
+           termination_notes = $8,
+           terminated_by_user_id = $9::bigint,
+           contract_end_date = $1::date,
+           comments = COALESCE(comments, '') || $10,
+           updated_by = $11,
            updated_at = NOW()
-         WHERE id = $5::bigint AND is_deleted = false`,
+         WHERE id = $12::bigint AND is_deleted = false`,
     [
       terminationDate,
-      `Termination Reason: ${terminationReason}\nTermination Date/Time: ${terminationDateTimeFull}\nNotes: ${notesForComments}`,
-      notesValue,
+      terminationReason,
+      terminationType || 'Voluntary',
+      lastWorkingDay || terminationDate,
+      parseInt(noticePeriodDays) || 0,
+      exitInterviewCompleted === true,
+      rehireEligible === true,
+      notesValue || `Terminated on ${terminationDateTimeFull}`,
+      terminatedBy || null,
+      `\nTermination: ${terminationType || 'Voluntary'} - ${terminationReason} (${terminationDateTimeFull})${notesValue ? '\nNotes: ' + notesValue : ''}`,
       terminatedBy || null,
       id,
     ],

@@ -41,6 +41,14 @@ export const getSuperiorEmployees = async ({
     data: PaginatedResponse<Employee> & { limit?: number };
   }>(`/employees/superiors?${queryString}`);
   return { data: response.data.data };
+
+}
+export const fetchAllEmployees = async (page = 1, limit = 1000) => {
+  const response = await api.get<{
+    success: boolean;
+    data: PaginatedResponse<Employee>;
+  }>(`/employees?page=${page}&limit=${limit}`);
+  return response.data.data;
 };
 
 export const getEmployee = async (id: number) => {

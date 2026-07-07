@@ -47,6 +47,11 @@ export interface Employee {
   is_active?: boolean;
 }
 
+export interface Supervisor {
+  id: number;
+  name: string;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
@@ -140,13 +145,84 @@ export interface LeaveFilters {
   page?: number;
   limit?: number;
 }
-export interface Supervisor {
+
+export interface TerminationReportRecord {
   id: number;
-  name: string;
+  emp_id?: string;
+  employee_name: string;
+  designation?: string;
+  group_company?: string;
+  reporting_manager?: string;
+  location?: string;
+  date_of_joining?: string;
+  date_of_exit?: string;
+  last_working_day?: string;
+  termination_reason?: string;
+  termination_type?: string;
+  notice_period_days?: number;
+  exit_interview_completed?: boolean;
+  rehire_eligible?: boolean;
+  termination_notes?: string;
+  terminated_by?: string;
 }
 
-export interface UpdateUserNamePayload {
-  name?: string;
+export interface BirthdayReportRecord {
+  id: number;
+  employee_id?: string;
   first_name?: string;
   last_name?: string;
+  full_name: string;
+  birthday_date?: string;
+  formatted_birthday?: string;
+  gender?: string;
+  marital_status?: string;
+  user_type?: string;
+  email?: string;
+  mobile?: string;
+  avatar?: string;
+  job_title?: string;
+  location?: string;
+  sub_unit?: string;
+}
+
+export interface WorkAnniversaryReportRecord {
+  id: number;
+  employee_id?: string;
+  employee_name: string;
+  first_name?: string;
+  last_name?: string;
+  date_of_joining?: string;
+  formatted_anniversary?: string;
+  years_of_service: number;
+  additional_months?: number;
+  designation?: string;
+  department?: string;
+  location?: string;
+  email?: string;
+  mobile?: string;
+  avatar?: string;
+  employment_status?: string;
+  user_type?: string;
+}
+
+export interface ReportPaginatedResponse<T> {
+  reportData: T[];
+  totalRecords: number;
+  totalPages: number;
+  currentPage: number;
+}
+
+export interface NotificationConfig {
+  id: number;
+  notification_type: "birthday" | "work_anniversary";
+  recipient_user_ids: number[];
+  days_before: number;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ReportFilterOptions {
+  subUnits: string[];
+  locations: string[];
 }

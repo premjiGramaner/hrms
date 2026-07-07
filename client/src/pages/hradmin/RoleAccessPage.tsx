@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getRoleAccess,
@@ -7,6 +7,7 @@ import {
 } from "../../api/hradmin.api";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import useDebounce from "../../hooks/useDebounce";
+import { IconShield, IconUserCheck, IconUsers, IconUser, IconSettings } from "../../components/Icons";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -299,7 +300,7 @@ export default function RoleAccessPage() {
     {
       label: "Total Users",
       value: totalRecords,
-      icon: "👥",
+      icon: <IconUsers size={20} /> as any ,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
@@ -307,7 +308,7 @@ export default function RoleAccessPage() {
     {
       label: "Employees",
       value: employeeCount,
-      icon: "👤",
+      icon: <IconUser size={20} />,
       color: "#16a34a",
       bg: "#f0fdf4",
       border: "#bbf7d0",
@@ -315,7 +316,7 @@ export default function RoleAccessPage() {
     {
       label: "Supervisors",
       value: supervisorCount,
-      icon: "🛡️",
+      icon: <IconShield size={20} /> as any ,
       color: "#0369a1",
       bg: "#e0f2fe",
       border: "#7dd3fc",
@@ -323,7 +324,7 @@ export default function RoleAccessPage() {
     {
       label: "Global Admin",
       value: globalCount,
-      icon: "⚙️",
+      icon: <IconSettings size={20} />,
       color: "#7c3aed",
       bg: "#f5f3ff",
       border: "#c4b5fd",
@@ -563,13 +564,13 @@ export default function RoleAccessPage() {
       <DataTable<RoleAccessUser>
         title="Role Access Management"
         subtitle="View and manage user roles across the system"
-        icon="🔐"
+        icon={<IconShield size={18} /> as any }
         rows={users}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row) => row.id}
-        emptyIcon="👥"
+        emptyIcon={<IconUserCheck size={36} /> as any }
         emptyTitle={
           hasFilters ? "No users match the current filters" : "No users found"
         }

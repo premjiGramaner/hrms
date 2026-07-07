@@ -248,8 +248,21 @@ const deleteUser = async (req, res, next) => {
 
     const result = await pool.query(
       `UPDATE tbl_appusers
-       SET is_deleted = true, updated_by = $1, updated_at = NOW()
-       WHERE id = $2 AND is_deleted = false`,
+       SET 
+         is_deleted = TRUE,
+         is_active = FALSE,
+         termination_date = CURRENT_DATE,
+         last_working_day = CURRENT_DATE,
+         termination_reason = 'User Account Deleted by HR Admin',
+         termination_type = 'Involuntary',
+         notice_period_days = 0,
+         exit_interview_completed = FALSE,
+         rehire_eligible = FALSE,
+         termination_notes = 'User account deleted through HR Administration',
+         terminated_by_user_id = $1,
+         updated_by = $1,
+         updated_at = NOW()
+       WHERE id = $2 AND is_deleted = FALSE`,
       [deletedBy, userId],
     );
 
@@ -914,6 +927,8 @@ const getAuditTrail = async (_req, res, next) => {
       const { rows: logRows } = await pool.query(
         `SELECT
            al.id::bigint                        AS id,
+           al.employee_id::bigint               AS employee_id,
+           (SELECT emp.employee_id FROM tbl_appusers emp WHERE emp.id = al.employee_id LIMIT 1) AS employee_code,
            COALESCE(al.employee_name, '—')      AS employee,
            COALESCE(al.employee_username, '')   AS employee_username,
            COALESCE(al.section, '')             AS section,
@@ -940,6 +955,8 @@ const getAuditTrail = async (_req, res, next) => {
       -- CREATE events: every user/employee has at least one
       SELECT
         (emp.id * 10 + 1)::bigint                    AS id,
+        emp.id::bigint                                AS employee_id,
+        COALESCE(emp.employee_id, '')                 AS employee_code,
         COALESCE(emp.name, emp.username, '—')         AS employee,
         COALESCE(emp.username, '')                    AS employee_username,
         COALESCE(emp.role, '')                        AS section,
@@ -974,6 +991,8 @@ const getAuditTrail = async (_req, res, next) => {
       -- UPDATE events: only for users updated AFTER creation
       SELECT
         (emp.id * 10 + 2)::bigint                    AS id,
+        emp.id::bigint                                AS employee_id,
+        COALESCE(emp.employee_id, '')                 AS employee_code,
         COALESCE(emp.name, emp.username, '—')         AS employee,
         COALESCE(emp.username, '')                    AS employee_username,
         COALESCE(emp.role, '')                        AS section,
@@ -1011,6 +1030,8 @@ const getAuditTrail = async (_req, res, next) => {
       -- TERMINATE events: soft-deleted users
       SELECT
         (emp.id * 10 + 3)::bigint                    AS id,
+        emp.id::bigint                                AS employee_id,
+        COALESCE(emp.employee_id, '')                 AS employee_code,
         COALESCE(emp.name, emp.username, '—')         AS employee,
         COALESCE(emp.username, '')                    AS employee_username,
         COALESCE(emp.role, '')                        AS section,

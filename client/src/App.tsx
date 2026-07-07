@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
 import { loginSuccess, logout } from "./store/authSlice";
-import { verifyCookie, self } from "./api/auth.api";
+import { self } from "./api/auth.api";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import {
@@ -41,6 +41,13 @@ import CreateAppraisalCycle from "./pages/performance/CreateAppraisalCycle";
 import PerformanceTrackers from "./pages/performance/PerformanceTrackers";
 import TemplateFormDesign from "./pages/performance/TemplateFormDesign";
 import { ADMIN_ROLES } from "./config/roles";
+import {
+  TerminationReportPage,
+  BirthdayReportPage,
+  WorkAnniversaryReportPage,
+  ReportNotificationConfigPage,
+  UnifiedReportsPage,
+} from "./pages/reports";
 
 function PerformanceHomeRedirect() {
   const role = useAppSelector((state) => state.auth.user?.role || "employee");
@@ -79,7 +86,7 @@ export default function App() {
       }
 
       try {
-        await verifyCookie();
+        // Try to get current user profile - if successful, user has valid cookie
         const userResponse = await self();
         const userData = userResponse.data;
         console.log("🔍 Cookie restore - userData:", userData);
@@ -320,6 +327,16 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute roles={["hradmin"]}>
+              <UnifiedReportsPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/performance/appraisals_list"
           element={
@@ -330,6 +347,16 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/reports/termination"
+          element={
+            <ProtectedRoute roles={["hradmin"]}>
+              <TerminationReportPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/performance/appraisal_cycles"
           element={
@@ -340,6 +367,18 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/reports/birthday"
+          element={
+            <ProtectedRoute roles={["hradmin"]}>
+              <BirthdayReportPage />
+            </ProtectedRoute>
+          }
+        />
+       
+
+       
         <Route
           path="/performance/appraisal_cycles/create"
           element={
@@ -347,6 +386,15 @@ export default function App() {
               <PerformanceAdminOnly>
                 <CreateAppraisalCycle />
               </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports/work-anniversary"
+          element={
+            <ProtectedRoute roles={["hradmin"]}>
+              <WorkAnniversaryReportPage />
             </ProtectedRoute>
           }
         />
@@ -439,6 +487,15 @@ export default function App() {
               <PerformanceAdminOnly>
                 <TemplateFormDesign />
               </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports/notifications"
+          element={
+            <ProtectedRoute roles={["hradmin"]}>
+              <ReportNotificationConfigPage />
             </ProtectedRoute>
           }
         />

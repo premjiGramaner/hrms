@@ -232,20 +232,46 @@ const self = async (req, res, next) => {
   }
 };
 
-const logout = async (req, res, next) => {
-  try {
-    // Clear the auth cookie
-    res.clearCookie("auth_token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-    });
+// const forgotPassword = async (req, res, next) => {
+//   try {
+//     const { email } = req.body;
 
-    return success(res, { message: "Logged out successfully" });
-  } catch (err) {
-    next(err);
-  }
-};
+//     if (!email) {
+//       return error(res, "Email is required", 400);
+//     }
+
+//     // Check if user exists with this email
+//     const { rows } = await pool.query(
+//       `SELECT id, username, email FROM tbl_appusers 
+//        WHERE email = $1 AND is_deleted = false`,
+//       [email],
+//     );
+
+//     // Always return success message for security (don't reveal if email exists)
+//     // In production, you would:
+//     // 1. Generate a reset token
+//     // 2. Store it in database with expiry
+//     // 3. Send email with reset link
+    
+//     if (rows.length > 0) {
+//       // TODO: Generate reset token and send email
+//       // const resetToken = crypto.randomBytes(32).toString('hex');
+//       // await pool.query(
+//       //   `UPDATE tbl_appusers SET reset_token = $1, reset_token_expiry = NOW() + INTERVAL '1 hour'
+//       //    WHERE id = $2`,
+//       //   [resetToken, rows[0].id]
+//       // );
+//       // sendPasswordResetEmail(email, resetToken);
+//       console.log(`Password reset requested for: ${email}`);
+//     }
+
+//     return success(res, {
+//       message: "If an account with that email exists, a password reset link has been sent.",
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 
 const forgotPassword = async (req, res, next) => {
   try {
@@ -274,7 +300,6 @@ const forgotPassword = async (req, res, next) => {
           resetLink,
         });
       } catch {
-        // Keep the response generic so password reset requests cannot reveal email delivery state.
       }
     }
 
@@ -351,11 +376,6 @@ const resetPassword = async (req, res, next) => {
     next(err);
   }
 };
-
-/**
- * Create password for first-time login (using userId instead of reset token)
- * This is used when user logs in with temporary password and needs to set a permanent one
- */
 const createFirstTimePassword = async (req, res, next) => {
   try {
     const { userId, password, confirmPassword } = req.body;
@@ -369,7 +389,6 @@ const createFirstTimePassword = async (req, res, next) => {
     const policyError = validatePasswordPolicy(password);
     if (policyError) return error(res, policyError, 400);
 
-    // Verify user exists and must change password
     const { rows } = await pool.query(
       `SELECT id, must_change_password FROM tbl_appusers 
        WHERE id = $1 AND is_deleted = false AND is_active = true`,
@@ -380,7 +399,6 @@ const createFirstTimePassword = async (req, res, next) => {
     if (!user.must_change_password)
       return error(res, "Password change not required for this user", 400);
 
-    // Hash and update password, clear must_change_password flag
     const passwordHash = await bcrypt.hash(password, 10);
     await pool.query(
       `UPDATE tbl_appusers 
@@ -400,14 +418,25 @@ const createFirstTimePassword = async (req, res, next) => {
   }
 };
 
-const createPassword = resetPassword;
+ const logout = async (req, res, next) => {
+  try {
+    res.clearCookie("auth_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    });
+
+    return success(res, { message: "Logged out successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export {
   login,
   self,
   forgotPassword,
   resetPassword,
-  createPassword,
   createFirstTimePassword,
   logout,
 };

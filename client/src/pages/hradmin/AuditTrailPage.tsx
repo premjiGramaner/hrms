@@ -3,6 +3,7 @@ import Layout, { TabItem } from "../../components/Layout";
 import { getAuditTrail } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
+import { IconClipboardList, IconActivity, IconPlusCircle, IconEdit, IconXCircle } from "../../components/Icons";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -22,6 +23,8 @@ const ACTION_COLOR: Record<string, { bg: string; color: string; dot: string }> =
 
 interface AuditRecord {
   id: number;
+  employee_id?: number;
+  employee_code?: string;
   action_owner: string;
   action_owner_username: string;
   employee: string;
@@ -215,7 +218,7 @@ export default function AuditTrailPage() {
     {
       label: "Total Events",
       value: allRecords.length,
-      icon: "",
+      icon: <IconActivity size={20} /> as any ,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
@@ -223,7 +226,7 @@ export default function AuditTrailPage() {
     {
       label: "Created",
       value: createCount,
-      icon: "",
+      icon: <IconPlusCircle size={20} />,
       color: "#16a34a",
       bg: "#f0fdf4",
       border: "#bbf7d0",
@@ -231,7 +234,7 @@ export default function AuditTrailPage() {
     {
       label: "Updated",
       value: updateCount,
-      icon: "",
+      icon: <IconEdit size={20} />,
       color: "#a16207",
       bg: "#fefce8",
       border: "#fde68a",
@@ -239,7 +242,7 @@ export default function AuditTrailPage() {
     {
       label: "Terminated",
       value: terminateCount,
-      icon: "",
+      icon: <IconXCircle size={20} />,
       color: "#9d174d",
       bg: "#fdf2f8",
       border: "#fbcfe8",
@@ -354,6 +357,28 @@ export default function AuditTrailPage() {
       ),
     },
     {
+      key: "employee_code",
+      header: "Employee ID",
+      width: 120,
+      render: (row) => (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "4px 10px",
+            borderRadius: 6,
+            background: "#f0f9ff",
+            color: "#0369a1",
+            fontSize: 12,
+            fontWeight: 600,
+            border: "1px solid #bae6fd",
+          }}
+        >
+          {row.employee_code || "—"}
+        </span>
+      ),
+    },
+    {
       key: "section",
       header: "Section",
       width: 120,
@@ -369,15 +394,6 @@ export default function AuditTrailPage() {
           }}
         >
           {row.section || "—"}
-        </span>
-      ),
-    },
-    {
-      key: "source",
-      header: "Source",
-      render: (row) => (
-        <span style={{ color: "#64748b", fontSize: 12.5 }}>
-          {row.source || "—"}
         </span>
       ),
     },
@@ -512,13 +528,13 @@ export default function AuditTrailPage() {
       <DataTable<AuditRecord>
         title="Audit Trail"
         subtitle="Full history of all user & employee actions"
-        icon="📋"
+        icon={<IconClipboardList size={18} /> as any }
         rows={pagedRecords}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row, idx) => `${row.id}-${idx}`}
-        emptyIcon="📋"
+        emptyIcon={<IconClipboardList size={36}  /> as any }
         emptyTitle={
           hasFilters
             ? "No records match the current filters"

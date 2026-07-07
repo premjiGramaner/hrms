@@ -11,6 +11,7 @@ import {
   setSearch,
 } from "../../store/employeeSlice";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
+import { IconUsers, IconCheckCircle, IconUser } from "../../components/Icons";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -104,7 +105,7 @@ export default function EmployeeListPage() {
     {
       label: "Total",
       value: data?.total ?? 0,
-      icon: "👥",
+      icon: <IconUsers size={20} />,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
@@ -112,7 +113,7 @@ export default function EmployeeListPage() {
     {
       label: "Active",
       value: activeCount,
-      icon: "✅",
+      icon: <IconCheckCircle size={20} />,
       color: "#16a34a",
       bg: "#f0fdf4",
       border: "#bbf7d0",
@@ -120,7 +121,7 @@ export default function EmployeeListPage() {
     {
       label: "Inactive",
       value: inactiveCount,
-      icon: "⏸",
+      icon: <IconUser size={20} />,
       color: "#94a3b8",
       bg: "#f8fafc",
       border: "#e2e8f0",
@@ -283,7 +284,7 @@ export default function EmployeeListPage() {
       <DataTable<Employee>
         title="Employee List"
         subtitle="View and manage employee profile information"
-        icon="👥"
+        icon={<IconUsers size={18} />}
         rows={allRows}
         isLoading={loading}
         columns={columns}
@@ -314,7 +315,7 @@ export default function EmployeeListPage() {
           },
         ]}
         getKey={(employee) => employee.id}
-        emptyIcon="👤"
+        emptyIcon={<IconUser size={36} />}
         emptyTitle={
           search ? `No results for "${search}"` : "No employees found"
         }
