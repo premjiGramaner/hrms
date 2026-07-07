@@ -117,7 +117,7 @@ const login = async (req, res, next) => {
       timingSafeCompare(username, "admin") &&
       timingSafeCompare(password, "admin")
     ) {
-      const token = signToken({ id: 0, role: "empmanager", username: "admin" });
+      const token = signToken({ id: 0, role: "hradmin", username: "admin" });
 
       // Set cookie if remember me is checked
       if (rememberMe) {
@@ -137,10 +137,10 @@ const login = async (req, res, next) => {
         user: {
           id: 0,
           username: "admin",
-          role: "empmanager",
-          name: "Admin",
-          first_name: "Admin",
-          last_name: "",
+          role: "hradmin",
+          name: "Global Admin",
+          first_name: "Global",
+          last_name: "Admin",
         },
       });
     }

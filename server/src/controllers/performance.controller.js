@@ -281,6 +281,7 @@ const listMyAppraisals = async (req, res, next) => {
       await PerformanceModel.listAppraisals({
         userId: req.user?.id,
         onlyMine: true,
+        employeeOnly: true,
         from,
         to,
         cycleId,

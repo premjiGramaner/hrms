@@ -36,6 +36,21 @@ export default function TemplateList() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const resetAddDraft = () => {
+    setError("");
+    setDraft({
+      jobTitle: "",
+      templateName: "",
+      weight: "100",
+      header: defaultPerformanceEvaluationHeader,
+    });
+  };
+
+  const openAddModal = () => {
+    resetAddDraft();
+    setIsAdding(true);
+  };
+
   useEffect(() => {
     getPerformanceTemplates()
       .then(setTemplates)
@@ -97,6 +112,7 @@ export default function TemplateList() {
     });
     setTemplates((current) => [...current, created]);
     setIsAdding(false);
+    resetAddDraft();
     navigate(
       `/performance/configuration/appraisal/templates/${created.id}/design`,
     );
@@ -107,12 +123,12 @@ export default function TemplateList() {
       title="Performance / Configuration / Appraisal"
       tabs={appraisalConfigurationTabs}
       activeTab="Templates"
-      onFab={() => setIsAdding(true)}
+      onFab={openAddModal}
     >
       <div className="min-h-full bg-[#fbf6ff] p-2">
         <div className="rounded-[8px] bg-white p-8">
           <div className="mb-6 flex justify-end">
-            <Button onClick={() => setIsAdding(true)}>
+            <Button onClick={openAddModal}>
               <Plus size={16} />
               Add Appraisal Template
             </Button>
@@ -167,10 +183,19 @@ export default function TemplateList() {
         {isAdding ? (
           <Modal
             title="Add Appraisal Template"
-            onClose={() => setIsAdding(false)}
+            onClose={() => {
+              setIsAdding(false);
+              resetAddDraft();
+            }}
             footer={
               <>
-                <Button variant="secondary" onClick={() => setIsAdding(false)}>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setIsAdding(false);
+                    resetAddDraft();
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button onClick={saveTemplate}>Save</Button>

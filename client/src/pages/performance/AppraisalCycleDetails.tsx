@@ -45,32 +45,47 @@ export default function AppraisalCycleDetails() {
     {
       key: "mainEvaluator",
       header: "Main Evaluator",
-      render: (row) =>
-        row.mainEvaluator ? (
+      render: (row) => {
+        const evaluator =
+          row.mainEvaluator ??
+          row.evaluators?.[0] ??
+          row.supervisors?.[0] ??
+          null;
+
+        return evaluator ? (
           <span className="rounded-full bg-[#f2eef6] px-4 py-2 text-sm font-semibold text-slate-600">
-            {row.mainEvaluator.name}
+            {evaluator.name}
           </span>
         ) : (
           <span className="text-sm font-semibold text-slate-400">
             No supervisor assigned
           </span>
-        ),
+        );
+      },
     },
     {
       key: "evaluators",
       header: "Evaluators",
-      render: (row) => (
-        <div className="flex flex-wrap gap-2">
-          {row.mainEvaluator ? (
+      render: (row) => {
+        const evaluator =
+          row.mainEvaluator ??
+          row.evaluators?.[0] ??
+          row.supervisors?.[0] ??
+          null;
+
+        return (
+          <div className="flex flex-wrap gap-2">
+            {evaluator ? (
+              <span className="rounded-full bg-[#f2eef6] px-3 py-1 text-xs font-semibold text-slate-500">
+                {evaluator.name}
+              </span>
+            ) : null}
             <span className="rounded-full bg-[#f2eef6] px-3 py-1 text-xs font-semibold text-slate-500">
-              {row.mainEvaluator.name}
+              {row.name}
             </span>
-          ) : null}
-          <span className="rounded-full bg-[#f2eef6] px-3 py-1 text-xs font-semibold text-slate-500">
-            {row.name}
-          </span>
-        </div>
-      ),
+          </div>
+        );
+      },
     },
     {
       key: "status",

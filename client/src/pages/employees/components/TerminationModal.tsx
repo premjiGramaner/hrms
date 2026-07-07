@@ -20,7 +20,6 @@ export default function TerminationModal({
     terminationType: "Voluntary",
     lastWorkingDay: "",
     noticePeriodDays: "30",
-    exitInterviewCompleted: "false",
     rehireEligible: "false",
     notes: "",
   });
@@ -95,9 +94,11 @@ export default function TerminationModal({
         terminationReason: reason,
         terminationDateTime: terminationForm.terminationDateTime.trim(),
         terminationType: terminationForm.terminationType,
-        lastWorkingDay: terminationForm.lastWorkingDay.trim() || terminationForm.terminationDateTime.trim().split('T')[0],
+        lastWorkingDay:
+          terminationForm.lastWorkingDay.trim() ||
+          terminationForm.terminationDateTime.trim().split("T")[0],
         noticePeriodDays: parseInt(terminationForm.noticePeriodDays) || 0,
-        exitInterviewCompleted: terminationForm.exitInterviewCompleted === "true",
+        exitInterviewCompleted: false, 
         rehireEligible: terminationForm.rehireEligible === "true",
         notes: terminationForm.notes.trim(),
       });
@@ -355,38 +356,26 @@ export default function TerminationModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
-                  Exit Interview Completed
-                </label>
-                <select
-                  value={terminationForm.exitInterviewCompleted}
-                  onChange={set("exitInterviewCompleted")}
-                  className="w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors border-slate-200 bg-slate-50 focus:border-slate-300"
-                >
-                  <option value="false">No</option>
-                  <option value="true">Yes</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
-                  Rehire Eligible
-                </label>
-                <select
-                  value={terminationForm.rehireEligible}
-                  onChange={set("rehireEligible")}
-                  className="w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors border-slate-200 bg-slate-50 focus:border-slate-300"
-                >
-                  <option value="false">No</option>
-                  <option value="true">Yes</option>
-                </select>
-              </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
+                Rehire Eligible
+              </label>
+              <select
+                value={terminationForm.rehireEligible}
+                onChange={set("rehireEligible")}
+                className="w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors border-slate-200 bg-slate-50 focus:border-slate-300"
+              >
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+              </select>
             </div>
 
             <div>
-              {renderTextArea("notes", "Enter additional notes or comments", false)}
+              {renderTextArea(
+                "notes",
+                "Enter additional notes or comments",
+                false,
+              )}
             </div>
           </div>
         </div>

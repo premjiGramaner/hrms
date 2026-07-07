@@ -220,28 +220,6 @@ export default function TerminationReportPage() {
       ),
     },
     {
-      key: "exit_interview_completed",
-      header: "Exit Interview",
-      width: 130,
-      render: (row) => (
-        <span
-          style={{
-            display: "inline-block",
-            padding: "4px 10px",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            backgroundColor: row.exit_interview_completed
-              ? "#E8F5E9"
-              : "#FFF3E0",
-            color: row.exit_interview_completed ? "#2E7D32" : "#E65100",
-          }}
-        >
-          {row.exit_interview_completed ? "Completed" : "Pending"}
-        </span>
-      ),
-    },
-    {
       key: "rehire_eligible",
       header: "Rehire Eligible",
       width: 130,
@@ -258,6 +236,16 @@ export default function TerminationReportPage() {
           }}
         >
           {row.rehire_eligible ? "Yes" : "No"}
+        </span>
+      ),
+    },
+    {
+      key: "termination_notes",
+      header: "Notes",
+      width: 200,
+      render: (row) => (
+        <span style={{ fontSize: 13, color: "#64748b" }}>
+          {row.termination_notes || "-"}
         </span>
       ),
     },

@@ -6,35 +6,43 @@ import pool from "./src/config/db.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-async function runMigration() {
+const migrations = [
+  "006_performance_and_supervisor_migration.sql",
+  "011_fix_termination_trigger_ambiguous_column.sql",
+];
+
+export async function runMigrations() {
   const client = await pool.connect();
   try {
-    console.log("Running migration: add_net_leave_balance_column.sql");
+    await client.query("BEGIN");
 
-    const sqlPath = join(
-      __dirname,
-      "database",
-      "migrations",
-      "add_net_leave_balance_column.sql",
-    );
-    const sql = readFileSync(sqlPath, "utf8");
+    for (const fileName of migrations) {
+      const sqlPath = join(__dirname, "database", "migrations", fileName);
+      const sql = readFileSync(sqlPath, "utf8");
 
-    await client.query(sql);
-    console.log("✓ Migration completed successfully");
-    console.log(
-      "✓ Added net_leave_balance_at_request column to tbl_leave_requests",
-    );
-    console.log("✓ Backfilled existing records with calculated balances");
+      if (!sql.trim()) {
+        continue;
+      }
+
+      console.log(`Running migration: ${fileName}`);
+      await client.query(sql);
+      console.log(`✓ Applied ${fileName}`);
+    }
+
+    await client.query("COMMIT");
+    console.log("✓ Database migrations completed");
   } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
     console.error("✗ Migration failed:", error.message);
     throw error;
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
-runMigration().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  runMigrations().catch((error) => {
+    console.error("Fatal error:", error);
+    process.exit(1);
+  });
+}

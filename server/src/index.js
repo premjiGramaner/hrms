@@ -14,6 +14,7 @@ import leaveRoutes from './routes/leave.routes.js';
 import entitlementRoutes from './routes/entitlement.routes.js';
 import reportRoutes from './routes/report.routes.js';
 import { initializeReportNotificationScheduler } from './jobs/reportNotificationScheduler.js';
+import { runMigrations } from "../run_migration.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,9 +47,17 @@ app.get("/api/health", (_req, res) =>
 );
 
 app.use(errorMiddleware);
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-    initializeReportNotificationScheduler();
+
+async function startServer() {
+  await runMigrations();
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+startServer().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
 });
 
 export default app;
