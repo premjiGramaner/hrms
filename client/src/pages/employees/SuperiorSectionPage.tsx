@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Users, ShieldCheck, Crown, UserCheck } from "lucide-react";
 import Layout, { TabItem } from "../../components/Layout";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import useDebounce from "../../hooks/useDebounce";
@@ -199,7 +200,7 @@ export default function SuperiorSectionPage() {
     {
       label: "Total",
       value: pageData?.total ?? 0,
-      icon: "T",
+      icon: <Users size={26} />,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
@@ -207,7 +208,7 @@ export default function SuperiorSectionPage() {
     {
       label: "Supervisors",
       value: supervisorCount,
-      icon: "S",
+      icon: <ShieldCheck size={26} />,
       color: "#075985",
       bg: "#e0f2fe",
       border: "#bae6fd",
@@ -215,7 +216,7 @@ export default function SuperiorSectionPage() {
     {
       label: "Global Admins",
       value: globalAdminCount,
-      icon: "G",
+      icon: <Crown size={26} />,
       color: "#7c3aed",
       bg: "#ede9fe",
       border: "#c4b5fd",
@@ -223,7 +224,7 @@ export default function SuperiorSectionPage() {
     {
       label: "Active",
       value: activeCount,
-      icon: "A",
+      icon: <UserCheck size={26} />,
       color: "#16a34a",
       bg: "#f0fdf4",
       border: "#bbf7d0",
@@ -447,7 +448,7 @@ export default function SuperiorSectionPage() {
       <DataTable<Employee>
         title="Superior Section"
         subtitle="Supervisors and global admins available for reporting relationships"
-        icon="S"
+        icon=""
         rows={rows}
         isLoading={isLoading}
         columns={columns}

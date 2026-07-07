@@ -89,38 +89,7 @@ export default function CreateAppraisalCycle() {
               onChange={setDueDate}
             />
           </div>
-          <div className="mt-6 rounded-[8px] bg-[#fdfbff] p-6">
-            <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
-              <span className="text-sm font-bold text-slate-500">
-                Select Main Evaluator By
-              </span>
-              <div className="flex flex-wrap gap-8 text-sm font-semibold text-slate-600">
-                {["Name", "Supervisor with Reporting Method"].map((option) => (
-                  <label
-                    key={option}
-                    className="inline-flex items-center gap-3"
-                  >
-                    <input
-                      type="radio"
-                      checked={mainEvaluatorBy === option}
-                      onChange={() => setMainEvaluatorBy(option)}
-                      className="h-5 w-5 accent-navy-700"
-                    />
-                    {option}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="mt-6 max-w-lg">
-              <SelectInput
-                label="Reporting Method"
-                required
-                value={reportingMethod}
-                onChange={setReportingMethod}
-                options={["Direct", "Indirect", "Both"]}
-              />
-            </div>
-          </div>
+          
           <div className="mt-6 max-w-2xl">
             <SelectInput
               label="Template"

@@ -31,19 +31,33 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const response = await loginApi(username, password);
-      const { data } = response;
-      if (response.passwordExpired && data.user) {
+      const response = await loginApi(username, password, rememberMe);
+      const payload = (response as { data?: any } | undefined)?.data ?? response;
+      const data = payload as {
+        token?: string;
+        user?: { id: number; username: string; role: string; name: string; avatar?: string };
+        requiresPasswordChange?: boolean;
+        userId?: number;
+        isFirstLogin?: boolean;
+      };
+      const token = data?.token;
+      const user = data?.user;
+      const requiresPasswordChange = data?.requiresPasswordChange;
+      const userId = data?.userId;
+
+      if (requiresPasswordChange && user) {
         navigate(
-          `/create-password?userId=${encodeURIComponent(String(data.user.id))}&username=${encodeURIComponent(data.user.username)}`,
+          `/create-password?userId=${encodeURIComponent(String(userId ?? user.id))}&username=${encodeURIComponent(user.username)}`,
         );
         return;
       }
-      if (!data.token) {
+
+      if (!token || !user) {
         setError("Login could not be completed. Please try again.");
         return;
       }
-      dispatch(loginSuccess({ token: data.token, user: data.user }));
+
+      dispatch(loginSuccess({ token, user }));
       navigate("/employees");
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Invalid username or password."));
