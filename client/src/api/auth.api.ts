@@ -8,9 +8,20 @@ export const login = async (
 ) => {
   const response = await api.post<{
     success: boolean;
-    data: { token: string; user: AuthUser };
+    data: {
+      token?: string;
+      user?: AuthUser;
+      requiresPasswordChange?: boolean;
+      userId?: number;
+      isFirstLogin?: boolean;
+    };
     passwordExpired?: boolean;
     username?: string;
+    token?: string;
+    user?: AuthUser;
+    requiresPasswordChange?: boolean;
+    userId?: number;
+    isFirstLogin?: boolean;
   }>("/auth/login", { username, password, rememberMe });
   return response.data;
 };

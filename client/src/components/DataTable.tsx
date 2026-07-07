@@ -24,7 +24,7 @@ export interface ActionDef<T> {
 export interface StatCard {
   label: string;
   value: number | string;
-  icon: string;
+  icon: React.ReactNode;
   color: string;
   bg: string;
   border: string;
@@ -165,7 +165,17 @@ export default function DataTable<T>({
                 gap: 12,
               }}
             >
-              <span style={{ fontSize: 22 }}>{stat.icon}</span>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  color: stat.color,
+                }}
+              >
+                <span style={{ display: "flex" }}>{stat.icon}</span>
+              </div>
               <div>
                 <div
                   style={{

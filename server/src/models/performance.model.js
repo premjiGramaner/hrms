@@ -44,9 +44,19 @@ function parseSupervisors(value) {
   }
 }
 
+function getSupervisorId(item) {
+  if (!item) return "";
+  if (typeof item === "number" || typeof item === "string") {
+    return String(item).trim();
+  }
+  return String(item.id || item.employee_id || item.employeeId || "").trim();
+}
+
 function getSupervisorKey(item) {
   if (!item) return "";
-  if (typeof item === "string") return item.trim();
+  if (typeof item === "string" || typeof item === "number") {
+    return String(item).trim();
+  }
   return String(
     item.name ||
       item.employeeName ||
@@ -61,10 +71,7 @@ function getSupervisorKey(item) {
 
 function matchSupervisorUser(supervisor, supervisorUsers = []) {
   const rawKey = getSupervisorKey(supervisor);
-  const idKey =
-    typeof supervisor === "object"
-      ? supervisor.id || supervisor.employee_id || supervisor.employeeId
-      : "";
+  const idKey = getSupervisorId(supervisor);
   if (idKey && /^\d+$/.test(String(idKey))) {
     const byId = supervisorUsers.find(
       (user) => String(user.id) === String(idKey),
@@ -214,9 +221,16 @@ function normalizeEmployee(row, supervisorUsers = []) {
   const supervisors = supervisorEntries.map((entry) => {
     const name = getSupervisorKey(entry);
     const matchedUser = matchSupervisorUser(entry, supervisorUsers);
+    const rawId = getSupervisorId(entry);
+    const supervisorId = matchedUser?.id
+      ? String(matchedUser.id)
+      : /^\d+$/.test(rawId)
+        ? rawId
+        : toSlug(name);
+
     return {
-      id: matchedUser?.id ? String(matchedUser.id) : toSlug(name),
-      name: matchedUser?.name || name,
+      id: supervisorId,
+      name: matchedUser?.name || name || rawId || "Supervisor",
       role: matchedUser?.job_title || "Supervisor",
       employeeId: matchedUser?.employee_id || null,
       jobTitle: matchedUser?.job_title || null,
@@ -689,25 +703,37 @@ async function getEmployeeById(id) {
 }
 
 async function resolveMainEvaluatorId(employee) {
-  const supervisor = employee?.supervisors?.find((item) =>
-    /^\d+$/.test(String(item.id)),
-  );
-  return supervisor ? Number(supervisor.id) : null;
+  const supervisor = employee?.supervisors?.find((item) => {
+    const id = getSupervisorId(item);
+    return /^\d+$/.test(id);
+  });
+
+  if (!supervisor) return null;
+  const id = getSupervisorId(supervisor);
+  return id ? Number(id) : null;
 }
 
 function resolveMainEvaluator(employee, storedEvaluator) {
   if (storedEvaluator) return storedEvaluator;
-  const supervisor = employee?.supervisors?.find((item) =>
-    /^\d+$/.test(String(item.id)),
-  );
-  return supervisor
-    ? {
-        id: supervisor.id,
-        name: supervisor.name,
-        role: supervisor.jobTitle || supervisor.role || "Supervisor",
-        avatar: supervisor.avatar || null,
-      }
-    : null;
+  const supervisor = employee?.supervisors?.find((item) => {
+    const id = getSupervisorId(item);
+    return /^\d+$/.test(id);
+  });
+  if (!supervisor) return null;
+
+  const id = getSupervisorId(supervisor);
+  const name = getSupervisorKey(supervisor) || id;
+
+  return {
+    id: id || name,
+    name,
+    role:
+      typeof supervisor === "object"
+        ? supervisor.jobTitle || supervisor.role || "Supervisor"
+        : "Supervisor",
+    avatar:
+      typeof supervisor === "object" ? supervisor.avatar || null : null,
+  };
 }
 
 async function mapCycle(row, includeEmployees = true) {
@@ -957,6 +983,7 @@ function mapAppraisalRow(row) {
 async function listAppraisals({
   userId,
   onlyMine = false,
+  employeeOnly = false,
   cycleId,
   from,
   to,
@@ -972,9 +999,13 @@ async function listAppraisals({
   };
 
   if (onlyMine && userId) {
-    const p1 = push(Number(userId));
-    const p2 = push(Number(userId));
-    filters.push(`(a.employee_id = ${p1} OR a.main_evaluator_id = ${p2})`);
+    if (employeeOnly) {
+      filters.push(`a.employee_id = ${push(Number(userId))}`);
+    } else {
+      const p1 = push(Number(userId));
+      const p2 = push(Number(userId));
+      filters.push(`(a.employee_id = ${p1} OR a.main_evaluator_id = ${p2})`);
+    }
   }
   if (cycleId && cycleId !== "open") {
     filters.push(`a.cycle_id = ${push(cycleId)}`);

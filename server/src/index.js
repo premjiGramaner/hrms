@@ -12,6 +12,7 @@ import hradminRoutes from "./routes/hradmin.routes.js";
 import leaveRoutes from "./routes/leave.routes.js";
 import entitlementRoutes from "./routes/entitlement.routes.js";
 import performanceRoutes from "./routes/performance.routes.js";
+import { runMigrations } from "../run_migration.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,8 +44,17 @@ app.get("/api/health", (_req, res) =>
 );
 
 app.use(errorMiddleware);
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+
+async function startServer() {
+  await runMigrations();
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+startServer().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
 });
 
 export default app;
