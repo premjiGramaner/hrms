@@ -1,4 +1,4 @@
-import pool from '../config/db.js';
+import pool from "../config/db.js";
 
 /**
  * Termination Report Query
@@ -6,10 +6,21 @@ import pool from '../config/db.js';
  * Uses tbl_employee_terminations for real-time termination tracking
  */
 async function getTerminationReportData(filterCriteria, paginationOptions) {
-  const { dateFrom, dateTo, groupCompany, location, employeeId, employeeName, page, limit, sortColumn, sortDirection } = filterCriteria;
-  
+  const {
+    dateFrom,
+    dateTo,
+    groupCompany,
+    location,
+    employeeId,
+    employeeName,
+    page,
+    limit,
+    sortColumn,
+    sortDirection,
+  } = filterCriteria;
+
   const offset = (page - 1) * limit;
-  const conditions = ['t.is_deleted = FALSE'];
+  const conditions = ["t.is_deleted = FALSE"];
   const values = [];
   let valueIndex = 1;
 
@@ -49,12 +60,22 @@ async function getTerminationReportData(filterCriteria, paginationOptions) {
     valueIndex++;
   }
 
-  const whereClause = conditions.join(' AND ');
-  
+  const whereClause = conditions.join(" AND ");
+
   // Validate sort column to prevent SQL injection
-  const allowedSortColumns = ['employee_code', 'employee_name', 'job_title', 'sub_unit', 'location', 'date_of_joining', 'termination_date'];
-  const safeSortColumn = allowedSortColumns.includes(sortColumn) ? sortColumn : 'termination_date';
-  const safeSortDirection = sortDirection === 'asc' ? 'ASC' : 'DESC';
+  const allowedSortColumns = [
+    "employee_code",
+    "employee_name",
+    "job_title",
+    "sub_unit",
+    "location",
+    "date_of_joining",
+    "termination_date",
+  ];
+  const safeSortColumn = allowedSortColumns.includes(sortColumn)
+    ? sortColumn
+    : "termination_date";
+  const safeSortDirection = sortDirection === "asc" ? "ASC" : "DESC";
 
   // Get total count
   const countQuery = `
@@ -93,7 +114,7 @@ async function getTerminationReportData(filterCriteria, paginationOptions) {
     ORDER BY t.${safeSortColumn} ${safeSortDirection}
     LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
   `;
-  
+
   values.push(limit, offset);
   const { rows: dataRows } = await pool.query(dataQuery, values);
 
@@ -110,21 +131,38 @@ async function getTerminationReportData(filterCriteria, paginationOptions) {
  * Retrieves employees with upcoming birthdays filtered by role access
  */
 async function getBirthdayReportData(filterCriteria, userContext) {
-  const { monthFilter, dateFrom, dateTo, employeeId, employeeName, genderFilter, maritalStatusFilter, roleFilter, page, limit, sortColumn, sortDirection } = filterCriteria;
+  const {
+    monthFilter,
+    dateFrom,
+    dateTo,
+    employeeId,
+    employeeName,
+    genderFilter,
+    maritalStatusFilter,
+    roleFilter,
+    page,
+    limit,
+    sortColumn,
+    sortDirection,
+  } = filterCriteria;
   const { userId, userRole } = userContext;
-  
+
   const offset = (page - 1) * limit;
-  const conditions = ['u.is_deleted = FALSE', 'u.is_active = TRUE', 'u.real_dob IS NOT NULL'];
+  const conditions = [
+    "u.is_deleted = FALSE",
+    "u.is_active = TRUE",
+    "u.real_dob IS NOT NULL",
+  ];
   const values = [];
   let valueIndex = 1;
 
   // Role-based access control
-  if (userRole === 'employee') {
+  if (userRole === "employee") {
     // Employees can only see their own birthday
     conditions.push(`u.id = $${valueIndex}`);
     values.push(userId);
     valueIndex++;
-  } else if (userRole === 'empmanager') {
+  } else if (userRole === "empmanager") {
     // Supervisors can see their subordinates + themselves
     conditions.push(`(u.id = $${valueIndex} OR $${valueIndex} = ANY(
       SELECT UNNEST(
@@ -152,7 +190,9 @@ async function getBirthdayReportData(filterCriteria, userContext) {
 
   // Date range filter for birthday month and day
   if (dateFrom && dateTo) {
-    conditions.push(`TO_CHAR(u.real_dob, 'MM-DD') BETWEEN $${valueIndex} AND $${valueIndex + 1}`);
+    conditions.push(
+      `TO_CHAR(u.real_dob, 'MM-DD') BETWEEN $${valueIndex} AND $${valueIndex + 1}`,
+    );
     values.push(dateFrom, dateTo);
     valueIndex += 2;
   }
@@ -164,7 +204,9 @@ async function getBirthdayReportData(filterCriteria, userContext) {
   }
 
   if (employeeName) {
-    conditions.push(`(u.name ILIKE $${valueIndex} OR u.first_name ILIKE $${valueIndex} OR u.last_name ILIKE $${valueIndex})`);
+    conditions.push(
+      `(u.name ILIKE $${valueIndex} OR u.first_name ILIKE $${valueIndex} OR u.last_name ILIKE $${valueIndex})`,
+    );
     values.push(`%${employeeName}%`);
     valueIndex++;
   }
@@ -187,12 +229,23 @@ async function getBirthdayReportData(filterCriteria, userContext) {
     valueIndex++;
   }
 
-  const whereClause = conditions.join(' AND ');
-  
+  const whereClause = conditions.join(" AND ");
+
   // Validate sort column
-  const allowedSortColumns = ['employee_id', 'first_name', 'last_name', 'name', 'real_dob', 'gender', 'marital_status', 'role'];
-  const safeSortColumn = allowedSortColumns.includes(sortColumn) ? sortColumn : 'real_dob';
-  const safeSortDirection = sortDirection === 'asc' ? 'ASC' : 'DESC';
+  const allowedSortColumns = [
+    "employee_id",
+    "first_name",
+    "last_name",
+    "name",
+    "real_dob",
+    "gender",
+    "marital_status",
+    "role",
+  ];
+  const safeSortColumn = allowedSortColumns.includes(sortColumn)
+    ? sortColumn
+    : "real_dob";
+  const safeSortDirection = sortDirection === "asc" ? "ASC" : "DESC";
 
   // Get total count
   const countQuery = `SELECT COUNT(*)::int AS total_records FROM tbl_appusers u WHERE ${whereClause}`;
@@ -223,7 +276,7 @@ async function getBirthdayReportData(filterCriteria, userContext) {
     ORDER BY u.${safeSortColumn} ${safeSortDirection}
     LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
   `;
-  
+
   values.push(limit, offset);
   const { rows: dataRows } = await pool.query(dataQuery, values);
 
@@ -240,20 +293,36 @@ async function getBirthdayReportData(filterCriteria, userContext) {
  * Retrieves employees with upcoming work anniversaries filtered by role access
  */
 async function getWorkAnniversaryReportData(filterCriteria, userContext) {
-  const { monthFilter, dateFrom, dateTo, employeeId, employeeName, yearFilter, departmentFilter, page, limit, sortColumn, sortDirection } = filterCriteria;
+  const {
+    monthFilter,
+    dateFrom,
+    dateTo,
+    employeeId,
+    employeeName,
+    yearFilter,
+    departmentFilter,
+    page,
+    limit,
+    sortColumn,
+    sortDirection,
+  } = filterCriteria;
   const { userId, userRole } = userContext;
-  
+
   const offset = (page - 1) * limit;
-  const conditions = ['u.is_deleted = FALSE', 'u.is_active = TRUE', 'u.joined_date IS NOT NULL'];
+  const conditions = [
+    "u.is_deleted = FALSE",
+    "u.is_active = TRUE",
+    "u.joined_date IS NOT NULL",
+  ];
   const values = [];
   let valueIndex = 1;
 
   // Role-based access control
-  if (userRole === 'employee') {
+  if (userRole === "employee") {
     conditions.push(`u.id = $${valueIndex}`);
     values.push(userId);
     valueIndex++;
-  } else if (userRole === 'empmanager') {
+  } else if (userRole === "empmanager") {
     conditions.push(`(u.id = $${valueIndex} OR $${valueIndex} = ANY(
       SELECT UNNEST(
         CASE 
@@ -279,7 +348,9 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
 
   // Date range filter
   if (dateFrom && dateTo) {
-    conditions.push(`TO_CHAR(u.joined_date, 'MM-DD') BETWEEN $${valueIndex} AND $${valueIndex + 1}`);
+    conditions.push(
+      `TO_CHAR(u.joined_date, 'MM-DD') BETWEEN $${valueIndex} AND $${valueIndex + 1}`,
+    );
     values.push(dateFrom, dateTo);
     valueIndex += 2;
   }
@@ -291,7 +362,9 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
   }
 
   if (employeeName) {
-    conditions.push(`(u.name ILIKE $${valueIndex} OR u.first_name ILIKE $${valueIndex} OR u.last_name ILIKE $${valueIndex})`);
+    conditions.push(
+      `(u.name ILIKE $${valueIndex} OR u.first_name ILIKE $${valueIndex} OR u.last_name ILIKE $${valueIndex})`,
+    );
     values.push(`%${employeeName}%`);
     valueIndex++;
   }
@@ -299,7 +372,9 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
   // Filter by years of service
   if (yearFilter) {
     const currentYear = new Date().getFullYear();
-    conditions.push(`EXTRACT(YEAR FROM AGE(NOW(), u.joined_date)) = $${valueIndex}::int`);
+    conditions.push(
+      `EXTRACT(YEAR FROM AGE(NOW(), u.joined_date)) = $${valueIndex}::int`,
+    );
     values.push(parseInt(yearFilter, 10));
     valueIndex++;
   }
@@ -310,12 +385,22 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
     valueIndex++;
   }
 
-  const whereClause = conditions.join(' AND ');
-  
+  const whereClause = conditions.join(" AND ");
+
   // Validate sort column
-  const allowedSortColumns = ['employee_id', 'name', 'joined_date', 'sub_unit', 'job_title', 'location', 'years_of_service'];
-  const safeSortColumn = allowedSortColumns.includes(sortColumn) ? sortColumn : 'joined_date';
-  const safeSortDirection = sortDirection === 'asc' ? 'ASC' : 'DESC';
+  const allowedSortColumns = [
+    "employee_id",
+    "name",
+    "joined_date",
+    "sub_unit",
+    "job_title",
+    "location",
+    "years_of_service",
+  ];
+  const safeSortColumn = allowedSortColumns.includes(sortColumn)
+    ? sortColumn
+    : "joined_date";
+  const safeSortDirection = sortDirection === "asc" ? "ASC" : "DESC";
 
   // Get total count
   const countQuery = `SELECT COUNT(*)::int AS total_records FROM tbl_appusers u WHERE ${whereClause}`;
@@ -344,10 +429,10 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
       u.role AS user_type
     FROM tbl_appusers u
     WHERE ${whereClause}
-    ORDER BY ${safeSortColumn === 'years_of_service' ? 'EXTRACT(YEAR FROM AGE(NOW(), u.joined_date))' : `u.${safeSortColumn}`} ${safeSortDirection}
+    ORDER BY ${safeSortColumn === "years_of_service" ? "EXTRACT(YEAR FROM AGE(NOW(), u.joined_date))" : `u.${safeSortColumn}`} ${safeSortDirection}
     LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
   `;
-  
+
   values.push(limit, offset);
   const { rows: dataRows } = await pool.query(dataQuery, values);
 
@@ -383,7 +468,7 @@ async function getUpcomingBirthdays(daysAhead = 2) {
           AND TO_CHAR(CURRENT_DATE + INTERVAL '${daysAhead} days', 'MM-DD')
     ORDER BY TO_CHAR(u.real_dob, 'MM-DD')
   `;
-  
+
   const { rows } = await pool.query(query);
   return rows;
 }
@@ -412,7 +497,7 @@ async function getUpcomingWorkAnniversaries(daysAhead = 2) {
       AND EXTRACT(YEAR FROM AGE(CURRENT_DATE + INTERVAL '${daysAhead} days', u.joined_date)) >= 1
     ORDER BY years_completing DESC
   `;
-  
+
   const { rows } = await pool.query(query);
   return rows;
 }
@@ -422,35 +507,67 @@ async function getUpcomingWorkAnniversaries(daysAhead = 2) {
  */
 async function getNotificationConfig(notificationType) {
   const { rows } = await pool.query(
-    `SELECT id, notification_type, recipient_user_ids, days_before, is_active, created_at, updated_at
+    `SELECT id, notification_type, recipient_user_ids, days_before, is_active, external_emails, created_at, updated_at
      FROM tbl_report_notification_config
      WHERE notification_type = $1`,
-    [notificationType]
+    [notificationType],
   );
   return rows[0] || null;
 }
 
-async function updateNotificationConfig(notificationType, recipientUserIds, daysBefore, isActive, updatedBy) {
+async function updateNotificationConfig(
+  notificationType,
+  recipientUserIds,
+  daysBefore,
+  isActive,
+  updatedBy,
+  externalEmails = "",
+) {
   const { rows } = await pool.query(
     `UPDATE tbl_report_notification_config
-     SET recipient_user_ids = $2, days_before = $3, is_active = $4, updated_by = $5, updated_at = NOW()
+     SET recipient_user_ids = $2, days_before = $3, is_active = $4, updated_by = $5, external_emails = $6, updated_at = NOW()
      WHERE notification_type = $1
      RETURNING *`,
-    [notificationType, recipientUserIds, daysBefore, isActive, updatedBy]
+    [
+      notificationType,
+      recipientUserIds,
+      daysBefore,
+      isActive,
+      updatedBy,
+      externalEmails,
+    ],
   );
   return rows[0];
 }
 
-async function logNotificationSent(notificationType, employeeId, eventDate, recipientUserIds, emailStatus, errorMessage = null) {
+async function logNotificationSent(
+  notificationType,
+  employeeId,
+  eventDate,
+  recipientUserIds,
+  emailStatus,
+  errorMessage = null,
+) {
   await pool.query(
     `INSERT INTO tbl_report_notification_log 
      (notification_type, employee_id, event_date, recipient_user_ids, email_status, error_message)
      VALUES ($1, $2, $3, $4, $5, $6)`,
-    [notificationType, employeeId, eventDate, recipientUserIds, emailStatus, errorMessage]
+    [
+      notificationType,
+      employeeId,
+      eventDate,
+      recipientUserIds,
+      emailStatus,
+      errorMessage,
+    ],
   );
 }
 
-async function checkNotificationAlreadySent(notificationType, employeeId, eventDate) {
+async function checkNotificationAlreadySent(
+  notificationType,
+  employeeId,
+  eventDate,
+) {
   const { rows } = await pool.query(
     `SELECT id FROM tbl_report_notification_log
      WHERE notification_type = $1 
@@ -458,7 +575,7 @@ async function checkNotificationAlreadySent(notificationType, employeeId, eventD
        AND event_date = $3 
        AND email_status = 'sent'
      LIMIT 1`,
-    [notificationType, employeeId, eventDate]
+    [notificationType, employeeId, eventDate],
   );
   return rows.length > 0;
 }
@@ -470,18 +587,18 @@ async function getDistinctSubUnits() {
   const { rows } = await pool.query(
     `SELECT DISTINCT sub_unit FROM tbl_appusers 
      WHERE sub_unit IS NOT NULL AND sub_unit != '' AND is_deleted = FALSE
-     ORDER BY sub_unit`
+     ORDER BY sub_unit`,
   );
-  return rows.map(r => r.sub_unit);
+  return rows.map((r) => r.sub_unit);
 }
 
 async function getDistinctLocations() {
   const { rows } = await pool.query(
     `SELECT DISTINCT location FROM tbl_appusers 
      WHERE location IS NOT NULL AND location != '' AND is_deleted = FALSE
-     ORDER BY location`
+     ORDER BY location`,
   );
-  return rows.map(r => r.location);
+  return rows.map((r) => r.location);
 }
 
 export default {

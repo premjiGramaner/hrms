@@ -218,6 +218,7 @@ export interface NotificationConfig {
   recipient_user_ids: number[];
   days_before: number;
   is_active: boolean;
+  external_emails?: string;
   created_at?: string;
   updated_at?: string;
 }

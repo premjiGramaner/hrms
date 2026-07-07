@@ -148,3 +148,17 @@ export async function fetchReportFilterOptions() {
   }>("/reports/filter-options");
   return response.data.data;
 }
+
+export async function triggerNotificationsManually() {
+  const response = await api.post<{
+    success: boolean;
+    data: {
+      message: string;
+      results: {
+        birthday: { success: boolean; message: string };
+        work_anniversary: { success: boolean; message: string };
+      };
+    };
+  }>("/reports/trigger-notifications");
+  return response.data.data;
+}

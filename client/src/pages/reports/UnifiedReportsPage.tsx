@@ -20,7 +20,6 @@ import {
 } from "../../api/report.api";
 
 const TABS: TabItem[] = [
-  { label: "Reports", path: "/reports" },
   { label: "Birthday Report", path: "/reports/birthday" },
   { label: "Work Anniversary", path: "/reports/work-anniversary" },
   { label: "Termination Report", path: "/reports/termination" },

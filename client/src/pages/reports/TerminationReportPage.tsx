@@ -10,7 +10,6 @@ import {
 } from "../../api/report.api";
 
 const TABS: TabItem[] = [
-  { label: "Reports", path: "/reports" },
   { label: "Birthday Report", path: "/reports/birthday" },
   { label: "Work Anniversary", path: "/reports/work-anniversary" },
   { label: "Termination Report", path: "/reports/termination" },
@@ -160,14 +159,14 @@ export default function TerminationReportPage() {
               row.termination_type === "Voluntary"
                 ? "#E8F5E9"
                 : row.termination_type === "Involuntary"
-                ? "#FFEBEE"
-                : "#FFF3E0",
+                  ? "#FFEBEE"
+                  : "#FFF3E0",
             color:
               row.termination_type === "Voluntary"
                 ? "#2E7D32"
                 : row.termination_type === "Involuntary"
-                ? "#C62828"
-                : "#E65100",
+                  ? "#C62828"
+                  : "#E65100",
           }}
         >
           {row.termination_type || "N/A"}
@@ -202,9 +201,7 @@ export default function TerminationReportPage() {
       header: "Last Working Day",
       width: 140,
       render: (row) => (
-        <span style={{ fontWeight: 500 }}>
-          {row.last_working_day || "N/A"}
-        </span>
+        <span style={{ fontWeight: 500 }}>{row.last_working_day || "N/A"}</span>
       ),
     },
     {
@@ -254,9 +251,7 @@ export default function TerminationReportPage() {
       header: "Manager",
       width: 160,
       render: (row) => (
-        <span style={{ fontSize: 13 }}>
-          {row.reporting_manager || "N/A"}
-        </span>
+        <span style={{ fontSize: 13 }}>{row.reporting_manager || "N/A"}</span>
       ),
     },
     {
@@ -376,7 +371,11 @@ export default function TerminationReportPage() {
   );
 
   return (
-    <Layout title="Reports and Analytics" tabs={TABS} activeTab="Termination Report">
+    <Layout
+      title="Reports and Analytics"
+      tabs={TABS}
+      activeTab="Termination Report"
+    >
       <div style={{ padding: "20px 40px" }}>
         <DataTable
           title="Termination Report"

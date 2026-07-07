@@ -1,10 +1,10 @@
-import nodemailer from 'nodemailer';
-import pool from '../config/db.js';
-import ReportModel from '../models/report.model.js';
-import { smtpUser, smtpPass, mailFrom } from '../config/env.js';
+import nodemailer from "nodemailer";
+import pool from "../config/db.js";
+import ReportModel from "../models/report.model.js";
+import { smtpUser, smtpPass, mailFrom } from "../config/env.js";
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: smtpUser,
     pass: smtpPass,
@@ -16,20 +16,22 @@ const transporter = nodemailer.createTransport({
  */
 async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
   if (!upcomingBirthdaysData || upcomingBirthdaysData.length === 0) {
-    return { success: true, message: 'No birthdays to notify' };
+    return { success: true, message: "No birthdays to notify" };
   }
 
   const birthdayListHTML = upcomingBirthdaysData
-    .map(employee => `
+    .map(
+      (employee) => `
       <tr>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.employee_id || 'N/A'}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.employee_name || ''}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.formatted_birthday || ''}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.job_title || ''}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.location || ''}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.employee_id || "N/A"}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.employee_name || ""}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.formatted_birthday || ""}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.job_title || ""}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.location || ""}</td>
       </tr>
-    `)
-    .join('');
+    `,
+    )
+    .join("");
 
   const subject = `🎂 Upcoming Employee Birthdays Alert`;
   const html = `
@@ -59,13 +61,13 @@ async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
   try {
     await transporter.sendMail({
       from: mailFrom,
-      to: recipientEmails.join(', '),
+      to: recipientEmails.join(", "),
       subject,
       html,
     });
-    return { success: true, message: 'Birthday alert email sent successfully' };
+    return { success: true, message: "Birthday alert email sent successfully" };
   } catch (err) {
-    console.error('Birthday email send error:', err);
+    console.error("Birthday email send error:", err);
     return { success: false, message: err.message };
   }
 }
@@ -73,23 +75,28 @@ async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
 /**
  * Send Work Anniversary Alert Email to HR Admin Team
  */
-async function sendWorkAnniversaryAlertEmail(upcomingAnniversariesData, recipientEmails) {
+async function sendWorkAnniversaryAlertEmail(
+  upcomingAnniversariesData,
+  recipientEmails,
+) {
   if (!upcomingAnniversariesData || upcomingAnniversariesData.length === 0) {
-    return { success: true, message: 'No work anniversaries to notify' };
+    return { success: true, message: "No work anniversaries to notify" };
   }
 
   const anniversaryListHTML = upcomingAnniversariesData
-    .map(employee => `
+    .map(
+      (employee) => `
       <tr>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.employee_id || 'N/A'}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.employee_name || ''}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.formatted_anniversary || ''}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0;text-align:center;font-weight:600;color:#16A085">${employee.years_completing || 0} Year${employee.years_completing !== 1 ? 's' : ''}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.job_title || ''}</td>
-        <td style="padding:10px;border:1px solid #e2e8f0">${employee.location || ''}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.employee_id || "N/A"}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.employee_name || ""}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.formatted_anniversary || ""}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0;text-align:center;font-weight:600;color:#16A085">${employee.years_completing || 0} Year${employee.years_completing !== 1 ? "s" : ""}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.job_title || ""}</td>
+        <td style="padding:10px;border:1px solid #e2e8f0">${employee.location || ""}</td>
       </tr>
-    `)
-    .join('');
+    `,
+    )
+    .join("");
 
   const subject = `🎊 Upcoming Employee Work Anniversaries Alert`;
   const html = `
@@ -120,13 +127,16 @@ async function sendWorkAnniversaryAlertEmail(upcomingAnniversariesData, recipien
   try {
     await transporter.sendMail({
       from: mailFrom,
-      to: recipientEmails.join(', '),
+      to: recipientEmails.join(", "),
       subject,
       html,
     });
-    return { success: true, message: 'Work anniversary alert email sent successfully' };
+    return {
+      success: true,
+      message: "Work anniversary alert email sent successfully",
+    };
   } catch (err) {
-    console.error('Work anniversary email send error:', err);
+    console.error("Work anniversary email send error:", err);
     return { success: false, message: err.message };
   }
 }
@@ -136,60 +146,77 @@ async function sendWorkAnniversaryAlertEmail(upcomingAnniversariesData, recipien
  */
 async function processBirthdayNotifications() {
   try {
-    const notificationConfig = await ReportModel.getNotificationConfig('birthday');
-    
+    const notificationConfig =
+      await ReportModel.getNotificationConfig("birthday");
+
     if (!notificationConfig || !notificationConfig.is_active) {
-      console.log('Birthday notifications are disabled');
-      return { success: false, message: 'Birthday notifications disabled' };
+      console.log("Birthday notifications are disabled");
+      return { success: false, message: "Birthday notifications disabled" };
     }
 
     const daysBefore = notificationConfig.days_before || 2;
-    const upcomingBirthdays = await ReportModel.getUpcomingBirthdays(daysBefore);
+    const upcomingBirthdays =
+      await ReportModel.getUpcomingBirthdays(daysBefore);
 
     if (upcomingBirthdays.length === 0) {
-      console.log('No upcoming birthdays found');
-      return { success: true, message: 'No upcoming birthdays' };
+      console.log("No upcoming birthdays found");
+      return { success: true, message: "No upcoming birthdays" };
     }
 
     // Get recipient emails from user IDs
     const recipientUserIds = notificationConfig.recipient_user_ids || [];
-    if (recipientUserIds.length === 0) {
-      console.log('No recipients configured for birthday notifications');
-      return { success: false, message: 'No recipients configured' };
+    let recipientEmails = [];
+
+    if (recipientUserIds.length > 0) {
+      const { rows: recipients } = await pool.query(
+        `SELECT email FROM tbl_appusers WHERE id = ANY($1) AND is_deleted = FALSE AND is_active = TRUE`,
+        [recipientUserIds],
+      );
+      recipientEmails = recipients.map((r) => r.email).filter(Boolean);
     }
 
-    const { rows: recipients } = await pool.query(
-      `SELECT email FROM tbl_appusers WHERE id = ANY($1) AND is_deleted = FALSE AND is_active = TRUE`,
-      [recipientUserIds]
-    );
+    // Add external emails from config
+    if (notificationConfig.external_emails) {
+      const externalEmails = notificationConfig.external_emails
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+      recipientEmails = [...recipientEmails, ...externalEmails];
+    }
 
-    const recipientEmails = recipients.map(r => r.email).filter(Boolean);
     if (recipientEmails.length === 0) {
-      console.log('No valid recipient emails found');
-      return { success: false, message: 'No valid recipient emails' };
+      console.log("No recipient emails configured");
+      return { success: false, message: "No recipient emails configured" };
     }
 
     // Send email
-    const emailResult = await sendBirthdayAlertEmail(upcomingBirthdays, recipientEmails);
+    const emailResult = await sendBirthdayAlertEmail(
+      upcomingBirthdays,
+      recipientEmails,
+    );
 
     // Log notifications
     for (const employee of upcomingBirthdays) {
-      const alreadySent = await ReportModel.checkNotificationAlreadySent('birthday', employee.id, employee.birthday_date);
+      const alreadySent = await ReportModel.checkNotificationAlreadySent(
+        "birthday",
+        employee.id,
+        employee.birthday_date,
+      );
       if (!alreadySent) {
         await ReportModel.logNotificationSent(
-          'birthday',
+          "birthday",
           employee.id,
           employee.birthday_date,
           recipientUserIds,
-          emailResult.success ? 'sent' : 'failed',
-          emailResult.success ? null : emailResult.message
+          emailResult.success ? "sent" : "failed",
+          emailResult.success ? null : emailResult.message,
         );
       }
     }
 
     return emailResult;
   } catch (err) {
-    console.error('Process birthday notifications error:', err);
+    console.error("Process birthday notifications error:", err);
     return { success: false, message: err.message };
   }
 }
@@ -199,60 +226,80 @@ async function processBirthdayNotifications() {
  */
 async function processWorkAnniversaryNotifications() {
   try {
-    const notificationConfig = await ReportModel.getNotificationConfig('work_anniversary');
-    
+    const notificationConfig =
+      await ReportModel.getNotificationConfig("work_anniversary");
+
     if (!notificationConfig || !notificationConfig.is_active) {
-      console.log('Work anniversary notifications are disabled');
-      return { success: false, message: 'Work anniversary notifications disabled' };
+      console.log("Work anniversary notifications are disabled");
+      return {
+        success: false,
+        message: "Work anniversary notifications disabled",
+      };
     }
 
     const daysBefore = notificationConfig.days_before || 2;
-    const upcomingAnniversaries = await ReportModel.getUpcomingWorkAnniversaries(daysBefore);
+    const upcomingAnniversaries =
+      await ReportModel.getUpcomingWorkAnniversaries(daysBefore);
 
     if (upcomingAnniversaries.length === 0) {
-      console.log('No upcoming work anniversaries found');
-      return { success: true, message: 'No upcoming work anniversaries' };
+      console.log("No upcoming work anniversaries found");
+      return { success: true, message: "No upcoming work anniversaries" };
     }
 
     // Get recipient emails from user IDs
     const recipientUserIds = notificationConfig.recipient_user_ids || [];
-    if (recipientUserIds.length === 0) {
-      console.log('No recipients configured for work anniversary notifications');
-      return { success: false, message: 'No recipients configured' };
+    let recipientEmails = [];
+
+    if (recipientUserIds.length > 0) {
+      const { rows: recipients } = await pool.query(
+        `SELECT email FROM tbl_appusers WHERE id = ANY($1) AND is_deleted = FALSE AND is_active = TRUE`,
+        [recipientUserIds],
+      );
+      recipientEmails = recipients.map((r) => r.email).filter(Boolean);
     }
 
-    const { rows: recipients } = await pool.query(
-      `SELECT email FROM tbl_appusers WHERE id = ANY($1) AND is_deleted = FALSE AND is_active = TRUE`,
-      [recipientUserIds]
-    );
+    // Add external emails from config
+    if (notificationConfig.external_emails) {
+      const externalEmails = notificationConfig.external_emails
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+      recipientEmails = [...recipientEmails, ...externalEmails];
+    }
 
-    const recipientEmails = recipients.map(r => r.email).filter(Boolean);
     if (recipientEmails.length === 0) {
-      console.log('No valid recipient emails found');
-      return { success: false, message: 'No valid recipient emails' };
+      console.log("No recipient emails configured");
+      return { success: false, message: "No recipient emails configured" };
     }
 
     // Send email
-    const emailResult = await sendWorkAnniversaryAlertEmail(upcomingAnniversaries, recipientEmails);
+    const emailResult = await sendWorkAnniversaryAlertEmail(
+      upcomingAnniversaries,
+      recipientEmails,
+    );
 
     // Log notifications
     for (const employee of upcomingAnniversaries) {
-      const alreadySent = await ReportModel.checkNotificationAlreadySent('work_anniversary', employee.id, employee.date_of_joining);
+      const alreadySent = await ReportModel.checkNotificationAlreadySent(
+        "work_anniversary",
+        employee.id,
+        employee.date_of_joining,
+      );
       if (!alreadySent) {
         await ReportModel.logNotificationSent(
-          'work_anniversary',
+          "work_anniversary",
           employee.id,
           employee.date_of_joining,
           recipientUserIds,
-          emailResult.success ? 'sent' : 'failed',
-          emailResult.success ? null : emailResult.message
+          emailResult.success ? "sent" : "failed",
+          emailResult.success ? null : emailResult.message,
         );
       }
     }
 
     return emailResult;
   } catch (err) {
-    console.error('Process work anniversary notifications error:', err);
+    console.error("Process work anniversary notifications error:", err);
     return { success: false, message: err.message };
   }
 }

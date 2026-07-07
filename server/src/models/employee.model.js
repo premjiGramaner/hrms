@@ -228,6 +228,9 @@ async function createEmployee(data, avatarPath) {
   const plainPassword = generateTemporaryPassword();
   const password = await bcrypt.hash(plainPassword, 10);
 
+  // If real_dob is not provided, use dob value for birthday reports
+  const realDob = data.real_dob || data.dob || null;
+
   const { rows } = await pool.query(
     `INSERT INTO tbl_appusers (
       employee_id, first_name, middle_name, last_name, name,
@@ -265,7 +268,7 @@ async function createEmployee(data, avatarPath) {
       data.role || "employee",
       "Active",
       data.dob || null,
-      data.real_dob || null,
+      realDob, // Use realDob which falls back to dob
       data.nationality || null,
       data.marital_status || null,
       data.gender || null,
@@ -351,6 +354,9 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
   const d = (value) =>
     !value || String(value).trim() === "" ? null : String(value).trim();
 
+  // If real_dob is not provided, use dob value for birthday reports
+  const realDob = d(data.real_dob) || d(data.dob);
+
   const result = await pool.query(
     `UPDATE tbl_appusers SET
       first_name        = COALESCE(NULLIF($1,''), first_name),
@@ -403,7 +409,7 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       n(data.email) || "",
       n(data.employee_id),
       d(data.dob),
-      d(data.real_dob),
+      realDob, // Use realDob which falls back to dob
       n(data.nationality),
       n(data.marital_status),
       n(data.gender),
@@ -520,14 +526,14 @@ async function terminateEmployee(
     [
       terminationDate,
       terminationReason,
-      terminationType || 'Voluntary',
+      terminationType || "Voluntary",
       lastWorkingDay || terminationDate,
       parseInt(noticePeriodDays) || 0,
       exitInterviewCompleted === true,
       rehireEligible === true,
       notesValue || `Terminated on ${terminationDateTimeFull}`,
       terminatedBy || null,
-      `\nTermination: ${terminationType || 'Voluntary'} - ${terminationReason} (${terminationDateTimeFull})${notesValue ? '\nNotes: ' + notesValue : ''}`,
+      `\nTermination: ${terminationType || "Voluntary"} - ${terminationReason} (${terminationDateTimeFull})${notesValue ? "\nNotes: " + notesValue : ""}`,
       terminatedBy || null,
       id,
     ],

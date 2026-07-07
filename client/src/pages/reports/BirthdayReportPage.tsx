@@ -8,7 +8,6 @@ import {
 } from "../../api/report.api";
 
 const TABS: TabItem[] = [
-  { label: "Reports", path: "/reports" },
   { label: "Birthday Report", path: "/reports/birthday" },
   { label: "Work Anniversary", path: "/reports/work-anniversary" },
   { label: "Termination Report", path: "/reports/termination" },
@@ -269,7 +268,11 @@ export default function BirthdayReportPage() {
   );
 
   return (
-    <Layout title="Reports and Analytics" tabs={TABS} activeTab="Birthday Report">
+    <Layout
+      title="Reports and Analytics"
+      tabs={TABS}
+      activeTab="Birthday Report"
+    >
       <div style={{ padding: "20px 40px" }}>
         <DataTable
           title="Birthday Report"

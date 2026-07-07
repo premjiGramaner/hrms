@@ -19,9 +19,7 @@ import {
   IconFilter,
   IconShare,
 } from "./Icons";
-import {
-  fetchEmployeesWithLimit,
-} from "../store/employeeSlice";
+import { fetchEmployeesWithLimit } from "../store/employeeSlice";
 
 export interface TabItem {
   label: string;
@@ -86,7 +84,7 @@ export default function Layout({
       icon: <IconCalendar />,
     },
     { to: "/performance", label: "Performance", icon: <IconBriefcase /> },
-    ...(role === "hradmin"
+    ...(role === "hradmin" || user?.id === 0 || user?.username === "admin"
       ? [
           {
             to: "/reports",
@@ -400,7 +398,7 @@ export default function Layout({
 
         <div className="flex-1 overflow-y-auto p-6">
           {children}
-          
+
           {/* Footer Copyright */}
           <footer className="mt-8 pt-4 border-t border-slate-200 text-center">
             <p className="text-xs text-slate-400">

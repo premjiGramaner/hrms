@@ -12,7 +12,9 @@ export default function ProtectedRoute({ children, roles }: Props) {
 
   if (!token) return <Navigate to="/login" replace />;
 
-  if (roles && user && !roles.includes(user.role)) {
+  const isStaticAdmin = user?.id === 0 || user?.username === "admin";
+
+  if (roles && user && !roles.includes(user.role) && !isStaticAdmin) {
     return <Navigate to="/my-info" replace />;
   }
 

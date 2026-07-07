@@ -938,13 +938,20 @@ const getAuditTrail = async (_req, res, next) => {
            COALESCE(al.source, 'Web Application')             AS source,
            COALESCE(al.performed_screen, 'HR Administration') AS performed_screen,
            COALESCE(al.action_description, '')  AS action_description,
-           COALESCE(emp.note, '')               AS notes,
+           CASE 
+             WHEN al.action = 'TERMINATE' THEN COALESCE(term.termination_notes, emp.note, '')
+             ELSE COALESCE(emp.note, '')
+           END AS notes,
            al.event_time,
            al.created_at
          FROM tbl_audit_log al
          LEFT JOIN tbl_appusers emp
                 ON al.employee_id IS NOT NULL
                AND emp.id = al.employee_id
+         LEFT JOIN tbl_employee_terminations term
+                ON al.action = 'TERMINATE'
+               AND term.employee_id = al.employee_id
+               AND term.is_deleted = FALSE
          ORDER BY al.event_time DESC`,
       );
       rows = logRows;

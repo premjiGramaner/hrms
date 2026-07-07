@@ -332,7 +332,7 @@ export default function App() {
           path="/reports"
           element={
             <ProtectedRoute roles={["hradmin"]}>
-              <UnifiedReportsPage />
+              <Navigate to="/reports/birthday" replace />
             </ProtectedRoute>
           }
         />
@@ -376,9 +376,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-       
 
-       
         <Route
           path="/performance/appraisal_cycles/create"
           element={

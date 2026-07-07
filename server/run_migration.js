@@ -9,6 +9,8 @@ const __dirname = dirname(__filename);
 const migrations = [
   "006_performance_and_supervisor_migration.sql",
   "011_fix_termination_trigger_ambiguous_column.sql",
+  "012_backfill_real_dob_from_dob.sql",
+  "013_add_external_emails_to_notification_config.sql",
 ];
 
 export async function runMigrations() {

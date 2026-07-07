@@ -38,7 +38,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      await resetPassword(token, password,);
+      await resetPassword(token, password, "");
       setDone(true);
     } catch (err: unknown) {
       setError(
