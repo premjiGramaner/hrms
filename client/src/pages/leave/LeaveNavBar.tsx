@@ -23,7 +23,7 @@ export default function LeaveNavBar() {
     pathname === path || pathname.startsWith(path + "/");
 
   const tabCls = (active: boolean) =>
-    `px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
+    `inline-flex h-full items-center px-4 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
       active
         ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
         : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
@@ -37,7 +37,7 @@ export default function LeaveNavBar() {
   const entActive = entSubPaths.some((p) => pathname === p);
 
   return (
-    <nav className="bg-white border-b border-slate-200 flex items-center gap-0 px-4 py-0 flex-shrink-0 overflow-visible">
+    <nav className="flex h-full flex-shrink-0 items-stretch gap-0.5 overflow-visible">
       <Link to="/leave/apply" className={tabCls(isActive("/leave/apply"))}>
         Apply
       </Link>
@@ -62,11 +62,12 @@ export default function LeaveNavBar() {
       {isAdmin && (
         <div
           ref={entRef}
-          className="relative flex-shrink-0 self-stretch flex items-center"
+          className="relative flex flex-shrink-0 items-stretch"
         >
           <button
+            type="button"
             onClick={() => setEntOpen((o) => !o)}
-            className={`flex items-center gap-1 px-4 py-2.5 text-sm border-b-2 transition cursor-pointer h-full ${
+            className={`flex h-full cursor-pointer items-center gap-1 border-b-2 px-4 text-sm transition ${
               entActive
                 ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
                 : "border-transparent text-slate-600 hover:text-slate-900 font-medium"

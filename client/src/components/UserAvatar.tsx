@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { updateUserAvatar, updateUserName } from "../store/authSlice";
 import { getMyInfo } from "../api/employee.api";
+import { getAvatarSrc } from "../utils/avatar";
 
 interface UserAvatarProps {
   size?: number;
@@ -67,6 +68,7 @@ export default function UserAvatar({
 
   const username = user.name || user.username || "User";
   const avatar = user.avatar;
+  const avatarSrc = getAvatarSrc(avatar);
 
   if (isLoading) {
     return (
@@ -83,15 +85,15 @@ export default function UserAvatar({
       style={{
         width: size,
         height: size,
-        background: avatar
+        background: avatarSrc
           ? "transparent"
           : "linear-gradient(135deg, #fcd34d, #f97316)",
       }}
     >
-      {avatar ? (
+      {avatarSrc ? (
         <img
-          key={avatar}
-          src={avatar}
+          key={avatarSrc}
+          src={avatarSrc}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
           alt={username}
         />
