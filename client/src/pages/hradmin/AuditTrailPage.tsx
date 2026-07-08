@@ -24,6 +24,7 @@ interface AuditRecord {
   id: number;
   action_owner: string;
   action_owner_username: string;
+  action_owner_avatar?: string | null;
   employee: string;
   employee_username: string;
   section: string;
@@ -34,6 +35,30 @@ interface AuditRecord {
   notes: string;
   event_time: string;
   created_at: string;
+}
+
+function getAvatarSrc(avatar?: string | null): string {
+  if (!avatar) return "";
+  if (
+    avatar.startsWith("data:") ||
+    avatar.startsWith("http://") ||
+    avatar.startsWith("https://") ||
+    avatar.startsWith("blob:")
+  ) {
+    return avatar;
+  }
+  if (avatar.startsWith("/")) return avatar;
+  if (avatar.startsWith("uploads/")) return `/${avatar}`;
+  return `/uploads/${avatar}`;
+}
+
+function getInitials(name: string): string {
+  return (name || "?")
+    .split(" ")
+    .map((word) => word[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 function formatDateTime(iso: string): string {
@@ -261,7 +286,10 @@ export default function AuditTrailPage() {
     {
       key: "action_owner",
       header: "Action Owner",
-      render: (row) => (
+      render: (row) => {
+        const avatarSrc = getAvatarSrc(row.action_owner_avatar);
+
+        return (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div
             style={{
@@ -269,6 +297,7 @@ export default function AuditTrailPage() {
               height: 32,
               borderRadius: "50%",
               flexShrink: 0,
+              overflow: "hidden",
               background: "linear-gradient(135deg,#1b2a6b,#16a085)",
               display: "flex",
               alignItems: "center",
@@ -279,12 +308,20 @@ export default function AuditTrailPage() {
               boxShadow: "0 2px 6px rgba(27,42,107,0.2)",
             }}
           >
-            {(row.action_owner || "?")
-              .split(" ")
-              .map((w) => w[0])
-              .slice(0, 2)
-              .join("")
-              .toUpperCase()}
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt={row.action_owner || "Action owner"}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            ) : (
+              getInitials(row.action_owner)
+            )}
           </div>
           <div>
             <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 13 }}>
@@ -295,7 +332,8 @@ export default function AuditTrailPage() {
             </div>
           </div>
         </div>
-      ),
+        );
+      },
     },
     {
       key: "action",

@@ -920,6 +920,7 @@ const getAuditTrail = async (_req, res, next) => {
            al.action,
            COALESCE(al.actor_name, 'System')    AS action_owner,
            COALESCE(al.actor_username, '')      AS action_owner_username,
+           actor.avatar                         AS action_owner_avatar,
            COALESCE(al.source, 'Web Application')             AS source,
            COALESCE(al.performed_screen, 'HR Administration') AS performed_screen,
            COALESCE(al.action_description, '')  AS action_description,
@@ -930,6 +931,15 @@ const getAuditTrail = async (_req, res, next) => {
          LEFT JOIN tbl_appusers emp
                 ON al.employee_id IS NOT NULL
                AND emp.id = al.employee_id
+         LEFT JOIN tbl_appusers actor
+                ON (
+                  (al.actor_id IS NOT NULL AND actor.id = al.actor_id)
+                  OR (
+                    al.actor_id IS NULL
+                    AND al.actor_username IS NOT NULL
+                    AND actor.username = al.actor_username
+                  )
+                )
          ORDER BY al.event_time DESC`,
       );
       rows = logRows;
@@ -952,6 +962,10 @@ const getAuditTrail = async (_req, res, next) => {
           WHEN emp.created_by = '0' OR emp.created_by IS NULL THEN 'admin'
           ELSE COALESCE(actor_cre.username, '')
         END                                           AS action_owner_username,
+        CASE
+          WHEN emp.created_by = '0' OR emp.created_by IS NULL THEN NULL
+          ELSE actor_cre.avatar
+        END                                           AS action_owner_avatar,
         'Web Application'                             AS source,
         'HR Administration'                           AS performed_screen,
         'Record created by ' ||
@@ -986,6 +1000,10 @@ const getAuditTrail = async (_req, res, next) => {
           WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'admin'
           ELSE COALESCE(actor_upd.username, '')
         END                                           AS action_owner_username,
+        CASE
+          WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN NULL
+          ELSE actor_upd.avatar
+        END                                           AS action_owner_avatar,
         'Web Application'                             AS source,
         'HR Administration'                           AS performed_screen,
         'Record updated by ' ||
@@ -1023,6 +1041,10 @@ const getAuditTrail = async (_req, res, next) => {
           WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'admin'
           ELSE COALESCE(actor_del.username, '')
         END                                           AS action_owner_username,
+        CASE
+          WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN NULL
+          ELSE actor_del.avatar
+        END                                           AS action_owner_avatar,
         'Web Application'                             AS source,
         'HR Administration'                           AS performed_screen,
         'Record terminated by ' ||

@@ -53,21 +53,20 @@ function commentForReviewer(
 }
 
 function Avatar({ name, avatar }: { name: string; avatar?: string | null }) {
-  const initials = name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("");
+  const avatarUrl = avatar || null;
+
   return (
-    <div className="mx-auto grid h-[122px] w-[122px] place-items-center overflow-hidden rounded-full bg-gradient-to-br from-blue-950 to-teal-500 text-3xl font-bold text-white">
-      {avatar ? (
+    <div className="relative mx-auto flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-gradient-to-br from-blue-950 to-teal-500 shadow-lg">
+      {avatarUrl ? (
         <img
-          src={`/${avatar}`}
+          src={avatarUrl}
           alt={name}
           className="h-full w-full object-cover"
         />
       ) : (
-        initials
+        <span className="text-4xl font-bold text-white">
+          {(name[0] || "E").toUpperCase()}
+        </span>
       )}
     </div>
   );

@@ -108,7 +108,10 @@ const getLeaveDetails = async (req, res, next) => {
     if (isNaN(id)) return error(res, "Invalid leave ID", 400);
     const leave = await LeaveModel.findLeaveDetails(id);
     if (!leave) return error(res, "Leave request not found", 404);
-    if (req.user.role === "employee" && leave.user_id !== req.user.id) {
+    if (
+      req.user.role === "employee" &&
+      Number(leave.user_id) !== Number(req.user.id)
+    ) {
       return error(res, "Forbidden", 403);
     }
     return success(res, leave);

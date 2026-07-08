@@ -36,6 +36,7 @@ interface Props {
   title?: string;
   tabs?: TabItem[];
   activeTab?: string;
+  topNav?: React.ReactNode;
   onFab?: () => void;
 }
 
@@ -44,6 +45,7 @@ export default function Layout({
   title,
   tabs,
   activeTab,
+  topNav,
   onFab,
 }: Props) {
   const dispatch = useAppDispatch();
@@ -336,16 +338,18 @@ export default function Layout({
           </button>
         </header>
 
-        <div className="bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-x-auto gap-0">
+        <div className="relative bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-visible z-40">
           <Link
             to={homeRoute}
             title="Home"
-            className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition"
+            className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition py-5 py-2"
           >
             <IconHome size={15} color="#64748b" />
           </Link>
 
-          {tabs && tabs.length > 0 && (
+          {topNav}
+
+          {!topNav && tabs && tabs.length > 0 && (
             <>
               {tabs.map((tab) => {
                 const isActiveTab =
