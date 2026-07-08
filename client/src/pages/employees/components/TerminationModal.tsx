@@ -98,7 +98,7 @@ export default function TerminationModal({
           terminationForm.lastWorkingDay.trim() ||
           terminationForm.terminationDateTime.trim().split("T")[0],
         noticePeriodDays: parseInt(terminationForm.noticePeriodDays) || 0,
-        exitInterviewCompleted: false, 
+        exitInterviewCompleted: false,
         rehireEligible: terminationForm.rehireEligible === "true",
         notes: terminationForm.notes.trim(),
       });
