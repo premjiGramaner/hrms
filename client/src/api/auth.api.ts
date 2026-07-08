@@ -34,17 +34,6 @@ export const logout = async () => {
   return response.data;
 };
 
-export const verifyCookie = async () => {
-  const response = await api.get<{
-    success: boolean;
-    data: {
-      authenticated: boolean;
-      user: { id: number; role: string; username: string };
-    };
-  }>("/auth/verify-cookie");
-  return response.data;
-};
-
 export const self = () => api.get<AuthUser>("/auth/profile");
 
 export const forgotPassword = async (email: string) => {
@@ -64,18 +53,6 @@ export const resetPassword = async (
     success: boolean;
     data: { message: string };
   }>("/auth/reset-password", { token, password, confirmPassword });
-  return { data: response.data.data };
-};
-
-export const createPassword = async (
-  token: string,
-  password: string,
-  confirmPassword: string,
-) => {
-  const response = await api.post<{
-    success: boolean;
-    data: { message: string };
-  }>("/auth/create-password", { token, password, confirmPassword });
   return { data: response.data.data };
 };
 

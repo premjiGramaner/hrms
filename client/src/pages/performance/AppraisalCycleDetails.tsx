@@ -47,7 +47,10 @@ export default function AppraisalCycleDetails() {
       header: "Main Evaluator",
       render: (row) => {
         const evaluator =
-          row.mainEvaluator ?? row.evaluators?.[0] ?? row.supervisors?.[0] ?? null;
+          row.mainEvaluator ??
+          row.evaluators?.[0] ??
+          row.supervisors?.[0] ??
+          null;
 
         return evaluator ? (
           <span className="rounded-full bg-[#f2eef6] px-4 py-2 text-sm font-semibold text-slate-600">
@@ -65,7 +68,10 @@ export default function AppraisalCycleDetails() {
       header: "Evaluators",
       render: (row) => {
         const evaluator =
-          row.mainEvaluator ?? row.evaluators?.[0] ?? row.supervisors?.[0] ?? null;
+          row.mainEvaluator ??
+          row.evaluators?.[0] ??
+          row.supervisors?.[0] ??
+          null;
 
         return (
           <div className="flex flex-wrap gap-2">

@@ -10,7 +10,7 @@ import {
   UpdateSubUnitPayload,
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
-import { EditIcon, DeleteIcon } from "../../components/Icons";
+import { EditIcon, DeleteIcon, IconGrid, IconCheckCircle, IconUser } from "../../components/Icons";
 import DataTable, {
   ColumnDef,
   ActionDef,
@@ -100,7 +100,7 @@ export default function SubUnitsPage() {
     {
       label: "Total Sub Units",
       value: subUnitList.length,
-      icon: "🏢",
+      icon: <IconGrid size={20} /> as any ,
       color: "#0369a1",
       bg: "#f0f9ff",
       border: "#bae6fd",
@@ -108,7 +108,7 @@ export default function SubUnitsPage() {
     {
       label: "Active",
       value: activeCount,
-      icon: "✅",
+      icon: <IconCheckCircle size={20} /> as any ,
       color: "#16a34a",
       bg: "#f0fdf4",
       border: "#bbf7d0",
@@ -116,7 +116,7 @@ export default function SubUnitsPage() {
     {
       label: "With Supervisor",
       value: withSupervisor,
-      icon: "👤",
+      icon: <IconUser size={20} /> as any ,
       color: "#0284c7",
       bg: "#e0f2fe",
       border: "#7dd3fc",
@@ -135,7 +135,7 @@ export default function SubUnitsPage() {
               height: 36,
               borderRadius: 10,
               flexShrink: 0,
-              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
+              background: "linear-gradient(135deg,#172554,#14b8a6)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -170,7 +170,7 @@ export default function SubUnitsPage() {
                 height: 28,
                 borderRadius: "50%",
                 flexShrink: 0,
-                background: "linear-gradient(135deg,#1b2a6b,#16a085)",
+                background: "linear-gradient(135deg,#172554,#14b8a6)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -324,13 +324,13 @@ export default function SubUnitsPage() {
       <DataTable<SubUnit>
         title="Sub Units"
         subtitle="Manage your organisation's sub units"
-        icon="🏢"
+        icon={<IconGrid size={18} /> as any }
         rows={pagedList}
         isLoading={isLoading}
         columns={columns.filter((column) => column.key !== "supervisor_name")}
         actions={actions}
         getKey={(row) => row.id}
-        emptyIcon="🏢"
+        emptyIcon={<IconGrid size={36} /> as any }
         emptyTitle={
           searchQuery ? `No results for "${searchQuery}"` : "No sub units yet"
         }
@@ -490,7 +490,7 @@ function SubUnitFormModal({
         <div
           style={{
             padding: "22px 26px 18px",
-            background: "linear-gradient(135deg,#1b2a6b,#16a085)",
+            background: "linear-gradient(135deg,#172554,#14b8a6)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -595,7 +595,7 @@ function SubUnitFormModal({
               }}
               placeholder="e.g. Delivery – IT Services"
               style={inputStyle}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#1b2a6b")}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
             />
           </div>
@@ -611,7 +611,7 @@ function SubUnitFormModal({
               onChange={(e) => setSupervisorName(e.target.value)}
               placeholder="e.g. John Smith"
               style={inputStyle}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#1b2a6b")}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
             />
             <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
@@ -636,7 +636,7 @@ function SubUnitFormModal({
                 resize: "vertical",
                 fontFamily: "inherit",
               }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#1b2a6b")}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
             />
           </div>
@@ -731,14 +731,14 @@ function SubUnitFormModal({
                 border: "none",
                 background: isSaving
                   ? "#94a3b8"
-                  : "linear-gradient(135deg,#1b2a6b,#16a085)",
+                  : "linear-gradient(135deg,#172554,#14b8a6)",
                 color: "#fff",
                 fontSize: 13.5,
                 fontWeight: 700,
                 cursor: isSaving ? "not-allowed" : "pointer",
                 boxShadow: isSaving
                   ? "none"
-                  : "0 2px 10px rgba(27,42,107,0.25)",
+                  : "0 2px 10px rgba(23,37,84,0.25)",
               }}
             >
               {isSaving

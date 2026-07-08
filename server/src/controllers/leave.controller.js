@@ -163,7 +163,6 @@ const createLeave = async (req, res, next) => {
         ? startDate.getFullYear() + 1
         : startDate.getFullYear();
 
-    // Check for overlapping leave requests
     const overlap = await LeaveModel.checkLeaveOverlap(
       data.employee_id,
       data.start_date,
@@ -259,7 +258,6 @@ const rejectLeave = async (req, res, next) => {
       );
     }
 
-    // Do NOT restore balance on rejection - balance remains deducted
     await LeaveModel.rejectLeave(id, actorId, rejection_reason);
     return success(res, { message: "Leave rejected successfully" });
   } catch (err) {

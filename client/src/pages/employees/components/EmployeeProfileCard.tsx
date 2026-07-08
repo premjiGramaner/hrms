@@ -114,16 +114,10 @@ export default function EmployeeProfileCard({
         formData,
       );
 
-      // Check if the updated employee IS the currently logged-in user
-      // This handles both scenarios:
-      // 1. Employee updates their own profile → Update Redux
-      // 2. Admin updates an employee profile AND that employee is the logged-in user → Update Redux
-      // This ensures the sidebar always shows the latest avatar for the logged-in user
       const isCurrentLoggedInUser =
         currentUser && Number(currentUser.id) === Number(updatedEmployee.id);
 
       if (isCurrentLoggedInUser && updatedEmployee.avatar) {
-        // Update Redux store to update sidebar immediately
         dispatch(updateUserAvatar(updatedEmployee.avatar));
 
         dispatch(
@@ -141,8 +135,6 @@ export default function EmployeeProfileCard({
         );
       }
 
-      // Update parent component with merged employee data immediately
-      // This updates the About card profile image
       if (onEmployeeUpdate) {
         onEmployeeUpdate({
           ...employee,
@@ -158,7 +150,6 @@ export default function EmployeeProfileCard({
       );
     } finally {
       setUploading(false);
-      // Clear the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -288,12 +279,10 @@ export default function EmployeeProfileCard({
           </div>
         </div>
 
-        {/* Details Grid */}
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6 border-l pl-6">
-          {/* Basic Info */}
           <div>
-            <h4 className="text-xs font-semibold text-[#757575] mb-3">
-              Basic Info
+            <h4 className="text-sm font-semibold text-[#757575] mb-3">
+              Basic info
             </h4>
             <div className="space-y-2">
               <div>
@@ -332,9 +321,8 @@ export default function EmployeeProfileCard({
             </div>
           </div>
 
-          {/* Job */}
           <div>
-            <h4 className="text-xs font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-[#757575] mb-3">
               Employment
             </h4>
             <div className="space-y-2">
@@ -386,7 +374,7 @@ export default function EmployeeProfileCard({
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-[#757575] mb-3">
               Contact
             </h4>
             <div className="space-y-2">

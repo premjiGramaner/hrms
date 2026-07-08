@@ -4,7 +4,6 @@ async function convertSupervisorIdsToNames() {
   const client = await pool.connect();
 
   try {
-    // Get all employees with supervisors
     const { rows: employees } = await client.query(`
       SELECT id, supervisors 
       FROM tbl_appusers 
@@ -19,16 +18,13 @@ async function convertSupervisorIdsToNames() {
 
     for (const employee of employees) {
       try {
-        // Parse supervisors (should be array of IDs like [35, 36])
         let supervisorIds = JSON.parse(employee.supervisors);
 
-        // Check if it's already names (strings) or IDs (numbers)
         if (supervisorIds.length > 0 && typeof supervisorIds[0] === "string") {
           skipped++;
           continue;
         }
 
-        // Convert IDs to integers
         const validIds = supervisorIds
           .map((id) => parseInt(id, 10))
           .filter((id) => !isNaN(id) && id > 0);
@@ -37,7 +33,6 @@ async function convertSupervisorIdsToNames() {
           continue;
         }
 
-        // Fetch supervisor names
         const { rows: supervisors } = await client.query(
           `
           SELECT name 
@@ -53,10 +48,8 @@ async function convertSupervisorIdsToNames() {
           continue;
         }
 
-        // Extract names
         const supervisorNames = supervisors.map((s) => s.name);
 
-        // Update employee record
         await client.query(
           `
           UPDATE tbl_appusers 
@@ -82,7 +75,6 @@ async function convertSupervisorIdsToNames() {
   }
 }
 
-// Run the conversion
 convertSupervisorIdsToNames()
   .then(() => {
     process.exit(0);

@@ -35,11 +35,9 @@ async function findAllEmployees(page, limit = 10, search = "") {
   const baseWhere =
     "u.is_deleted = false AND (u.employment_status IS NULL OR u.employment_status != 'Terminated')";
 
-  // Build dynamic SQL based on whether search exists
   const values = [];
   let whereClause = baseWhere;
 
-  // Add search condition only if search term exists
   if (searchTerm) {
     values.push(searchTerm);
     const searchIndex = values.length;
@@ -57,7 +55,6 @@ async function findAllEmployees(page, limit = 10, search = "") {
     `;
   }
 
-  // Add pagination parameters
   values.push(limit);
   const limitIndex = values.length;
 
@@ -84,13 +81,11 @@ async function findAllEmployees(page, limit = 10, search = "") {
       values,
     );
 
-    // Since supervisors column now contains names, we can directly use it
     const employeesWithSupervisors = rows.map((employee) => ({
       ...employee,
       supervisor_names: employee.supervisors || [],
     }));
 
-    // Use same whereClause for count, but only with search parameter (no limit/offset)
     const countValues = searchTerm ? [searchTerm] : [];
     const { rows: countRows } = await pool.query(
       `SELECT COUNT(*)::int AS total FROM tbl_appusers u WHERE ${whereClause}`,
@@ -206,7 +201,6 @@ async function findEmployeeById(id) {
   return rows[0] || null;
 }
 
-// Helper function to convert supervisor IDs to names
 async function convertSupervisorIdsToNames(supervisors) {
   if (!supervisors) return null;
 
@@ -218,14 +212,12 @@ async function convertSupervisorIdsToNames(supervisors) {
       return null;
     }
 
-    // Extract valid IDs
     const validIds = parsed
       .map((id) => parseInt(id, 10))
       .filter((id) => !isNaN(id) && id > 0);
 
     if (validIds.length === 0) return null;
 
-    // Fetch supervisor names from database
     const { rows } = await pool.query(
       `SELECT name FROM tbl_appusers 
        WHERE id = ANY($1::int[]) 
@@ -236,7 +228,6 @@ async function convertSupervisorIdsToNames(supervisors) {
 
     if (rows.length === 0) return null;
 
-    // Extract names and return as JSON array
     const names = rows.map((row) => row.name);
     return JSON.stringify(names);
   } catch {
@@ -250,7 +241,7 @@ async function createEmployee(data, avatarBase64) {
   const plainPassword = generateTemporaryPassword();
   const password = await bcrypt.hash(plainPassword, 10);
 
-  // Convert supervisor IDs to names
+  const realDob = data.real_dob || data.dob || null;
   const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
 
   const { rows } = await pool.query(
@@ -290,7 +281,7 @@ async function createEmployee(data, avatarBase64) {
       data.role || "employee",
       "Active",
       data.dob || null,
-      data.real_dob || null,
+      realDob,
       data.nationality || null,
       data.marital_status || null,
       data.gender || null,
@@ -321,7 +312,7 @@ async function createEmployee(data, avatarBase64) {
       data.contract_start_date || null,
       data.contract_end_date || null,
       data.comments || null,
-      supervisorNames, // Now stores names instead of IDs
+      supervisorNames,
       data.created_by || null,
     ],
   );
@@ -359,7 +350,7 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
   const d = (value) =>
     !value || String(value).trim() === "" ? null : String(value).trim();
 
-  // Convert supervisor IDs to names
+  const realDob = d(data.real_dob) || d(data.dob);
   const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
 
   const result = await pool.query(
@@ -414,7 +405,7 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
       n(data.email) || "",
       n(data.employee_id),
       d(data.dob),
-      d(data.real_dob),
+      realDob, // Use realDob which falls back to dob
       n(data.nationality),
       n(data.marital_status),
       n(data.gender),
@@ -445,7 +436,7 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
       d(data.contract_start_date),
       d(data.contract_end_date),
       n(data.comments),
-      supervisorNames, // Now stores names instead of IDs
+      supervisorNames,
       updatedBy || null,
       id,
     ],
@@ -456,8 +447,21 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
 
 async function softDeleteEmployee(id, deletedBy) {
   const result = await pool.query(
-    `UPDATE tbl_appusers SET is_deleted = true, updated_by = $1, updated_at = NOW()
-      WHERE id = $2::bigint AND is_deleted = false`,
+    `UPDATE tbl_appusers SET 
+      is_deleted = TRUE,
+      is_active = FALSE,
+      termination_date = CURRENT_DATE,
+      last_working_day = CURRENT_DATE,
+      termination_reason = 'Employee Terminated',
+      termination_type = 'Involuntary',
+      notice_period_days = 0,
+      exit_interview_completed = FALSE,
+      rehire_eligible = FALSE,
+      termination_notes = 'Terminated through employee management system',
+      terminated_by_user_id = $1,
+      updated_by = $1,
+      updated_at = NOW()
+    WHERE id = $2::bigint AND is_deleted = FALSE`,
     [deletedBy || null, id],
   );
   if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
@@ -468,26 +472,46 @@ async function terminateEmployee(
   terminationReason,
   terminationDateTimeFull,
   terminationDate,
+  terminationType,
+  lastWorkingDay,
+  noticePeriodDays,
+  exitInterviewCompleted,
+  rehireEligible,
   notes,
   terminatedBy,
 ) {
   const notesValue = notes !== null && notes !== undefined ? notes : null;
-  const notesForComments = notesValue !== null ? notesValue : "";
 
   const result = await pool.query(
     `UPDATE tbl_appusers SET 
            employment_status = 'Terminated',
            is_active = false,
-           contract_end_date = $1,
-           comments = COALESCE(comments, '') || $2,
-           note = $3,
-           updated_by = $4,
+           is_deleted = TRUE,
+           termination_date = $1::date,
+           termination_reason = $2,
+           termination_type = $3,
+           last_working_day = $4::date,
+           notice_period_days = $5::int,
+           exit_interview_completed = $6::boolean,
+           rehire_eligible = $7::boolean,
+           termination_notes = $8,
+           terminated_by_user_id = $9::bigint,
+           contract_end_date = $1::date,
+           comments = COALESCE(comments, '') || $10,
+           updated_by = $11,
            updated_at = NOW()
-         WHERE id = $5::bigint AND is_deleted = false`,
+         WHERE id = $12::bigint AND is_deleted = false`,
     [
       terminationDate,
-      `Termination Reason: ${terminationReason}\nTermination Date/Time: ${terminationDateTimeFull}\nNotes: ${notesForComments}`,
-      notesValue,
+      terminationReason,
+      terminationType || "Voluntary",
+      lastWorkingDay || terminationDate,
+      parseInt(noticePeriodDays) || 0,
+      exitInterviewCompleted === true,
+      rehireEligible === true,
+      notesValue || `Terminated on ${terminationDateTimeFull}`,
+      terminatedBy || null,
+      `\nTermination: ${terminationType || "Voluntary"} - ${terminationReason} (${terminationDateTimeFull})${notesValue ? "\nNotes: " + notesValue : ""}`,
       terminatedBy || null,
       id,
     ],
@@ -555,7 +579,6 @@ async function updateProfileImage(id, avatarBase64, updatedBy) {
 
   if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
 
-  // Return full updated employee data
   const { rows } = await pool.query(
     `SELECT id::int, employee_id, first_name, middle_name, last_name, name,
             email, username, role, status, mobile, home_tel, work_tel, other_email,

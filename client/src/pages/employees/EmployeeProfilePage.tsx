@@ -166,7 +166,6 @@ export default function EmployeeProfilePage() {
         const { data } = await getEmployee(parseInt(id));
         setEmployee(data);
 
-        // Map supervisor names to IDs
         const supervisorNames = Array.isArray(data.supervisors)
           ? data.supervisors
           : [];
@@ -247,13 +246,10 @@ export default function EmployeeProfilePage() {
     setValidationErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // Check if current tab has any modifications
   const hasTabChanges = () => {
     if (!form || !originalForm) return false;
 
     const activeLabel = PROFILE_TABS[activeTab];
-
-    // Define fields for each tab
     const tabFields: Record<string, string[]> = {
       "Personal Details": [
         "employee_id",

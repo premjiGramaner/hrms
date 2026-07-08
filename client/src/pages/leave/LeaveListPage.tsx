@@ -246,7 +246,6 @@ export default function LeaveListPage() {
 
   const handleSearch = () => {
     const forms = { ...form, page: 1 };
-    // If "Taken" is selected, automatically include "Approved" status
     if (
       forms.statuses?.includes("Taken") &&
       !forms.statuses.includes("Approved")
@@ -373,7 +372,6 @@ export default function LeaveListPage() {
         />
       )}
 
-      {/* Employee Filter Section */}
       {!isAdmin && (
         <EmployeeLeaveFilter
           from_date={form.from_date || ""}
@@ -389,7 +387,6 @@ export default function LeaveListPage() {
         />
       )}
 
-      {/* Search/Filter panel — admin only */}
       {isAdmin && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-5">
           <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
@@ -419,7 +416,6 @@ export default function LeaveListPage() {
                     onChange={(event) => {
                       const newFromDate = event.target.value;
                       setForm((p) => {
-                        // If to_date is before new from_date, update to_date to from_date
                         if (
                           p.to_date &&
                           newFromDate &&
@@ -813,7 +809,6 @@ export default function LeaveListPage() {
                 )}
               {!loading &&
                 data?.data.map((row: LeaveRequest, i: number) => {
-                  // Compare as strings to handle BIGINT → string from pg vs number from JWT
                   const isRequester = !!(
                     row.user_id &&
                     user?.id &&
@@ -970,7 +965,6 @@ function ActionDropdown({
   const canApproveReject = isAdmin && !isRequester && isPending;
   const canCancel = isPending && (isRequester || isAdmin);
 
-  // Don't show any actions if leave is already approved, rejected, or cancelled
   if (!canApproveReject && !canCancel) {
     return <span className="text-xs text-slate-400">—</span>;
   }

@@ -76,14 +76,12 @@ async function runMigration() {
         if (verification.expected) {
           const actualValue = rows[0]?.count || rows[0]?.last_value;
           if (actualValue?.toString() === verification.expected) {
-            console.log(`   ✅ PASS (Expected: ${verification.expected})\n`);
           } else {
             console.log(
               `   ⚠️  WARNING: Expected ${verification.expected}, got ${actualValue}\n`,
             );
           }
         } else {
-          console.log("");
         }
       } catch (err) {
         console.log(`   ✗ Failed to verify: ${err.message}\n`);

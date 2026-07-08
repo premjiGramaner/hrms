@@ -140,7 +140,6 @@ const createEmployee = async (req, res, next) => {
         return error(res, "Employee ID already exists", 409);
     }
 
-    // Convert file buffer to base64 data URL
     const avatarBase64 = req.file
       ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
       : undefined;
@@ -223,7 +222,6 @@ const updateEmployee = async (req, res, next) => {
         );
     }
 
-    // Convert file buffer to base64 data URL
     const avatarBase64 = req.file
       ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
       : undefined;
@@ -259,7 +257,6 @@ const updateProfileImage = async (req, res, next) => {
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
 
-    // Convert file buffer to base64 data URL
     const avatarBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
     const updatedEmployee = await EmployeeModel.updateProfileImage(
@@ -341,7 +338,16 @@ const terminateEmployee = async (req, res, next) => {
     const id = parseInt(req.params.id);
     if (isNaN(id) || id <= 0) return error(res, "Invalid employee ID", 400);
 
-    const { terminationReason, terminationDateTime, notes } = req.body;
+    const { 
+      terminationReason, 
+      terminationDateTime, 
+      terminationType,
+      lastWorkingDay,
+      noticePeriodDays,
+      exitInterviewCompleted,
+      rehireEligible,
+      notes 
+    } = req.body;
 
     if (!terminationReason || String(terminationReason).trim() === "")
       return error(res, "Termination reason is required", 422);
@@ -361,6 +367,11 @@ const terminateEmployee = async (req, res, next) => {
       String(terminationReason).trim(),
       terminationDateTime,
       datePart,
+      String(terminationType || "Voluntary").trim(),
+      lastWorkingDay ? String(lastWorkingDay).trim() : datePart,
+      parseInt(noticePeriodDays) || 0,
+      exitInterviewCompleted === true || exitInterviewCompleted === "true",
+      rehireEligible === true || rehireEligible === "true",
       notes !== undefined && notes !== null ? String(notes).trim() : null,
       req.user?.id,
     );
@@ -373,7 +384,7 @@ const terminateEmployee = async (req, res, next) => {
       action: "TERMINATE",
       actor: req.user,
       performedScreen: "Employee Management",
-      actionDescription: `Employee terminated: ${existing.name}. Reason: ${terminationReason}`,
+      actionDescription: `Employee terminated: ${existing.name}. Reason: ${terminationReason}. Type: ${terminationType || 'Voluntary'}`,
     });
 
     return success(res, { message: "Employee terminated successfully" });

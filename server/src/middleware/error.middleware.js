@@ -7,7 +7,8 @@ const errorMiddleware = (err, _req, res, _next) => {
       ? "Internal Server Error"
       : err.message || "Internal Server Error";
 
-  if (nodeEnv !== "production") {
+  // Only log unexpected errors (not 401/403 which are expected operational errors)
+  if (nodeEnv !== "production" && statusCode >= 500) {
     console.error(err);
   }
 

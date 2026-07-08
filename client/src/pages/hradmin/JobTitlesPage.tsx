@@ -398,7 +398,7 @@ function JobTitleFormModal({
         <div
           style={{
             padding: "22px 26px 18px",
-            background: "linear-gradient(135deg,#1b2a6b 0%,#16a085 100%)",
+            background: "linear-gradient(135deg,#172554 0%,#14b8a6 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -642,7 +642,7 @@ function JobTitleFormModal({
                 border: "none",
                 background: isSaving
                   ? "#94a3b8"
-                  : "linear-gradient(135deg,#1b2a6b,#16a085)",
+                  : "linear-gradient(135deg,#172554,#14b8a6)",
                 color: "#fff",
                 fontSize: 13.5,
                 fontWeight: 700,

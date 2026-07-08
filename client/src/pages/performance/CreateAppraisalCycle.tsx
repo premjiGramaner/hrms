@@ -89,7 +89,7 @@ export default function CreateAppraisalCycle() {
               onChange={setDueDate}
             />
           </div>
-          
+
           <div className="mt-6 max-w-2xl">
             <SelectInput
               label="Template"

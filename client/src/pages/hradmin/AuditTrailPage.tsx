@@ -5,6 +5,10 @@ import useDebounce from "../../hooks/useDebounce";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import { getAvatarSrc, getInitials } from "../../utils/avatar";
 
+import { IconClipboardList, IconActivity, IconPlusCircle, IconEdit, IconXCircle } from "../../components/Icons";
+import { getDisplayName } from "../employees/EmployeeListPage";
+import { getMyInfo } from "../../api/employee.api";
+import { Employee } from "../../types";
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
   { label: "Job Categories", path: "/hradmin/job-categories" },
@@ -12,6 +16,10 @@ const TABS: TabItem[] = [
   { label: "Role Access", path: "/hradmin/role-access" },
   { label: "Audit Trail", path: "/hradmin/audit-trail" },
 ];
+const Adminuser: Employee | null = JSON.parse(
+  localStorage.getItem("hrms_user") || "null"
+);
+console.log(Adminuser)
 
 const ACTION_COLOR: Record<string, { bg: string; color: string; dot: string }> =
   {
@@ -23,6 +31,8 @@ const ACTION_COLOR: Record<string, { bg: string; color: string; dot: string }> =
 
 interface AuditRecord {
   id: number;
+  employee_id?: number;
+  employee_code?: string;
   action_owner: string;
   action_owner_username: string;
   action_owner_avatar?: string | null;
@@ -37,6 +47,7 @@ interface AuditRecord {
   event_time: string;
   created_at: string;
 }
+
 
 function formatDateTime(iso: string): string {
   if (!iso) return "—";
@@ -217,7 +228,7 @@ export default function AuditTrailPage() {
     {
       label: "Total Events",
       value: allRecords.length,
-      icon: "",
+      icon: <IconActivity size={20} /> as any ,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
@@ -225,7 +236,7 @@ export default function AuditTrailPage() {
     {
       label: "Created",
       value: createCount,
-      icon: "",
+      icon: <IconPlusCircle size={20} />,
       color: "#16a34a",
       bg: "#f0fdf4",
       border: "#bbf7d0",
@@ -233,7 +244,7 @@ export default function AuditTrailPage() {
     {
       label: "Updated",
       value: updateCount,
-      icon: "",
+      icon: <IconEdit size={20} />,
       color: "#a16207",
       bg: "#fefce8",
       border: "#fde68a",
@@ -241,7 +252,7 @@ export default function AuditTrailPage() {
     {
       label: "Terminated",
       value: terminateCount,
-      icon: "",
+      icon: <IconXCircle size={20} />,
       color: "#9d174d",
       bg: "#fdf2f8",
       border: "#fbcfe8",
@@ -299,6 +310,14 @@ export default function AuditTrailPage() {
             ) : (
               getInitials(row.action_owner)
             )}
+           
+            
+            {(row.action_owner || "?")
+              .split(" ")
+              .map((w) => w[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase()}
           </div>
           <div>
             <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 13 }}>
@@ -369,6 +388,28 @@ export default function AuditTrailPage() {
       ),
     },
     {
+      key: "employee_code",
+      header: "Employee ID",
+      width: 120,
+      render: (row) => (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "4px 10px",
+            borderRadius: 6,
+            background: "#f0f9ff",
+            color: "#0369a1",
+            fontSize: 12,
+            fontWeight: 600,
+            border: "1px solid #bae6fd",
+          }}
+        >
+          {row.employee_code || "—"}
+        </span>
+      ),
+    },
+    {
       key: "section",
       header: "Section",
       width: 120,
@@ -384,15 +425,6 @@ export default function AuditTrailPage() {
           }}
         >
           {row.section || "—"}
-        </span>
-      ),
-    },
-    {
-      key: "source",
-      header: "Source",
-      render: (row) => (
-        <span style={{ color: "#64748b", fontSize: 12.5 }}>
-          {row.source || "—"}
         </span>
       ),
     },
@@ -527,13 +559,13 @@ export default function AuditTrailPage() {
       <DataTable<AuditRecord>
         title="Audit Trail"
         subtitle="Full history of all user & employee actions"
-        icon="📋"
+        icon={<IconClipboardList size={18} /> as any }
         rows={pagedRecords}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row, idx) => `${row.id}-${idx}`}
-        emptyIcon="📋"
+        emptyIcon={<IconClipboardList size={36}  /> as any }
         emptyTitle={
           hasFilters
             ? "No records match the current filters"

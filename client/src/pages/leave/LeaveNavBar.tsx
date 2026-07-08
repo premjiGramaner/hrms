@@ -49,7 +49,6 @@ export default function LeaveNavBar() {
         Leave List
       </Link>
 
-      {/* Employees see only "My Entitlements" as a direct link */}
       {!isAdmin && (
         <Link
           to="/leave/entitlements/my"

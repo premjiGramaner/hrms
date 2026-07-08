@@ -52,7 +52,7 @@ export function EditableProfileField({
   if (readOnly) {
     return (
       <div className={wide ? "md:col-span-2 xl:col-span-3" : ""}>
-        <p className="mb-1.5 text-xs font-semibold text-slate-600">
+        <p className="mb-1.5 text-xs font-semibold text-slate-600 normal-case">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </p>
@@ -65,7 +65,7 @@ export function EditableProfileField({
 
   return (
     <div className={wide ? "md:col-span-2 xl:col-span-3" : ""}>
-      <p className="mb-1.5 text-xs font-semibold text-slate-600">
+      <p className="mb-1.5 text-xs font-semibold text-slate-600 normal-case">
         {label}
         {required && !disabled && <span className="text-red-500 ml-1">*</span>}
       </p>

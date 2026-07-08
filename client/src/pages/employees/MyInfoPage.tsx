@@ -89,7 +89,9 @@ export default function MyInfoPage() {
   useEffect(() => {
     if (isAdmin) {
       getJobTitles()
-        .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+        .then((res) =>
+          setJobTitleOptions(res.data.map((jobtitle) => jobtitle.title)),
+        )
         .catch((err) =>
           setError(getApiErrorMessage(err, "Failed to load job titles.")),
         );
@@ -97,7 +99,10 @@ export default function MyInfoPage() {
       getJobCategories()
         .then((res) =>
           setJobCategoryOptions(
-            res.data.map((c) => ({ id: c.id, category: c.category })),
+            res.data.map((Category) => ({
+              id: Category.id,
+              category: Category.category,
+            })),
           ),
         )
         .catch((err) =>
@@ -105,7 +110,9 @@ export default function MyInfoPage() {
         );
 
       getSubUnits()
-        .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+        .then((res) =>
+          setSubUnitOptions(res.data.map((SubUnit) => SubUnit.sub_unit_name)),
+        )
         .catch((err) =>
           setError(getApiErrorMessage(err, "Failed to load sub units.")),
         );
@@ -131,9 +138,9 @@ export default function MyInfoPage() {
     getSupervisors()
       .then((res) =>
         setSupervisorOptions(
-          (res.data || []).map((s: any, index: number) => ({
-            id: s.id ?? index + 1,
-            name: s.name,
+          (res.data || []).map((Supervisor: any, index: number) => ({
+            id: Supervisor.id ?? index + 1,
+            name: Supervisor.name,
           })),
         ),
       )
@@ -160,7 +167,6 @@ export default function MyInfoPage() {
     loadProfile();
   }, []);
 
-  // Track original form values when employee data is loaded
   useEffect(() => {
     if (form && !originalForm) {
       setOriginalForm({ ...form });
@@ -467,7 +473,10 @@ export default function MyInfoPage() {
 
     if (activeLabel === "Job") {
       return (
-        <ProfileDetailPanel title="Employment Details" footer={saveFooter}>
+        <ProfileDetailPanel
+          title="Employment Details"
+          footer={isAdmin ? saveFooter : undefined}
+        >
           <EditableProfileField
             label="Job Title"
             name="job_title"
@@ -484,7 +493,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.joined_date}
             onChange={handleFieldChange}
-            disabled={!isAdmin}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Employment Status"
@@ -492,7 +501,7 @@ export default function MyInfoPage() {
             value={form.employment_status}
             onChange={handleFieldChange}
             options={EMPLOYMENT_STATUSES}
-            disabled={!isAdmin}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Job Category"
@@ -500,7 +509,9 @@ export default function MyInfoPage() {
             value={form.job_category}
             onChange={handleFieldChange}
             options={
-              isAdmin ? jobCategoryOptions.map((c) => c.category) : undefined
+              isAdmin
+                ? jobCategoryOptions.map((jobCategory) => jobCategory.category)
+                : undefined
             }
             readOnly={!isAdmin}
           />
@@ -510,7 +521,7 @@ export default function MyInfoPage() {
             value={form.job_specification}
             onChange={handleFieldChange}
             options={JOB_SPECIFICATIONS}
-            disabled={!isAdmin}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Sub Unit"
@@ -527,11 +538,18 @@ export default function MyInfoPage() {
             name="supervisor_id"
             value={form.supervisor_id}
             onChange={handleFieldChange}
-            options={supervisorOptions.map((s) => s.id.toString())}
+            options={supervisorOptions.map((supervisor) =>
+              supervisor.id.toString(),
+            )}
             optionLabels={
-              new Map(supervisorOptions.map((s) => [s.id.toString(), s.name]))
+              new Map(
+                supervisorOptions.map((supervisor) => [
+                  supervisor.id.toString(),
+                  supervisor.name,
+                ]),
+              )
             }
-            disabled={!isAdmin}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Location"
@@ -549,7 +567,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.probation_end_date}
             onChange={handleFieldChange}
-            disabled={!isAdmin}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Date of Permanence"
@@ -557,7 +575,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.date_of_permanence}
             onChange={handleFieldChange}
-            disabled={!isAdmin}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Attendance Calculation"
@@ -565,7 +583,7 @@ export default function MyInfoPage() {
             value={form.attendance_calc}
             onChange={handleFieldChange}
             options={ATTENDANCE_CALCULATION_TYPES}
-            disabled={!isAdmin}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Contract Start Date"
@@ -573,7 +591,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.contract_start_date}
             onChange={handleFieldChange}
-            disabled={!isAdmin}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Contract End Date"
@@ -581,7 +599,7 @@ export default function MyInfoPage() {
             type="date"
             value={form.contract_end_date}
             onChange={handleFieldChange}
-            disabled={!isAdmin}
+            readOnly={!isAdmin}
           />
           <EditableProfileField
             label="Comments"
@@ -590,6 +608,7 @@ export default function MyInfoPage() {
             value={form.comments}
             onChange={handleFieldChange}
             wide
+            readOnly={!isAdmin}
           />
         </ProfileDetailPanel>
       );

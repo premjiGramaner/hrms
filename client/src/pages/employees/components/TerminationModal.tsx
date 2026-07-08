@@ -17,6 +17,10 @@ export default function TerminationModal({
     terminationReason: "",
     terminationReasonOther: "",
     terminationDateTime: "",
+    terminationType: "Voluntary",
+    lastWorkingDay: "",
+    noticePeriodDays: "30",
+    rehireEligible: "false",
     notes: "",
   });
   const [saving, setSaving] = useState(false);
@@ -89,6 +93,13 @@ export default function TerminationModal({
       await terminateEmployee(employeeId, {
         terminationReason: reason,
         terminationDateTime: terminationForm.terminationDateTime.trim(),
+        terminationType: terminationForm.terminationType,
+        lastWorkingDay:
+          terminationForm.lastWorkingDay.trim() ||
+          terminationForm.terminationDateTime.trim().split("T")[0],
+        noticePeriodDays: parseInt(terminationForm.noticePeriodDays) || 0,
+        exitInterviewCompleted: false,
+        rehireEligible: terminationForm.rehireEligible === "true",
         notes: terminationForm.notes.trim(),
       });
 
@@ -301,7 +312,70 @@ export default function TerminationModal({
             </div>
 
             <div>
-              {renderTextArea("notes", "Enter notes or description", false)}
+              <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
+                Termination Type
+                <span className="text-red-600 ml-0.5">*</span>
+              </label>
+              <select
+                value={terminationForm.terminationType}
+                onChange={set("terminationType")}
+                className="w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors border-slate-200 bg-slate-50 focus:border-slate-300"
+              >
+                <option value="Voluntary">Voluntary</option>
+                <option value="Involuntary">Involuntary</option>
+                <option value="Retirement">Retirement</option>
+                <option value="Layoff">Layoff</option>
+                <option value="End of Contract">End of Contract</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
+                  Last Working Day
+                </label>
+                <input
+                  type="date"
+                  value={terminationForm.lastWorkingDay}
+                  onChange={set("lastWorkingDay")}
+                  className="w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors border-slate-200 bg-slate-50 focus:border-slate-300"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
+                  Notice Period (Days)
+                </label>
+                <input
+                  type="number"
+                  value={terminationForm.noticePeriodDays}
+                  onChange={set("noticePeriodDays")}
+                  min="0"
+                  className="w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors border-slate-200 bg-slate-50 focus:border-slate-300"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
+                Rehire Eligible
+              </label>
+              <select
+                value={terminationForm.rehireEligible}
+                onChange={set("rehireEligible")}
+                className="w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors border-slate-200 bg-slate-50 focus:border-slate-300"
+              >
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+              </select>
+            </div>
+
+            <div>
+              {renderTextArea(
+                "notes",
+                "Enter additional notes or comments",
+                false,
+              )}
             </div>
           </div>
         </div>
