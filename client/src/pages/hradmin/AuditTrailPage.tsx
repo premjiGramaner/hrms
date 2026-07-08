@@ -3,6 +3,7 @@ import Layout, { TabItem } from "../../components/Layout";
 import { getAuditTrail } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
+import { getAvatarSrc, getInitials } from "../../utils/avatar";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -35,30 +36,6 @@ interface AuditRecord {
   notes: string;
   event_time: string;
   created_at: string;
-}
-
-function getAvatarSrc(avatar?: string | null): string {
-  if (!avatar) return "";
-  if (
-    avatar.startsWith("data:") ||
-    avatar.startsWith("http://") ||
-    avatar.startsWith("https://") ||
-    avatar.startsWith("blob:")
-  ) {
-    return avatar;
-  }
-  if (avatar.startsWith("/")) return avatar;
-  if (avatar.startsWith("uploads/")) return `/${avatar}`;
-  return `/uploads/${avatar}`;
-}
-
-function getInitials(name: string): string {
-  return (name || "?")
-    .split(" ")
-    .map((word) => word[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 }
 
 function formatDateTime(iso: string): string {

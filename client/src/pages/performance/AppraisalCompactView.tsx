@@ -13,6 +13,7 @@ import {
   AppraisalDetail,
   TemplateQuestion,
 } from "../../types/performance.types";
+import { getAvatarSrc } from "../../utils/avatar";
 
 type ReviewerType = "self" | "supervisor";
 type RatingDraft = Record<
@@ -53,7 +54,7 @@ function commentForReviewer(
 }
 
 function Avatar({ name, avatar }: { name: string; avatar?: string | null }) {
-  const avatarUrl = avatar || null;
+  const avatarUrl = getAvatarSrc(avatar);
 
   return (
     <div className="relative mx-auto flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-gradient-to-br from-blue-950 to-teal-500 shadow-lg">

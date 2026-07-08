@@ -7,6 +7,7 @@ import {
 import { getApiErrorMessage } from "../../../utils/errors";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { updateUserAvatar, updateUserName } from "../../../store/authSlice";
+import { getAvatarSrc } from "../../../utils/avatar";
 
 interface EmployeeProfileCardProps {
   employee: Employee;
@@ -165,7 +166,7 @@ export default function EmployeeProfileCard({
   };
 
   // Avatar is now a base64 data URL from database
-  const avatarUrl = employee.avatar || null;
+  const avatarUrl = getAvatarSrc(employee.avatar);
 
   const getSupervisorNames = () => {
     let supervisorsData: unknown = employee.supervisors;

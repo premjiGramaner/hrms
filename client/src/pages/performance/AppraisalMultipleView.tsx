@@ -15,6 +15,7 @@ import {
   AppraisalDetail,
   TemplateQuestion,
 } from "../../types/performance.types";
+import { getAvatarSrc } from "../../utils/avatar";
 
 type ReviewerType = "self" | "supervisor";
 type RatingDraft = Record<string, { score: number; comment: string }>;
@@ -28,7 +29,7 @@ function Avatar({
   avatar?: string | null;
   className?: string;
 }) {
-  const avatarUrl = avatar || null;
+  const avatarUrl = getAvatarSrc(avatar);
 
   return (
     <div
