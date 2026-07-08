@@ -122,9 +122,6 @@ export default function EmployeeProfileCard({
         currentUser && Number(currentUser.id) === Number(updatedEmployee.id);
 
       if (isCurrentLoggedInUser && updatedEmployee.avatar) {
-        console.log("✅ Updating Redux - User ID matches:", updatedEmployee.id);
-        console.log("🖼️  New avatar (first 50 chars):", updatedEmployee.avatar?.substring(0, 50));
-        
         // Update Redux store to update sidebar immediately
         dispatch(updateUserAvatar(updatedEmployee.avatar));
 
@@ -135,7 +132,12 @@ export default function EmployeeProfileCard({
           }),
         );
       } else {
-        console.log("ℹ️  Not updating Redux - Current user:", currentUser?.id, "Updated employee:", updatedEmployee.id);
+        console.log(
+          "ℹ️  Not updating Redux - Current user:",
+          currentUser?.id,
+          "Updated employee:",
+          updatedEmployee.id,
+        );
       }
 
       // Update parent component with merged employee data immediately
@@ -165,8 +167,6 @@ export default function EmployeeProfileCard({
   // Avatar is now a base64 data URL from database
   const avatarUrl = employee.avatar || null;
 
-  console.log("🖼️  EmployeeProfileCard - Avatar URL (first 50 chars):", avatarUrl?.substring(0, 50));
-
   const getSupervisorNames = () => {
     let supervisorsData: unknown = employee.supervisors;
 
@@ -177,7 +177,6 @@ export default function EmployeeProfileCard({
         supervisorsData = [];
       }
     }
-    
 
     if (Array.isArray(supervisorsData) && supervisorsData.length > 0) {
       return supervisorsData

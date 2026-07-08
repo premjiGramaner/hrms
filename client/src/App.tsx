@@ -82,7 +82,6 @@ export default function App() {
         await verifyCookie();
         const userResponse = await self();
         const userData = userResponse.data;
-        console.log("🔍 Cookie restore - userData:", userData);
         const tempToken = "cookie_authenticated";
 
         dispatch(

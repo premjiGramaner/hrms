@@ -64,15 +64,6 @@ async function findAllEmployees(page, limit = 10, search = "") {
   values.push(offset);
   const offsetIndex = values.length;
 
-  console.log("[findAllEmployees] whereClause:", whereClause);
-  console.log("[findAllEmployees] values:", values);
-  console.log(
-    "[findAllEmployees] limitIndex:",
-    limitIndex,
-    "offsetIndex:",
-    offsetIndex,
-  );
-
   try {
     const { rows } = await pool.query(
       `SELECT u.id::int, u.employee_id, u.name, u.first_name, u.last_name, u.username, u.email, u.mobile,

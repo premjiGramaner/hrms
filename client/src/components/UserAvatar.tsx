@@ -31,9 +31,6 @@ export default function UserAvatar({
 
         // Check if avatar has changed
         if (latestUser.avatar && latestUser.avatar !== user.avatar) {
-          console.log("🔄 UserAvatar - Avatar changed, updating Redux");
-          console.log("   Old avatar:", user.avatar?.substring(0, 50));
-          console.log("   New avatar:", latestUser.avatar?.substring(0, 50));
           dispatch(updateUserAvatar(latestUser.avatar));
         }
 
@@ -46,9 +43,6 @@ export default function UserAvatar({
           `${latestUser.first_name || ""} ${latestUser.last_name || ""}`.trim();
 
         if (latestFullName && latestFullName !== currentFullName) {
-          console.log("🔄 UserAvatar - Name changed, updating Redux");
-          console.log("   Old name:", currentFullName);
-          console.log("   New name:", latestFullName);
           dispatch(
             updateUserName({
               first_name: latestUser.first_name,
@@ -100,8 +94,8 @@ export default function UserAvatar({
     >
       {avatar ? (
         <img
-          key={avatar} // Force re-render when avatar changes
-          src={avatar} // Direct Base64 string, no /uploads/ prefix
+          key={avatar}
+          src={avatar}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
           alt={username}
         />

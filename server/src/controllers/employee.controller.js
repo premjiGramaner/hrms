@@ -18,19 +18,9 @@ const listEmployees = async (req, res, next) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     const search = (req.query.search || "").trim();
-    console.log(
-      "[Employee Search] page:",
-      page,
-      "limit:",
-      limit,
-      "search:",
-      search,
-    );
     const result = await EmployeeModel.findAllEmployees(page, limit, search);
-    console.log("[Employee Search] result count:", result.total);
     return success(res, result);
   } catch (err) {
-    console.error("[Employee Search Error]", err.message, err.stack);
     next(err);
   }
 };
@@ -174,9 +164,6 @@ const createEmployee = async (req, res, next) => {
     let emailSent = true;
     let emailMessage = "Welcome email sent successfully.";
     const loginUrl = `${getClientUrl(req)}/login`;
-    console.log(
-      `[EMPLOYEE] Created employee: ${emp.name} (${emp.email}), temp password: ${emp.temporaryPassword}, loginUrl: ${loginUrl}`,
-    );
     try {
       await sendWelcomeEmail({
         to: emp.email,
@@ -210,9 +197,6 @@ const updateEmployee = async (req, res, next) => {
     const id = parseInt(req.params.id);
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
-
-    console.log("📝 Updating employee ID:", id);
-    console.log("📝 Request body keys:", Object.keys(req.body));
 
     const workEmail = (req.body.work_email || req.body.email || "")
       .trim()
@@ -258,8 +242,6 @@ const updateEmployee = async (req, res, next) => {
       performedScreen: "Employee Management",
       actionDescription: `Employee updated: ${existing.name}`,
     });
-
-    console.log("✅ Employee updated successfully:", id);
     return success(res, { message: "Employee updated successfully" });
   } catch (err) {
     console.error("❌ Update employee error:", err);

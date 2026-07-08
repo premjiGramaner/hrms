@@ -20,14 +20,10 @@ export async function runMigrations() {
       if (!sql.trim()) {
         continue;
       }
-
-      console.log(`Running migration: ${fileName}`);
       await client.query(sql);
-      console.log(`✓ Applied ${fileName}`);
     }
 
     await client.query("COMMIT");
-    console.log("✓ Database migrations completed");
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     console.error("✗ Migration failed:", error.message);

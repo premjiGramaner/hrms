@@ -21,15 +21,10 @@ const authSlice = createSlice({
       state,
       action: PayloadAction<{ token: string; user: AuthUser }>,
     ) {
-      console.log(
-        "🔐 loginSuccess - Updating user avatar:",
-        action.payload.user.avatar?.substring(0, 50) + "...",
-      );
       state.token = action.payload.token;
       state.user = action.payload.user;
       localStorage.setItem(STORAGE_KEYS.token, action.payload.token);
       writeJson(STORAGE_KEYS.user, action.payload.user);
-      console.log("✅ loginSuccess - Redux and localStorage updated");
     },
     logout(state) {
       state.token = null;
@@ -40,13 +35,8 @@ const authSlice = createSlice({
     },
     updateUserAvatar(state, action: PayloadAction<string>) {
       if (state.user) {
-        console.log(
-          "🖼️  updateUserAvatar - New avatar:",
-          action.payload?.substring(0, 50) + "...",
-        );
         state.user = { ...state.user, avatar: action.payload };
         writeJson(STORAGE_KEYS.user, state.user);
-        console.log("✅ updateUserAvatar - Redux and localStorage updated");
       }
     },
     updateUserName(state, action: PayloadAction<UpdateUserNamePayload>) {
