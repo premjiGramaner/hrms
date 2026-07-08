@@ -118,8 +118,6 @@ const login = async (req, res, next) => {
       timingSafeCompare(password, "admin")
     ) {
       const token = signToken({ id: 0, role: "hradmin", username: "admin" });
-
-      // Set cookie if remember me is checked
       if (rememberMe) {
         const cookieMaxAge = parseDuration(rememberMeDuration);
 
@@ -160,9 +158,6 @@ const login = async (req, res, next) => {
     if (!user.is_active) {
       return error(res, "This account has been deactivated", 403);
     }
-
-    // If must_change_password is true, user needs to set a new password
-    // For first-time login, we pass userId directly instead of generating a new token
     if (user.must_change_password) {
       return success(res, {
         requiresPasswordChange: true,
@@ -184,7 +179,6 @@ const login = async (req, res, next) => {
       username: user.username,
     });
 
-    // Set cookie if remember me is checked
     if (rememberMe) {
       const cookieMaxAge = parseDuration(rememberMeDuration);
       const cookieOptions = {
@@ -232,47 +226,6 @@ const self = async (req, res, next) => {
   }
 };
 
-// const forgotPassword = async (req, res, next) => {
-//   try {
-//     const { email } = req.body;
-
-//     if (!email) {
-//       return error(res, "Email is required", 400);
-//     }
-
-//     // Check if user exists with this email
-//     const { rows } = await pool.query(
-//       `SELECT id, username, email FROM tbl_appusers 
-//        WHERE email = $1 AND is_deleted = false`,
-//       [email],
-//     );
-
-//     // Always return success message for security (don't reveal if email exists)
-//     // In production, you would:
-//     // 1. Generate a reset token
-//     // 2. Store it in database with expiry
-//     // 3. Send email with reset link
-    
-//     if (rows.length > 0) {
-//       // TODO: Generate reset token and send email
-//       // const resetToken = crypto.randomBytes(32).toString('hex');
-//       // await pool.query(
-//       //   `UPDATE tbl_appusers SET reset_token = $1, reset_token_expiry = NOW() + INTERVAL '1 hour'
-//       //    WHERE id = $2`,
-//       //   [resetToken, rows[0].id]
-//       // );
-//       // sendPasswordResetEmail(email, resetToken);
-//       console.log(`Password reset requested for: ${email}`);
-//     }
-
-//     return success(res, {
-//       message: "If an account with that email exists, a password reset link has been sent.",
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
 const forgotPassword = async (req, res, next) => {
   try {
     await ensureAuthSchema();
@@ -299,8 +252,7 @@ const forgotPassword = async (req, res, next) => {
           name: user.name || user.username,
           resetLink,
         });
-      } catch {
-      }
+      } catch {}
     }
 
     return success(res, {
@@ -418,7 +370,7 @@ const createFirstTimePassword = async (req, res, next) => {
   }
 };
 
- const logout = async (req, res, next) => {
+const logout = async (req, res, next) => {
   try {
     res.clearCookie("auth_token", {
       httpOnly: true,

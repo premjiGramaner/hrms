@@ -26,9 +26,7 @@ export async function runMigrations() {
         continue;
       }
 
-      console.log(`Running migration: ${fileName}`);
       await client.query(sql);
-      console.log(`✓ Applied ${fileName}`);
     }
 
     await client.query("COMMIT");

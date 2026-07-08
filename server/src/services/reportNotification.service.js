@@ -140,10 +140,6 @@ async function sendWorkAnniversaryAlertEmail(
     return { success: false, message: err.message };
   }
 }
-
-/**
- * Process Birthday Notifications (called by cron job)
- */
 async function processBirthdayNotifications() {
   try {
     const notificationConfig =
@@ -162,7 +158,6 @@ async function processBirthdayNotifications() {
       return { success: true, message: "No upcoming birthdays" };
     }
 
-    // Get recipient emails from user IDs
     const recipientUserIds = notificationConfig.recipient_user_ids || [];
     let recipientEmails = [];
 
@@ -174,7 +169,6 @@ async function processBirthdayNotifications() {
       recipientEmails = recipients.map((r) => r.email).filter(Boolean);
     }
 
-    // Add external emails from config
     if (notificationConfig.external_emails) {
       const externalEmails = notificationConfig.external_emails
         .split(",")
@@ -187,13 +181,11 @@ async function processBirthdayNotifications() {
       return { success: false, message: "No recipient emails configured" };
     }
 
-    // Send email
     const emailResult = await sendBirthdayAlertEmail(
       upcomingBirthdays,
       recipientEmails,
     );
 
-    // Log notifications
     for (const employee of upcomingBirthdays) {
       const alreadySent = await ReportModel.checkNotificationAlreadySent(
         "birthday",
@@ -219,9 +211,6 @@ async function processBirthdayNotifications() {
   }
 }
 
-/**
- * Process Work Anniversary Notifications (called by cron job)
- */
 async function processWorkAnniversaryNotifications() {
   try {
     const notificationConfig =
@@ -242,7 +231,6 @@ async function processWorkAnniversaryNotifications() {
       return { success: true, message: "No upcoming work anniversaries" };
     }
 
-    // Get recipient emails from user IDs
     const recipientUserIds = notificationConfig.recipient_user_ids || [];
     let recipientEmails = [];
 
@@ -254,7 +242,6 @@ async function processWorkAnniversaryNotifications() {
       recipientEmails = recipients.map((r) => r.email).filter(Boolean);
     }
 
-    // Add external emails from config
     if (notificationConfig.external_emails) {
       const externalEmails = notificationConfig.external_emails
         .split(",")
@@ -267,13 +254,11 @@ async function processWorkAnniversaryNotifications() {
       return { success: false, message: "No recipient emails configured" };
     }
 
-    // Send email
     const emailResult = await sendWorkAnniversaryAlertEmail(
       upcomingAnniversaries,
       recipientEmails,
     );
 
-    // Log notifications
     for (const employee of upcomingAnniversaries) {
       const alreadySent = await ReportModel.checkNotificationAlreadySent(
         "work_anniversary",

@@ -160,9 +160,6 @@ const createEmployee = async (req, res, next) => {
     let emailSent = true;
     let emailMessage = "Welcome email sent successfully.";
     const loginUrl = `${getClientUrl(req)}/login`;
-    console.log(
-      `[EMPLOYEE] Created employee: ${emp.name} (${emp.email}), temp password: ${emp.temporaryPassword}, loginUrl: ${loginUrl}`,
-    );
     try {
       await sendWelcomeEmail({
         to: emp.email,

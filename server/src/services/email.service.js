@@ -1,21 +1,6 @@
 import nodemailer from "nodemailer";
 import { smtpUser, smtpPass, mailFrom } from "../config/env.js";
 
-/**
- * Gmail transporter.
- *
- * Nodemailer's built-in "gmail" service preset sets:
- *   host: smtp.gmail.com  |  port: 465  |  secure: true
- *
- * Requirements:
- *   - 2-Step Verification must be enabled on the Gmail account.
- *   - SMTP_PASS must be a 16-char App Password, NOT the regular Gmail password.
- *   - Generate one at: https://myaccount.google.com/apppasswords
- * 
- * 
- * 
- */
-
 console.log(process.env.SMTP_USER);
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -25,9 +10,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-/**
- * Send a welcome email with auto-generated credentials to a new employee.
- */
 export async function sendWelcomeEmail({ to, name, username, password }) {
   const subject = "Welcome to HRMS – Your Account Credentials";
   const html = `
@@ -52,9 +34,6 @@ export async function sendWelcomeEmail({ to, name, username, password }) {
   await transporter.sendMail({ from: mailFrom, to, subject, html });
 }
 
-/**
- * Send a password-reset link email.
- */
 export async function sendPasswordResetEmail({ to, name, resetLink }) {
   const subject = "HRMS – Set Your Password";
   const html = `
