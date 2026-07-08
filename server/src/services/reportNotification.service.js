@@ -159,7 +159,6 @@ async function processBirthdayNotifications() {
       await ReportModel.getUpcomingBirthdays(daysBefore);
 
     if (upcomingBirthdays.length === 0) {
-      console.log("No upcoming birthdays found");
       return { success: true, message: "No upcoming birthdays" };
     }
 
@@ -185,7 +184,6 @@ async function processBirthdayNotifications() {
     }
 
     if (recipientEmails.length === 0) {
-      console.log("No recipient emails configured");
       return { success: false, message: "No recipient emails configured" };
     }
 
@@ -230,7 +228,6 @@ async function processWorkAnniversaryNotifications() {
       await ReportModel.getNotificationConfig("work_anniversary");
 
     if (!notificationConfig || !notificationConfig.is_active) {
-      console.log("Work anniversary notifications are disabled");
       return {
         success: false,
         message: "Work anniversary notifications disabled",
@@ -242,7 +239,6 @@ async function processWorkAnniversaryNotifications() {
       await ReportModel.getUpcomingWorkAnniversaries(daysBefore);
 
     if (upcomingAnniversaries.length === 0) {
-      console.log("No upcoming work anniversaries found");
       return { success: true, message: "No upcoming work anniversaries" };
     }
 
@@ -268,7 +264,6 @@ async function processWorkAnniversaryNotifications() {
     }
 
     if (recipientEmails.length === 0) {
-      console.log("No recipient emails configured");
       return { success: false, message: "No recipient emails configured" };
     }
 
