@@ -5,6 +5,7 @@ import { logout as logoutAction } from "../store/authSlice";
 import { logout as logoutApi } from "../api/auth.api";
 import { getRoleLabel, isAdminRole } from "../config/roles";
 import cannyforeLogo from "../assets/cannyfore_title_logo.png";
+import UserAvatar from "./UserAvatar";
 
 import {
   IconBuilding,
@@ -147,35 +148,16 @@ export default function Layout({
             }}
           >
             <div
-              className="relative rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+              className="relative flex-shrink-0"
               style={{
-                width: 72,
-                height: 72,
-                background: "linear-gradient(135deg, #172554, #14b8a6)",
-                border: "3px solid #ffffff",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.14)",
                 marginBottom: 8,
               }}
             >
-              {user?.avatar ? (
-                <img
-                  key={user.avatar}
-                  src={
-                    user.avatar.startsWith("/uploads/") ||
-                    user.avatar.includes("?")
-                      ? user.avatar.startsWith("/uploads/")
-                        ? user.avatar
-                        : `/uploads/${user.avatar}`
-                      : `/uploads/${user.avatar}`
-                  }
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  alt="avatar"
-                />
-              ) : (
-                <span style={{ color: "#fff", fontSize: 26, fontWeight: 700 }}>
-                  {username.charAt(0).toUpperCase()}
-                </span>
-              )}
+              <UserAvatar
+                size={72}
+                className="border-[3px] border-white shadow-[0_2px_8px_rgba(0,0,0,0.14)]"
+              />
+
               <div
                 className="absolute flex items-center justify-center bg-white rounded-full"
                 style={{

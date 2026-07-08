@@ -27,7 +27,6 @@ export default function EmployeeProfileCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
-  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
   const [supervisorMap, setSupervisorMap] = useState<
     Map<string | number, string>
   >(new Map());
@@ -114,18 +113,11 @@ export default function EmployeeProfileCard({
         formData,
       );
 
-      const newTimestamp = Date.now();
-      setAvatarTimestamp(newTimestamp);
+      const isCurrentLoggedInUser =
+        currentUser && Number(currentUser.id) === Number(updatedEmployee.id);
 
-      // Only update Redux if this is the logged-in user's own profile
-      const isOwnProfile =
-        currentUser && Number(currentUser.id) === Number(employee.id);
-
-      if (isOwnProfile && updatedEmployee.avatar) {
-        // Update Redux store with timestamp to force re-render everywhere
-        dispatch(
-          updateUserAvatar(`${updatedEmployee.avatar}?t=${newTimestamp}`),
-        );
+      if (isCurrentLoggedInUser && updatedEmployee.avatar) {
+        dispatch(updateUserAvatar(updatedEmployee.avatar));
 
         dispatch(
           updateUserName({
@@ -133,11 +125,20 @@ export default function EmployeeProfileCard({
             last_name: updatedEmployee.last_name,
           }),
         );
+      } else {
+        console.log(
+          "ℹ️  Not updating Redux - Current user:",
+          currentUser?.id,
+          "Updated employee:",
+          updatedEmployee.id,
+        );
       }
 
-      // Update parent component with fresh employee data
       if (onEmployeeUpdate) {
-        onEmployeeUpdate(updatedEmployee);
+        onEmployeeUpdate({
+          ...employee,
+          ...updatedEmployee,
+        });
       }
 
       setUploadMessage("Profile picture updated successfully!");
@@ -148,17 +149,13 @@ export default function EmployeeProfileCard({
       );
     } finally {
       setUploading(false);
-      // Clear the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     }
   };
 
-  // Generate avatar URL with cache busting
-  const avatarUrl = employee.avatar
-    ? `/uploads/${employee.avatar}?t=${avatarTimestamp}`
-    : null;
+  const avatarUrl = employee.avatar || null;
 
   const getSupervisorNames = () => {
     let supervisorsData: unknown = employee.supervisors;
@@ -280,9 +277,7 @@ export default function EmployeeProfileCard({
           </div>
         </div>
 
-        {/* Details Grid */}
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6 border-l pl-6">
-          {/* Basic Info */}
           <div>
             <h4 className="text-sm font-semibold text-[#757575] mb-3">
               Basic info
@@ -324,7 +319,6 @@ export default function EmployeeProfileCard({
             </div>
           </div>
 
-          {/* Job */}
           <div>
             <h4 className="text-sm font-semibold text-[#757575] mb-3">
               Employment

@@ -31,10 +31,17 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const response = await loginApi(username, password, rememberMe);
-      const payload = (response as { data?: any } | undefined)?.data ?? response;
+      const payload =
+        (response as { data?: any } | undefined)?.data ?? response;
       const data = payload as {
         token?: string;
-        user?: { id: number; username: string; role: string; name: string; avatar?: string };
+        user?: {
+          id: number;
+          username: string;
+          role: string;
+          name: string;
+          avatar?: string;
+        };
         requiresPasswordChange?: boolean;
         userId?: number;
         isFirstLogin?: boolean;

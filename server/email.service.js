@@ -21,10 +21,8 @@ async function sendMail(options) {
   }
   try {
     const result = await transporter.sendMail(options);
-    console.log(`[EMAIL] Message sent: ${result.messageId}`);
     return result;
   } catch (err) {
-    console.error("[EMAIL] Failed to send email:", err.message);
     throw err;
   }
 }
@@ -63,11 +61,7 @@ export async function sendWelcomeEmail({
     </div>
   `;
 
-  console.log(
-    `[EMAIL] Sending welcome email to ${to} with username: ${username}`,
-  );
   await sendMail({ from: mailFrom, to, subject, html });
-  console.log(`[EMAIL] Welcome email sent successfully to ${to}`);
 }
 
 export async function sendPasswordResetEmail({ to, name, resetLink }) {

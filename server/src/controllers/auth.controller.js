@@ -7,14 +7,14 @@ import { clientBaseUrl } from "../config/env.js";
 import { success, error } from "../utils/response.js";
 import { sendPasswordResetEmail } from "../../email.service.js";
 
-const signToken = (payload) =>
+const signToken = (payload, expiresIn = jwtExpiresIn) =>
   jwt.sign(payload, jwtSecret, {
-    expiresIn: jwtExpiresIn,
+    expiresIn: expiresIn,
   });
 
 const parseDuration = (duration) => {
   const match = duration.match(/^(\d+)([mhd])$/);
-  if (!match) return 30 * 24 * 60 * 60 * 1000; // Default 30 days
+  if (!match) return 30 * 24 * 60 * 60 * 1000;
 
   const value = parseInt(match[1]);
   const unit = match[2];
@@ -113,22 +113,26 @@ const login = async (req, res, next) => {
       return error(res, "Username and password are required", 400);
     }
 
+    const tokenExpiry = rememberMe ? rememberMeDuration : jwtExpiresIn;
+    const cookieMaxAge = rememberMe
+      ? parseDuration(rememberMeDuration)
+      : parseDuration(jwtExpiresIn);
+
     if (
       timingSafeCompare(username, "admin") &&
       timingSafeCompare(password, "admin")
     ) {
-      const token = signToken({ id: 0, role: "hradmin", username: "admin" });
-      if (rememberMe) {
-        const cookieMaxAge = parseDuration(rememberMeDuration);
-
-        const cookieOptions = {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-          maxAge: cookieMaxAge,
-        };
-        res.cookie("auth_token", token, cookieOptions);
-      }
+      const token = signToken(
+        { id: 0, role: "empmanager", username: "admin" },
+        tokenExpiry,
+      );
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+        maxAge: cookieMaxAge,
+      };
+      res.cookie("auth_token", token, cookieOptions);
 
       return success(res, {
         token,
@@ -173,11 +177,14 @@ const login = async (req, res, next) => {
       });
     }
 
-    const token = signToken({
-      id: user.id,
-      role: user.role,
-      username: user.username,
-    });
+    const token = signToken(
+      {
+        id: user.id,
+        role: user.role,
+        username: user.username,
+      },
+      tokenExpiry,
+    );
 
     if (rememberMe) {
       const cookieMaxAge = parseDuration(rememberMeDuration);

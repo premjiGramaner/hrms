@@ -30,7 +30,6 @@ export async function runMigrations() {
     }
 
     await client.query("COMMIT");
-    console.log("✓ Database migrations completed");
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     console.error("✗ Migration failed:", error.message);

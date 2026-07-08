@@ -86,10 +86,8 @@ export default function App() {
       }
 
       try {
-        // Try to get current user profile - if successful, user has valid cookie
         const userResponse = await self();
         const userData = userResponse.data;
-        console.log("🔍 Cookie restore - userData:", userData);
         const tempToken = "cookie_authenticated";
 
         dispatch(

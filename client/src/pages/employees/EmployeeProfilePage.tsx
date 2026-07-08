@@ -85,6 +85,8 @@ export default function EmployeeProfilePage() {
     {},
   );
   const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
+  const [originalForm, setOriginalForm] =
+    useState<EditableEmployeeProfileForm | null>(null);
 
   useEffect(() => {
     getJobTitles()
@@ -163,7 +165,25 @@ export default function EmployeeProfilePage() {
         }
         const { data } = await getEmployee(parseInt(id));
         setEmployee(data);
-        setForm(employeeToEditableProfileForm(data));
+
+        const supervisorNames = Array.isArray(data.supervisors)
+          ? data.supervisors
+          : [];
+        let supervisorId = "";
+
+        if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
+          const supervisorName = supervisorNames[0];
+          const foundSupervisor = supervisorOptions.find(
+            (s) => s.name === supervisorName,
+          );
+          supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
+        }
+
+        const initialForm = employeeToEditableProfileForm(data);
+        initialForm.supervisor_id = supervisorId;
+
+        setForm(initialForm);
+        setOriginalForm({ ...initialForm });
       } catch {
         setError("Employee not found");
       } finally {
@@ -172,7 +192,7 @@ export default function EmployeeProfilePage() {
     };
 
     fetchEmployee();
-  }, [id]);
+  }, [id, supervisorOptions]);
 
   if (loading) {
     return (
@@ -218,10 +238,76 @@ export default function EmployeeProfilePage() {
         current ? { ...current, [name]: numericValue } : current,
       );
       setModifiedFields((prev) => new Set(prev).add(name));
+      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
       return;
     }
     setForm((current) => (current ? { ...current, [name]: value } : current));
     setModifiedFields((prev) => new Set(prev).add(name));
+    setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const hasTabChanges = () => {
+    if (!form || !originalForm) return false;
+
+    const activeLabel = PROFILE_TABS[activeTab];
+    const tabFields: Record<string, string[]> = {
+      "Personal Details": [
+        "employee_id",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "gender",
+        "dob",
+        "real_dob",
+        "nationality",
+        "marital_status",
+        "blood_group",
+        "license_number",
+        "license_expiry",
+      ],
+      Job: [
+        "job_title",
+        "joined_date",
+        "employment_status",
+        "job_category",
+        "job_specification",
+        "sub_unit",
+        "supervisor_id",
+        "location",
+        "probation_end_date",
+        "date_of_permanence",
+        "attendance_calc",
+        "contract_start_date",
+        "contract_end_date",
+        "comments",
+      ],
+      "Contact Details": [
+        "work_email",
+        "other_email",
+        "mobile",
+        "home_tel",
+        "work_tel",
+        "address1",
+        "address2",
+        "city",
+        "state",
+        "country",
+        "zip",
+      ],
+    };
+
+    const fieldsToCheck = tabFields[activeLabel] || [];
+
+    // Check if any field in the current tab has changed
+    return fieldsToCheck.some((field) => {
+      const currentValue = String(
+        form[field as keyof EditableEmployeeProfileForm] || "",
+      ).trim();
+      const originalValue = String(
+        originalForm[field as keyof EditableEmployeeProfileForm] || "",
+      ).trim();
+      return currentValue !== originalValue;
+    });
   };
 
   const handleSave = async () => {
@@ -259,9 +345,15 @@ export default function EmployeeProfilePage() {
       setActionMessage("");
       setValidationErrors({});
       const formData = new FormData();
+
+      // Exclude avatar from regular profile updates - avatar is updated separately via updateProfileImage
       Object.entries(form).forEach(([key, value]) => {
-        formData.append(key, value.trim());
+        if (key !== "avatar") {
+          const stringValue = String(value || "");
+          formData.append(key, stringValue.trim());
+        }
       });
+
       formData.append("role", employee.role || "employee");
       const supervisorsArray = form.supervisor_id ? [form.supervisor_id] : [];
       formData.append("supervisors", JSON.stringify(supervisorsArray));
@@ -269,7 +361,26 @@ export default function EmployeeProfilePage() {
 
       const { data } = await getEmployee(employee.id);
       setEmployee(data);
-      setForm(employeeToEditableProfileForm(data));
+
+      // Map supervisor names back to IDs after save
+      const supervisorNames = Array.isArray(data.supervisors)
+        ? data.supervisors
+        : [];
+      let supervisorId = "";
+
+      if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
+        const supervisorName = supervisorNames[0];
+        const foundSupervisor = supervisorOptions.find(
+          (s) => s.name === supervisorName,
+        );
+        supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
+      }
+
+      const updatedForm = employeeToEditableProfileForm(data);
+      updatedForm.supervisor_id = supervisorId;
+
+      setForm(updatedForm);
+      setOriginalForm({ ...updatedForm });
       setModifiedFields(new Set());
 
       if (user?.id === data.id) {
@@ -287,6 +398,12 @@ export default function EmployeeProfilePage() {
 
       setActionMessage("Employee details saved successfully.");
     } catch (err: unknown) {
+      console.error("❌ Save employee error:", err);
+      console.error("❌ Error details:", {
+        message: (err as any)?.message,
+        response: (err as any)?.response?.data,
+        status: (err as any)?.response?.status,
+      });
       setActionMessage(
         getApiErrorMessage(err, "Failed to save employee details."),
       );
@@ -309,7 +426,7 @@ export default function EmployeeProfilePage() {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || !hasTabChanges()}
                 className="rounded-full bg-blue-950 px-8 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Saving..." : "Save"}
@@ -431,7 +548,7 @@ export default function EmployeeProfilePage() {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || !hasTabChanges()}
                 className="rounded-full bg-blue-950 px-8 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Saving..." : "Save"}
@@ -561,7 +678,7 @@ export default function EmployeeProfilePage() {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || !hasTabChanges()}
                 className="rounded-full bg-blue-950 px-8 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Saving..." : "Save"}
@@ -661,7 +778,14 @@ export default function EmployeeProfilePage() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <EmployeeProfileCard employee={employee} />
+          <EmployeeProfileCard
+            employee={employee}
+            onEmployeeUpdate={(updatedEmployee) => {
+              setEmployee((prev) =>
+                prev ? { ...prev, ...updatedEmployee } : updatedEmployee,
+              );
+            }}
+          />
           <LeaveList employee={employee} />
         </div>
       </div>
