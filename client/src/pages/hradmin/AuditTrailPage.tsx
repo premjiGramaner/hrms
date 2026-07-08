@@ -14,22 +14,6 @@ const TABS: TabItem[] = [
   { label: "Role Access", path: "/hradmin/role-access" },
   { label: "Audit Trail", path: "/hradmin/audit-trail" },
 ];
-
-//  const [employee, setEmployee] = useState<Employee | null>(null);
-// useEffect(() => {
-//   const fetchUserProfile = async () => {
-//     try {
-//       const { data } = await getMyInfo();
-//       console.log("@@@@@@@@@@@@@@@@@@@@@@@",data)
-//       setEmployee(data);
-//     } catch (error) {
-//       console.error(error);
-//     }
-//   };
-
-//   fetchUserProfile();
-// }, []);
-
 const Adminuser: Employee | null = JSON.parse(
   localStorage.getItem("hrms_user") || "null"
 );
