@@ -41,7 +41,6 @@ export async function writeAuditLog({
           actorUsername = rows[0].username || actorUsername;
         }
       } catch {
-        // keep the fallback values
       }
     } else if (actorId === 0) {
       actorName = "Admin";
@@ -69,7 +68,6 @@ export async function writeAuditLog({
       ],
     );
   } catch (err) {
-    // Audit failures should never break the main request – log and continue
-    console.error("[audit] Failed to write audit log:", err.message);
+        console.error("[audit] Failed to write audit log:", err.message);
   }
 }

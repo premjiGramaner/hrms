@@ -38,7 +38,6 @@ export default function LeaveNavBar() {
 
   return (
     <nav className="bg-white border-b border-slate-200 flex items-center gap-0 px-4 py-0 flex-shrink-0 overflow-visible">
-      {/* Apply tab - comes first */}
       <Link to="/leave/apply" className={tabCls(isActive("/leave/apply"))}>
         Apply
       </Link>
@@ -50,7 +49,6 @@ export default function LeaveNavBar() {
         Leave List
       </Link>
 
-      {/* Employees see only "My Entitlements" as a direct link */}
       {!isAdmin && (
         <Link
           to="/leave/entitlements/my"

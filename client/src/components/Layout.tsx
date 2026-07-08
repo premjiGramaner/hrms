@@ -153,6 +153,7 @@ export default function Layout({
                 marginBottom: 8,
               }}
             >
+              {/* Reusable UserAvatar component */}
               <UserAvatar
                 size={72}
                 className="border-[3px] border-white shadow-[0_2px_8px_rgba(0,0,0,0.14)]"

@@ -140,11 +140,27 @@ function buildFilters(filters, startIndex = 1) {
     Array.isArray(filters.statuses) &&
     filters.statuses.length > 0
   ) {
-    const placeholders = filters.statuses
-      .map(() => `$${paramIndex++}`)
-      .join(", ");
-    conditions.push(`lr.status IN (${placeholders})`);
-    values.push(...filters.statuses);
+    const hasScheduled = filters.statuses.includes("Scheduled");
+    const otherStatuses = filters.statuses.filter((s) => s !== "Scheduled");
+
+    if (hasScheduled && otherStatuses.length > 0) {
+      const placeholders = otherStatuses
+        .map(() => `$${paramIndex++}`)
+        .join(", ");
+      conditions.push(`(
+        lr.status IN (${placeholders}) OR 
+        (lr.applied_on <= (lr.start_date - INTERVAL '1 month'))
+      )`);
+      values.push(...otherStatuses);
+    } else if (hasScheduled) {
+      conditions.push(`lr.applied_on <= (lr.start_date - INTERVAL '1 month')`);
+    } else {
+      const placeholders = otherStatuses
+        .map(() => `$${paramIndex++}`)
+        .join(", ");
+      conditions.push(`lr.status IN (${placeholders})`);
+      values.push(...otherStatuses);
+    }
   }
   if (filters.only_subordinates && filters.supervisor_id) {
     conditions.push(`u.supervisors @> $${paramIndex++}::jsonb`);

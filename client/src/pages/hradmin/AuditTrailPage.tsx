@@ -4,7 +4,9 @@ import { getAuditTrail } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import { IconClipboardList, IconActivity, IconPlusCircle, IconEdit, IconXCircle } from "../../components/Icons";
-
+import { getDisplayName } from "../employees/EmployeeListPage";
+import { getMyInfo } from "../../api/employee.api";
+import { Employee } from "../../types";
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
   { label: "Job Categories", path: "/hradmin/job-categories" },
@@ -12,6 +14,26 @@ const TABS: TabItem[] = [
   { label: "Role Access", path: "/hradmin/role-access" },
   { label: "Audit Trail", path: "/hradmin/audit-trail" },
 ];
+
+//  const [employee, setEmployee] = useState<Employee | null>(null);
+// useEffect(() => {
+//   const fetchUserProfile = async () => {
+//     try {
+//       const { data } = await getMyInfo();
+//       console.log("@@@@@@@@@@@@@@@@@@@@@@@",data)
+//       setEmployee(data);
+//     } catch (error) {
+//       console.error(error);
+//     }
+//   };
+
+//   fetchUserProfile();
+// }, []);
+
+const Adminuser: Employee | null = JSON.parse(
+  localStorage.getItem("hrms_user") || "null"
+);
+console.log(Adminuser)
 
 const ACTION_COLOR: Record<string, { bg: string; color: string; dot: string }> =
   {
@@ -38,6 +60,7 @@ interface AuditRecord {
   event_time: string;
   created_at: string;
 }
+
 
 function formatDateTime(iso: string): string {
   if (!iso) return "—";
@@ -282,6 +305,8 @@ export default function AuditTrailPage() {
               boxShadow: "0 2px 6px rgba(27,42,107,0.2)",
             }}
           >
+           
+            
             {(row.action_owner || "?")
               .split(" ")
               .map((w) => w[0])

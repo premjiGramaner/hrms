@@ -19,7 +19,7 @@ const TABS: TabItem[] = [
   { label: "My Info", path: "/my-info" },
 ];
 
-const getDisplayName = (employe: Employee) =>
+export const getDisplayName = (employe: Employee) =>
   employe.name ||
   `${employe.first_name || ""} ${employe.last_name || ""}`.trim() ||
   "—";
@@ -37,7 +37,8 @@ const getInitials = (employee: Employee) => {
 };
 
 const getSupervisor = (employee: Employee): string => {
-  // Check for supervisor_names first (new field with actual names)
+
+
   if (employee.supervisor_names) {
     const names = Array.isArray(employee.supervisor_names)
       ? employee.supervisor_names
@@ -45,7 +46,6 @@ const getSupervisor = (employee: Employee): string => {
     return names.length > 0 ? names.join(", ") : "—";
   }
 
-  // Fallback to old supervisors field if it exists
   if (
     !employee.supervisors ||
     !Array.isArray(employee.supervisors) ||
@@ -284,7 +284,7 @@ export default function EmployeeListPage() {
       <DataTable<Employee>
         title="Employee List"
         subtitle="View and manage employee profile information"
-        icon={<IconUsers size={18} />}
+        icon={<IconUsers size={18} /> as any }
         rows={allRows}
         isLoading={loading}
         columns={columns}
@@ -315,7 +315,7 @@ export default function EmployeeListPage() {
           },
         ]}
         getKey={(employee) => employee.id}
-        emptyIcon={<IconUser size={36} />}
+        emptyIcon={<IconUser size={36} /> as any}
         emptyTitle={
           search ? `No results for "${search}"` : "No employees found"
         }

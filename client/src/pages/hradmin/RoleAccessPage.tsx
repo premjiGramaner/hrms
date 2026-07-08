@@ -339,7 +339,7 @@ export default function RoleAccessPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {row.avatar ? (
             <img
-              src={`/uploads/${row.avatar}`}
+              src={row.avatar}
               alt={row.name}
               style={{
                 width: 36,
