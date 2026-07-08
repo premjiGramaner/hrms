@@ -108,18 +108,14 @@ export default function ApplyLeavePage() {
   };
 
   useEffect(() => {
-    // Only fetch if user is available and has an ID
     if (user?.id && user.id > 0) {
       fetchData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, financialYear]); // Re-fetch when user ID changes or financial year changes
 
-  // Refetch balance when page becomes visible (user navigates back)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && user?.id) {
-        // Refetch only the balance (not all data) when page becomes visible
         getLeaveBalance(user.id, financialYear)
           .then((balances) => setBalances(balances as LeaveBalance[]))
           .catch((error) => console.error("Failed to refresh balance:", error));

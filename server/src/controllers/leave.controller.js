@@ -108,7 +108,10 @@ const getLeaveDetails = async (req, res, next) => {
     if (isNaN(id)) return error(res, "Invalid leave ID", 400);
     const leave = await LeaveModel.findLeaveDetails(id);
     if (!leave) return error(res, "Leave request not found", 404);
-    if (req.user.role === "employee" && leave.user_id !== req.user.id) {
+    if (
+      req.user.role === "employee" &&
+      Number(leave.user_id) !== Number(req.user.id)
+    ) {
       return error(res, "Forbidden", 403);
     }
     return success(res, leave);
@@ -160,7 +163,6 @@ const createLeave = async (req, res, next) => {
         ? startDate.getFullYear() + 1
         : startDate.getFullYear();
 
-    // Check for overlapping leave requests
     const overlap = await LeaveModel.checkLeaveOverlap(
       data.employee_id,
       data.start_date,
@@ -256,7 +258,6 @@ const rejectLeave = async (req, res, next) => {
       );
     }
 
-    // Do NOT restore balance on rejection - balance remains deducted
     await LeaveModel.rejectLeave(id, actorId, rejection_reason);
     return success(res, { message: "Leave rejected successfully" });
   } catch (err) {

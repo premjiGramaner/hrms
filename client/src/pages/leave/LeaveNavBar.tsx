@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppSelector } from "../../app/hooks";
-import { IconHome } from "../../components/Icons";
 
 export default function LeaveNavBar() {
   const { pathname } = useLocation();
@@ -38,20 +37,7 @@ export default function LeaveNavBar() {
   const entActive = entSubPaths.some((p) => pathname === p);
 
   return (
-    <nav className="bg-white border-b border-slate-200 flex items-center gap-0.5 px-3 py-0 flex-shrink-0 overflow-visible">
-      <Link
-        to="/leave/view_leave_list"
-        title="Leave Home"
-        className={`flex items-center justify-center w-9 h-9 rounded mr-1 flex-shrink-0 transition no-underline ${
-          isActive("/leave/dashboard")
-            ? "bg-orange-100 text-orange-700"
-            : "text-slate-500 hover:bg-slate-100"
-        }`}
-      >
-        <IconHome size={16} />
-      </Link>
-
-      {/* Apply tab - comes first */}
+    <nav className="bg-white border-b border-slate-200 flex items-center gap-0 px-4 py-0 flex-shrink-0 overflow-visible">
       <Link to="/leave/apply" className={tabCls(isActive("/leave/apply"))}>
         Apply
       </Link>
@@ -63,7 +49,6 @@ export default function LeaveNavBar() {
         Leave List
       </Link>
 
-      {/* Employees see only "My Entitlements" as a direct link */}
       {!isAdmin && (
         <Link
           to="/leave/entitlements/my"

@@ -6,7 +6,12 @@ import pool from "./src/config/db.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const migrations = ["006_performance_and_supervisor_migration.sql"];
+const migrations = [
+  "006_performance_and_supervisor_migration.sql",
+  "011_fix_termination_trigger_ambiguous_column.sql",
+  "012_backfill_real_dob_from_dob.sql",
+  "013_add_external_emails_to_notification_config.sql",
+];
 
 export async function runMigrations() {
   const client = await pool.connect();
@@ -20,6 +25,7 @@ export async function runMigrations() {
       if (!sql.trim()) {
         continue;
       }
+
       await client.query(sql);
     }
 

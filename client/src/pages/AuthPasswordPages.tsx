@@ -2,7 +2,6 @@ import { FormEvent, ReactNode, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   createFirstTimePassword,
-  createPassword,
   forgotPassword,
   resetPassword,
 } from "../api/auth.api";
@@ -153,9 +152,8 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
         setSuccess(data.message || "Password created successfully.");
         setTimeout(() => navigate("/login", { replace: true }), 2000);
       } else if (token) {
-        // Password reset: use token-based endpoint
-        const request = mode === "create" ? createPassword : resetPassword;
-        const { data } = await request(token, password, confirmPassword);
+        // Password reset: use token-based endpoint (both create and reset use same backend)
+        const { data } = await resetPassword(token, password, confirmPassword);
         setSuccess(data.message || "Password updated successfully.");
         setTimeout(() => navigate("/login", { replace: true }), 1200);
       } else {

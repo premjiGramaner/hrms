@@ -6,6 +6,7 @@ import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import useDebounce from "../../hooks/useDebounce";
 import { getSuperiorEmployees } from "../../api/employee.api";
 import { Employee, PaginatedResponse } from "../../types";
+import UserAvatar from "../../components/UserAvatar";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -32,9 +33,11 @@ function initials(employee: Employee) {
 
 function avatarSrc(employee: Employee) {
   if (!employee.avatar) return "";
-  return employee.avatar.startsWith("uploads/")
-    ? `/${employee.avatar}`
-    : `/uploads/${employee.avatar}`;
+  // return employee.avatar.startsWith("uploads/")
+  //   ? `/${employee.avatar}`
+  //   : `/uploads/${employee.avatar}`;
+
+  return employee.avatar
 }
 
 function displayRole(role: string) {

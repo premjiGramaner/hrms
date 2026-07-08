@@ -26,15 +26,12 @@ export default function UserAvatar({
       }
 
       try {
-        // Fetch latest logged-in user data
         const { data: latestUser } = await getMyInfo();
 
-        // Check if avatar has changed
         if (latestUser.avatar && latestUser.avatar !== user.avatar) {
           dispatch(updateUserAvatar(latestUser.avatar));
         }
 
-        // Check if name has changed
         const currentFullName =
           user.name ||
           `${user.first_name || ""} ${user.last_name || ""}`.trim();
@@ -62,7 +59,7 @@ export default function UserAvatar({
     };
 
     fetchLatestUserData();
-  }, [user?.id]); // Only re-run if user ID changes (login/logout)
+  }, [user?.id]); 
 
   if (!user) {
     return null;
@@ -71,7 +68,6 @@ export default function UserAvatar({
   const username = user.name || user.username || "User";
   const avatar = user.avatar;
 
-  // Show loading skeleton while fetching
   if (isLoading) {
     return (
       <div

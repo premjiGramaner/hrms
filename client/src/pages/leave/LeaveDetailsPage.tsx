@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import UserAvatar from "../../components/UserAvatar";
 import {
   getLeaveDetails,
   approveLeave,
@@ -388,17 +389,22 @@ export default function LeaveDetailsPage() {
         <>
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-4">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-900 to-teal-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
-                {leave.avatar ? (
-                  <img
-                    src={`/uploads/${leave.avatar}`}
-                    className="w-full h-full object-cover"
-                    alt=""
-                  />
-                ) : (
-                  initials(leave.employee_name)
-                )}
-              </div>
+              {user && leave.user_id === user.id ? (
+                <UserAvatar size={48} className="flex-shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-900 to-teal-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                  {leave.avatar ? (
+                    <img
+                      src={leave.avatar}
+                      className="w-full h-full object-cover"
+                      alt=""
+                    />
+                  ) : (
+                    initials(leave.employee_name)
+                  )}
+                </div>
+              )}
+
               <div className="flex-1 min-w-0">
                 <h2 className="text-base font-bold text-slate-900 mb-0.5">
                   {leave.employee_name || "—"}

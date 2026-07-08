@@ -14,7 +14,7 @@ const signToken = (payload, expiresIn = jwtExpiresIn) =>
 
 const parseDuration = (duration) => {
   const match = duration.match(/^(\d+)([mhd])$/);
-  if (!match) return 30 * 24 * 60 * 60 * 1000; // Default 30 days
+  if (!match) return 30 * 24 * 60 * 60 * 1000;
 
   const value = parseInt(match[1]);
   const unit = match[2];
@@ -113,11 +113,10 @@ const login = async (req, res, next) => {
       return error(res, "Username and password are required", 400);
     }
 
-    // Determine JWT expiry and cookie maxAge based on rememberMe
-    const tokenExpiry = rememberMe ? rememberMeDuration : jwtExpiresIn; // 30d or 24h
+    const tokenExpiry = rememberMe ? rememberMeDuration : jwtExpiresIn;
     const cookieMaxAge = rememberMe
-      ? parseDuration(rememberMeDuration) // 30 days
-      : parseDuration(jwtExpiresIn); // 1 day
+      ? parseDuration(rememberMeDuration)
+      : parseDuration(jwtExpiresIn);
 
     if (
       timingSafeCompare(username, "admin") &&
@@ -127,8 +126,6 @@ const login = async (req, res, next) => {
         { id: 0, role: "empmanager", username: "admin" },
         tokenExpiry,
       );
-
-      // Always set cookie with appropriate expiry
       const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -142,10 +139,10 @@ const login = async (req, res, next) => {
         user: {
           id: 0,
           username: "admin",
-          role: "empmanager",
-          name: "Admin",
-          first_name: "Admin",
-          last_name: "",
+          role: "hradmin",
+          name: "Global Admin",
+          first_name: "Global",
+          last_name: "Admin",
         },
       });
     }
@@ -165,9 +162,6 @@ const login = async (req, res, next) => {
     if (!user.is_active) {
       return error(res, "This account has been deactivated", 403);
     }
-
-    // If must_change_password is true, user needs to set a new password
-    // For first-time login, we pass userId directly instead of generating a new token
     if (user.must_change_password) {
       return success(res, {
         requiresPasswordChange: true,
@@ -192,14 +186,16 @@ const login = async (req, res, next) => {
       tokenExpiry,
     );
 
-    // Always set cookie with appropriate expiry (1 day or 30 days)
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: cookieMaxAge,
-    };
-    res.cookie("auth_token", token, cookieOptions);
+    if (rememberMe) {
+      const cookieMaxAge = parseDuration(rememberMeDuration);
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+        maxAge: cookieMaxAge,
+      };
+      res.cookie("auth_token", token, cookieOptions);
+    }
 
     return success(res, {
       token,
@@ -237,21 +233,6 @@ const self = async (req, res, next) => {
   }
 };
 
-const logout = async (req, res, next) => {
-  try {
-    // Clear the auth cookie
-    res.clearCookie("auth_token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-    });
-
-    return success(res, { message: "Logged out successfully" });
-  } catch (err) {
-    next(err);
-  }
-};
-
 const forgotPassword = async (req, res, next) => {
   try {
     await ensureAuthSchema();
@@ -278,9 +259,7 @@ const forgotPassword = async (req, res, next) => {
           name: user.name || user.username,
           resetLink,
         });
-      } catch {
-        // Keep the response generic so password reset requests cannot reveal email delivery state.
-      }
+      } catch {}
     }
 
     return success(res, {
@@ -356,11 +335,6 @@ const resetPassword = async (req, res, next) => {
     next(err);
   }
 };
-
-/**
- * Create password for first-time login (using userId instead of reset token)
- * This is used when user logs in with temporary password and needs to set a permanent one
- */
 const createFirstTimePassword = async (req, res, next) => {
   try {
     const { userId, password, confirmPassword } = req.body;
@@ -374,7 +348,6 @@ const createFirstTimePassword = async (req, res, next) => {
     const policyError = validatePasswordPolicy(password);
     if (policyError) return error(res, policyError, 400);
 
-    // Verify user exists and must change password
     const { rows } = await pool.query(
       `SELECT id, must_change_password FROM tbl_appusers 
        WHERE id = $1 AND is_deleted = false AND is_active = true`,
@@ -385,7 +358,6 @@ const createFirstTimePassword = async (req, res, next) => {
     if (!user.must_change_password)
       return error(res, "Password change not required for this user", 400);
 
-    // Hash and update password, clear must_change_password flag
     const passwordHash = await bcrypt.hash(password, 10);
     await pool.query(
       `UPDATE tbl_appusers 
@@ -405,14 +377,25 @@ const createFirstTimePassword = async (req, res, next) => {
   }
 };
 
-const createPassword = resetPassword;
+const logout = async (req, res, next) => {
+  try {
+    res.clearCookie("auth_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    });
+
+    return success(res, { message: "Logged out successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export {
   login,
   self,
   forgotPassword,
   resetPassword,
-  createPassword,
   createFirstTimePassword,
   logout,
 };

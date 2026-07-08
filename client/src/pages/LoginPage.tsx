@@ -1,4 +1,4 @@
-import React, { FormEvent, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login as loginApi } from "../api/auth.api";
 import { useAppDispatch } from "../app/hooks";
@@ -7,7 +7,6 @@ import { getApiErrorMessage } from "../utils/errors";
 import { validateLogin } from "../validations/auth.validation";
 import cannyforeLogo from "../assets/logo.png";
 import rightPanelImage from "../assets/login_intelligent.png";
-import orangeHrmLogo from "../assets/orangehrm-logo.png";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -89,13 +88,7 @@ export default function LoginPage() {
         <div className="flex w-full flex-1 items-center justify-center py-8 lg:py-10">
           <div className="w-full max-w-[386px] rounded-3xl border border-slate-200 bg-white px-9 py-8 shadow-2xl shadow-slate-200/80">
             <div className="mb-5 flex justify-center">
-              <div className="flex h-32 w-32 items-center justify-center rounded-full bg-slate-50">
-                <img
-                  src={orangeHrmLogo}
-                  alt="OrangeHRM"
-                  className="h-20 w-20 object-contain"
-                />
-              </div>
+             
             </div>
 
             <div className="mb-4 flex items-center gap-2 text-slate-800">
@@ -177,35 +170,41 @@ export default function LoginPage() {
                 Password?
               </button>
             </p>
-
-            <div className="my-4 h-px bg-slate-200" />
-
-            <p className="text-center text-xs text-slate-400">Or Login With</p>
-            <div className="mt-3 flex justify-center">
-              <button
-                type="button"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-base font-bold text-white"
-              >
-                L
-              </button>
-            </div>
           </div>
         </div>
 
         <footer className="pb-2 text-center">
-          <p className="text-xs text-slate-400">OrangeHRM 8.1.0.1</p>
           <p className="mt-1 text-xs text-slate-400">
-            CannyFore © 2005 - 2026 OrangeHRM, Inc. All rights reserved.
+            Cannyfore © {new Date().getFullYear()} All rights reserved.
           </p>
-          <div className="mt-2 flex justify-center gap-2">
-            {["in", "f", "x", "yt"].map((item) => (
-              <span
-                key={item}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-300 text-xs font-bold text-white"
-              >
-                {item}
-              </span>
-            ))}
+          <div className="mt-3 flex justify-center gap-3">
+            <a
+              href="https://www.linkedin.com/company/cannyfore/posts/?feedView=all"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0A66C2] text-white transition hover:bg-[#004182]"
+              aria-label="Visit Cannyfore on LinkedIn"
+            >
+              <LinkedInIcon />
+            </a>
+            <a
+              href="https://www.facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1877F2] text-white transition hover:bg-[#0c5ecf]"
+              aria-label="Visit Cannyfore on Facebook"
+            >
+              <FacebookIcon />
+            </a>
+            <a
+              href="https://x.com/Cannyfore_tech"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white transition hover:bg-slate-800"
+              aria-label="Visit Cannyfore on X (Twitter)"
+            >
+              <XIcon />
+            </a>
           </div>
         </footer>
       </section>
@@ -306,6 +305,45 @@ function LoginArrowIcon() {
       <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
       <polyline points="10 17 15 12 10 7" />
       <line x1="15" y1="12" x2="3" y2="12" />
+    </svg>
+  );
+}
+
+function LinkedInIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
     </svg>
   );
 }

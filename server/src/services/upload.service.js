@@ -3,7 +3,6 @@ import multer from "multer";
 const ALLOWED_MIME = /^image\/(jpeg|jpg|png)$/;
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-// Use memory storage instead of disk storage
 const storage = multer.memoryStorage();
 
 const fileFilter = (_req, file, cb) => {

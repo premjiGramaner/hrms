@@ -17,14 +17,8 @@ import {
   IconGear,
   IconLogout,
   IconHome,
-  IconFilter,
-  IconShare,
 } from "./Icons";
-import {
-  fetchEmployeesWithLimit,
-  fetchEmployees,
-} from "../store/employeeSlice";
-import { Employee } from "../types";
+import { fetchEmployeesWithLimit } from "../store/employeeSlice";
 
 export interface TabItem {
   label: string;
@@ -74,26 +68,30 @@ export default function Layout({
           ? "Leave"
           : isActive("/performance")
             ? "Performance"
-            : "HRMS");
+            : isActive("/reports")
+              ? "Reports and Analytics"
+              : "HRMS");
 
   const navItems = [
-    ...(isAdmin
+    ...(role === "hradmin" || role === "empmanager"
       ? [{ to: "/hradmin", label: "HR Administration", icon: <IconBuilding /> }]
       : []),
-    {
-      to: isAdmin ? "/employees" : "/my-info",
-      label: "Employee Management",
-      icon: <IconPeople />,
-    },
-    ...(isAdmin
-      ? [{ to: "#", label: "Reports and Analytics", icon: <IconChart /> }]
-      : []),
+    { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
     {
       to: isAdmin ? "/leave/view_leave_list" : "/leave/apply",
       label: "Leave",
       icon: <IconCalendar />,
     },
     { to: "/performance", label: "Performance", icon: <IconBriefcase /> },
+    ...(role === "hradmin" || user?.id === 0 || user?.username === "admin"
+      ? [
+          {
+            to: "/reports",
+            label: "Reports and Analytics",
+            icon: <IconChart />,
+          },
+        ]
+      : []),
   ];
 
   const homeRoute = isAdmin ? "/employees" : "/my-info";
@@ -364,22 +362,30 @@ export default function Layout({
                   </Link>
                 );
               })}
-              <div className="ml-auto flex items-center gap-1.5">
-                <TabIconBtn>
-                  <IconFilter size={14} />
-                </TabIconBtn>
-                <TabIconBtn dark>
-                  <span className="font-bold text-sm">?</span>
-                </TabIconBtn>
-                <TabIconBtn>
-                  <IconShare size={14} />
-                </TabIconBtn>
-              </div>
             </>
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto p-6">
+          {children}
+
+          {/* Footer Copyright */}
+          <footer className="mt-8 pt-4 border-t border-slate-200 text-center">
+            <p className="text-xs text-slate-400">
+              Cannyfore © {new Date().getFullYear()} All rights reserved.
+            </p>
+          </footer>
+        </div>
+
+        {onFab && (
+          <button
+            onClick={onFab}
+            className="fixed bottom-8 right-8 w-13 h-13 rounded-full bg-blue-900 text-white border-none text-3xl cursor-pointer shadow-2xl z-50 flex items-center justify-center hover:bg-blue-800 transition"
+            aria-label="Add"
+          >
+            +
+          </button>
+        )}
       </div>
     </div>
   );
@@ -473,26 +479,5 @@ function SidebarNavItem({
     >
       {content}
     </Link>
-  );
-}
-
-function TabIconBtn({
-  children,
-  dark,
-}: {
-  children: React.ReactNode;
-  dark?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${
-        dark
-          ? "bg-blue-900 text-white hover:bg-blue-800"
-          : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
