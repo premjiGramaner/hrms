@@ -27,7 +27,6 @@ export default function EmployeeProfileCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
-  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
   const [supervisorMap, setSupervisorMap] = useState<
     Map<string | number, string>
   >(new Map());
@@ -114,18 +113,17 @@ export default function EmployeeProfileCard({
         formData,
       );
 
-      const newTimestamp = Date.now();
-      setAvatarTimestamp(newTimestamp);
+      // Check if the updated employee IS the currently logged-in user
+      // This handles both scenarios:
+      // 1. Employee updates their own profile → Update Redux
+      // 2. Admin updates an employee profile AND that employee is the logged-in user → Update Redux
+      // This ensures the sidebar always shows the latest avatar for the logged-in user
+      const isCurrentLoggedInUser =
+        currentUser && Number(currentUser.id) === Number(updatedEmployee.id);
 
-      // Only update Redux if this is the logged-in user's own profile
-      const isOwnProfile =
-        currentUser && Number(currentUser.id) === Number(employee.id);
-
-      if (isOwnProfile && updatedEmployee.avatar) {
-        // Update Redux store with timestamp to force re-render everywhere
-        dispatch(
-          updateUserAvatar(`${updatedEmployee.avatar}?t=${newTimestamp}`),
-        );
+      if (isCurrentLoggedInUser && updatedEmployee.avatar) {
+        // Update Redux store to update sidebar immediately
+        dispatch(updateUserAvatar(updatedEmployee.avatar));
 
         dispatch(
           updateUserName({
@@ -133,11 +131,22 @@ export default function EmployeeProfileCard({
             last_name: updatedEmployee.last_name,
           }),
         );
+      } else {
+        console.log(
+          "ℹ️  Not updating Redux - Current user:",
+          currentUser?.id,
+          "Updated employee:",
+          updatedEmployee.id,
+        );
       }
 
-      // Update parent component with fresh employee data
+      // Update parent component with merged employee data immediately
+      // This updates the About card profile image
       if (onEmployeeUpdate) {
-        onEmployeeUpdate(updatedEmployee);
+        onEmployeeUpdate({
+          ...employee,
+          ...updatedEmployee,
+        });
       }
 
       setUploadMessage("Profile picture updated successfully!");
@@ -155,10 +164,8 @@ export default function EmployeeProfileCard({
     }
   };
 
-  // Generate avatar URL with cache busting
-  const avatarUrl = employee.avatar
-    ? `/uploads/${employee.avatar}?t=${avatarTimestamp}`
-    : null;
+  // Avatar is now a base64 data URL from database
+  const avatarUrl = employee.avatar || null;
 
   const getSupervisorNames = () => {
     let supervisorsData: unknown = employee.supervisors;

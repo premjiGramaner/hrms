@@ -7,9 +7,9 @@ import { clientBaseUrl } from "../config/env.js";
 import { success, error } from "../utils/response.js";
 import { sendPasswordResetEmail } from "../../email.service.js";
 
-const signToken = (payload) =>
+const signToken = (payload, expiresIn = jwtExpiresIn) =>
   jwt.sign(payload, jwtSecret, {
-    expiresIn: jwtExpiresIn,
+    expiresIn: expiresIn,
   });
 
 const parseDuration = (duration) => {
@@ -113,24 +113,29 @@ const login = async (req, res, next) => {
       return error(res, "Username and password are required", 400);
     }
 
+    // Determine JWT expiry and cookie maxAge based on rememberMe
+    const tokenExpiry = rememberMe ? rememberMeDuration : jwtExpiresIn; // 30d or 24h
+    const cookieMaxAge = rememberMe
+      ? parseDuration(rememberMeDuration) // 30 days
+      : parseDuration(jwtExpiresIn); // 1 day
+
     if (
       timingSafeCompare(username, "admin") &&
       timingSafeCompare(password, "admin")
     ) {
-      const token = signToken({ id: 0, role: "empmanager", username: "admin" });
+      const token = signToken(
+        { id: 0, role: "empmanager", username: "admin" },
+        tokenExpiry,
+      );
 
-      // Set cookie if remember me is checked
-      if (rememberMe) {
-        const cookieMaxAge = parseDuration(rememberMeDuration);
-
-        const cookieOptions = {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-          maxAge: cookieMaxAge,
-        };
-        res.cookie("auth_token", token, cookieOptions);
-      }
+      // Always set cookie with appropriate expiry
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+        maxAge: cookieMaxAge,
+      };
+      res.cookie("auth_token", token, cookieOptions);
 
       return success(res, {
         token,
@@ -178,23 +183,23 @@ const login = async (req, res, next) => {
       });
     }
 
-    const token = signToken({
-      id: user.id,
-      role: user.role,
-      username: user.username,
-    });
+    const token = signToken(
+      {
+        id: user.id,
+        role: user.role,
+        username: user.username,
+      },
+      tokenExpiry,
+    );
 
-    // Set cookie if remember me is checked
-    if (rememberMe) {
-      const cookieMaxAge = parseDuration(rememberMeDuration);
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-        maxAge: cookieMaxAge,
-      };
-      res.cookie("auth_token", token, cookieOptions);
-    }
+    // Always set cookie with appropriate expiry (1 day or 30 days)
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: cookieMaxAge,
+    };
+    res.cookie("auth_token", token, cookieOptions);
 
     return success(res, {
       token,

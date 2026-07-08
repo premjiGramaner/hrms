@@ -150,10 +150,9 @@ function ActionMenu({
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, [open]);
 
-  const canApproveReject = isAdminOrHR && !isRequester;
-  const canCancel =
-    (isRequester && leave.status === "Pending Approval") ||
-    (isAdminOrHR && leave.status !== "Cancelled");
+  const isPending = leave.status === "Pending Approval";
+  const canApproveReject = isAdminOrHR && !isRequester && isPending;
+  const canCancel = isPending && (isRequester || isAdminOrHR);
   const hasAnyAction = canApproveReject || canCancel;
 
   if (!hasAnyAction) {

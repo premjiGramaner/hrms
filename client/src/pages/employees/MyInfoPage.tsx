@@ -76,6 +76,8 @@ export default function MyInfoPage() {
     {},
   );
   const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
+  const [originalForm, setOriginalForm] =
+    useState<EditableEmployeeProfileForm | null>(null);
   const [jobTitleOptions, setJobTitleOptions] = useState<string[]>([]);
   const [jobCategoryOptions, setJobCategoryOptions] = useState<
     { id: number; category: string }[]
@@ -158,6 +160,13 @@ export default function MyInfoPage() {
     loadProfile();
   }, []);
 
+  // Track original form values when employee data is loaded
+  useEffect(() => {
+    if (form && !originalForm) {
+      setOriginalForm({ ...form });
+    }
+  }, [form, originalForm]);
+
   const handleFieldChange = (
     event: ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -231,7 +240,11 @@ export default function MyInfoPage() {
         if (!isAdmin && (key === "employee_id" || key === "real_dob")) {
           return;
         }
-        formData.append(key, value.trim());
+        // Exclude avatar from regular profile updates - avatar is updated separately via updateProfileImage
+        if (key !== "avatar") {
+          const stringValue = String(value || "");
+          formData.append(key, stringValue.trim());
+        }
       });
 
       formData.append("role", employee.role || "employee");
@@ -243,7 +256,9 @@ export default function MyInfoPage() {
 
       const { data: updatedEmployee } = await getMyInfo();
       setEmployee(updatedEmployee);
-      setForm(employeeToEditableProfileForm(updatedEmployee));
+      const newForm = employeeToEditableProfileForm(updatedEmployee);
+      setForm(newForm);
+      setOriginalForm({ ...newForm });
       setModifiedFields(new Set());
 
       if (updatedEmployee.avatar) {
@@ -266,12 +281,79 @@ export default function MyInfoPage() {
     }
   };
 
+  // Check if current tab has any modifications
+  const hasTabChanges = () => {
+    if (!form || !originalForm) return false;
+
+    const activeLabel = PROFILE_TABS[activeTab];
+
+    // Define fields for each tab
+    const tabFields: Record<string, string[]> = {
+      "Personal Details": [
+        "employee_id",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "gender",
+        "dob",
+        "real_dob",
+        "nationality",
+        "marital_status",
+        "blood_group",
+        "license_number",
+        "license_expiry",
+      ],
+      Job: [
+        "job_title",
+        "joined_date",
+        "employment_status",
+        "job_category",
+        "job_specification",
+        "sub_unit",
+        "supervisor_id",
+        "location",
+        "probation_end_date",
+        "date_of_permanence",
+        "attendance_calc",
+        "contract_start_date",
+        "contract_end_date",
+        "comments",
+      ],
+      "Contact Details": [
+        "work_email",
+        "other_email",
+        "mobile",
+        "home_tel",
+        "work_tel",
+        "address1",
+        "address2",
+        "city",
+        "state",
+        "country",
+        "zip",
+      ],
+    };
+
+    const fieldsToCheck = tabFields[activeLabel] || [];
+
+    // Check if any field in the current tab has changed
+    return fieldsToCheck.some((field) => {
+      const currentValue = String(
+        form[field as keyof EditableEmployeeProfileForm] || "",
+      ).trim();
+      const originalValue = String(
+        originalForm[field as keyof EditableEmployeeProfileForm] || "",
+      ).trim();
+      return currentValue !== originalValue;
+    });
+  };
+
   const saveFooter = (
     <div className="flex justify-end">
       <button
         type="button"
         onClick={handleSave}
-        disabled={saving || !employee?.id}
+        disabled={saving || !employee?.id || !hasTabChanges()}
         className="rounded-full bg-blue-950 px-8 py-2.5 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
       >
         {saving ? "Saving..." : "Save"}
@@ -620,7 +702,9 @@ export default function MyInfoPage() {
             employee={employee}
             onEmployeeUpdate={(updatedEmployee) => {
               setEmployee(updatedEmployee);
-              setForm(employeeToEditableProfileForm(updatedEmployee));
+              const newForm = employeeToEditableProfileForm(updatedEmployee);
+              setForm(newForm);
+              setOriginalForm({ ...newForm });
             }}
           />
           <LeaveList employee={employee} />
