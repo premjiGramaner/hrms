@@ -116,7 +116,7 @@ export default function BirthdayReportPage() {
       width: 150,
       render: (row) => (
         <span style={{ fontWeight: 600, color: "#F97316" }}>
-          🎂 {row.formatted_birthday || "N/A"}
+          {row.formatted_birthday || "N/A"}
         </span>
       ),
     },
@@ -194,9 +194,9 @@ export default function BirthdayReportPage() {
         }}
       >
         <option value="">All Months</option>
-        {months.map((m) => (
-          <option key={m.value} value={m.value}>
-            {m.label}
+        {months.map((month) => (
+          <option key={month.value} value={month.value}>
+            {month.label}
           </option>
         ))}
       </select>
@@ -277,7 +277,7 @@ export default function BirthdayReportPage() {
         <DataTable
           title="Birthday Report"
           subtitle="View employee birthdays with role-based filtering"
-          icon="🎂"
+          icon=""
           rows={reportData}
           columns={columns}
           isLoading={isLoading}

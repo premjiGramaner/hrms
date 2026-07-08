@@ -11,9 +11,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-/**
- * Send Birthday Alert Email to HR Admin Team
- */
 async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
   if (!upcomingBirthdaysData || upcomingBirthdaysData.length === 0) {
     return { success: true, message: "No birthdays to notify" };
@@ -72,9 +69,6 @@ async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
   }
 }
 
-/**
- * Send Work Anniversary Alert Email to HR Admin Team
- */
 async function sendWorkAnniversaryAlertEmail(
   upcomingAnniversariesData,
   recipientEmails,
@@ -166,13 +160,15 @@ async function processBirthdayNotifications() {
         `SELECT email FROM tbl_appusers WHERE id = ANY($1) AND is_deleted = FALSE AND is_active = TRUE`,
         [recipientUserIds],
       );
-      recipientEmails = recipients.map((r) => r.email).filter(Boolean);
+      recipientEmails = recipients
+        .map((recipient) => recipient.email)
+        .filter(Boolean);
     }
 
     if (notificationConfig.external_emails) {
       const externalEmails = notificationConfig.external_emails
         .split(",")
-        .map((e) => e.trim())
+        .map((email) => email.trim())
         .filter(Boolean);
       recipientEmails = [...recipientEmails, ...externalEmails];
     }
@@ -239,13 +235,15 @@ async function processWorkAnniversaryNotifications() {
         `SELECT email FROM tbl_appusers WHERE id = ANY($1) AND is_deleted = FALSE AND is_active = TRUE`,
         [recipientUserIds],
       );
-      recipientEmails = recipients.map((r) => r.email).filter(Boolean);
+      recipientEmails = recipients
+        .map((recipient) => recipient.email)
+        .filter(Boolean);
     }
 
     if (notificationConfig.external_emails) {
       const externalEmails = notificationConfig.external_emails
         .split(",")
-        .map((e) => e.trim())
+        .map((email) => email.trim())
         .filter(Boolean);
       recipientEmails = [...recipientEmails, ...externalEmails];
     }

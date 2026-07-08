@@ -219,9 +219,9 @@ export default function WorkAnniversaryReportPage() {
         }}
       >
         <option value="">All Months</option>
-        {months.map((m) => (
-          <option key={m.value} value={m.value}>
-            {m.label}
+        {months.map((month) => (
+          <option key={month.value} value={month.value}>
+            {month.label}
           </option>
         ))}
       </select>
@@ -237,9 +237,9 @@ export default function WorkAnniversaryReportPage() {
         }}
       >
         <option value="">All Years</option>
-        {[1, 2, 3, 5, 10, 15, 20, 25].map((y) => (
-          <option key={y} value={y}>
-            {y} Year{y !== 1 ? "s" : ""}
+        {[1, 2, 3, 5, 10, 15, 20, 25].map((year) => (
+          <option key={year} value={year}>
+            {year} Year{year !== 1 ? "s" : ""}
           </option>
         ))}
       </select>
@@ -289,7 +289,7 @@ export default function WorkAnniversaryReportPage() {
         <DataTable
           title="Work Anniversary Report"
           subtitle="View employee work anniversaries and tenure information"
-          icon="🎊"
+          icon=""
           rows={reportData}
           columns={columns}
           isLoading={isLoading}

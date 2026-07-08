@@ -16,8 +16,6 @@ import {
   IconGear,
   IconLogout,
   IconHome,
-  IconFilter,
-  IconShare,
 } from "./Icons";
 import { fetchEmployeesWithLimit } from "../store/employeeSlice";
 
@@ -381,17 +379,6 @@ export default function Layout({
                   </Link>
                 );
               })}
-              <div className="ml-auto flex items-center gap-1.5">
-                <TabIconBtn>
-                  <IconFilter size={14} />
-                </TabIconBtn>
-                <TabIconBtn dark>
-                  <span className="font-bold text-sm">?</span>
-                </TabIconBtn>
-                <TabIconBtn>
-                  <IconShare size={14} />
-                </TabIconBtn>
-              </div>
             </>
           )}
         </div>
@@ -509,26 +496,5 @@ function SidebarNavItem({
     >
       {content}
     </Link>
-  );
-}
-
-function TabIconBtn({
-  children,
-  dark,
-}: {
-  children: React.ReactNode;
-  dark?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      className={`w-8.5 h-8.5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 transition ${
-        dark
-          ? "bg-blue-900 text-white hover:bg-blue-800"
-          : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
-      }`}
-    >
-      {children}
-    </button>
   );
 }

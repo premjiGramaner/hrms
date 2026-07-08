@@ -78,12 +78,6 @@ export default function ReportNotificationConfigPage() {
       setAnniversaryConfig(config.work_anniversary);
 
       if (config.birthday) {
-        console.log("Loading birthday config:", config.birthday);
-        console.log(
-          "External emails from DB:",
-          config.birthday.external_emails,
-        );
-
         setBirthdayRecipients(config.birthday.recipient_user_ids || []);
         setBirthdayDaysBefore(config.birthday.days_before || 2);
         setBirthdayActive(config.birthday.is_active !== false);
@@ -91,21 +85,14 @@ export default function ReportNotificationConfigPage() {
         const externalEmailsArray = config.birthday.external_emails
           ? config.birthday.external_emails
               .split(",")
-              .map((e) => e.trim())
+              .map((email) => email.trim())
               .filter(Boolean)
           : [];
 
-        console.log("Parsed external emails:", externalEmailsArray);
         setBirthdayExternalEmails(externalEmailsArray);
       }
 
       if (config.work_anniversary) {
-        console.log("Loading anniversary config:", config.work_anniversary);
-        console.log(
-          "External emails from DB:",
-          config.work_anniversary.external_emails,
-        );
-
         setAnniversaryRecipients(
           config.work_anniversary.recipient_user_ids || [],
         );
@@ -115,11 +102,10 @@ export default function ReportNotificationConfigPage() {
         const externalEmailsArray = config.work_anniversary.external_emails
           ? config.work_anniversary.external_emails
               .split(",")
-              .map((e) => e.trim())
+              .map((email) => email.trim())
               .filter(Boolean)
           : [];
 
-        console.log("Parsed external emails:", externalEmailsArray);
         setAnniversaryExternalEmails(externalEmailsArray);
       }
     } catch (err) {
@@ -132,9 +118,8 @@ export default function ReportNotificationConfigPage() {
   const loadHRAdmins = useCallback(async () => {
     try {
       const result = await fetchAllEmployees(1, 1000);
-      // Include all active users who have email addresses, not just hradmin/empmanager
       const users = result.data.filter(
-        (emp: Employee) => emp.email && emp.is_active !== false,
+        (employee: Employee) => employee.email && employee.is_active !== false,
       );
       setHrAdminUsers(users);
     } catch (err) {
@@ -165,12 +150,10 @@ export default function ReportNotificationConfigPage() {
         external_emails: externalEmailsString,
       });
 
-      console.log("Birthday config saved successfully");
       setSaveMessage(
         "✅ Birthday notification configuration saved successfully!",
       );
 
-      // Reload config to verify persistence
       await loadConfig();
 
       setTimeout(() => setSaveMessage(""), 3000);
@@ -188,11 +171,6 @@ export default function ReportNotificationConfigPage() {
     setSaveMessage("");
     try {
       const externalEmailsString = anniversaryExternalEmails.join(",");
-      console.log(
-        "Saving anniversary config with external emails:",
-        externalEmailsString,
-      );
-
       await updateNotificationConfig({
         notification_type: "work_anniversary",
         recipient_user_ids: anniversaryRecipients,
@@ -201,12 +179,10 @@ export default function ReportNotificationConfigPage() {
         external_emails: externalEmailsString,
       });
 
-      console.log("Anniversary config saved successfully");
       setSaveMessage(
         "✅ Work anniversary notification configuration saved successfully!",
       );
 
-      // Reload config to verify persistence
       await loadConfig();
 
       setTimeout(() => setSaveMessage(""), 3000);
@@ -279,9 +255,7 @@ export default function ReportNotificationConfigPage() {
     setIsTesting(true);
     setSaveMessage("");
     try {
-      console.log("🧪 Testing notifications...");
       const result = await triggerNotificationsManually();
-      console.log("✅ Test result:", result);
 
       const birthdayMsg = result.results.birthday.success
         ? `✅ ${result.results.birthday.message}`
@@ -363,7 +337,6 @@ export default function ReportNotificationConfigPage() {
   return (
     <Layout title="Reports and Analytics" tabs={TABS} activeTab="Notifications">
       <div style={{ padding: "30px 40px", maxWidth: 1400, margin: "0 auto" }}>
-        {/* Header Section with Theme Gradient */}
         <div
           style={{
             marginBottom: 30,
@@ -438,7 +411,6 @@ export default function ReportNotificationConfigPage() {
           </div>
         </div>
 
-        {/* Status Message */}
         {saveMessage && (
           <div
             style={{
@@ -473,7 +445,6 @@ export default function ReportNotificationConfigPage() {
           </div>
         )}
 
-        {/* Birthday Notifications Card */}
         <div
           style={{
             background: "#fff",
@@ -484,7 +455,6 @@ export default function ReportNotificationConfigPage() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
-          {/* Card Header with Theme Gradient */}
           <div
             style={{
               background: "linear-gradient(135deg, #172554 0%, #14b8a6 100%)",
@@ -518,9 +488,7 @@ export default function ReportNotificationConfigPage() {
             </div>
           </div>
 
-          {/* Card Body */}
           <div style={{ padding: "30px" }}>
-            {/* Enable Checkbox */}
             <div style={{ marginBottom: 25 }}>
               <label
                 style={{
@@ -576,9 +544,7 @@ export default function ReportNotificationConfigPage() {
                   color: "#374151",
                   marginBottom: 10,
                 }}
-              >
-                Send Notification (Days Before Birthday)
-              </label>
+              ></label>
               <input
                 type="number"
                 min="0"
@@ -927,7 +893,6 @@ export default function ReportNotificationConfigPage() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
-          {/* Card Header with Theme Gradient */}
           <div
             style={{
               background: "linear-gradient(135deg, #172554 0%, #14b8a6 100%)",

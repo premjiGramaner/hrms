@@ -87,7 +87,9 @@ export default function MyInfoPage() {
   useEffect(() => {
     if (isAdmin) {
       getJobTitles()
-        .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+        .then((res) =>
+          setJobTitleOptions(res.data.map((jobtitle) => jobtitle.title)),
+        )
         .catch((err) =>
           setError(getApiErrorMessage(err, "Failed to load job titles.")),
         );
@@ -95,7 +97,10 @@ export default function MyInfoPage() {
       getJobCategories()
         .then((res) =>
           setJobCategoryOptions(
-            res.data.map((c) => ({ id: c.id, category: c.category })),
+            res.data.map((Category) => ({
+              id: Category.id,
+              category: Category.category,
+            })),
           ),
         )
         .catch((err) =>
@@ -103,7 +108,9 @@ export default function MyInfoPage() {
         );
 
       getSubUnits()
-        .then((res) => setSubUnitOptions(res.data.map((s) => s.sub_unit_name)))
+        .then((res) =>
+          setSubUnitOptions(res.data.map((SubUnit) => SubUnit.sub_unit_name)),
+        )
         .catch((err) =>
           setError(getApiErrorMessage(err, "Failed to load sub units.")),
         );
@@ -129,9 +136,9 @@ export default function MyInfoPage() {
     getSupervisors()
       .then((res) =>
         setSupervisorOptions(
-          (res.data || []).map((s: any, index: number) => ({
-            id: s.id ?? index + 1,
-            name: s.name,
+          (res.data || []).map((Supervisor: any, index: number) => ({
+            id: Supervisor.id ?? index + 1,
+            name: Supervisor.name,
           })),
         ),
       )
@@ -385,7 +392,10 @@ export default function MyInfoPage() {
 
     if (activeLabel === "Job") {
       return (
-        <ProfileDetailPanel title="Employment Details" footer={isAdmin ? saveFooter : undefined}>
+        <ProfileDetailPanel
+          title="Employment Details"
+          footer={isAdmin ? saveFooter : undefined}
+        >
           <EditableProfileField
             label="Job Title"
             name="job_title"
@@ -418,7 +428,9 @@ export default function MyInfoPage() {
             value={form.job_category}
             onChange={handleFieldChange}
             options={
-              isAdmin ? jobCategoryOptions.map((c) => c.category) : undefined
+              isAdmin
+                ? jobCategoryOptions.map((jobCategory) => jobCategory.category)
+                : undefined
             }
             readOnly={!isAdmin}
           />
@@ -445,9 +457,16 @@ export default function MyInfoPage() {
             name="supervisor_id"
             value={form.supervisor_id}
             onChange={handleFieldChange}
-            options={supervisorOptions.map((s) => s.id.toString())}
+            options={supervisorOptions.map((supervisor) =>
+              supervisor.id.toString(),
+            )}
             optionLabels={
-              new Map(supervisorOptions.map((s) => [s.id.toString(), s.name]))
+              new Map(
+                supervisorOptions.map((supervisor) => [
+                  supervisor.id.toString(),
+                  supervisor.name,
+                ]),
+              )
             }
             readOnly={!isAdmin}
           />

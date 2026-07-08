@@ -380,7 +380,7 @@ export default function TerminationReportPage() {
         <DataTable
           title="Termination Report"
           subtitle="Comprehensive termination history with exit details and rehire eligibility"
-          icon="📋"
+          icon=""
           rows={reportData}
           columns={columns}
           isLoading={isLoading}
