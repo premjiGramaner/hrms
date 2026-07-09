@@ -3,6 +3,8 @@ import Layout, { TabItem } from "../../components/Layout";
 import { getAuditTrail } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
+import { getAvatarSrc, getInitials } from "../../utils/avatar";
+
 import { IconClipboardList, IconActivity, IconPlusCircle, IconEdit, IconXCircle } from "../../components/Icons";
 import { getDisplayName } from "../employees/EmployeeListPage";
 import { getMyInfo } from "../../api/employee.api";
@@ -33,6 +35,7 @@ interface AuditRecord {
   employee_code?: string;
   action_owner: string;
   action_owner_username: string;
+  action_owner_avatar?: string | null;
   employee: string;
   employee_username: string;
   section: string;
@@ -271,7 +274,10 @@ export default function AuditTrailPage() {
     {
       key: "action_owner",
       header: "Action Owner",
-      render: (row) => (
+      render: (row) => {
+        const avatarSrc = getAvatarSrc(row.action_owner_avatar);
+
+        return (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div
             style={{
@@ -279,6 +285,7 @@ export default function AuditTrailPage() {
               height: 32,
               borderRadius: "50%",
               flexShrink: 0,
+              overflow: "hidden",
               background: "linear-gradient(135deg,#1b2a6b,#16a085)",
               display: "flex",
               alignItems: "center",
@@ -289,6 +296,20 @@ export default function AuditTrailPage() {
               boxShadow: "0 2px 6px rgba(27,42,107,0.2)",
             }}
           >
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt={row.action_owner || "Action owner"}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            ) : (
+              getInitials(row.action_owner)
+            )}
            
             
             {(row.action_owner || "?")
@@ -307,7 +328,8 @@ export default function AuditTrailPage() {
             </div>
           </div>
         </div>
-      ),
+        );
+      },
     },
     {
       key: "action",
