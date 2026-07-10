@@ -8,6 +8,7 @@ import { getApiErrorMessage } from "../../../utils/errors";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { updateUserAvatar, updateUserName } from "../../../store/authSlice";
 import { getAvatarSrc } from "../../../utils/avatar";
+import { IconUpload, IconEye } from "../../../components/Icons";
 
 interface EmployeeProfileCardProps {
   employee: Employee;
@@ -28,6 +29,7 @@ export default function EmployeeProfileCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
+  const [showImageModal, setShowImageModal] = useState(false);
   const [supervisorMap, setSupervisorMap] = useState<
     Map<string | number, string>
   >(new Map());
@@ -74,6 +76,13 @@ export default function EmployeeProfileCard({
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleViewImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (avatarUrl && !avatarUrl.includes("ui-avatars.com")) {
+      setShowImageModal(true);
+    }
   };
 
   const MAX_FILE_SIZE_MB = 5;
@@ -211,10 +220,7 @@ export default function EmployeeProfileCard({
 
       <div className="flex flex-col sm:flex-row gap-6">
         <div className="flex-shrink-0">
-          <div
-            className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-blue-950 to-teal-500 flex items-center justify-center border-4 border-white shadow-lg cursor-pointer hover:shadow-xl transition-shadow group"
-            onClick={handleImageClick}
-          >
+          <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-blue-950 to-teal-500 flex items-center justify-center border-4 border-white shadow-lg group">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -227,29 +233,28 @@ export default function EmployeeProfileCard({
               </span>
             )}
 
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               {uploading ? (
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                <svg
-                  className="w-6 h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
+                <>
+                  <button
+                    onClick={handleImageClick}
+                    className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110"
+                    title="Upload new photo"
+                  >
+                    <IconUpload size={20} color="#fff" />
+                  </button>
+                  {avatarUrl && !avatarUrl.includes("ui-avatars.com") && (
+                    <button
+                      onClick={handleViewImage}
+                      className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110"
+                      title="View full image"
+                    >
+                      <IconEye size={20} color="#fff" />
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -269,12 +274,6 @@ export default function EmployeeProfileCard({
             </p>
             <p className="text-xs text-[#00897b] mt-1">
               📍 {employee.location || "Not specified"}
-            </p>
-            <p
-              className="text-xs text-gray-500 mt-2 cursor-pointer"
-              onClick={handleImageClick}
-            >
-              Click to change photo
             </p>
           </div>
         </div>
@@ -400,6 +399,28 @@ export default function EmployeeProfileCard({
           </div>
         </div>
       </div>
+
+      {showImageModal && avatarUrl && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute -top-12 right-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-xl transition-all"
+            >
+              ✕
+            </button>
+            <img
+              src={avatarUrl}
+              alt={fullName}
+              className="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

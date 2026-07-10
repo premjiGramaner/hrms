@@ -18,6 +18,7 @@ import {
   IconCheck,
   IconAlertCircle,
 } from "../../components/Icons";
+import Alert from "../../utils/alert";
 
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: "/reports/birthday" },
@@ -209,7 +210,7 @@ export default function ReportNotificationConfigPage() {
     return emailRegex.test(email);
   };
 
-  const addExternalEmail = (
+  const addExternalEmail = async (
     email: string,
     currentList: string[],
     setList: (list: string[]) => void,
@@ -217,15 +218,15 @@ export default function ReportNotificationConfigPage() {
   ) => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) {
-      alert("Please enter an email address");
+      await Alert.info("Email Required", "Please enter an email address");
       return;
     }
     if (!validateEmail(trimmedEmail)) {
-      alert("Please enter a valid email address");
+      await Alert.info("Invalid Email", "Please enter a valid email address");
       return;
     }
     if (currentList.includes(trimmedEmail)) {
-      alert("This email is already in the list");
+      await Alert.info("Duplicate Email", "This email is already in the list");
       return;
     }
     setList([...currentList, trimmedEmail]);
@@ -241,11 +242,16 @@ export default function ReportNotificationConfigPage() {
   };
 
   const handleTestNotifications = async () => {
-    if (
-      !window.confirm(
+    const confirmed = await Alert.confirm({
+      title: "Test Notifications",
+      message:
         "This will trigger notification emails immediately for any upcoming birthdays/anniversaries. Continue?",
-      )
-    ) {
+      confirmText: "Yes, Send Test",
+      cancelText: "Cancel",
+      type: "warning",
+    });
+
+    if (!confirmed) {
       return;
     }
 
