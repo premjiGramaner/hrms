@@ -5,7 +5,13 @@ import useDebounce from "../../hooks/useDebounce";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import { getAvatarSrc, getInitials } from "../../utils/avatar";
 
-import { IconClipboardList, IconActivity, IconPlusCircle, IconEdit, IconXCircle } from "../../components/Icons";
+import {
+  IconClipboardList,
+  IconActivity,
+  IconPlusCircle,
+  IconEdit,
+  IconXCircle,
+} from "../../components/Icons";
 import { getDisplayName } from "../employees/EmployeeListPage";
 import { getMyInfo } from "../../api/employee.api";
 import { Employee } from "../../types";
@@ -17,9 +23,8 @@ const TABS: TabItem[] = [
   { label: "Audit Trail", path: "/hradmin/audit-trail" },
 ];
 const Adminuser: Employee | null = JSON.parse(
-  localStorage.getItem("hrms_user") || "null"
+  localStorage.getItem("hrms_user") || "null",
 );
-console.log(Adminuser)
 
 const ACTION_COLOR: Record<string, { bg: string; color: string; dot: string }> =
   {
@@ -47,7 +52,6 @@ interface AuditRecord {
   event_time: string;
   created_at: string;
 }
-
 
 function formatDateTime(iso: string): string {
   if (!iso) return "—";
@@ -228,7 +232,7 @@ export default function AuditTrailPage() {
     {
       label: "Total Events",
       value: allRecords.length,
-      icon: <IconActivity size={20} /> as any ,
+      icon: (<IconActivity size={20} />) as any,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
@@ -278,56 +282,48 @@ export default function AuditTrailPage() {
         const avatarSrc = getAvatarSrc(row.action_owner_avatar);
 
         return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              flexShrink: 0,
-              overflow: "hidden",
-              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 11,
-              fontWeight: 700,
-              boxShadow: "0 2px 6px rgba(27,42,107,0.2)",
-            }}
-          >
-            {avatarSrc ? (
-              <img
-                src={avatarSrc}
-                alt={row.action_owner || "Action owner"}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
-            ) : (
-              getInitials(row.action_owner)
-            )}
-           
-            
-            {(row.action_owner || "?")
-              .split(" ")
-              .map((w) => w[0])
-              .slice(0, 2)
-              .join("")
-              .toUpperCase()}
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 13 }}>
-              {row.action_owner || "—"}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                flexShrink: 0,
+                overflow: "hidden",
+                background: "linear-gradient(135deg,#1b2a6b,#16a085)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#fff",
+                fontSize: 11,
+                fontWeight: 700,
+                boxShadow: "0 2px 6px rgba(27,42,107,0.2)",
+              }}
+            >
+              {avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt={row.action_owner || "Action owner"}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                getInitials(row.action_owner)
+              )}
             </div>
-            <div style={{ color: "#94a3b8", fontSize: 11 }}>
-              {row.action_owner_username || ""}
+            <div>
+              <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 13 }}>
+                {row.action_owner || "—"}
+              </div>
+              <div style={{ color: "#94a3b8", fontSize: 11 }}>
+                {row.action_owner_username || ""}
+              </div>
             </div>
           </div>
-        </div>
         );
       },
     },
@@ -559,13 +555,13 @@ export default function AuditTrailPage() {
       <DataTable<AuditRecord>
         title="Audit Trail"
         subtitle="Full history of all user & employee actions"
-        icon={<IconClipboardList size={18} /> as any }
+        icon={(<IconClipboardList size={18} />) as any}
         rows={pagedRecords}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row, idx) => `${row.id}-${idx}`}
-        emptyIcon={<IconClipboardList size={36}  /> as any }
+        emptyIcon={(<IconClipboardList size={36} />) as any}
         emptyTitle={
           hasFilters
             ? "No records match the current filters"

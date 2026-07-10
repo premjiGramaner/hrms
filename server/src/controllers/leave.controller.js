@@ -79,6 +79,11 @@ const listLeaves = async (req, res, next) => {
 
     if (role === "employee") {
       filters.own_employee_id = req.user.id;
+    } else if (req.query.own_employee_id) {
+      const requestedId = Number(req.query.own_employee_id);
+      if (!isNaN(requestedId) && requestedId === Number(req.user.id)) {
+        filters.own_employee_id = Number(req.user.id);
+      }
     }
 
     const result = await LeaveModel.findLeaveRequests(filters, page, limit);

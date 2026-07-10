@@ -52,10 +52,6 @@ export default function UnifiedReportsPage() {
   });
 
   const [selectedMonth, setSelectedMonth] = useState("");
-  const [selectedGender, setSelectedGender] = useState("");
-  const [selectedMaritalStatus, setSelectedMaritalStatus] = useState("");
-  const [selectedRole, setSelectedRole] = useState("");
-
   const [selectedYears, setSelectedYears] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
 
@@ -80,10 +76,8 @@ export default function UnifiedReportsPage() {
   useEffect(() => {
     setCurrentPage(1);
     setSearchQuery("");
+    // Reset all filters when switching report types
     setSelectedMonth("");
-    setSelectedGender("");
-    setSelectedMaritalStatus("");
-    setSelectedRole("");
     setSelectedYears("");
     setSelectedDepartment("");
     setDateFrom("");
@@ -102,10 +96,6 @@ export default function UnifiedReportsPage() {
           page: currentPage,
           limit: pageSize,
           employee_name: searchQuery || undefined,
-          month: selectedMonth || undefined,
-          gender: selectedGender || undefined,
-          marital_status: selectedMaritalStatus || undefined,
-          role: selectedRole || undefined,
           sort_column: "real_dob",
           sort_direction: "asc",
         };
@@ -152,9 +142,6 @@ export default function UnifiedReportsPage() {
     pageSize,
     searchQuery,
     selectedMonth,
-    selectedGender,
-    selectedMaritalStatus,
-    selectedRole,
     selectedYears,
     selectedDepartment,
     dateFrom,
@@ -175,10 +162,6 @@ export default function UnifiedReportsPage() {
       if (reportType === "birthday") {
         const queryParams = {
           employee_name: searchQuery || undefined,
-          month: selectedMonth || undefined,
-          gender: selectedGender || undefined,
-          marital_status: selectedMaritalStatus || undefined,
-          role: selectedRole || undefined,
         };
         filename = `Birthday_Report_${currentYear}.xlsx`;
         await downloadBirthdayReportExcel(queryParams);
@@ -275,32 +258,6 @@ export default function UnifiedReportsPage() {
       header: "Marital Status",
       width: 140,
     },
-    {
-      key: "user_type",
-      header: "Role",
-      width: 140,
-      render: (row) => {
-        const roleColors: Record<string, string> = {
-          hradmin: "#7C3AED",
-          empmanager: "#3B82F6",
-          employee: "#16A085",
-        };
-        return (
-          <span
-            style={{
-              padding: "4px 10px",
-              borderRadius: 4,
-              fontSize: 11,
-              fontWeight: 600,
-              background: roleColors[row.user_type || ""] || "#94A3B8",
-              color: "#fff",
-            }}
-          >
-            {row.user_type || "N/A"}
-          </span>
-        );
-      },
-    },
   ];
 
   const getAnniversaryColumns =
@@ -349,7 +306,7 @@ export default function UnifiedReportsPage() {
         width: 150,
         render: (row) => (
           <span style={{ fontWeight: 600, color: "#7C3AED" }}>
-            🎊 {row.formatted_anniversary || "N/A"}
+            {row.formatted_anniversary || "N/A"}
           </span>
         ),
       },
@@ -378,30 +335,68 @@ export default function UnifiedReportsPage() {
     {
       key: "emp_id",
       header: "EMP ID",
-      width: 100,
+      width: 140,
       render: (row) => (
-        <span style={{ fontWeight: 600, color: "#1B2A6B" }}>
+        <span
+          style={{
+            fontWeight: 600,
+            color: "#1B2A6B",
+            display: "block",
+            padding: "8px 12px",
+            background: "#E0E7FF",
+            borderRadius: 8,
+            textAlign: "center",
+            fontSize: 14,
+          }}
+        >
           {row.emp_id || "N/A"}
         </span>
       ),
     },
     {
       key: "employee_name",
-      header: "Name",
-      width: 160,
+      header: "Employee Name",
+      width: 250,
       render: (row) => (
-        <span style={{ fontWeight: 500 }}>{row.employee_name || "N/A"}</span>
+        <span
+          style={{
+            fontWeight: 600,
+            fontSize: 15,
+            color: "#1e293b",
+            display: "block",
+            padding: "10px 14px",
+            background: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
+            borderRadius: 8,
+            border: "1px solid #BFDBFE",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {row.employee_name || "N/A"}
+        </span>
       ),
     },
     {
       key: "designation",
       header: "Designation",
-      width: 140,
+      width: 180,
+      render: (row) => (
+        <span
+          style={{
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+            fontSize: 13,
+          }}
+        >
+          {row.designation || "N/A"}
+        </span>
+      ),
     },
     {
       key: "termination_type",
       header: "Termination Type",
-      width: 140,
+      width: 150,
       render: (row) => {
         const typeColors: Record<string, string> = {
           Voluntary: "#16A085",
@@ -413,12 +408,15 @@ export default function UnifiedReportsPage() {
         return (
           <span
             style={{
-              padding: "4px 10px",
-              borderRadius: 4,
-              fontSize: 11,
+              padding: "6px 12px",
+              borderRadius: 6,
+              fontSize: 12,
               fontWeight: 600,
               background: typeColors[row.termination_type || ""] || "#94A3B8",
               color: "#fff",
+              display: "inline-block",
+              whiteSpace: "nowrap",
+              textAlign: "center",
             }}
           >
             {row.termination_type || "N/A"}
@@ -428,23 +426,60 @@ export default function UnifiedReportsPage() {
     },
     {
       key: "termination_reason",
-      header: "Reason",
-      width: 200,
+      header: "Termination Reason",
+      width: 250,
       render: (row) => (
-        <span style={{ fontSize: 12 }}>{row.termination_reason || "N/A"}</span>
+        <span
+          style={{
+            fontSize: 13,
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+            lineHeight: "1.5",
+          }}
+        >
+          {row.termination_reason || "N/A"}
+        </span>
       ),
     },
     {
       key: "date_of_joining",
       header: "Join Date",
-      width: 110,
+      width: 140,
+      render: (row) => (
+        <span
+          style={{
+            whiteSpace: "nowrap",
+            fontWeight: 600,
+            fontSize: 14,
+            display: "block",
+            padding: "6px 10px",
+            background: "#F0FDF4",
+            borderRadius: 6,
+            textAlign: "center",
+          }}
+        >
+          {row.date_of_joining || "N/A"}
+        </span>
+      ),
     },
     {
       key: "date_of_exit",
       header: "Exit Date",
-      width: 110,
+      width: 140,
       render: (row) => (
-        <span style={{ color: "#E53E3E", fontWeight: 600 }}>
+        <span
+          style={{
+            color: "#DC2626",
+            fontWeight: 700,
+            whiteSpace: "nowrap",
+            fontSize: 14,
+            display: "block",
+            padding: "20px 10px",
+            background: "#FEE2E2",
+            borderRadius: 6,
+            textAlign: "center",
+          }}
+        >
           {row.date_of_exit || "N/A"}
         </span>
       ),
@@ -452,17 +487,30 @@ export default function UnifiedReportsPage() {
     {
       key: "last_working_day",
       header: "Last Working Day",
-      width: 130,
+      width: 160,
       render: (row) => (
-        <span style={{ fontWeight: 500 }}>{row.last_working_day || "N/A"}</span>
+        <span
+          style={{
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+            fontSize: 14,
+            display: "block",
+            padding: "6px 10px",
+            background: "#FEF3C7",
+            borderRadius: 6,
+            textAlign: "center",
+          }}
+        >
+          {row.last_working_day || "N/A"}
+        </span>
       ),
     },
     {
       key: "notice_period_days",
       header: "Notice Period",
-      width: 110,
+      width: 120,
       render: (row) => (
-        <span style={{ fontSize: 12 }}>
+        <span style={{ fontSize: 13 }}>
           {row.notice_period_days ? `${row.notice_period_days} days` : "N/A"}
         </span>
       ),
@@ -470,16 +518,18 @@ export default function UnifiedReportsPage() {
     {
       key: "exit_interview_completed",
       header: "Exit Interview",
-      width: 120,
+      width: 130,
       render: (row) => (
         <span
           style={{
-            padding: "4px 8px",
-            borderRadius: 4,
-            fontSize: 11,
+            padding: "6px 10px",
+            borderRadius: 6,
+            fontSize: 12,
             fontWeight: 600,
             background: row.exit_interview_completed ? "#D1FAE5" : "#FEE2E2",
             color: row.exit_interview_completed ? "#065F46" : "#991B1B",
+            display: "inline-block",
+            whiteSpace: "nowrap",
           }}
         >
           {row.exit_interview_completed ? "✓ Done" : "✗ Pending"}
@@ -489,16 +539,18 @@ export default function UnifiedReportsPage() {
     {
       key: "rehire_eligible",
       header: "Rehire Eligible",
-      width: 120,
+      width: 130,
       render: (row) => (
         <span
           style={{
-            padding: "4px 8px",
-            borderRadius: 4,
-            fontSize: 11,
+            padding: "6px 10px",
+            borderRadius: 6,
+            fontSize: 12,
             fontWeight: 600,
             background: row.rehire_eligible ? "#D1FAE5" : "#FEE2E2",
             color: row.rehire_eligible ? "#065F46" : "#991B1B",
+            display: "inline-block",
+            whiteSpace: "nowrap",
           }}
         >
           {row.rehire_eligible ? "✓ Yes" : "✗ No"}
@@ -506,19 +558,60 @@ export default function UnifiedReportsPage() {
       ),
     },
     {
-      key: "reporting_manager",
-      header: "Manager",
-      width: 150,
+      key: "actual_supervisor",
+      header: "Supervisor",
+      width: 220,
+      render: (row) => {
+        const isDeleted = row.is_user_deleted === true;
+        return (
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#1e293b",
+              display: "block",
+              padding: "10px 14px",
+              background: isDeleted ? "#FCA5A5" : "#FDE68A",
+              borderRadius: 8,
+              border: isDeleted ? "1px solid #F87171" : "1px solid #FCD34D",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {row.actual_supervisor || "N/A"}
+            {isDeleted && " 🔴"}
+          </span>
+        );
+      },
     },
     {
       key: "terminated_by",
       header: "Terminated By",
-      width: 140,
-      render: (row) => (
-        <span style={{ fontSize: 12, fontStyle: "italic" }}>
-          {row.terminated_by || "N/A"}
-        </span>
-      ),
+      width: 200,
+      render: (row) => {
+        const isDeleted = row.is_user_deleted === true;
+        return (
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#1e293b",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "block",
+              padding: "10px 14px",
+              background: isDeleted ? "#FED7AA" : "#E0E7FF",
+              borderRadius: 8,
+              border: isDeleted ? "1px solid #FB923C" : "1px solid #C7D2FE",
+            }}
+          >
+            {row.terminated_by || "N/A"}
+            {isDeleted && " 🔴"}
+          </span>
+        );
+      },
     },
   ];
 
@@ -528,6 +621,8 @@ export default function UnifiedReportsPage() {
       : reportType === "anniversary"
         ? (getAnniversaryColumns() as ColumnDef<ReportRecord>[])
         : (getTerminationColumns() as ColumnDef<ReportRecord>[]);
+
+  const renderBirthdayFilters = () => <></>;
 
   const months = [
     { value: "01", label: "January" },
@@ -543,78 +638,6 @@ export default function UnifiedReportsPage() {
     { value: "11", label: "November" },
     { value: "12", label: "December" },
   ];
-
-  const renderBirthdayFilters = () => (
-    <>
-      <select
-        value={selectedMonth}
-        onChange={(e) => setSelectedMonth(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
-      >
-        <option value="">All Months</option>
-        {months.map((m) => (
-          <option key={m.value} value={m.value}>
-            {m.label}
-          </option>
-        ))}
-      </select>
-      <select
-        value={selectedGender}
-        onChange={(e) => setSelectedGender(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
-      >
-        <option value="">All Genders</option>
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-        <option value="Other">Other</option>
-      </select>
-      <select
-        value={selectedMaritalStatus}
-        onChange={(e) => setSelectedMaritalStatus(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
-      >
-        <option value="">All Marital Status</option>
-        <option value="Single">Single</option>
-        <option value="Married">Married</option>
-        <option value="Divorced">Divorced</option>
-        <option value="Widowed">Widowed</option>
-      </select>
-      <select
-        value={selectedRole}
-        onChange={(e) => setSelectedRole(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
-      >
-        <option value="">All Roles</option>
-        <option value="hradmin">HR Admin</option>
-        <option value="empmanager">Supervisor</option>
-        <option value="employee">Employee</option>
-      </select>
-    </>
-  );
 
   const renderAnniversaryFilters = () => (
     <>
@@ -795,20 +818,21 @@ export default function UnifiedReportsPage() {
           cursor: "pointer",
         }}
       >
-        📊 Export Excel
+        Export Excel
       </button>
       {reportType === "termination" && (
         <button
           onClick={handleExportPDF}
           style={{
             padding: "8px 16px",
-            background: "#E53E3E",
+            background: "linear-gradient(135deg, #172554, #14b8a6)",
             color: "#fff",
             border: "none",
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
             cursor: "pointer",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
           📄 Export PDF
@@ -824,7 +848,7 @@ export default function UnifiedReportsPage() {
   };
 
   const reportSubtitles = {
-    birthday: "View all employee birthdays with role-based filtering",
+    birthday: "View all employee birthdays",
     anniversary: "View employee work anniversaries and tenure information",
     termination: "View and export terminated employee records",
   };

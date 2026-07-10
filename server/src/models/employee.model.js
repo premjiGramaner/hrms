@@ -33,7 +33,7 @@ async function findAllEmployees(page, limit = 10, search = "") {
   const searchTerm = search.trim();
 
   const baseWhere =
-    "u.is_deleted = false AND (u.employment_status IS NULL OR u.employment_status != 'Terminated')";
+    "u.is_deleted = false AND (u.employment_status IS NULL OR u.employment_status != 'Terminated') AND u.role NOT IN ('hradmin', 'empmanager')";
 
   const values = [];
   let whereClause = baseWhere;
@@ -83,7 +83,7 @@ async function findAllEmployees(page, limit = 10, search = "") {
 
     const employeesWithSupervisors = rows.map((employee) => ({
       ...employee,
-      supervisor_names: employee.supervisors || [],
+      supervisor_names: employee.supervisor_names || [],
     }));
 
     const countValues = searchTerm ? [searchTerm] : [];
@@ -242,6 +242,8 @@ async function createEmployee(data, avatarBase64) {
   const password = await bcrypt.hash(plainPassword, 10);
 
   const realDob = data.real_dob || data.dob || null;
+  
+  // Convert supervisor IDs to names and store names
   const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
 
   const { rows } = await pool.query(
@@ -351,6 +353,8 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
     !value || String(value).trim() === "" ? null : String(value).trim();
 
   const realDob = d(data.real_dob) || d(data.dob);
+  
+  // Convert supervisor IDs to names and store names
   const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
 
   const result = await pool.query(

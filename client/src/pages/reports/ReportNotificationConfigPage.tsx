@@ -78,7 +78,6 @@ export default function ReportNotificationConfigPage() {
       setAnniversaryConfig(config.work_anniversary);
 
       if (config.birthday) {
-        setBirthdayRecipients(config.birthday.recipient_user_ids || []);
         setBirthdayDaysBefore(config.birthday.days_before || 2);
         setBirthdayActive(config.birthday.is_active !== false);
 
@@ -93,9 +92,6 @@ export default function ReportNotificationConfigPage() {
       }
 
       if (config.work_anniversary) {
-        setAnniversaryRecipients(
-          config.work_anniversary.recipient_user_ids || [],
-        );
         setAnniversaryDaysBefore(config.work_anniversary.days_before || 2);
         setAnniversaryActive(config.work_anniversary.is_active !== false);
 
@@ -144,7 +140,7 @@ export default function ReportNotificationConfigPage() {
 
       await updateNotificationConfig({
         notification_type: "birthday",
-        recipient_user_ids: birthdayRecipients,
+        recipient_user_ids: [],
         days_before: birthdayDaysBefore,
         is_active: birthdayActive,
         external_emails: externalEmailsString,
@@ -171,9 +167,10 @@ export default function ReportNotificationConfigPage() {
     setSaveMessage("");
     try {
       const externalEmailsString = anniversaryExternalEmails.join(",");
+
       await updateNotificationConfig({
         notification_type: "work_anniversary",
-        recipient_user_ids: anniversaryRecipients,
+        recipient_user_ids: [],
         days_before: anniversaryDaysBefore,
         is_active: anniversaryActive,
         external_emails: externalEmailsString,
@@ -544,15 +541,28 @@ export default function ReportNotificationConfigPage() {
                   color: "#374151",
                   marginBottom: 10,
                 }}
-              ></label>
+              >
+                Days Before Birthday (0-30 days)
+              </label>
               <input
-                type="number"
-                min="0"
-                max="30"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Enter days (0-30)"
                 value={birthdayDaysBefore}
-                onChange={(e) =>
-                  setBirthdayDaysBefore(parseInt(e.target.value) || 0)
-                }
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, ""); // Remove non-digits
+                  const numValue = value === "" ? 0 : parseInt(value, 10);
+                  if (numValue <= 30) {
+                    setBirthdayDaysBefore(numValue);
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value.trim();
+                  if (value === "" || isNaN(parseInt(value, 10))) {
+                    setBirthdayDaysBefore(2); // Default to 2
+                  }
+                }}
                 style={{
                   padding: "11px 14px",
                   border: "1.5px solid #e2e8f0",
@@ -563,119 +573,68 @@ export default function ReportNotificationConfigPage() {
                   transition: "border-color 0.2s",
                 }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
               />
               <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>
-                Set to 0 for same-day notifications, or 1-30 for advance
-                notifications
+                <strong>0 days:</strong> Send notification for birthdays TODAY
+                only
+                <br />
+                <strong>1-30 days:</strong> Send notifications for TODAY + next
+                N days
+                <br />
+                <em>
+                  Example: Enter 2 to get reminders for today, tomorrow, and day
+                  after tomorrow
+                </em>
+                <br />
+                <em style={{ color: "#f59e0b", fontWeight: 500 }}>
+                  💡 You can type any number from 0 to 30
+                </em>
               </p>
             </div>
 
             <div style={{ marginBottom: 25 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#374151",
-                  marginBottom: 12,
-                }}
-              >
-                Select Recipients (System Users)
-              </label>
               <div
                 style={{
-                  maxHeight: 250,
-                  overflowY: "auto",
-                  border: "1.5px solid #e2e8f0",
+                  padding: "16px 20px",
+                  background:
+                    "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
+                  border: "2px solid #10b981",
                   borderRadius: 10,
-                  padding: 14,
-                  background: "#f8fafc",
-                }}
-              >
-                {hrAdminUsers.map((user) => (
-                  <label
-                    key={user.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      borderRadius: 8,
-                      transition: "background 0.15s",
-                      background: "#fff",
-                      marginBottom: 6,
-                      border: "1px solid #e2e8f0",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "#f1f5f9")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "#fff")
-                    }
-                  >
-                    <input
-                      type="checkbox"
-                      checked={birthdayRecipients.includes(user.id)}
-                      onChange={() =>
-                        toggleRecipient(
-                          user.id,
-                          birthdayRecipients,
-                          setBirthdayRecipients,
-                        )
-                      }
-                      style={{
-                        width: 16,
-                        height: 16,
-                        cursor: "pointer",
-                        accentColor: "#14b8a6",
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontSize: 13.5,
-                        color: "#1e293b",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {user.name || `${user.first_name} ${user.last_name}`}
-                    </span>
-                    <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
-                      ({user.email})
-                    </span>
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        padding: "3px 10px",
-                        borderRadius: 6,
-                        fontSize: 10.5,
-                        fontWeight: 600,
-                        background:
-                          user.role === "hradmin" ? "#7C3AED" : "#3B82F6",
-                        color: "#fff",
-                      }}
-                    >
-                      {user.role}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "#64748b",
-                  marginTop: 10,
-                  fontWeight: 500,
                   display: "flex",
-                  alignItems: "center",
-                  gap: 6,
+                  alignItems: "start",
+                  gap: 12,
                 }}
               >
-                <IconCheck size={14} color="#14b8a6" />
-                Selected: {birthdayRecipients.length} recipient
-                {birthdayRecipients.length !== 1 ? "s" : ""}
-              </p>
+                <div style={{ marginTop: 2 }}>
+                  <IconCheck size={20} color="#10b981" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#065f46",
+                      marginBottom: 6,
+                    }}
+                  >
+                    📧 Auto Recipients: All Global Admins
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#047857",
+                      lineHeight: "1.6",
+                    }}
+                  >
+                    Notifications are automatically sent to{" "}
+                    <strong>all global admins</strong> (HR Admins and Employee
+                    Managers) in the system.
+                    <br />
+                    You don't need to select recipients - the system handles
+                    this automatically!
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div style={{ marginBottom: 25 }}>
@@ -985,16 +944,27 @@ export default function ReportNotificationConfigPage() {
                   marginBottom: 10,
                 }}
               >
-                Send Notification (Days Before Anniversary)
+                Days Before Anniversary (0-30 days)
               </label>
               <input
-                type="number"
-                min="0"
-                max="30"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Enter days (0-30)"
                 value={anniversaryDaysBefore}
-                onChange={(e) =>
-                  setAnniversaryDaysBefore(parseInt(e.target.value) || 0)
-                }
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, ""); // Remove non-digits
+                  const numValue = value === "" ? 0 : parseInt(value, 10);
+                  if (numValue <= 30) {
+                    setAnniversaryDaysBefore(numValue);
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value.trim();
+                  if (value === "" || isNaN(parseInt(value, 10))) {
+                    setAnniversaryDaysBefore(2); // Default to 2
+                  }
+                }}
                 style={{
                   padding: "11px 14px",
                   border: "1.5px solid #e2e8f0",
@@ -1005,119 +975,69 @@ export default function ReportNotificationConfigPage() {
                   transition: "border-color 0.2s",
                 }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
               />
               <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>
-                Set to 0 for same-day notifications, or 1-30 for advance
-                notifications
+                <strong>0 days:</strong> Send notification for anniversaries
+                TODAY only
+                <br />
+                <strong>1-30 days:</strong> Send notifications for TODAY + next
+                N days
+                <br />
+                <em>
+                  Example: Enter 2 to get reminders for today, tomorrow, and day
+                  after tomorrow
+                </em>
+                <br />
+                <em style={{ color: "#f59e0b", fontWeight: 500 }}>
+                  💡 You can type any number from 0 to 30
+                </em>
               </p>
             </div>
 
+            {/* Auto Recipients Info Box */}
             <div style={{ marginBottom: 25 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#374151",
-                  marginBottom: 12,
-                }}
-              >
-                Select Recipients (System Users)
-              </label>
               <div
                 style={{
-                  maxHeight: 250,
-                  overflowY: "auto",
-                  border: "1.5px solid #e2e8f0",
+                  padding: "16px 20px",
+                  background:
+                    "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
+                  border: "2px solid #10b981",
                   borderRadius: 10,
-                  padding: 14,
-                  background: "#f8fafc",
-                }}
-              >
-                {hrAdminUsers.map((user) => (
-                  <label
-                    key={user.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      borderRadius: 8,
-                      transition: "background 0.15s",
-                      background: "#fff",
-                      marginBottom: 6,
-                      border: "1px solid #e2e8f0",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "#f1f5f9")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "#fff")
-                    }
-                  >
-                    <input
-                      type="checkbox"
-                      checked={anniversaryRecipients.includes(user.id)}
-                      onChange={() =>
-                        toggleRecipient(
-                          user.id,
-                          anniversaryRecipients,
-                          setAnniversaryRecipients,
-                        )
-                      }
-                      style={{
-                        width: 16,
-                        height: 16,
-                        cursor: "pointer",
-                        accentColor: "#14b8a6",
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontSize: 13.5,
-                        color: "#1e293b",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {user.name || `${user.first_name} ${user.last_name}`}
-                    </span>
-                    <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
-                      ({user.email})
-                    </span>
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        padding: "3px 10px",
-                        borderRadius: 6,
-                        fontSize: 10.5,
-                        fontWeight: 600,
-                        background:
-                          user.role === "hradmin" ? "#7C3AED" : "#3B82F6",
-                        color: "#fff",
-                      }}
-                    >
-                      {user.role}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "#64748b",
-                  marginTop: 10,
-                  fontWeight: 500,
                   display: "flex",
-                  alignItems: "center",
-                  gap: 6,
+                  alignItems: "start",
+                  gap: 12,
                 }}
               >
-                <IconCheck size={14} color="#14b8a6" />
-                Selected: {anniversaryRecipients.length} recipient
-                {anniversaryRecipients.length !== 1 ? "s" : ""}
-              </p>
+                <div style={{ marginTop: 2 }}>
+                  <IconCheck size={20} color="#10b981" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#065f46",
+                      marginBottom: 6,
+                    }}
+                  >
+                    📧 Auto Recipients: All Global Admins
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#047857",
+                      lineHeight: "1.6",
+                    }}
+                  >
+                    Notifications are automatically sent to{" "}
+                    <strong>all global admins</strong> (HR Admins and Employee
+                    Managers) in the system.
+                    <br />
+                    You don't need to select recipients - the system handles
+                    this automatically!
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div style={{ marginBottom: 25 }}>

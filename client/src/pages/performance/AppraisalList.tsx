@@ -474,10 +474,7 @@ export default function AppraisalList() {
 
   return (
     <>
-      <PerformanceLayout
-        activeTab={activeTab}
-        onFab={() => navigate("/performance/appraisal_cycles/create")}
-      >
+      <PerformanceLayout activeTab={activeTab}>
         <div className="rounded-[8px] bg-white p-8">
           <div className="mb-7 flex items-center justify-end gap-3">
             {isAdmin && (

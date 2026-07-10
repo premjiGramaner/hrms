@@ -32,7 +32,6 @@ const TABLE_COLUMNS = [
   "Employee Name",
   "Email",
   "User Role(s)",
-  "Status",
   "Actions",
 ];
 
@@ -382,20 +381,6 @@ export default function HRUsersPage() {
                     {ROLE_DISPLAY_MAP[user.role] ?? "Default ESS"}
                   </td>
                   <td style={{ padding: "12px 16px" }}>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        padding: "3px 10px",
-                        borderRadius: 999,
-                        background: user.is_active ? "#dcfce7" : "#f1f5f9",
-                        color: user.is_active ? "#16a34a" : "#94a3b8",
-                      }}
-                    >
-                      {user.is_active ? "Enabled" : "Disabled"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button
                         onClick={() => setUserToEdit(user)}
@@ -672,7 +657,6 @@ function UserFormModal({
     employee_name: user?.name || "",
     email: user?.email || "",
     role: user?.role || "empmanager",
-    status: user?.is_active === false ? "Disabled" : "Enabled",
   });
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -699,7 +683,6 @@ function UserFormModal({
           employee_name: formData.employee_name.trim(),
           email: formData.email.trim(),
           role: formData.role,
-          status: formData.status,
         };
         await createHRUser(payload);
       } else if (mode === "edit" && user) {
@@ -707,7 +690,6 @@ function UserFormModal({
           employee_name: formData.employee_name.trim(),
           email: formData.email.trim(),
           role: formData.role,
-          status: formData.status,
         };
         await updateHRUser(user.id, payload);
       }
@@ -832,40 +814,6 @@ function UserFormModal({
                 ]}
                 onChange={(value) => handleFieldChange("role", value)}
               />
-            </FormField>
-            <FormField label="Status">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 20,
-                  paddingTop: 8,
-                }}
-              >
-                {(["Enabled", "Disabled"] as const).map((statusOption) => (
-                  <label
-                    key={statusOption}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 13.5,
-                      cursor: "pointer",
-                      color: "#374151",
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="user_status"
-                      value={statusOption}
-                      checked={formData.status === statusOption}
-                      onChange={() => handleFieldChange("status", statusOption)}
-                      style={{ accentColor: "#1b2a6b", width: 15, height: 15 }}
-                    />
-                    {statusOption}
-                  </label>
-                ))}
-              </div>
             </FormField>
           </FormRow>
         </div>

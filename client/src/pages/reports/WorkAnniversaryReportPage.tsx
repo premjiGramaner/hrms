@@ -148,7 +148,7 @@ export default function WorkAnniversaryReportPage() {
       width: 150,
       render: (row) => (
         <span style={{ fontWeight: 600, color: "#7C3AED" }}>
-          🎊 {row.formatted_anniversary || "N/A"}
+          {row.formatted_anniversary || "N/A"}
         </span>
       ),
     },
@@ -274,7 +274,7 @@ export default function WorkAnniversaryReportPage() {
           cursor: "pointer",
         }}
       >
-        📊 Export Excel
+        Export Excel
       </button>
     </div>
   );

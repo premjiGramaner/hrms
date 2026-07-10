@@ -178,6 +178,20 @@ const createEmployee = async (req, res, next) => {
         "Employee created, but welcome email could not be sent. Check SMTP configuration.";
     }
 
+    try {
+      const { checkAndSendImmediateNotifications } =
+        await import("../services/reportNotification.service.js");
+      await checkAndSendImmediateNotifications(emp.id);
+      console.log(
+        `[EMPLOYEE] Checked immediate birthday/anniversary notifications for ${emp.name}`,
+      );
+    } catch (notifErr) {
+      console.error(
+        `[EMPLOYEE] Failed to check immediate notifications:`,
+        notifErr.message,
+      );
+    }
+
     return created(res, {
       message: "Employee created successfully",
       id: emp.id,
@@ -338,15 +352,15 @@ const terminateEmployee = async (req, res, next) => {
     const id = parseInt(req.params.id);
     if (isNaN(id) || id <= 0) return error(res, "Invalid employee ID", 400);
 
-    const { 
-      terminationReason, 
-      terminationDateTime, 
+    const {
+      terminationReason,
+      terminationDateTime,
       terminationType,
       lastWorkingDay,
       noticePeriodDays,
       exitInterviewCompleted,
       rehireEligible,
-      notes 
+      notes,
     } = req.body;
 
     if (!terminationReason || String(terminationReason).trim() === "")
@@ -384,7 +398,7 @@ const terminateEmployee = async (req, res, next) => {
       action: "TERMINATE",
       actor: req.user,
       performedScreen: "Employee Management",
-      actionDescription: `Employee terminated: ${existing.name}. Reason: ${terminationReason}. Type: ${terminationType || 'Voluntary'}`,
+      actionDescription: `Employee terminated: ${existing.name}. Reason: ${terminationReason}. Type: ${terminationType || "Voluntary"}`,
     });
 
     return success(res, { message: "Employee terminated successfully" });

@@ -949,6 +949,8 @@ const getAuditTrail = async (_req, res, next) => {
          LEFT JOIN tbl_appusers emp
                 ON al.employee_id IS NOT NULL
                AND emp.id = al.employee_id
+         LEFT JOIN tbl_employee_terminations term
+                ON term.employee_id = al.employee_id
          LEFT JOIN tbl_appusers actor
                 ON (
                   (al.actor_id IS NOT NULL AND actor.id = al.actor_id)

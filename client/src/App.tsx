@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
 import { loginSuccess, logout } from "./store/authSlice";
 import { self } from "./api/auth.api";
+import ToastContainer from "./components/ToastContainer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import {
@@ -121,6 +122,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

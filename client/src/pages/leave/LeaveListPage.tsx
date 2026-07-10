@@ -28,13 +28,27 @@ const STATUS_OPTIONS = [
   "Rejected",
   "Approved",
 ];
-const YEAR_START = `${new Date().getFullYear()}-01-01`;
-const YEAR_END = `${new Date().getFullYear()}-12-31`;
-const TODAY = new Date().toISOString().split("T")[0];
+
+const today = new Date();
+
+const fromDate = new Date(today.getFullYear(), today.getMonth(), 21);
+
+const toDate = new Date(today.getFullYear(), today.getMonth() + 1, 20);
+
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const from_date = formatDate(fromDate);
+const to_date = formatDate(toDate);
 
 const EMPTY_FORM: LeaveFilters = {
-  from_date: TODAY,
-  to_date: TODAY,
+  from_date: from_date,
+  to_date: to_date,
   employee_name: "",
   sub_unit: "",
   location: "",
@@ -871,6 +885,7 @@ export default function LeaveListPage() {
                           onApprove={() => handleApprove(row.id)}
                           onReject={() => setRejectTarget(row.id)}
                           onCancel={() => handleCancel(row.id)}
+                          currentUserId={user?.id}
                         />
                       </td>
                     </tr>
@@ -909,6 +924,7 @@ function ActionDropdown({
   onApprove,
   onReject,
   onCancel,
+  currentUserId,
 }: {
   row: LeaveRequest;
   isAdmin: boolean;
@@ -917,6 +933,7 @@ function ActionDropdown({
   onApprove: () => void;
   onReject: () => void;
   onCancel: () => void;
+  currentUserId?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -962,8 +979,25 @@ function ActionDropdown({
     );
 
   const isPending = row.status === "Pending Approval";
-  const canApproveReject = isAdmin && !isRequester && isPending;
-  const canCancel = isPending && (isRequester || isAdmin);
+
+  let isSupervisor = false;
+  if (currentUserId && row.supervisors) {
+    try {
+      const supervisorArray =
+        typeof row.supervisors === "string"
+          ? JSON.parse(row.supervisors)
+          : row.supervisors;
+      isSupervisor =
+        Array.isArray(supervisorArray) &&
+        supervisorArray.includes(String(currentUserId));
+    } catch (e) {
+      isSupervisor = false;
+    }
+  }
+
+  const canApproveReject =
+    (isAdmin || isSupervisor) && !isRequester && isPending;
+  const canCancel = isPending && (isRequester || isAdmin || isSupervisor);
 
   if (!canApproveReject && !canCancel) {
     return <span className="text-xs text-slate-400">—</span>;

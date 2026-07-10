@@ -7,7 +7,15 @@ import {
 } from "../../api/hradmin.api";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import useDebounce from "../../hooks/useDebounce";
-import { IconShield, IconUserCheck, IconUsers, IconUser, IconSettings } from "../../components/Icons";
+import {
+  IconShield,
+  IconUserCheck,
+  IconUsers,
+  IconUser,
+  IconSettings,
+} from "../../components/Icons";
+import Toast from "../../utils/toast";
+import Alert from "../../utils/alert";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -80,11 +88,34 @@ function RoleDropdown({
   const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRole = e.target.value;
     if (newRole === user.role) return;
+
+    const newRoleLabel =
+      ROLE_OPTIONS.find((role) => role.value === newRole)?.label || newRole;
+    const currentRoleLabel =
+      ROLE_OPTIONS.find((role) => role.value === roleValue(user.role))?.label ||
+      user.role;
+
+    const confirmed = await Alert.confirm({
+      title: "Change User Role",
+      message: `Are you sure you want to change ${user.name}'s role from ${currentRoleLabel} to ${newRoleLabel}?`,
+      confirmText: "Yes, Change Role",
+      cancelText: "Cancel",
+      type: "warning",
+    });
+
+    if (!confirmed) {
+      e.target.value = roleValue(user.role);
+      return;
+    }
+
     setSaving(true);
     try {
       await updateUserRole(user.id, newRole);
       onRoleChange(user.id, newRole);
+      Toast.success(`Role updated to ${newRoleLabel}`);
     } catch {
+      Toast.error("Failed to update user role");
+      e.target.value = roleValue(user.role);
     } finally {
       setSaving(false);
     }
@@ -300,7 +331,7 @@ export default function RoleAccessPage() {
     {
       label: "Total Users",
       value: totalRecords,
-      icon: <IconUsers size={20} /> as any ,
+      icon: (<IconUsers size={20} />) as any,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
@@ -316,7 +347,7 @@ export default function RoleAccessPage() {
     {
       label: "Supervisors",
       value: supervisorCount,
-      icon: <IconShield size={20} /> as any ,
+      icon: (<IconShield size={20} />) as any,
       color: "#0369a1",
       bg: "#e0f2fe",
       border: "#7dd3fc",
@@ -564,13 +595,13 @@ export default function RoleAccessPage() {
       <DataTable<RoleAccessUser>
         title="Role Access Management"
         subtitle="View and manage user roles across the system"
-        icon={<IconShield size={18} /> as any }
+        icon={(<IconShield size={18} />) as any}
         rows={users}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row) => row.id}
-        emptyIcon={<IconUserCheck size={36} /> as any }
+        emptyIcon={(<IconUserCheck size={36} />) as any}
         emptyTitle={
           hasFilters ? "No users match the current filters" : "No users found"
         }

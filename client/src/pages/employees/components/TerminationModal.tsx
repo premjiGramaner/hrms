@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, ChangeEvent } from "react";
 import { terminateEmployee } from "../../../api/employee.api";
 import { getApiErrorMessage } from "../../../utils/errors";
+import Toast from "../../../utils/toast";
 
 interface TerminationModalProps {
   employeeId: number;
@@ -103,11 +104,13 @@ export default function TerminationModal({
         notes: terminationForm.notes.trim(),
       });
 
+      Toast.success("Employee terminated successfully");
       onClose();
       if (onSuccess) {
         onSuccess();
       }
     } catch (err: unknown) {
+      Toast.error(getApiErrorMessage(err, "Failed to terminate employee"));
       setErrors({
         submit: getApiErrorMessage(err, "Failed to terminate employee."),
       });

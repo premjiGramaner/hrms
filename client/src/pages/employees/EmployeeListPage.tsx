@@ -11,7 +11,9 @@ import {
   setSearch,
 } from "../../store/employeeSlice";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
-import { IconUsers, IconCheckCircle, IconUser } from "../../components/Icons";
+import { IconUsers, IconUser } from "../../components/Icons";
+import { ShieldCheck } from "lucide-react";
+import Toast from "../../utils/toast";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -29,7 +31,7 @@ const getInitials = (employee: Employee) => {
   return employeName !== "—"
     ? employeName
         .split(" ")
-        .map((w) => w[0])
+        .map((employee) => employee[0])
         .slice(0, 2)
         .join("")
         .toUpperCase()
@@ -37,8 +39,6 @@ const getInitials = (employee: Employee) => {
 };
 
 const getSupervisor = (employee: Employee): string => {
-
-
   if (employee.supervisor_names) {
     const names = Array.isArray(employee.supervisor_names)
       ? employee.supervisor_names
@@ -46,14 +46,14 @@ const getSupervisor = (employee: Employee): string => {
     return names.length > 0 ? names.join(", ") : "—";
   }
 
-  if (
-    !employee.supervisors ||
-    !Array.isArray(employee.supervisors) ||
-    employee.supervisors.length === 0
-  )
-    return "—";
+  if (employee.supervisors) {
+    const names = Array.isArray(employee.supervisors)
+      ? employee.supervisors
+      : [];
+    return names.length > 0 ? names.join(", ") : "—";
+  }
 
-  return String(employee.supervisors[0]);
+  return "—";
 };
 
 export default function EmployeeListPage() {
@@ -64,26 +64,8 @@ export default function EmployeeListPage() {
     (state) => state.employees,
   );
 
-  const [success, setSuccess] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const flash = useCallback((msg: string) => {
-    setSuccess(msg);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      setSuccess("");
-      timerRef.current = null;
-    }, 3000);
-  }, []);
-
-  useEffect(
-    () => () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    },
-    [],
-  );
 
   useEffect(() => {
     dispatch(fetchEmployees({ page, limit, search }));
@@ -92,39 +74,43 @@ export default function EmployeeListPage() {
   useEffect(() => {
     const message = (location.state as { message?: string } | null)?.message;
     if (!message) return;
-    flash(message);
+    Toast.success(message);
     navigate(location.pathname, { replace: true });
-  }, [flash, location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate]);
 
   const allRows = data?.data || [];
 
-  const activeCount = allRows.filter((e) => e.is_active !== false).length;
-  const inactiveCount = allRows.length - activeCount;
+  const employeeCount = allRows.filter(
+    (e) => e.role === "employee" || !e.role,
+  ).length;
+  const supervisorCount = allRows.filter((e) =>
+    ["supervisor", "manager"].includes(e.role || ""),
+  ).length;
 
   const stats: StatCard[] = [
     {
       label: "Total",
-      value: data?.total ?? 0,
+      value: data?.total || 0,
       icon: <IconUsers size={20} />,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
     },
     {
-      label: "Active",
-      value: activeCount,
-      icon: <IconCheckCircle size={20} />,
+      label: "Employees",
+      value: employeeCount,
+      icon: <IconUser size={20} />,
       color: "#16a34a",
       bg: "#f0fdf4",
       border: "#bbf7d0",
     },
     {
-      label: "Inactive",
-      value: inactiveCount,
-      icon: <IconUser size={20} />,
-      color: "#94a3b8",
-      bg: "#f8fafc",
-      border: "#e2e8f0",
+      label: "Supervisors",
+      value: supervisorCount,
+      icon: <ShieldCheck size={20} />,
+      color: "#075985",
+      bg: "#e0f2fe",
+      border: "#bae6fd",
     },
   ];
 
@@ -191,6 +177,42 @@ export default function EmployeeListPage() {
       ),
     },
     {
+      key: "type",
+      header: "Type",
+      width: 130,
+      render: (employee) => {
+        const isSupervisor = ["supervisor", "manager"].includes(
+          employee.role || "",
+        );
+        return (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              fontSize: 12,
+              fontWeight: 600,
+              padding: "4px 10px",
+              borderRadius: 999,
+              background: isSupervisor ? "#e0f2fe" : "#dcfce7",
+              color: isSupervisor ? "#075985" : "#16a34a",
+              border: `1px solid ${isSupervisor ? "#bae6fd" : "#bbf7d0"}`,
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: isSupervisor ? "#0284c7" : "#22c55e",
+              }}
+            />
+            {isSupervisor ? "Supervisor" : "Employee"}
+          </span>
+        );
+      },
+    },
+    {
       key: "job_title",
       header: "Job Title",
       render: (employee) => (
@@ -198,30 +220,6 @@ export default function EmployeeListPage() {
           {employee.job_title || "—"}
         </span>
       ),
-    },
-    {
-      key: "employment_status",
-      header: "Employment Status",
-      render: (employee) => {
-        const status = employee.employment_status || employee.status || "";
-        return status ? (
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              padding: "3px 10px",
-              borderRadius: 999,
-              background: "#f1f5f9",
-              color: "#475569",
-              border: "1px solid #e2e8f0",
-            }}
-          >
-            {status}
-          </span>
-        ) : (
-          <span style={{ color: "#cbd5e1" }}>—</span>
-        );
-      },
     },
     {
       key: "sub_unit",
@@ -260,31 +258,10 @@ export default function EmployeeListPage() {
 
   return (
     <Layout title="Employee Management" tabs={TABS} activeTab="Employee List">
-      {success && (
-        <div
-          style={{
-            marginBottom: 16,
-            padding: "12px 18px",
-            background: "linear-gradient(135deg,#f0fdf4,#fff)",
-            border: "1px solid #bbf7d0",
-            borderLeft: "4px solid #22c55e",
-            borderRadius: 12,
-            color: "#15803d",
-            fontSize: 13.5,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            boxShadow: "0 2px 8px rgba(34,197,94,0.08)",
-          }}
-        >
-          ✓ {success}
-        </div>
-      )}
-
       <DataTable<Employee>
         title="Employee List"
         subtitle="View and manage employee profile information"
-        icon={<IconUsers size={18} /> as any }
+        icon={(<IconUsers size={18} />) as any}
         rows={allRows}
         isLoading={loading}
         columns={columns}
@@ -315,7 +292,7 @@ export default function EmployeeListPage() {
           },
         ]}
         getKey={(employee) => employee.id}
-        emptyIcon={<IconUser size={36} /> as any}
+        emptyIcon={(<IconUser size={36} />) as any}
         emptyTitle={
           search ? `No results for "${search}"` : "No employees found"
         }
@@ -352,11 +329,6 @@ export default function EmployeeListPage() {
           }}
           onSaved={() => {
             dispatch(fetchEmployees({ page, limit, search }));
-            flash(
-              editEmployee
-                ? "Employee updated successfully."
-                : "Employee created successfully.",
-            );
           }}
         />
       )}

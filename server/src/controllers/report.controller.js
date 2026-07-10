@@ -4,9 +4,6 @@ import ReportModel from "../models/report.model.js";
 import { success, error } from "../utils/response.js";
 import AppError from "../utils/AppError.js";
 
-/**
- * Termination Report - Paginated List View
- */
 const getTerminationReport = async (req, res, next) => {
   try {
     const filterCriteria = {
@@ -18,7 +15,7 @@ const getTerminationReport = async (req, res, next) => {
       employeeName: req.query.employee_name || null,
       page: parseInt(req.query.page) || 1,
       limit: parseInt(req.query.limit) || 15,
-      sortColumn: req.query.sort_column || "updated_at",
+      sortColumn: req.query.sort_column || "termination_date",
       sortDirection: req.query.sort_direction || "desc",
     };
 
@@ -30,9 +27,6 @@ const getTerminationReport = async (req, res, next) => {
   }
 };
 
-/**
- * Birthday Report - Paginated List View with Role-Based Filtering
- */
 const getBirthdayReport = async (req, res, next) => {
   try {
     const filterCriteria = {
@@ -65,9 +59,6 @@ const getBirthdayReport = async (req, res, next) => {
   }
 };
 
-/**
- * Work Anniversary Report - Paginated List View with Role-Based Filtering
- */
 const getWorkAnniversaryReport = async (req, res, next) => {
   try {
     const filterCriteria = {
@@ -99,9 +90,6 @@ const getWorkAnniversaryReport = async (req, res, next) => {
   }
 };
 
-/**
- * Export Termination Report to Excel
- */
 const exportTerminationReportExcel = async (req, res, next) => {
   try {
     const filterCriteria = {
@@ -112,8 +100,8 @@ const exportTerminationReportExcel = async (req, res, next) => {
       employeeId: req.query.employee_id || null,
       employeeName: req.query.employee_name || null,
       page: 1,
-      limit: 10000, // Get all records for export
-      sortColumn: req.query.sort_column || "updated_at",
+      limit: 10000,
+      sortColumn: req.query.sort_column || "termination_date",
       sortDirection: req.query.sort_direction || "desc",
     };
 
@@ -126,14 +114,12 @@ const exportTerminationReportExcel = async (req, res, next) => {
     workbook.created = new Date();
     const worksheet = workbook.addWorksheet("Termination Report");
 
-    // Title
     worksheet.mergeCells("A1:N1");
     const titleCell = worksheet.getCell("A1");
     titleCell.value = "Employee Termination Report - Detailed";
     titleCell.font = { bold: true, size: 14, color: { argb: "FF1B2A6B" } };
     titleCell.alignment = { horizontal: "center" };
 
-    // Generated timestamp
     worksheet.mergeCells("A2:N2");
     const timestampCell = worksheet.getCell("A2");
     timestampCell.value = `Generated: ${new Date().toLocaleString()}`;
@@ -141,22 +127,20 @@ const exportTerminationReportExcel = async (req, res, next) => {
     timestampCell.alignment = { horizontal: "center" };
     worksheet.addRow([]);
 
-    // Header row with all termination details
     const headerRow = worksheet.addRow([
       "EMP ID",
-      "Employee Name",
+      "Name",
       "Designation",
       "Termination Type",
-      "Termination Reason",
+      "Reason",
       "Join Date",
       "Exit Date",
       "Last Working Day",
       "Notice Period (Days)",
-      "Exit Interview",
       "Rehire Eligible",
-      "Reporting Manager",
-      "Terminated By",
       "Notes",
+      "Supervisor",
+      "Terminated By",
     ]);
     headerRow.eachCell((cell) => {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
@@ -179,25 +163,22 @@ const exportTerminationReportExcel = async (req, res, next) => {
     });
     headerRow.height = 30;
 
-    // Column widths - adjusted for new columns
     worksheet.columns = [
       { width: 12 }, // EMP ID
-      { width: 24 }, // Employee Name
+      { width: 24 }, // Name
       { width: 20 }, // Designation
       { width: 16 }, // Termination Type
-      { width: 30 }, // Termination Reason
+      { width: 30 }, // Reason
       { width: 14 }, // Join Date
       { width: 14 }, // Exit Date
       { width: 16 }, // Last Working Day
       { width: 12 }, // Notice Period
-      { width: 14 }, // Exit Interview
       { width: 14 }, // Rehire Eligible
-      { width: 20 }, // Reporting Manager
-      { width: 18 }, // Terminated By
       { width: 35 }, // Notes
+      { width: 20 }, // Supervisor
+      { width: 18 }, // Terminated By
     ];
 
-    // Data rows with all termination details
     reportData.forEach((dataRow, index) => {
       const excelRow = worksheet.addRow([
         dataRow.emp_id || "",
@@ -209,11 +190,10 @@ const exportTerminationReportExcel = async (req, res, next) => {
         dataRow.date_of_exit || "",
         dataRow.last_working_day || "N/A",
         dataRow.notice_period_days || 0,
-        dataRow.exit_interview_completed ? "Completed" : "Pending",
         dataRow.rehire_eligible ? "Yes" : "No",
-        dataRow.reporting_manager || "N/A",
-        dataRow.terminated_by || "N/A",
         dataRow.termination_notes || "",
+        dataRow.actual_supervisor || "N/A",
+        dataRow.terminated_by || "N/A",
       ]);
 
       const backgroundColor = index % 2 === 0 ? "FFF8F9FA" : "FFFFFFFF";
@@ -253,9 +233,6 @@ const exportTerminationReportExcel = async (req, res, next) => {
   }
 };
 
-/**
- * Export Birthday Report to Excel
- */
 const exportBirthdayReportExcel = async (req, res, next) => {
   try {
     const filterCriteria = {
@@ -390,9 +367,6 @@ const exportBirthdayReportExcel = async (req, res, next) => {
   }
 };
 
-/**
- * Export Work Anniversary Report to Excel
- */
 const exportWorkAnniversaryReportExcel = async (req, res, next) => {
   try {
     const filterCriteria = {
@@ -529,9 +503,6 @@ const exportWorkAnniversaryReportExcel = async (req, res, next) => {
   }
 };
 
-/**
- * Export Termination Report to PDF
- */
 const exportTerminationReportPDF = async (req, res, next) => {
   try {
     const filterCriteria = {
@@ -543,7 +514,7 @@ const exportTerminationReportPDF = async (req, res, next) => {
       employeeName: req.query.employee_name || null,
       page: 1,
       limit: 10000,
-      sortColumn: req.query.sort_column || "updated_at",
+      sortColumn: req.query.sort_column || "termination_date",
       sortDirection: req.query.sort_direction || "desc",
     };
 
@@ -575,41 +546,56 @@ const exportTerminationReportPDF = async (req, res, next) => {
     pdfDocument.moveDown(1);
 
     const tableTop = pdfDocument.y;
-    const colWidths = [60, 100, 90, 90, 100, 80, 80, 80];
+    const colWidths = [50, 90, 80, 70, 100, 70, 70, 80, 60, 70, 100, 80, 80];
     const colPositions = [30];
     for (let i = 0; i < colWidths.length - 1; i++) {
       colPositions.push(colPositions[i] + colWidths[i]);
     }
 
     pdfDocument
-      .fontSize(8)
+      .fontSize(7)
       .fillColor("#FFFFFF")
-      .rect(30, tableTop, 760, 20)
+      .rect(30, tableTop, 1050, 20)
       .fillAndStroke("#1B2A6B", "#1B2A6B");
-    pdfDocument.fontSize(8).fillColor("#FFFFFF");
-    pdfDocument.text("EMP ID", colPositions[0] + 5, tableTop + 6, {
-      width: colWidths[0] - 10,
+    pdfDocument.fontSize(7).fillColor("#FFFFFF");
+    pdfDocument.text("EMP ID", colPositions[0] + 3, tableTop + 6, {
+      width: colWidths[0] - 6,
     });
-    pdfDocument.text("Name", colPositions[1] + 5, tableTop + 6, {
-      width: colWidths[1] - 10,
+    pdfDocument.text("Name", colPositions[1] + 3, tableTop + 6, {
+      width: colWidths[1] - 6,
     });
-    pdfDocument.text("Designation", colPositions[2] + 5, tableTop + 6, {
-      width: colWidths[2] - 10,
+    pdfDocument.text("Designation", colPositions[2] + 3, tableTop + 6, {
+      width: colWidths[2] - 6,
     });
-    pdfDocument.text("Group Company", colPositions[3] + 5, tableTop + 6, {
-      width: colWidths[3] - 10,
+    pdfDocument.text("Type", colPositions[3] + 3, tableTop + 6, {
+      width: colWidths[3] - 6,
     });
-    pdfDocument.text("Manager", colPositions[4] + 5, tableTop + 6, {
-      width: colWidths[4] - 10,
+    pdfDocument.text("Reason", colPositions[4] + 3, tableTop + 6, {
+      width: colWidths[4] - 6,
     });
-    pdfDocument.text("Location", colPositions[5] + 5, tableTop + 6, {
-      width: colWidths[5] - 10,
+    pdfDocument.text("Join Date", colPositions[5] + 3, tableTop + 6, {
+      width: colWidths[5] - 6,
     });
-    pdfDocument.text("Join Date", colPositions[6] + 5, tableTop + 6, {
-      width: colWidths[6] - 10,
+    pdfDocument.text("Exit Date", colPositions[6] + 3, tableTop + 6, {
+      width: colWidths[6] - 6,
     });
-    pdfDocument.text("Exit Date", colPositions[7] + 5, tableTop + 6, {
-      width: colWidths[7] - 10,
+    pdfDocument.text("Last Work Day", colPositions[7] + 3, tableTop + 6, {
+      width: colWidths[7] - 6,
+    });
+    pdfDocument.text("Notice", colPositions[8] + 3, tableTop + 6, {
+      width: colWidths[8] - 6,
+    });
+    pdfDocument.text("Rehire", colPositions[9] + 3, tableTop + 6, {
+      width: colWidths[9] - 6,
+    });
+    pdfDocument.text("Notes", colPositions[10] + 3, tableTop + 6, {
+      width: colWidths[10] - 6,
+    });
+    pdfDocument.text("Supervisor", colPositions[11] + 3, tableTop + 6, {
+      width: colWidths[11] - 6,
+    });
+    pdfDocument.text("Terminated By", colPositions[12] + 3, tableTop + 6, {
+      width: colWidths[12] - 6,
     });
 
     let currentY = tableTop + 20;
@@ -622,59 +608,89 @@ const exportTerminationReportPDF = async (req, res, next) => {
       }
 
       const bgColor = index % 2 === 0 ? "#F8F9FA" : "#FFFFFF";
-      pdfDocument.rect(30, currentY, 760, 18).fill(bgColor);
+      pdfDocument.rect(30, currentY, 1050, 16).fill(bgColor);
 
-      pdfDocument.fontSize(7).fillColor("#000000");
+      pdfDocument.fontSize(6).fillColor("#000000");
       pdfDocument.text(
         dataRow.emp_id || "",
-        colPositions[0] + 5,
-        currentY + 5,
-        { width: colWidths[0] - 10, ellipsis: true },
+        colPositions[0] + 3,
+        currentY + 4,
+        { width: colWidths[0] - 6, ellipsis: true },
       );
       pdfDocument.text(
         dataRow.employee_name || "",
-        colPositions[1] + 5,
-        currentY + 5,
-        { width: colWidths[1] - 10, ellipsis: true },
+        colPositions[1] + 3,
+        currentY + 4,
+        { width: colWidths[1] - 6, ellipsis: true },
       );
       pdfDocument.text(
         dataRow.designation || "",
-        colPositions[2] + 5,
-        currentY + 5,
-        { width: colWidths[2] - 10, ellipsis: true },
+        colPositions[2] + 3,
+        currentY + 4,
+        { width: colWidths[2] - 6, ellipsis: true },
       );
       pdfDocument.text(
-        dataRow.group_company || "",
-        colPositions[3] + 5,
-        currentY + 5,
-        { width: colWidths[3] - 10, ellipsis: true },
+        dataRow.termination_type || "",
+        colPositions[3] + 3,
+        currentY + 4,
+        { width: colWidths[3] - 6, ellipsis: true },
       );
       pdfDocument.text(
-        dataRow.reporting_manager || "",
-        colPositions[4] + 5,
-        currentY + 5,
-        { width: colWidths[4] - 10, ellipsis: true },
-      );
-      pdfDocument.text(
-        dataRow.location || "",
-        colPositions[5] + 5,
-        currentY + 5,
-        { width: colWidths[5] - 10, ellipsis: true },
+        dataRow.termination_reason || "",
+        colPositions[4] + 3,
+        currentY + 4,
+        { width: colWidths[4] - 6, ellipsis: true },
       );
       pdfDocument.text(
         dataRow.date_of_joining || "",
-        colPositions[6] + 5,
-        currentY + 5,
-        { width: colWidths[6] - 10, ellipsis: true },
+        colPositions[5] + 3,
+        currentY + 4,
+        { width: colWidths[5] - 6, ellipsis: true },
       );
       pdfDocument.text(
         dataRow.date_of_exit || "",
-        colPositions[7] + 5,
-        currentY + 5,
-        { width: colWidths[7] - 10, ellipsis: true },
+        colPositions[6] + 3,
+        currentY + 4,
+        { width: colWidths[6] - 6, ellipsis: true },
+      );
+      pdfDocument.text(
+        dataRow.last_working_day || "",
+        colPositions[7] + 3,
+        currentY + 4,
+        { width: colWidths[7] - 6, ellipsis: true },
+      );
+      pdfDocument.text(
+        `${dataRow.notice_period_days || 0}d`,
+        colPositions[8] + 3,
+        currentY + 4,
+        { width: colWidths[8] - 6, ellipsis: true },
+      );
+      pdfDocument.text(
+        dataRow.rehire_eligible ? "Yes" : "No",
+        colPositions[9] + 3,
+        currentY + 4,
+        { width: colWidths[9] - 6, ellipsis: true },
+      );
+      pdfDocument.text(
+        dataRow.termination_notes || "",
+        colPositions[10] + 3,
+        currentY + 4,
+        { width: colWidths[10] - 6, ellipsis: true },
+      );
+      pdfDocument.text(
+        dataRow.actual_supervisor || "",
+        colPositions[11] + 3,
+        currentY + 4,
+        { width: colWidths[11] - 6, ellipsis: true },
+      );
+      pdfDocument.text(
+        dataRow.terminated_by || "",
+        colPositions[12] + 3,
+        currentY + 4,
+        { width: colWidths[12] - 6, ellipsis: true },
       );
 
-      currentY += 18;
+      currentY += 16;
     });
 
     if (reportData.length === 0) {

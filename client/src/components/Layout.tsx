@@ -19,6 +19,7 @@ import {
   IconHome,
 } from "./Icons";
 import { fetchEmployeesWithLimit } from "../store/employeeSlice";
+import NavigationSearch from "./NavigationSearch";
 
 export interface TabItem {
   label: string;
@@ -172,8 +173,7 @@ export default function Layout({
                 }}
               >
                 <a href="/my-info">
-
-                <IconGear size={10} color="#888" />
+                  <IconGear size={10} color="#888" />
                 </a>
               </div>
             </div>
@@ -207,37 +207,7 @@ export default function Layout({
               }}
               className="flex-shrink-0"
             >
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search"
-                  style={{
-                    width: "100%",
-                    paddingLeft: 14,
-                    paddingRight: 34,
-                    paddingTop: 7,
-                    paddingBottom: 7,
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 999,
-                    fontSize: 12,
-                    color: "#475569",
-                    background: "#f8fafc",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <span
-                  className="absolute"
-                  style={{
-                    right: 11,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    pointerEvents: "none",
-                  }}
-                >
-                  <IconSearch size={13} color="#94a3b8" />
-                </span>
-              </div>
+              <NavigationSearch />
             </div>
           )}
 

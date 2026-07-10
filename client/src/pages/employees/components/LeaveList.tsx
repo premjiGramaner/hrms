@@ -32,6 +32,8 @@ function getStatusColor(status: string) {
   }
 }
 
+
+
 export default function LeaveList({ employee }: Props) {
   const navigate = useNavigate();
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);

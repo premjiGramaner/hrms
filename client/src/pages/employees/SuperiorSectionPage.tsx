@@ -33,11 +33,8 @@ function initials(employee: Employee) {
 
 function avatarSrc(employee: Employee) {
   if (!employee.avatar) return "";
-  // return employee.avatar.startsWith("uploads/")
-  //   ? `/${employee.avatar}`
-  //   : `/uploads/${employee.avatar}`;
 
-  return employee.avatar
+  return employee.avatar;
 }
 
 function displayRole(role: string) {
@@ -120,7 +117,6 @@ export default function SuperiorSectionPage() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
 
   const loadRows = useCallback(
     async (
@@ -128,7 +124,6 @@ export default function SuperiorSectionPage() {
       nextPageSize = pageSize,
       nextSearch = search,
       nextRole = roleFilter,
-      nextStatus = statusFilter,
     ) => {
       setIsLoading(true);
       try {
@@ -137,7 +132,6 @@ export default function SuperiorSectionPage() {
           limit: nextPageSize,
           search: nextSearch,
           role: nextRole,
-          status: nextStatus,
         });
         setRows(response.data.data);
         setPageData(response.data);
@@ -149,15 +143,15 @@ export default function SuperiorSectionPage() {
         setIsLoading(false);
       }
     },
-    [page, pageSize, search, roleFilter, statusFilter],
+    [page, pageSize, search, roleFilter],
   );
 
   useEffect(() => {
-    loadRows(1, pageSize, "", "", "");
+    loadRows(1, pageSize, "", "");
   }, []);
 
   const debouncedSearch = useDebounce((value: string) => {
-    loadRows(1, pageSize, value, roleFilter, statusFilter);
+    loadRows(1, pageSize, value, roleFilter);
   }, 350);
 
   const handleSearch = (value: string) => {
@@ -167,28 +161,22 @@ export default function SuperiorSectionPage() {
 
   const handleRoleFilter = (value: string) => {
     setRoleFilter(value);
-    loadRows(1, pageSize, search, value, statusFilter);
-  };
-
-  const handleStatusFilter = (value: string) => {
-    setStatusFilter(value);
-    loadRows(1, pageSize, search, roleFilter, value);
+    loadRows(1, pageSize, search, value);
   };
 
   const handlePageChange = (nextPage: number) => {
-    loadRows(nextPage, pageSize, search, roleFilter, statusFilter);
+    loadRows(nextPage, pageSize, search, roleFilter);
   };
 
   const handlePageSizeChange = (nextPageSize: number) => {
     setPageSize(nextPageSize);
-    loadRows(1, nextPageSize, search, roleFilter, statusFilter);
+    loadRows(1, nextPageSize, search, roleFilter);
   };
 
   const clearFilters = () => {
     setSearch("");
     setRoleFilter("");
-    setStatusFilter("");
-    loadRows(1, pageSize, "", "", "");
+    loadRows(1, pageSize, "", "");
   };
 
   const supervisorCount = rows.filter((row) =>
@@ -197,7 +185,6 @@ export default function SuperiorSectionPage() {
   const globalAdminCount = rows.filter((row) =>
     ["hradmin", "empmanager"].includes(row.role),
   ).length;
-  const activeCount = rows.filter((row) => row.is_active !== false).length;
 
   const stats: StatCard[] = [
     {
@@ -223,14 +210,6 @@ export default function SuperiorSectionPage() {
       color: "#7c3aed",
       bg: "#ede9fe",
       border: "#c4b5fd",
-    },
-    {
-      label: "Active",
-      value: activeCount,
-      icon: <UserCheck size={26} />,
-      color: "#16a34a",
-      bg: "#f0fdf4",
-      border: "#bbf7d0",
     },
   ];
 
@@ -348,40 +327,9 @@ export default function SuperiorSectionPage() {
         </span>
       ),
     },
-    {
-      key: "is_active",
-      header: "Status",
-      width: 110,
-      render: (employee) => (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            fontSize: 12,
-            fontWeight: 600,
-            padding: "4px 10px",
-            borderRadius: 999,
-            background: employee.is_active !== false ? "#dcfce7" : "#f1f5f9",
-            color: employee.is_active !== false ? "#16a34a" : "#94a3b8",
-            border: `1px solid ${employee.is_active !== false ? "#bbf7d0" : "#e2e8f0"}`,
-          }}
-        >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: employee.is_active !== false ? "#22c55e" : "#cbd5e1",
-            }}
-          />
-          {employee.is_active !== false ? "Active" : "Inactive"}
-        </span>
-      ),
-    },
   ];
 
-  const hasFilters = Boolean(search || roleFilter || statusFilter);
+  const hasFilters = Boolean(search || roleFilter);
   const extraToolbar = (
     <>
       <FilterSelect
@@ -392,16 +340,6 @@ export default function SuperiorSectionPage() {
         options={[
           { value: "supervisor", label: "Supervisor" },
           { value: "hradmin", label: "Global Admin" },
-        ]}
-      />
-      <FilterSelect
-        value={statusFilter}
-        onChange={handleStatusFilter}
-        placeholder="All Status"
-        minWidth={130}
-        options={[
-          { value: "active", label: "Active" },
-          { value: "inactive", label: "Inactive" },
         ]}
       />
       {hasFilters && (

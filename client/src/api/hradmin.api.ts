@@ -28,14 +28,14 @@ export interface CreateHRUserPayload {
   employee_name: string;
   email: string;
   role: string;
-  status: string;
+  status?: string;
 }
 
 export interface UpdateHRUserPayload {
   employee_name: string;
   email: string;
   role: string;
-  status: string;
+  status?: string;
 }
 
 export const getHRUsers = async (
