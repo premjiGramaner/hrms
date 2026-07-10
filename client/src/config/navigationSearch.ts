@@ -5,6 +5,7 @@ export interface SearchableItem {
   module: string;
   keywords: string[];
   category: "tab" | "page";
+  roles?: string[];
 }
 
 export const searchableNavigation: SearchableItem[] = [
@@ -15,6 +16,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["job", "titles", "position", "designation", "role"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "hr-job-categories",
@@ -23,6 +25,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["job", "categories", "category", "classification"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "hr-sub-units",
@@ -31,6 +34,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["sub", "units", "department", "division", "organization"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "hr-role-access",
@@ -39,6 +43,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["role", "access", "permissions", "security", "authorization"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "hr-audit-trail",
@@ -47,6 +52,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["audit", "trail", "logs", "history", "tracking"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
 
   {
@@ -56,6 +62,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Employee Management",
     keywords: ["employee", "list", "staff", "personnel", "people"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "emp-superior",
@@ -64,6 +71,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Employee Management",
     keywords: ["superior", "supervisor", "manager", "reporting", "hierarchy"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "emp-myinfo",
@@ -81,6 +89,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Reports and Analytics",
     keywords: ["birthday", "report", "celebration", "date", "birth"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "report-anniversary",
@@ -89,6 +98,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Reports and Analytics",
     keywords: ["work", "anniversary", "tenure", "service", "joining"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "report-termination",
@@ -97,6 +107,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Reports and Analytics",
     keywords: ["termination", "exit", "resignation", "leaving", "offboarding"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "report-notifications",
@@ -105,6 +116,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Reports and Analytics",
     keywords: ["notifications", "alerts", "email", "settings", "config"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
 
   {
@@ -124,12 +136,37 @@ export const searchableNavigation: SearchableItem[] = [
     category: "tab",
   },
   {
-    id: "leave-entitlement",
-    label: "Leave Entitlement",
-    path: "/leave/entitlements",
+    id: "leave-entitlement-add",
+    label: "Add Leave Entitlement",
+    path: "/leave/entitlements/add_entitlements",
     module: "Leave",
-    keywords: ["leave", "entitlement", "balance", "quota", "allocation"],
+    keywords: ["add", "leave", "entitlement", "assign", "allocate", "grant"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
+  },
+  {
+    id: "leave-entitlement-report",
+    label: "My Leave Entitlements",
+    path: "/leave/entitlements/my_leave_entitlements",
+    module: "Leave",
+    keywords: ["my", "leave", "entitlements", "balance", "quota", "allocation"],
+    category: "tab",
+  },
+  {
+    id: "leave-entitlement-list",
+    label: "Employee Leave Entitlements",
+    path: "/leave/entitlements/employee_entitlements",
+    module: "Leave",
+    keywords: [
+      "employee",
+      "leave",
+      "entitlements",
+      "balance",
+      "quota",
+      "report",
+    ],
+    category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
   {
     id: "leave-configure",
@@ -138,6 +175,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Leave",
     keywords: ["configure", "leave", "setup", "settings", "types"],
     category: "tab",
+    roles: ["hradmin", "empmanager"],
   },
 
   {
@@ -185,9 +223,13 @@ export const searchableNavigation: SearchableItem[] = [
 /**
  * Search function to find matching navigation items
  * @param query - Search query string
+ * @param userRole - Current user's role for filtering
  * @returns Filtered and ranked search results
  */
-export function searchNavigation(query: string): SearchableItem[] {
+export function searchNavigation(
+  query: string,
+  userRole?: string,
+): SearchableItem[] {
   if (!query || query.trim().length < 2) {
     return [];
   }
@@ -195,7 +237,17 @@ export function searchNavigation(query: string): SearchableItem[] {
   const normalizedQuery = query.toLowerCase().trim();
   const words = normalizedQuery.split(/\s+/);
 
-  const results = searchableNavigation
+  const roleFilteredItems = searchableNavigation.filter((item) => {
+    if (!item.roles || item.roles.length === 0) {
+      return true;
+    }
+    if (!userRole) {
+      return false;
+    }
+    return item.roles.includes(userRole);
+  });
+
+  const results = roleFilteredItems
     .map((item) => {
       const labelMatch = item.label.toLowerCase().includes(normalizedQuery);
       const moduleMatch = item.module.toLowerCase().includes(normalizedQuery);

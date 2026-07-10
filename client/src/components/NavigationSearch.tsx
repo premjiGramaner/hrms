@@ -3,8 +3,10 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { IconSearch } from "./Icons";
 import { searchNavigation, SearchableItem } from "../config/navigationSearch";
+import { useAppSelector } from "../app/hooks";
 
 export default function NavigationSearch() {
+  const user = useAppSelector((state) => state.auth.user);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchableItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +34,7 @@ export default function NavigationSearch() {
 
   useEffect(() => {
     if (query.trim().length >= 2) {
-      const searchResults = searchNavigation(query);
+      const searchResults = searchNavigation(query, user?.role);
       setResults(searchResults);
       setIsOpen(searchResults.length > 0);
       setSelectedIndex(-1);
@@ -41,7 +43,7 @@ export default function NavigationSearch() {
       setIsOpen(false);
       setSelectedIndex(-1);
     }
-  }, [query]);
+  }, [query, user?.role]);
 
   // Close dropdown on outside click
   useEffect(() => {

@@ -195,21 +195,19 @@ export default function Layout({
               {roleLabel}
             </p>
           </div>
-          {isAdmin && (
-            <div
-              style={{
-                padding: "12px 12px 10px",
-                maxHeight: collapsed ? 0 : 60,
-                opacity: collapsed ? 0 : 1,
-                overflow: "hidden",
-                transition:
-                  "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
-              }}
-              className="flex-shrink-0"
-            >
-              <NavigationSearch />
-            </div>
-          )}
+          <div
+            style={{
+              padding: "12px 12px 10px",
+              maxHeight: collapsed ? 0 : 60,
+              opacity: collapsed ? 0 : 1,
+              overflow: "hidden",
+              transition:
+                "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
+            }}
+            className="flex-shrink-0"
+          >
+            <NavigationSearch />
+          </div>
 
           <nav
             className="flex-1 overflow-y-auto"
