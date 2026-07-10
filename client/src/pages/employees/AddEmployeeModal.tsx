@@ -209,14 +209,9 @@ export default function AddEmployeeModal({
 
     if (stepNumber === 4) {
       const workEmail = formRef.current.work_email?.trim();
-      const otherEmail = formRef.current.other_email?.trim();
 
       if (errors.work_email && workEmail) {
         nextErrors.work_email = errors.work_email;
-      }
-
-      if (errors.other_email && otherEmail) {
-        nextErrors.other_email = errors.other_email;
       }
     }
 
@@ -309,19 +304,11 @@ export default function AddEmployeeModal({
         errorMessage.toLowerCase().includes("exist")
       ) {
         const workEmail = formRef.current.work_email?.trim();
-        const otherEmail = formRef.current.other_email?.trim();
 
         if (workEmail) {
           setErrors((prev) => ({
             ...prev,
             work_email: "This email address is already registered",
-          }));
-        }
-
-        if (otherEmail === workEmail) {
-          setErrors((prev) => ({
-            ...prev,
-            other_email: "This email address is already registered",
           }));
         }
 
@@ -410,6 +397,15 @@ export default function AddEmployeeModal({
     fieldName: "work_email" | "other_email",
     element: HTMLInputElement,
   ) => {
+    if (fieldName === "other_email") {
+      setErrors((prev) => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors[fieldName];
+        return updatedErrors;
+      });
+      return;
+    }
+
     if (!email.trim()) {
       setErrors((prev) => {
         const updatedErrors = { ...prev };
