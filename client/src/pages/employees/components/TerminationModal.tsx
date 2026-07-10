@@ -80,7 +80,6 @@ export default function TerminationModal({
     if (saving) return;
 
     if (!validateForm()) return;
-
     try {
       setSaving(true);
 
