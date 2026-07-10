@@ -140,6 +140,11 @@ export const terminateEmployee = async (
   terminationData: {
     terminationReason: string;
     terminationDateTime: string;
+    terminationType?: string;
+    lastWorkingDay?: string;
+    noticePeriodDays?: number;
+    exitInterviewCompleted?: boolean;
+    rehireEligible?: boolean;
     notes?: string;
   },
 ) => {

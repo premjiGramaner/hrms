@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, ChangeEvent } from "react";
+import { useState, useRef, useEffect, ChangeEvent } from "react";
 import { terminateEmployee } from "../../../api/employee.api";
 import { getApiErrorMessage } from "../../../utils/errors";
 import Toast from "../../../utils/toast";
@@ -26,7 +26,6 @@ export default function TerminationModal({
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [actionMessage, setActionMessage] = useState("");
   const formRef = useRef<Record<keyof typeof terminationForm, string>>(
     {} as any,
   );
@@ -84,7 +83,6 @@ export default function TerminationModal({
 
     try {
       setSaving(true);
-      setActionMessage("");
 
       const reason =
         terminationForm.terminationReason === "Other"
@@ -122,38 +120,6 @@ export default function TerminationModal({
   const handleTerminateCancel = () => {
     onClose();
   };
-
-  const renderInput = (
-    name: keyof typeof terminationForm,
-    placeholder = "",
-    type = "text",
-    req = false,
-  ) => (
-    <div>
-      <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
-        {name
-          .split(/(?=[A-Z])/)
-          .map((word) => word.toLowerCase())
-          .join(" ")
-          .replace(/^./, (str) => str.toUpperCase())}
-        {req && <span className="text-red-600 ml-0.5">*</span>}
-      </label>
-      <input
-        type={type}
-        placeholder={placeholder}
-        defaultValue={formRef.current[name]}
-        onChange={set(name)}
-        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
-          errors[name]
-            ? "border-red-500 bg-red-50"
-            : "border-slate-200 bg-slate-50 focus:border-slate-300"
-        }`}
-      />
-      {errors[name] && (
-        <span className="text-xs text-red-600 mt-1 block">{errors[name]}</span>
-      )}
-    </div>
-  );
 
   const renderDateInput = (
     name: keyof typeof terminationForm,
