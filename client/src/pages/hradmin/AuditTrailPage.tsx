@@ -133,19 +133,23 @@ export default function AuditTrailPage() {
   const [actionFilter, setActionFilter] = useState("all");
   const [sectionFilter, setSectionFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(50);
   const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     setIsLoading(true);
-    getAuditTrail()
+    getAuditTrail(currentPage, pageSize)
       .then((res) => {
         setAllRecords(res.data);
         setFilteredRecords(res.data);
+        setTotalRecords(res.pagination.totalCount);
+        setTotalPages(res.pagination.totalPages);
       })
       .catch(() => setPageError("Failed to load audit trail. Please refresh."))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [currentPage, pageSize]);
 
   const uniqueActions = [
     ...new Set(allRecords.map((allRecord) => allRecord.action).filter(Boolean)),
@@ -208,7 +212,6 @@ export default function AuditTrailPage() {
   const hasFilters =
     searchQuery !== "" || actionFilter !== "all" || sectionFilter !== "all";
 
-  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const pagedRecords = useMemo(() => {
     const sorted = [...filteredRecords].sort((a, b) => {
       const diff =

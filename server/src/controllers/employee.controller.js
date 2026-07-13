@@ -3,6 +3,7 @@ import { success, created, error } from "../utils/response.js";
 import { writeAuditLog } from "../services/audit.service.js";
 import { sendWelcomeEmail } from "../../email.service.js";
 import { clientBaseUrl } from "../config/env.js";
+import { logInfo, logError } from "../utils/logger.js";
 
 function getClientUrl(req) {
   if (clientBaseUrl) return clientBaseUrl.replace(/\/$/, "");
@@ -172,7 +173,10 @@ const createEmployee = async (req, res, next) => {
         loginUrl,
       });
     } catch (err) {
-      console.error(`[EMPLOYEE] Failed to send welcome email:`, err.message);
+      logError("Failed to send welcome email", err, {
+        employeeEmail: emp.email,
+        employeeName: emp.name,
+      });
       emailSent = false;
       emailMessage =
         "Employee created, but welcome email could not be sent. Check SMTP configuration.";
@@ -182,14 +186,15 @@ const createEmployee = async (req, res, next) => {
       const { checkAndSendImmediateNotifications } =
         await import("../services/reportNotification.service.js");
       await checkAndSendImmediateNotifications(emp.id);
-      console.log(
-        `[EMPLOYEE] Checked immediate birthday/anniversary notifications for ${emp.name}`,
-      );
+      logInfo("Checked immediate birthday/anniversary notifications", {
+        employeeId: emp.id,
+        employeeName: emp.name,
+      });
     } catch (notifErr) {
-      console.error(
-        `[EMPLOYEE] Failed to check immediate notifications:`,
-        notifErr.message,
-      );
+      logError("Failed to check immediate notifications", notifErr, {
+        employeeId: emp.id,
+        employeeName: emp.name,
+      });
     }
 
     return created(res, {
@@ -256,7 +261,7 @@ const updateEmployee = async (req, res, next) => {
     });
     return success(res, { message: "Employee updated successfully" });
   } catch (err) {
-    console.error("❌ Update employee error:", err);
+    logError("Update employee failed", err, { employeeId: id });
     next(err);
   }
 };

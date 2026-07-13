@@ -1,5 +1,6 @@
 import pool from "../config/db.js";
 import bcrypt from "bcryptjs";
+import { logError, logDatabase } from "../utils/logger.js";
 import crypto from "crypto";
 
 const SPACE_REGEX = /\s+/g;
@@ -100,7 +101,7 @@ async function findAllEmployees(page, limit = 10, search = "") {
       totalPages: Math.ceil(total / limit),
     };
   } catch (err) {
-    console.error("Error in findAllEmployees:", err);
+    logError("Error in findAllEmployees", err, { page, limit, search });
     throw err;
   }
 }
@@ -242,7 +243,7 @@ async function createEmployee(data, avatarBase64) {
   const password = await bcrypt.hash(plainPassword, 10);
 
   const realDob = data.real_dob || data.dob || null;
-  
+
   // Convert supervisor IDs to names and store names
   const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
 
@@ -353,7 +354,7 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
     !value || String(value).trim() === "" ? null : String(value).trim();
 
   const realDob = d(data.real_dob) || d(data.dob);
-  
+
   // Convert supervisor IDs to names and store names
   const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
 

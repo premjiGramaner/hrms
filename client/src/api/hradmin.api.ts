@@ -246,11 +246,31 @@ export const deleteSubUnit = async (subUnitId: number): Promise<void> => {
   await api.delete(`/hradmin/sub-units/${subUnitId}`);
 };
 
-export const getAuditTrail = async (): Promise<{ data: any[] }> => {
-  const response = await api.get<{ success: boolean; data: any[] }>(
-    "/hradmin/audit-trail",
-  );
-  return { data: response.data.data };
+export const getAuditTrail = async (
+  page: number = 1,
+  limit: number = 50,
+): Promise<{
+  data: any[];
+  pagination: {
+    page: number;
+    limit: number;
+    totalCount: number;
+    totalPages: number;
+  };
+}> => {
+  const response = await api.get<{
+    success: boolean;
+    data: {
+      data: any[];
+      pagination: {
+        page: number;
+        limit: number;
+        totalCount: number;
+        totalPages: number;
+      };
+    };
+  }>(`/hradmin/audit-trail?page=${page}&limit=${limit}`);
+  return response.data.data;
 };
 
 export interface RoleAccessUser {
@@ -286,18 +306,26 @@ export interface RoleAccessQueryParams {
 export const getRoleAccess = async (
   params: RoleAccessQueryParams = {},
 ): Promise<{ data: RoleAccessPaginatedResponse }> => {
-  const { page = 1, limit = 10, search = "", role = "", gender = "", status = "" } = params;
+  const {
+    page = 1,
+    limit = 10,
+    search = "",
+    role = "",
+    gender = "",
+    status = "",
+  } = params;
   const qs = new URLSearchParams({
     page: String(page),
     limit: String(limit),
     ...(search ? { search } : {}),
-    ...(role   ? { role }   : {}),
+    ...(role ? { role } : {}),
     ...(gender ? { gender } : {}),
     ...(status ? { status } : {}),
   }).toString();
-  const response = await api.get<{ success: boolean; data: RoleAccessPaginatedResponse }>(
-    `/hradmin/role-access?${qs}`,
-  );
+  const response = await api.get<{
+    success: boolean;
+    data: RoleAccessPaginatedResponse;
+  }>(`/hradmin/role-access?${qs}`);
   return { data: response.data.data };
 };
 

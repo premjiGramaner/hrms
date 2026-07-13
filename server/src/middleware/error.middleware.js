@@ -1,4 +1,5 @@
 import { nodeEnv } from "../config/env.js";
+import { logError } from "../utils/logger.js";
 
 const errorMiddleware = (err, _req, res, _next) => {
   const statusCode = err.statusCode || 500;
@@ -7,9 +8,8 @@ const errorMiddleware = (err, _req, res, _next) => {
       ? "Internal Server Error"
       : err.message || "Internal Server Error";
 
-  // Only log unexpected errors (not 401/403 which are expected operational errors)
   if (nodeEnv !== "production" && statusCode >= 500) {
-    console.error(err);
+    logError("Unhandled server error", err, { statusCode });
   }
 
   res.status(statusCode).json({ success: false, message });

@@ -149,6 +149,13 @@ export interface LeaveFilters {
   limit?: number;
 }
 
+export enum KeyboardKey {
+  ArrowDown = "ArrowDown",
+  ArrowUp = "ArrowUp",
+  Enter = "Enter",
+  Escape = "Escape",
+}
+
 export interface TerminationReportRecord {
   id: number;
   emp_id?: string;

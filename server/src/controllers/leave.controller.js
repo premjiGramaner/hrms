@@ -251,8 +251,20 @@ const rejectLeave = async (req, res, next) => {
     const actorId = req.user.id;
     const actorRole = req.user.role;
 
-    if (actorRole === "employee")
-      return error(res, "Employees cannot reject leave requests", 403);
+    const PRIVILEGED_ROLES = [
+      "empmanager",
+      "hradmin",
+      "supervisor",
+      "manager",
+      "line_manager",
+      "reporting_manager",
+    ];
+    if (!PRIVILEGED_ROLES.includes(actorRole))
+      return error(
+        res,
+        "You do not have permission to approve leave requests",
+        403,
+      );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot reject your own leave request", 403);
     if (["Cancelled", "Rejected"].includes(leave.status)) {
@@ -280,17 +292,26 @@ const cancelLeave = async (req, res, next) => {
     const actorRole = req.user.role;
     const leaveEmployeeId = parseInt(leave.employee_id);
     const isOwner = leaveEmployeeId === actorId;
-    const isAdminOrHR = ["empmanager", "hradmin"].includes(actorRole);
+    const isPrivileged = [
+      "empmanager",
+      "hradmin",
+      "supervisor",
+      "manager",
+      "line_manager",
+      "reporting_manager",
+    ].includes(actorRole);
+    F;
 
-    if (!isOwner && !isAdminOrHR) {
+    if (!isOwner && !isPrivileged) {
       return error(res, "Forbidden", 403);
     }
 
     if (leave.status === "Cancelled") {
+      F;
       return error(res, "Leave is already cancelled", 400);
     }
 
-    if (isOwner && leave.status !== "Pending Approval") {
+    if (isOwner && !isPrivileged && leave.status !== "Pending Approval") {
       return error(
         res,
         "This leave request has already been processed and cannot be cancelled.",

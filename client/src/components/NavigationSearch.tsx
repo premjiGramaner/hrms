@@ -4,6 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { IconSearch } from "./Icons";
 import { searchNavigation, SearchableItem } from "../config/navigationSearch";
 import { useAppSelector } from "../app/hooks";
+import { KeyboardKey } from "../types";
+
+interface DropdownPosition {
+  top: number;
+  left: number;
+  width: number;
+}
 
 export default function NavigationSearch() {
   const user = useAppSelector((state) => state.auth.user);
@@ -11,7 +18,7 @@ export default function NavigationSearch() {
   const [results, setResults] = useState<SearchableItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [dropdownPosition, setDropdownPosition] = useState({
+  const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({
     top: 0,
     left: 0,
     width: 0,
@@ -70,34 +77,36 @@ export default function NavigationSearch() {
     inputRef.current?.blur();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     if (!isOpen || results.length === 0) return;
 
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
+    switch (event.key) {
+      case KeyboardKey.ArrowDown:
+        event.preventDefault();
         setSelectedIndex((prev) =>
           prev < results.length - 1 ? prev + 1 : prev,
         );
         break;
-      case "ArrowUp":
-        e.preventDefault();
+
+      case KeyboardKey.ArrowUp:
+        event.preventDefault();
         setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
         break;
-      case "Enter":
-        e.preventDefault();
+
+      case KeyboardKey.Enter:
+        event.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < results.length) {
           navigateToItem(results[selectedIndex]);
         }
         break;
-      case "Escape":
+
+      case KeyboardKey.Escape:
         setIsOpen(false);
         setSelectedIndex(-1);
         inputRef.current?.blur();
         break;
     }
   };
-
   return (
     <div ref={wrapperRef} className="relative" style={{ width: "100%" }}>
       <div className="relative">
@@ -193,15 +202,9 @@ export default function NavigationSearch() {
                     </div>
                   </div>
                   <div
-                    className="flex-shrink-0"
-                    style={{
-                      fontSize: 10,
-                      color: "#94a3b8",
-                      textTransform: "uppercase",
-                      fontWeight: 600,
-                      letterSpacing: "0.05em",
-                      marginTop: 2,
-                    }}
+                    className={`flex-shrink-0 overflow-hidden px-3 pt-3 pb-2 transition-all duration-300 ease-in-out 
+                      ${`collapsed ? "max-h-0 opacity-0" : "max-h-[60px] opacity-100"`}    
+                    `}
                   >
                     {item.category}
                   </div>

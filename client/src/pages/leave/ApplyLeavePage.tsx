@@ -86,7 +86,7 @@ export default function ApplyLeavePage() {
           ? getLeaves({
               page: 1,
               limit: 1000,
-              statuses: ["Pending Approval", "Approved", "Scheduled", "Taken"],
+              statuses: ["Pending Approval", "Approved", "Scheduled"],
               own_employee_id: user.id,
             })
           : Promise.resolve({ data: [] }),

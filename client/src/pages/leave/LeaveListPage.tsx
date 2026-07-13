@@ -18,13 +18,13 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
 import Pagination from "../../components/Pagination";
+import { ADMIN_ROLES, SUPERVISOR_ROLES } from "../../config/roles";
 
 const ATTACH_STATUSES = ["Available", "Pending"];
 const STATUS_OPTIONS = [
   "Cancelled",
   "Pending Approval",
   "Scheduled",
-  "Taken",
   "Rejected",
   "Approved",
 ];
@@ -214,7 +214,10 @@ export default function LeaveListPage() {
   const navigate = useNavigate();
   const { data, loading, filters } = useAppSelector((s) => s.leaves);
   const user = useAppSelector((s) => s.auth.user);
-  const isAdmin = user?.role === "empmanager" || user?.role === "hradmin";
+
+  const isAdmin =
+    ADMIN_ROLES.includes(user?.role || "") ||
+    SUPERVISOR_ROLES.includes(user?.role || "");
   const { toasts, addToast, removeToast } = useToast();
 
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);

@@ -2,6 +2,16 @@ import nodemailer from "nodemailer";
 import pool from "../config/db.js";
 import ReportModel from "../models/report.model.js";
 import { smtpUser, smtpPass, mailFrom } from "../config/env.js";
+import {
+  logInfo,
+  logError,
+  logNotification,
+  logEmail,
+} from "../utils/logger.js";
+import {
+  notificationMessages,
+  successMessage,
+} from "../utils/responseMessages.js";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -13,7 +23,7 @@ const transporter = nodemailer.createTransport({
 
 async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
   if (!upcomingBirthdaysData || upcomingBirthdaysData.length === 0) {
-    return { success: true, message: "No birthdays to notify" };
+    return notificationMessages.noItems("birthdays");
   }
 
   const birthdayListHTML = upcomingBirthdaysData
@@ -57,12 +67,9 @@ async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
     </div>
   `;
 
-  console.log(
-    `[Birthday Notification] Sending email to: ${recipientEmails.join(", ")}`,
-  );
-  console.log(
-    `[Birthday Notification] ${upcomingBirthdaysData.length} birthday(s) to notify`,
-  );
+  logEmail("Sending birthday notification", recipientEmails.join(", "), {
+    count: upcomingBirthdaysData.length,
+  });
 
   try {
     await transporter.sendMail({
@@ -71,14 +78,19 @@ async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
       subject,
       html,
     });
-    console.log("[Birthday Notification] ✅ Email sent successfully");
-    return {
-      success: true,
-      message: `Birthday alert email sent successfully to ${recipientEmails.length} recipient(s)`,
-    };
+    logEmail(
+      "Birthday notification sent successfully",
+      recipientEmails.join(", "),
+      {
+        recipientCount: recipientEmails.length,
+      },
+    );
+    return notificationMessages.emailSent("Birthday", recipientEmails.length);
   } catch (err) {
-    console.error("[Birthday Notification] ❌ Email send error:", err);
-    return { success: false, message: err.message };
+    logError("Birthday notification email send failed", err, {
+      recipients: recipientEmails.join(", "),
+    });
+    return notificationMessages.sendFailed(err);
   }
 }
 
@@ -87,7 +99,7 @@ async function sendWorkAnniversaryAlertEmail(
   recipientEmails,
 ) {
   if (!upcomingAnniversariesData || upcomingAnniversariesData.length === 0) {
-    return { success: true, message: "No work anniversaries to notify" };
+    return notificationMessages.noItems("work anniversaries");
   }
 
   const anniversaryListHTML = upcomingAnniversariesData
@@ -133,11 +145,12 @@ async function sendWorkAnniversaryAlertEmail(
     </div>
   `;
 
-  console.log(
-    `[Anniversary Notification] Sending email to: ${recipientEmails.join(", ")}`,
-  );
-  console.log(
-    `[Anniversary Notification] ${upcomingAnniversariesData.length} anniversary(ies) to notify`,
+  logEmail(
+    "Sending work anniversary notification",
+    recipientEmails.join(", "),
+    {
+      count: upcomingAnniversariesData.length,
+    },
   );
 
   try {
@@ -147,45 +160,53 @@ async function sendWorkAnniversaryAlertEmail(
       subject,
       html,
     });
-    console.log("[Anniversary Notification] ✅ Email sent successfully");
-    return {
-      success: true,
-      message: `Work anniversary alert email sent successfully to ${recipientEmails.length} recipient(s)`,
-    };
+    logEmail(
+      "Work anniversary notification sent successfully",
+      recipientEmails.join(", "),
+      {
+        recipientCount: recipientEmails.length,
+      },
+    );
+    return notificationMessages.emailSent(
+      "Work anniversary",
+      recipientEmails.length,
+    );
   } catch (err) {
-    console.error("[Anniversary Notification] ❌ Email send error:", err);
-    return { success: false, message: err.message };
+    logError("Work anniversary notification email send failed", err, {
+      recipients: recipientEmails.join(", "),
+    });
+    return notificationMessages.sendFailed(err);
   }
 }
 async function processBirthdayNotifications() {
   try {
-    console.log("[Birthday Notifications] Starting processing...");
+    logNotification("Starting birthday notifications processing");
 
     const notificationConfig =
       await ReportModel.getNotificationConfig("birthday");
 
     if (!notificationConfig || !notificationConfig.is_active) {
-      console.log("[Birthday Notifications] ⚠️ Notifications are disabled");
-      return { success: false, message: "Birthday notifications disabled" };
+      logNotification("Birthday notifications are disabled");
+      return notificationMessages.disabled("Birthday");
     }
 
     const daysBefore = notificationConfig.days_before || 0;
-    console.log(
-      `[Birthday Notifications] Checking for birthdays from TODAY to ${daysBefore} day(s) ahead...`,
-    );
+    logNotification("Checking for upcoming birthdays", {
+      daysBefore,
+      range: `TODAY to ${daysBefore} day(s) ahead`,
+    });
 
     const upcomingBirthdays =
       await ReportModel.getUpcomingBirthdays(daysBefore);
 
-    console.log(
-      `[Birthday Notifications] Found ${upcomingBirthdays.length} upcoming birthday(s)`,
-    );
+    logNotification("Found upcoming birthdays", {
+      count: upcomingBirthdays.length,
+    });
 
     if (upcomingBirthdays.length === 0) {
-      return {
-        success: true,
-        message: `No birthdays found from today to ${daysBefore} day(s) ahead`,
-      };
+      return successMessage(
+        `No birthdays found from today to ${daysBefore} day(s) ahead`,
+      );
     }
 
     const { rows: globalAdmins } = await pool.query(
@@ -198,9 +219,10 @@ async function processBirthdayNotifications() {
     let recipientEmails = globalAdmins
       .map((admin) => admin.email)
       .filter(Boolean);
-    console.log(
-      `[Birthday Notifications] Global admin emails (auto): ${recipientEmails.join(", ")}`,
-    );
+    logNotification("Retrieved global admin emails", {
+      adminCount: recipientEmails.length,
+      emails: recipientEmails.join(", "),
+    });
 
     const recipientUserIds =
       recipientEmails.length > 0
@@ -213,14 +235,14 @@ async function processBirthdayNotifications() {
         .map((email) => email.trim())
         .filter(Boolean);
       recipientEmails = [...recipientEmails, ...externalEmails];
-      console.log(
-        `[Birthday Notifications] Added ${externalEmails.length} external email(s)`,
-      );
+      logNotification("Added external emails", {
+        externalCount: externalEmails.length,
+      });
     }
 
     if (recipientEmails.length === 0) {
-      console.log("[Birthday Notifications] ⚠️ No recipient emails configured");
-      return { success: false, message: "No recipient emails configured" };
+      logNotification("No recipient emails configured");
+      return notificationMessages.noRecipients();
     }
 
     const emailResult = await sendBirthdayAlertEmail(
@@ -248,8 +270,8 @@ async function processBirthdayNotifications() {
 
     return emailResult;
   } catch (err) {
-    console.error("[Birthday Notifications] ❌ Error:", err);
-    return { success: false, message: err.message };
+    logError("Birthday notifications processing failed", err);
+    return notificationMessages.processingFailed("Birthday", err);
   }
 }
 
@@ -259,30 +281,27 @@ async function processWorkAnniversaryNotifications() {
       await ReportModel.getNotificationConfig("work_anniversary");
 
     if (!notificationConfig || !notificationConfig.is_active) {
-      console.log("[Anniversary Notifications] ⚠️ Notifications are disabled");
-      return {
-        success: false,
-        message: "Work anniversary notifications disabled",
-      };
+      logNotification("Work anniversary notifications are disabled");
+      return notificationMessages.disabled("Work anniversary");
     }
 
     const daysBefore = notificationConfig.days_before || 0;
-    console.log(
-      `[Anniversary Notifications] Checking for anniversaries from TODAY to ${daysBefore} day(s) ahead...`,
-    );
+    logNotification("Checking for upcoming work anniversaries", {
+      daysBefore,
+      range: `TODAY to ${daysBefore} day(s) ahead`,
+    });
 
     const upcomingAnniversaries =
       await ReportModel.getUpcomingWorkAnniversaries(daysBefore);
 
-    console.log(
-      `[Anniversary Notifications] Found ${upcomingAnniversaries.length} upcoming anniversary(ies)`,
-    );
+    logNotification("Found upcoming work anniversaries", {
+      count: upcomingAnniversaries.length,
+    });
 
     if (upcomingAnniversaries.length === 0) {
-      return {
-        success: true,
-        message: `No work anniversaries found from today to ${daysBefore} day(s) ahead`,
-      };
+      return successMessage(
+        `No work anniversaries found from today to ${daysBefore} day(s) ahead`,
+      );
     }
 
     const { rows: globalAdmins } = await pool.query(
@@ -310,10 +329,8 @@ async function processWorkAnniversaryNotifications() {
     }
 
     if (recipientEmails.length === 0) {
-      console.log(
-        "[Anniversary Notifications] ⚠️ No recipient emails configured",
-      );
-      return { success: false, message: "No recipient emails configured" };
+      logNotification("No recipient emails configured for work anniversaries");
+      return notificationMessages.noRecipients();
     }
 
     const emailResult = await sendWorkAnniversaryAlertEmail(
@@ -341,16 +358,16 @@ async function processWorkAnniversaryNotifications() {
 
     return emailResult;
   } catch (err) {
-    console.error("[Anniversary Notifications] ❌ Error:", err);
-    return { success: false, message: err.message };
+    logError("Work anniversary notifications processing failed", err);
+    return notificationMessages.processingFailed("Work anniversary", err);
   }
 }
 
 async function checkAndSendImmediateNotifications(employeeId) {
   try {
-    console.log(
-      `[Immediate Notification] Checking for employee ID: ${employeeId}`,
-    );
+    logNotification("Checking immediate notifications for new employee", {
+      employeeId,
+    });
 
     const birthdayConfig = await ReportModel.getNotificationConfig("birthday");
     if (birthdayConfig && birthdayConfig.is_active) {
@@ -387,9 +404,10 @@ async function checkAndSendImmediateNotifications(employeeId) {
       );
 
       if (birthdayCheck.length > 0) {
-        console.log(
-          `[Immediate Notification] ✅ Employee's birthday falls within ${daysBefore} days range!`,
-        );
+        logNotification("Employee birthday within notification range", {
+          employeeId,
+          daysBefore,
+        });
 
         // Get global admins
         const { rows: globalAdmins } = await pool.query(
@@ -413,14 +431,14 @@ async function checkAndSendImmediateNotifications(employeeId) {
 
         if (recipientEmails.length > 0) {
           await sendBirthdayAlertEmail(birthdayCheck, recipientEmails);
-          console.log(
-            `[Immediate Notification] ✅ Birthday notification sent for new employee`,
-          );
+          logNotification("Immediate birthday notification sent", {
+            employeeId,
+          });
         }
       } else {
-        console.log(
-          `[Immediate Notification] ℹ️ Employee's birthday not within ${daysBefore} days range`,
-        );
+        logInfo(`Employee birthday not within ${daysBefore} days range`, {
+          employeeId,
+        });
       }
     }
 
@@ -486,18 +504,21 @@ async function checkAndSendImmediateNotifications(employeeId) {
             anniversaryCheck,
             recipientEmails,
           );
-          console.log(
-            `[Immediate Notification] ✅ Work anniversary notification sent for new employee`,
-          );
+          logNotification("Immediate work anniversary notification sent", {
+            employeeId,
+          });
         }
       } else {
-        console.log(
-          `[Immediate Notification] ℹ️ Employee's work anniversary not within ${daysBefore} days range`,
+        logInfo(
+          `Employee work anniversary not within ${daysBefore} days range`,
+          {
+            employeeId,
+          },
         );
       }
     }
   } catch (err) {
-    console.error("[Immediate Notification] ❌ Error:", err);
+    logError("Immediate notification check failed", err, { employeeId });
   }
 }
 

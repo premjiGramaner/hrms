@@ -15,6 +15,7 @@ import entitlementRoutes from "./routes/entitlement.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import { initializeReportNotificationScheduler } from "./jobs/reportNotificationScheduler.js";
 import { runMigrations } from "../run_migration.js";
+import { logInfo, logError } from "./utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,13 +55,16 @@ async function startServer() {
   initializeReportNotificationScheduler();
 
   app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-    console.log("Report notification scheduler initialized");
+    logInfo(`Server running on port ${port}`, {
+      port,
+      environment: process.env.NODE_ENV || "development",
+    });
+    logInfo("Report notification scheduler initialized");
   });
 }
 
 startServer().catch((error) => {
-  console.error("Failed to start server:", error);
+  logError("Failed to start server", error);
   process.exit(1);
 });
 

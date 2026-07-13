@@ -172,9 +172,9 @@ export default function Layout({
                   boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
                 }}
               >
-                <a href="/my-info">
+                <Link to="/my-info">
                   <IconGear size={10} color="#888" />
-                </a>
+                </Link>
               </div>
             </div>
             <p
