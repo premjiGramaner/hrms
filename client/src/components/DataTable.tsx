@@ -33,7 +33,7 @@ export interface StatCard {
 export interface DataTableProps<T> {
   title: string;
   subtitle?: string;
-  icon?: string;
+  icon?: React.ReactNode;
 
   rows: T[];
   isLoading?: boolean;
@@ -42,7 +42,7 @@ export interface DataTableProps<T> {
 
   actions?: ActionDef<T>[];
 
-  emptyIcon?: string;
+  emptyIcon?: React.ReactNode;
   emptyTitle?: string;
   emptySubtitle?: string;
 
@@ -95,12 +95,12 @@ const tdLast: React.CSSProperties = {
 export default function DataTable<T>({
   title,
   subtitle,
-  icon = "",
+  icon = null,
   rows,
   isLoading = false,
   columns,
   actions = [],
-  emptyIcon = "📭",
+  emptyIcon = null,
   emptyTitle = "No records found",
   emptySubtitle = "Add a new record to get started",
   currentPage,

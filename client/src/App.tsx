@@ -41,7 +41,7 @@ import CompetencyProfiles from "./pages/performance/CompetencyProfiles";
 import CreateAppraisalCycle from "./pages/performance/CreateAppraisalCycle";
 import PerformanceTrackers from "./pages/performance/PerformanceTrackers";
 import TemplateFormDesign from "./pages/performance/TemplateFormDesign";
-import { ADMIN_ROLES } from "./config/roles";
+import { ADMIN_ROLES, type UserRole } from "./config/roles";
 import {
   TerminationReportPage,
   BirthdayReportPage,
@@ -55,7 +55,7 @@ function PerformanceHomeRedirect() {
   return (
     <Navigate
       to={
-        ADMIN_ROLES.includes(role)
+        ADMIN_ROLES.includes(role as UserRole)
           ? "/performance/appraisals_list"
           : "/performance/my_appraisals"
       }
@@ -66,7 +66,7 @@ function PerformanceHomeRedirect() {
 
 function PerformanceAdminOnly({ children }: { children: React.ReactNode }) {
   const role = useAppSelector((state) => state.auth.user?.role || "employee");
-  if (!ADMIN_ROLES.includes(role))
+  if (!ADMIN_ROLES.includes(role as UserRole))
     return <Navigate to="/performance/my_appraisals" replace />;
   return <>{children}</>;
 }

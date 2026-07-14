@@ -24,6 +24,7 @@ import DataTable, {
 } from "../../components/DataTable";
 import Toast from "../../utils/toast";
 import Alert from "../../utils/alert";
+import Button from "../../components/common/Button";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -105,7 +106,7 @@ export default function SubUnitsPage() {
     {
       label: "Total Sub Units",
       value: subUnitList.length,
-      icon: (<IconGrid size={20} />) as any,
+      icon: <IconGrid size={20} />,
       color: "#0369a1",
       bg: "#f0f9ff",
       border: "#bae6fd",
@@ -113,7 +114,7 @@ export default function SubUnitsPage() {
     {
       label: "Active",
       value: activeCount,
-      icon: (<IconCheckCircle size={20} />) as any,
+      icon: <IconCheckCircle size={20} />,
       color: "#16a34a",
       bg: "#f0fdf4",
       border: "#bbf7d0",
@@ -121,7 +122,7 @@ export default function SubUnitsPage() {
     {
       label: "With Supervisor",
       value: withSupervisor,
-      icon: (<IconUser size={20} />) as any,
+      icon: <IconUser size={20} />,
       color: "#0284c7",
       bg: "#e0f2fe",
       border: "#7dd3fc",
@@ -329,13 +330,13 @@ export default function SubUnitsPage() {
       <DataTable<SubUnit>
         title="Sub Units"
         subtitle="Manage your organisation's sub units"
-        icon={(<IconGrid size={18} />) as any}
+        icon={<IconGrid size={18} />}
         rows={pagedList}
         isLoading={isLoading}
         columns={columns.filter((column) => column.key !== "supervisor_name")}
         actions={actions}
         getKey={(row) => row.id}
-        emptyIcon={(<IconGrid size={36} />) as any}
+        emptyIcon={<IconGrid size={36} />}
         emptyTitle={
           searchQuery ? `No results for "${searchQuery}"` : "No sub units yet"
         }
@@ -683,44 +684,17 @@ function SubUnitFormModal({
             <span style={{ color: "#ef4444" }}>*</span> Required fields
           </span>
           <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: "10px 22px",
-                borderRadius: 10,
-                border: "1.5px solid #e2e8f0",
-                background: "#fff",
-                fontSize: 13.5,
-                fontWeight: 600,
-                cursor: "pointer",
-                color: "#64748b",
-              }}
-            >
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleSubmit}
               disabled={isSaving}
-              style={{
-                padding: "10px 28px",
-                borderRadius: 10,
-                border: "none",
-                background: isSaving
-                  ? "#94a3b8"
-                  : "linear-gradient(135deg,#172554,#14b8a6)",
-                color: "#fff",
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: isSaving ? "not-allowed" : "pointer",
-                boxShadow: isSaving ? "none" : "0 2px 10px rgba(23,37,84,0.25)",
-              }}
+              loading={isSaving}
             >
-              {isSaving
-                ? "Saving…"
-                : mode === "add"
-                  ? "Add Sub Unit"
-                  : "Save Changes"}
-            </button>
+              {mode === "add" ? "Add Sub Unit" : "Save Changes"}
+            </Button>
           </div>
         </div>
       </div>

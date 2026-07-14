@@ -65,29 +65,32 @@ export default function ApplyLeavePage() {
   const financialYear =
     new Date().getMonth() >= 3 ? currentYear + 1 : currentYear;
 
+  // Check if user has a valid ID
+  const isValidUser = (user?.id ?? 0) > 0;
+
   const fetchData = async () => {
     setLoadingTypes(true);
     try {
       const [types, balances, leaveData, allLeavesData] = await Promise.all([
         getLeaveTypes(),
-        user?.id && user.id > 0
-          ? getLeaveBalance(user.id, financialYear)
+        isValidUser
+          ? getLeaveBalance(user!.id, financialYear)
           : Promise.resolve([]),
 
-        user?.id && user.id > 0
+        isValidUser
           ? getLeaves({
               page: 1,
               limit: 1,
               statuses: [],
-              own_employee_id: user.id,
+              own_employee_id: user!.id,
             })
           : Promise.resolve({ data: [] }),
-        user?.id && user.id > 0
+        isValidUser
           ? getLeaves({
               page: 1,
               limit: 1000,
               statuses: ["Pending Approval", "Approved", "Scheduled"],
-              own_employee_id: user.id,
+              own_employee_id: user!.id,
             })
           : Promise.resolve({ data: [] }),
       ]);
@@ -107,7 +110,7 @@ export default function ApplyLeavePage() {
   };
 
   useEffect(() => {
-    if (user?.id && user.id > 0) {
+    if (isValidUser) {
       fetchData();
     }
   }, [user?.id, financialYear]); // Re-fetch when user ID changes or financial year changes

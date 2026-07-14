@@ -432,7 +432,7 @@ export default function AddEmployeeModal({
 
     setCheckingEmail((prev) => ({ ...prev, [fieldName]: true }));
     try {
-      const result = await checkEmailExists(email, employee?.id);
+      const result = await checkEmailExists(email.toLowerCase(), employee?.id);
       if (result.data.exists) {
         setErrors((prev) => ({
           ...prev,
@@ -471,7 +471,10 @@ export default function AddEmployeeModal({
 
     setCheckingEmployeeId(true);
     try {
-      const result = await checkEmployeeIdExists(employeeId, employee?.id);
+      const result = await checkEmployeeIdExists(
+        employeeId.toLowerCase(),
+        employee?.id,
+      );
       if (result.data.exists) {
         setErrors((prev) => ({
           ...prev,

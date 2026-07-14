@@ -604,7 +604,7 @@ async function updateProfileImage(id, avatarBase64, updatedBy) {
 
 async function findByEmail(email) {
   const { rows } = await pool.query(
-    `SELECT id FROM tbl_appusers WHERE email = $1 AND is_deleted = false`,
+    `SELECT id FROM tbl_appusers WHERE LOWER(email) = LOWER($1) AND is_deleted = false`,
     [email],
   );
   return rows[0] || null;
@@ -612,7 +612,7 @@ async function findByEmail(email) {
 
 async function findByEmployeeId(employeeId) {
   const { rows } = await pool.query(
-    `SELECT id::int, employee_id FROM tbl_appusers WHERE employee_id = $1 AND is_deleted = false`,
+    `SELECT id::int, employee_id FROM tbl_appusers WHERE LOWER(employee_id) = LOWER($1) AND is_deleted = false`,
     [employeeId],
   );
   return rows[0] || null;

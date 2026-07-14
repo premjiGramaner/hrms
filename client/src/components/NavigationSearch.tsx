@@ -12,7 +12,7 @@ interface DropdownPosition {
   width: number;
 }
 
-export default function NavigationSearch(): JSX.Element {
+export default function NavigationSearch() {
   const user = useAppSelector((state) => state.auth.user);
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<SearchableItem[]>([]);
@@ -207,19 +207,24 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 
   const lowerText = text.toLowerCase();
   const lowerQuery = query.toLowerCase().trim();
-  const index = lowerText.indexOf(lowerQuery);
+  const matchStartIndex = lowerText.indexOf(lowerQuery);
 
-  if (index === -1) return text;
+  if (matchStartIndex === -1) return text;
 
-  const before = text.slice(0, index);
-  const match = text.slice(index, index + query.length);
-  const after = text.slice(index + query.length);
+  const textBeforeMatch = text.slice(0, matchStartIndex);
+  const matchedText = text.slice(
+    matchStartIndex,
+    matchStartIndex + query.length,
+  );
+  const textAfterMatch = text.slice(matchStartIndex + query.length);
 
   return (
     <>
-      {before}
-      <span className="bg-yellow-100 text-yellow-900 font-bold">{match}</span>
-      {after}
+      {textBeforeMatch}
+      <span className="bg-yellow-100 text-yellow-900 font-bold">
+        {matchedText}
+      </span>
+      {textAfterMatch}
     </>
   );
 }

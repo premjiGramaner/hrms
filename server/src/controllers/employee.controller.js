@@ -336,7 +336,9 @@ const checkEmailExists = async (req, res, next) => {
       return success(res, { exists: false });
     }
 
-    const existing = await EmployeeModel.findByEmail(email.trim());
+    const existing = await EmployeeModel.findByEmail(
+      email.trim().toLowerCase(),
+    );
 
     if (!existing) {
       return success(res, { exists: false });
@@ -421,7 +423,7 @@ const checkEmployeeIdExists = async (req, res, next) => {
     }
 
     const existing = await EmployeeModel.findByEmployeeId(
-      String(employee_id).trim(),
+      String(employee_id).trim().toLowerCase(),
     );
 
     if (!existing) {

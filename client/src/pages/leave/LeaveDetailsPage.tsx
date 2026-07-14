@@ -289,7 +289,7 @@ export default function LeaveDetailsPage() {
   }, [leaveId]);
 
   const isAdminOrHR =
-    ADMIN_ROLES.includes((user?.role || "") as UserRole) ||
+    ADMIN_ROLES.includes((user?.role || "") as (typeof ADMIN_ROLES)[number]) ||
     SUPERVISOR_ROLES.includes((user?.role || "") as UserRole);
 
   const isRequester = !!(

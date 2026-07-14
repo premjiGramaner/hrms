@@ -11,6 +11,10 @@ import {
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import { EMAIL_REGEX } from "../../validations/employee.validation";
+import Button, {
+  ActionButton,
+  IconButton,
+} from "../../components/common/Button";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
 const DEFAULT_PAGE_SIZE = 10;
@@ -382,44 +386,20 @@ export default function HRUsersPage() {
                   </td>
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button
+                      <ActionButton
+                        label="Edit"
+                        icon={<span>✎</span>}
+                        variant="edit"
                         onClick={() => setUserToEdit(user)}
                         title="Edit user"
-                        style={{
-                          background: "#eff6ff",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "#1b2a6b",
-                          fontSize: 13,
-                          padding: "5px 10px",
-                          borderRadius: 8,
-                          fontWeight: 600,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        ✎ Edit
-                      </button>
-                      <button
+                      />
+                      <ActionButton
+                        label="Delete"
+                        icon={<span>🗑</span>}
+                        variant="delete"
                         onClick={() => setUserToDelete(user)}
                         title="Delete user"
-                        style={{
-                          background: "#fff1f2",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "#e11d48",
-                          fontSize: 13,
-                          padding: "5px 10px",
-                          borderRadius: 8,
-                          fontWeight: 600,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        🗑 Delete
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>
@@ -831,43 +811,17 @@ function UserFormModal({
             <span style={{ color: "#ef4444" }}>*</span> Required
           </span>
           <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: "9px 22px",
-                borderRadius: 999,
-                border: "1.5px solid #e2e8f0",
-                background: "#fff",
-                fontSize: 13.5,
-                fontWeight: 600,
-                cursor: "pointer",
-                color: "#64748b",
-              }}
-            >
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleSubmit}
               disabled={isSaving}
-              style={{
-                padding: "9px 28px",
-                borderRadius: 999,
-                border: "none",
-                background: isSaving
-                  ? "#94a3b8"
-                  : "linear-gradient(90deg,#1b2a6b,#16a085)",
-                color: "#fff",
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: isSaving ? "not-allowed" : "pointer",
-              }}
+              loading={isSaving}
             >
-              {isSaving
-                ? "Saving…"
-                : mode === "add"
-                  ? "Add User"
-                  : "Save Changes"}
-            </button>
+              {mode === "add" ? "Add User" : "Save Changes"}
+            </Button>
           </div>
         </div>
       </div>
@@ -950,38 +904,17 @@ function DeleteConfirmModal({
           cannot be undone.
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-          <button
-            onClick={onCancel}
-            disabled={isLoading}
-            style={{
-              padding: "9px 24px",
-              borderRadius: 999,
-              border: "1.5px solid #e2e8f0",
-              background: "#fff",
-              fontSize: 13.5,
-              fontWeight: 600,
-              cursor: "pointer",
-              color: "#64748b",
-            }}
-          >
+          <Button variant="secondary" onClick={onCancel} disabled={isLoading}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
             onClick={onConfirm}
             disabled={isLoading}
-            style={{
-              padding: "9px 24px",
-              borderRadius: 999,
-              border: "none",
-              background: isLoading ? "#94a3b8" : "#e11d48",
-              color: "#fff",
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: isLoading ? "not-allowed" : "pointer",
-            }}
+            loading={isLoading}
           >
-            {isLoading ? "Deleting…" : "Yes, Delete"}
-          </button>
+            Delete User
+          </Button>
         </div>
       </div>
     </div>

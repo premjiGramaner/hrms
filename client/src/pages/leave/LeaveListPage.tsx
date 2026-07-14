@@ -1000,7 +1000,7 @@ function ActionDropdown({
       isSupervisor =
         Array.isArray(supervisorArray) &&
         supervisorArray.includes(String(currentUserId));
-    } catch (e) {
+    } catch (_) {
       isSupervisor = false;
     }
   }
@@ -1035,13 +1035,10 @@ function ActionDropdown({
         <div
           ref={menuRef}
           style={{
-            position: "fixed",
             top: pos.top,
             left: pos.left,
-            transform: "translateX(-100%)",
-            zIndex: 9999,
           }}
-          className="bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-36"
+          className="fixed -translate-x-full z-[9999] bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-36"
         >
           {canApproveReject && (
             <>

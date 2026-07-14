@@ -246,29 +246,44 @@ export const deleteSubUnit = async (subUnitId: number): Promise<void> => {
   await api.delete(`/hradmin/sub-units/${subUnitId}`);
 };
 
+export interface AuditTrailRecord {
+  id: number;
+  employee_id: number | null;
+  employee_code: string | null;
+  action_owner: string;
+  action_owner_username: string;
+  action_owner_avatar: string | null;
+  employee: string;
+  employee_username: string;
+  section: string;
+  action: string;
+  source: string;
+  performed_screen: string;
+  action_description: string;
+  notes: string;
+  event_time: string;
+  created_at: string;
+}
+
+export interface AuditTrailPagination {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+}
+
+export interface AuditTrailResponse {
+  data: AuditTrailRecord[];
+  pagination: AuditTrailPagination;
+}
+
 export const getAuditTrail = async (
   page: number = 1,
   limit: number = 50,
-): Promise<{
-  data: any[];
-  pagination: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-  };
-}> => {
+): Promise<AuditTrailResponse> => {
   const response = await api.get<{
     success: boolean;
-    data: {
-      data: any[];
-      pagination: {
-        page: number;
-        limit: number;
-        totalCount: number;
-        totalPages: number;
-      };
-    };
+    data: AuditTrailResponse;
   }>(`/hradmin/audit-trail?page=${page}&limit=${limit}`);
   return response.data.data;
 };

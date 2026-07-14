@@ -7,10 +7,7 @@ export type UserRole =
   | "line_manager"
   | "reporting_manager";
 
-export const ADMIN_ROLES: readonly UserRole[] = [
-  "empmanager",
-  "hradmin",
-] as const;
+export const ADMIN_ROLES: UserRole[] = ["hradmin", "empmanager"];
 
 export const BASIC_SUPERVISOR_ROLES: readonly UserRole[] = [
   "supervisor",
@@ -25,7 +22,7 @@ export const SUPERVISOR_ROLES: readonly UserRole[] = [
 ] as const;
 
 export function isAdminRole(role?: UserRole | string | null): boolean {
-  return ADMIN_ROLES.includes(role as UserRole);
+  return ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number]);
 }
 
 export function isSupervisorRole(role?: UserRole | string | null): boolean {

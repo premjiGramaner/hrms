@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getJobCategories,
@@ -11,14 +11,11 @@ import {
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import { EditIcon, DeleteIcon } from "../../components/Icons";
-import DataTable, {
-  ColumnDef,
-  ActionDef,
-  StatCard,
-} from "../../components/DataTable";
+import DataTable, { ColumnDef, ActionDef } from "../../components/DataTable";
 import { inputStyle, labelStyle } from "../../constants/styles";
 import Toast from "../../utils/toast";
 import Alert from "../../utils/alert";
+import Button from "../../components/common/Button";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -97,8 +94,6 @@ export default function JobCategoriesPage() {
     setCategoryToEdit(null);
     fetchCategories();
   };
-
-  const activeCount = categoryList.filter((c) => c.is_active).length;
 
   const columns: ColumnDef<JobCategory>[] = [
     {
@@ -597,44 +592,17 @@ function JobCategoryFormModal({
             <span style={{ color: "#ef4444" }}>*</span> Required fields
           </span>
           <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: "10px 22px",
-                borderRadius: 10,
-                border: "1.5px solid #e2e8f0",
-                background: "#fff",
-                fontSize: 13.5,
-                fontWeight: 600,
-                cursor: "pointer",
-                color: "#64748b",
-              }}
-            >
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleSubmit}
               disabled={isSaving}
-              style={{
-                padding: "10px 28px",
-                borderRadius: 10,
-                border: "none",
-                background: isSaving
-                  ? "#94a3b8"
-                  : "linear-gradient(135deg,#172554,#14b8a6)",
-                color: "#fff",
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: isSaving ? "not-allowed" : "pointer",
-                boxShadow: isSaving ? "none" : "0 2px 10px rgba(23,37,84,0.25)",
-              }}
+              loading={isSaving}
             >
-              {isSaving
-                ? "Saving…"
-                : mode === "add"
-                  ? "Add Category"
-                  : "Save Changes"}
-            </button>
+              {mode === "add" ? "Add Category" : "Save Changes"}
+            </Button>
           </div>
         </div>
       </div>

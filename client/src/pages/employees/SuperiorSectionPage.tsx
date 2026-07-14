@@ -43,33 +43,23 @@ function displayRole(role: string) {
   return "Employee";
 }
 
-function roleBadge(role: string) {
-  if (role === "hradmin" || role === "empmanager") {
-    return { bg: "#ede9fe", color: "#7c3aed", border: "#c4b5fd" };
-  }
-  return { bg: "#e0f2fe", color: "#075985", border: "#bae6fd" };
-}
-
 function FilterSelect({
   value,
   onChange,
   options,
   placeholder,
-  minWidth = 140,
 }: {
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   placeholder: string;
-  minWidth?: number;
 }) {
   return (
     <div className="relative">
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="py-[9px] pr-8 pl-3 border-[1.5px] border-slate-200 rounded-[10px] text-[13px] outline-none appearance-none bg-white cursor-pointer shadow-sm"
-        style={{ minWidth }}
+        className="py-[9px] pr-8 pl-3 border-[1.5px] border-slate-200 rounded-[10px] text-[13px] outline-none appearance-none bg-white cursor-pointer shadow-sm min-w-[140px]"
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
@@ -199,10 +189,7 @@ export default function SuperiorSectionPage() {
       header: "Employee ID",
       render: (employee) => (
         <div className="flex items-center gap-[10px]">
-          <div
-            className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden text-white text-[11px] font-bold shadow-[0_2px_6px_rgba(27,42,107,0.18)]"
-            style={{ background: "linear-gradient(135deg,#1b2a6b,#16a085)" }}
-          >
+          <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden text-white text-[11px] font-bold shadow-[0_2px_6px_rgba(27,42,107,0.18)] bg-gradient-to-br from-[#1b2a6b] to-[#16a085]">
             {employee.avatar ? (
               <img
                 src={avatarSrc(employee)}
@@ -238,15 +225,15 @@ export default function SuperiorSectionPage() {
       header: "Role",
       width: 140,
       render: (employee) => {
-        const badge = roleBadge(employee.role);
+        const isGlobalAdmin =
+          employee.role === "hradmin" || employee.role === "empmanager";
         return (
           <span
-            className="inline-flex text-xs font-bold px-[10px] py-1 rounded-full"
-            style={{
-              background: badge.bg,
-              color: badge.color,
-              border: `1px solid ${badge.border}`,
-            }}
+            className={`inline-flex text-xs font-bold px-[10px] py-1 rounded-full ${
+              isGlobalAdmin
+                ? "bg-violet-50 text-violet-600 border border-violet-200"
+                : "bg-sky-50 text-sky-700 border border-sky-200"
+            }`}
           >
             {displayRole(employee.role)}
           </span>
@@ -289,7 +276,6 @@ export default function SuperiorSectionPage() {
         value={roleFilter}
         onChange={handleRoleFilter}
         placeholder="All Roles"
-        minWidth={140}
         options={[
           { value: "supervisor", label: "Supervisor" },
           { value: "hradmin", label: "Global Admin" },
@@ -313,10 +299,7 @@ export default function SuperiorSectionPage() {
       activeTab="Superior Section"
     >
       {pageError && (
-        <div
-          className="mb-4 px-[18px] py-3 border border-red-300 border-l-4 border-l-red-500 rounded-xl text-red-600 text-[13.5px] shadow-[0_2px_8px_rgba(239,68,68,0.08)]"
-          style={{ background: "linear-gradient(135deg,#fff5f5,#fff)" }}
-        >
+        <div className="mb-4 px-[18px] py-3 border border-red-300 border-l-4 border-l-red-500 rounded-xl text-red-600 text-[13.5px] shadow-[0_2px_8px_rgba(239,68,68,0.08)] bg-gradient-to-br from-red-50 to-white">
           {pageError}
         </div>
       )}

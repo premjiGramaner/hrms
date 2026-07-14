@@ -268,7 +268,6 @@ function calculateMatchDetails(
   );
 
   const exactMatch = labelLower === normalizedQuery;
-
   return {
     labelMatch,
     moduleMatch,
@@ -277,16 +276,13 @@ function calculateMatchDetails(
     exactMatch,
   };
 }
-
 function calculateScore(matchDetails: SearchMatchDetails): number {
   let score = 0;
-
   if (matchDetails.exactMatch) score += 200;
   if (matchDetails.labelMatch) score += 100;
   if (matchDetails.moduleMatch) score += 30;
   score += matchDetails.keywordMatches * 20;
   if (matchDetails.allWordsMatch) score += 10;
-
   return score;
 }
 

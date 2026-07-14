@@ -16,6 +16,31 @@ import {
   SUPPORTED_IMAGE_TYPES,
   SUPPORTED_IMAGE_EXTENSIONS,
 } from "../../../config/constants";
+import { IconButton } from "../../../components/common/Button";
+
+function IconMapPin({
+  size = 12,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
 
 interface EmployeeProfileCardProps {
   employee: Employee;
@@ -242,22 +267,26 @@ export default function EmployeeProfileCard({
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <button
+                  <IconButton
                     onClick={handleImageClick}
-                    className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110"
+                    icon={<IconUpload size={20} color="#fff" />}
+                    variant="ghost"
+                    size="md"
+                    rounded
+                    className="bg-white/20 backdrop-blur-sm hover:bg-white/30 hover:scale-110"
                     title="Upload new photo"
-                  >
-                    <IconUpload size={20} color="#fff" />
-                  </button>
+                  />
                   {avatarUrl &&
                     !avatarUrl.includes(AVATAR_PLACEHOLDER_SERVICE) && (
-                      <button
+                      <IconButton
                         onClick={handleViewImage}
-                        className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110"
+                        icon={<IconEye size={20} color="#fff" />}
+                        variant="ghost"
+                        size="md"
+                        rounded
+                        className="bg-white/20 backdrop-blur-sm hover:bg-white/30 hover:scale-110"
                         title="View full image"
-                      >
-                        <IconEye size={20} color="#fff" />
-                      </button>
+                      />
                     )}
                 </>
               )}
@@ -277,8 +306,9 @@ export default function EmployeeProfileCard({
             <p className="text-sm text-slate-600">
               {employee.job_title || "Employee"}
             </p>
-            <p className="text-xs text-slate-600 mt-1">
-              📍 {employee.location || "Not specified"}
+            <p className="text-xs text-slate-600 mt-1 flex items-center justify-center gap-1">
+              <IconMapPin size={12} color="#64748b" />
+              {employee.location || "Not specified"}
             </p>
           </div>
         </div>
@@ -288,7 +318,7 @@ export default function EmployeeProfileCard({
             <h4 className="text-sm font-semibold text-slate-600 mb-3">
               Basic info
             </h4>
-            <div className="space-y-2">
+            <div className="info-section">
               <div>
                 <p className="text-xs text-slate-600">Employee Id</p>
                 <p className="text-sm text-slate-600 font-medium">
@@ -329,7 +359,7 @@ export default function EmployeeProfileCard({
             <h4 className="text-sm font-semibold text-slate-600 mb-3">
               Employment
             </h4>
-            <div className="space-y-2">
+            <div className="info-section">
               <div>
                 <p className="text-xs text-slate-600">Joined Date</p>
                 <p className="text-sm text-slate-800">
@@ -381,7 +411,7 @@ export default function EmployeeProfileCard({
             <h4 className="text-sm font-semibold text-slate-600 mb-3">
               Contact
             </h4>
-            <div className="space-y-2">
+            <div className="info-section">
               <div>
                 <p className="text-xs text-slate-600">Work Phone</p>
                 <p className="text-sm text-slate-600">
@@ -411,13 +441,15 @@ export default function EmployeeProfileCard({
           onClick={() => setShowImageModal(false)}
         >
           <div className="relative max-w-4xl max-h-[90vh]">
-            <button
+            <IconButton
               onClick={() => setShowImageModal(false)}
-              className="absolute -top-12 right-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+              icon={<IconX size={20} color="#fff" />}
+              variant="ghost"
+              size="md"
+              rounded
+              className="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white"
               aria-label="Close image viewer"
-            >
-              <IconX size={20} color="#fff" />
-            </button>
+            />
             <img
               src={avatarUrl}
               alt={fullName}

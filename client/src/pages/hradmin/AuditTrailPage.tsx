@@ -4,6 +4,7 @@ import { getAuditTrail } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import { getAvatarSrc, getInitials } from "../../utils/avatar";
+import { ScrollText, FileText } from "lucide-react";
 
 import {
   IconActivity,
@@ -24,8 +25,8 @@ const TABS: TabItem[] = [
 
 interface AuditRecord {
   id: number;
-  employee_id?: number;
-  employee_code?: string;
+  employee_id?: number | null;
+  employee_code?: string | null;
   action_owner: string;
   action_owner_username: string;
   action_owner_avatar?: string | null;
@@ -104,7 +105,6 @@ export default function AuditTrailPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
-  const [totalRecords, setTotalRecords] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
@@ -113,7 +113,6 @@ export default function AuditTrailPage() {
       .then((res) => {
         setAllRecords(res.data);
         setFilteredRecords(res.data);
-        setTotalRecords(res.pagination.totalCount);
         setTotalPages(res.pagination.totalPages);
       })
       .catch(() => setPageError("Failed to load audit trail. Please refresh."))
@@ -281,10 +280,12 @@ export default function AuditTrailPage() {
       header: "Action",
       width: 110,
       render: (row) => {
-        const s = ACTION_COLORS[row.action as keyof typeof ACTION_COLORS] ?? {
-          bg: "#f1f5f9",
-          color: "#64748b",
-          dot: "#94a3b8",
+        const actionColors = ACTION_COLORS[
+          row.action as keyof typeof ACTION_COLORS
+        ] ?? {
+          backgroundColor: "#f1f5f9",
+          textColor: "#64748b",
+          indicatorColor: "#94a3b8",
         };
 
         const bgClass =
@@ -323,7 +324,7 @@ export default function AuditTrailPage() {
         return (
           <span
             className={`inline-flex items-center gap-[5px] text-[11.5px] font-bold px-2.5 py-1 rounded-full tracking-wide border ${bgClass} ${colorClass}`}
-            style={{ borderColor: s.bg }}
+            style={{ borderColor: actionColors.backgroundColor }}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotBgClass}`}
@@ -445,13 +446,13 @@ export default function AuditTrailPage() {
       <DataTable<AuditRecord>
         title="Audit Trail"
         subtitle="Full history of all user & employee actions"
-        icon="📋"
+        icon={<ScrollText size={20} />}
         rows={pagedRecords}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row, idx) => `${row.id}-${idx}`}
-        emptyIcon="📋"
+        emptyIcon={<FileText size={32} />}
         emptyTitle={
           hasFilters
             ? "No records match the current filters"

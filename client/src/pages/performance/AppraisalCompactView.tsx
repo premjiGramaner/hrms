@@ -145,7 +145,7 @@ function WeightBar({ weight }: { weight: number }) {
   );
 }
 
-function KpiRatingCell({
+function KeyPerformanceIndicatorRatingCell({
   question,
   totalQuestions,
   score,
@@ -476,9 +476,9 @@ export default function AppraisalCompactView() {
             ) : null}
           </div>
 
-          {/* KPI table */}
+          {/* Key Performance Indicator table */}
           <h3 className="border-b border-slate-100 py-2 text-xl font-bold text-slate-500">
-            KPI's
+            Key Performance Indicator
           </h3>
           <div>
             {appraisal.questions.map((kpi) => (
@@ -498,7 +498,7 @@ export default function AppraisalCompactView() {
 
                 {showMultipleView ? (
                   <>
-                    <KpiRatingCell
+                    <KeyPerformanceIndicatorRatingCell
                       question={kpi}
                       totalQuestions={appraisal.questions.length}
                       score={scoreForReviewer(ratings[kpi.id], "self")}
@@ -511,7 +511,7 @@ export default function AppraisalCompactView() {
                         setCommentTarget({ question: kpi, reviewer: "self" })
                       }
                     />
-                    <KpiRatingCell
+                    <KeyPerformanceIndicatorRatingCell
                       question={kpi}
                       totalQuestions={appraisal.questions.length}
                       score={scoreForReviewer(ratings[kpi.id], "supervisor")}
@@ -532,7 +532,7 @@ export default function AppraisalCompactView() {
                     />
                   </>
                 ) : (
-                  <KpiRatingCell
+                  <KeyPerformanceIndicatorRatingCell
                     question={kpi}
                     totalQuestions={appraisal.questions.length}
                     score={scoreForReviewer(ratings[kpi.id], "self")}

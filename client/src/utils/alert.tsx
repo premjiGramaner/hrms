@@ -48,6 +48,17 @@ export const Alert = {
 
       const style = ALERT_STYLES[type];
 
+      const handleCancelClick = async () => {
+        toast.dismiss(toastId);
+        if (onCancel) onCancel();
+        resolve(false);
+      };
+      const handleConfirmClick = async () => {
+        toast.dismiss(toastId);
+        if (onConfirm) await onConfirm();
+        resolve(true);
+      };
+
       const CustomAlert = (
         <div
           onClick={(event) => event.stopPropagation()}
@@ -69,21 +80,13 @@ export const Alert = {
 
           <div className="flex gap-2.5">
             <button
-              onClick={async () => {
-                toast.dismiss(toastId);
-                if (onCancel) onCancel();
-                resolve(false);
-              }}
+              onClick={handleCancelClick}
               className="flex-1 px-3 py-3 rounded-xl border-[1.5px] border-slate-200 bg-white text-sm font-semibold text-slate-500 cursor-pointer transition-all hover:bg-slate-50 hover:border-slate-300"
             >
               {cancelText}
             </button>
             <button
-              onClick={async () => {
-                toast.dismiss(toastId);
-                if (onConfirm) await onConfirm();
-                resolve(true);
-              }}
+              onClick={handleConfirmClick}
               className={`flex-1 px-3 py-3 rounded-xl border-none ${style.confirmBtnClass} text-sm font-bold text-white cursor-pointer shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg`}
             >
               {confirmText}
@@ -132,6 +135,12 @@ export const Alert = {
     return new Promise((resolve) => {
       const style = ALERT_STYLES.info;
 
+      // Handler for OK button
+      const handleOkClick = () => {
+        toast.dismiss(toastId);
+        resolve();
+      };
+
       const CustomAlert = (
         <div
           onClick={(event) => event.stopPropagation()}
@@ -152,10 +161,7 @@ export const Alert = {
           </p>
 
           <button
-            onClick={() => {
-              toast.dismiss(toastId);
-              resolve();
-            }}
+            onClick={handleOkClick}
             className={`w-full px-3 py-3 rounded-xl border-none ${style.confirmBtnClass} text-sm font-bold text-white cursor-pointer shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg`}
           >
             OK

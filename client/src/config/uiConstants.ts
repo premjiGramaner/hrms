@@ -1,8 +1,24 @@
 export const ACTION_COLORS = {
-  CREATE: { bg: "#dcfce7", color: "#16a34a", dot: "#22c55e" },
-  UPDATE: { bg: "#fef9c3", color: "#a16207", dot: "#eab308" },
-  DELETE: { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
-  TERMINATE: { bg: "#fce7f3", color: "#9d174d", dot: "#ec4899" },
+  CREATE: {
+    backgroundColor: "#dcfce7",
+    textColor: "#16a34a",
+    indicatorColor: "#22c55e",
+  },
+  UPDATE: {
+    backgroundColor: "#fef9c3",
+    textColor: "#a16207",
+    indicatorColor: "#eab308",
+  },
+  DELETE: {
+    backgroundColor: "#fee2e2",
+    textColor: "#dc2626",
+    indicatorColor: "#ef4444",
+  },
+  TERMINATE: {
+    backgroundColor: "#fce7f3",
+    textColor: "#9d174d",
+    indicatorColor: "#ec4899",
+  },
 } as const;
 
 export type AuditAction = keyof typeof ACTION_COLORS;

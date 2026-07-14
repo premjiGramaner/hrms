@@ -190,24 +190,16 @@ export default function AppraisalMultipleView() {
     : "Performance / Appraisals / My Appraisal List";
   const activeTab = isPerformanceAdmin ? "Appraisal List" : "My Appraisals";
 
-  const isSelfReviewer = useMemo(
-    () =>
-      Boolean(appraisal?.employee?.id) &&
-      String(user?.id) === String(appraisal?.employee?.id),
-    [appraisal?.employee?.id, user?.id],
-  );
-  const isAssignedEvaluator = useMemo(
-    () =>
-      Boolean(appraisal?.mainEvaluator?.id) &&
-      String(user?.id) === String(appraisal?.mainEvaluator?.id),
-    [appraisal?.mainEvaluator?.id, user?.id],
-  );
-  const reviewerType: ReviewerType = useMemo(() => {
-    if (!appraisal) return "self";
-    return isAssignedEvaluator && appraisal.mainEvaluator
+  const isSelfReviewer =
+    Boolean(appraisal?.employee?.id) &&
+    String(user?.id) === String(appraisal?.employee?.id);
+  const isAssignedEvaluator =
+    Boolean(appraisal?.mainEvaluator?.id) &&
+    String(user?.id) === String(appraisal?.mainEvaluator?.id);
+  const reviewerType: ReviewerType =
+    appraisal && isAssignedEvaluator && appraisal.mainEvaluator
       ? "supervisor"
       : "self";
-  }, [appraisal, isAssignedEvaluator]);
 
   // Live rating — recalculates on every segment click
   const visibleRating = useMemo(() => ratingAverage(ratings), [ratings]);
