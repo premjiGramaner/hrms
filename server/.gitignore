@@ -24,10 +24,6 @@ pids
 dist/
 build/
 
-# Coverage
-coverage/
-.nyc_output/
-
 # Environment files
 .env
 .env.*.local
