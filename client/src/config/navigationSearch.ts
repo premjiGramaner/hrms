@@ -1,11 +1,37 @@
+import { ADMIN_ROLES, type UserRole } from "./roles";
+
+export type { UserRole } from "./roles";
+
+export type NavigationCategory = "tab" | "page";
+
+export type NavigationModule =
+  | "HR Administration"
+  | "Employee Management"
+  | "Reports and Analytics"
+  | "Leave"
+  | "Performance";
+
 export interface SearchableItem {
-  id: string;
-  label: string;
-  path: string;
-  module: string;
-  keywords: string[];
-  category: "tab" | "page";
-  roles?: string[];
+  readonly id: string;
+  readonly label: string;
+  readonly path: string;
+  readonly module: NavigationModule;
+  readonly keywords: readonly string[];
+  readonly category: NavigationCategory;
+  readonly roles?: readonly UserRole[];
+}
+
+export interface SearchResult {
+  readonly item: SearchableItem;
+  readonly score: number;
+}
+
+export interface SearchMatchDetails {
+  readonly labelMatch: boolean;
+  readonly moduleMatch: boolean;
+  readonly keywordMatches: number;
+  readonly allWordsMatch: boolean;
+  readonly exactMatch: boolean;
 }
 
 export const searchableNavigation: SearchableItem[] = [
@@ -16,7 +42,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["job", "titles", "position", "designation", "role"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "hr-job-categories",
@@ -25,7 +51,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["job", "categories", "category", "classification"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "hr-sub-units",
@@ -34,7 +60,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["sub", "units", "department", "division", "organization"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "hr-role-access",
@@ -43,7 +69,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["role", "access", "permissions", "security", "authorization"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "hr-audit-trail",
@@ -52,7 +78,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "HR Administration",
     keywords: ["audit", "trail", "logs", "history", "tracking"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
 
   {
@@ -62,7 +88,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Employee Management",
     keywords: ["employee", "list", "staff", "personnel", "people"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "emp-superior",
@@ -71,7 +97,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Employee Management",
     keywords: ["superior", "supervisor", "manager", "reporting", "hierarchy"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "emp-myinfo",
@@ -89,7 +115,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Reports and Analytics",
     keywords: ["birthday", "report", "celebration", "date", "birth"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "report-anniversary",
@@ -98,7 +124,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Reports and Analytics",
     keywords: ["work", "anniversary", "tenure", "service", "joining"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "report-termination",
@@ -107,7 +133,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Reports and Analytics",
     keywords: ["termination", "exit", "resignation", "leaving", "offboarding"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "report-notifications",
@@ -116,7 +142,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Reports and Analytics",
     keywords: ["notifications", "alerts", "email", "settings", "config"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
 
   {
@@ -142,7 +168,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Leave",
     keywords: ["add", "entitlement", "assign", "allocate", "grant", "leave"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "leave-entitlement-my",
@@ -166,7 +192,7 @@ export const searchableNavigation: SearchableItem[] = [
       "report",
     ],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
   {
     id: "leave-configure",
@@ -175,7 +201,7 @@ export const searchableNavigation: SearchableItem[] = [
     module: "Leave",
     keywords: ["configure", "leave", "setup", "settings", "types"],
     category: "tab",
-    roles: ["hradmin", "empmanager"],
+    roles: ADMIN_ROLES,
   },
 
   {
@@ -220,15 +246,68 @@ export const searchableNavigation: SearchableItem[] = [
   },
 ];
 
-/**
- * Search function to find matching navigation items
- * @param query - Search query string
- * @param userRole - Current user's role for filtering
- * @returns Filtered and ranked search results
- */
+function calculateMatchDetails(
+  item: SearchableItem,
+  normalizedQuery: string,
+  words: string[],
+): SearchMatchDetails {
+  const labelLower = item.label.toLowerCase();
+  const moduleLower = item.module.toLowerCase();
+
+  const labelMatch = labelLower.includes(normalizedQuery);
+  const moduleMatch = moduleLower.includes(normalizedQuery);
+  const keywordMatches = item.keywords.filter((keyword) =>
+    keyword.toLowerCase().includes(normalizedQuery),
+  ).length;
+
+  const allWordsMatch = words.every(
+    (word) =>
+      labelLower.includes(word) ||
+      moduleLower.includes(word) ||
+      item.keywords.some((kw) => kw.toLowerCase().includes(word)),
+  );
+
+  const exactMatch = labelLower === normalizedQuery;
+
+  return {
+    labelMatch,
+    moduleMatch,
+    keywordMatches,
+    allWordsMatch,
+    exactMatch,
+  };
+}
+
+function calculateScore(matchDetails: SearchMatchDetails): number {
+  let score = 0;
+
+  if (matchDetails.exactMatch) score += 200;
+  if (matchDetails.labelMatch) score += 100;
+  if (matchDetails.moduleMatch) score += 30;
+  score += matchDetails.keywordMatches * 20;
+  if (matchDetails.allWordsMatch) score += 10;
+
+  return score;
+}
+
+function filterByRole(
+  items: readonly SearchableItem[],
+  userRole?: UserRole | string,
+): SearchableItem[] {
+  return items.filter((item) => {
+    if (!item.roles || item.roles.length === 0) {
+      return true;
+    }
+    if (!userRole) {
+      return false;
+    }
+    return item.roles.includes(userRole as UserRole);
+  });
+}
+
 export function searchNavigation(
   query: string,
-  userRole?: string,
+  userRole?: UserRole | string,
 ): SearchableItem[] {
   if (!query || query.trim().length < 2) {
     return [];
@@ -237,45 +316,17 @@ export function searchNavigation(
   const normalizedQuery = query.toLowerCase().trim();
   const words = normalizedQuery.split(/\s+/);
 
-  const roleFilteredItems = searchableNavigation.filter((item) => {
-    if (!item.roles || item.roles.length === 0) {
-      return true;
-    }
-    if (!userRole) {
-      return false;
-    }
-    return item.roles.includes(userRole);
-  });
+  const roleFilteredItems = filterByRole(searchableNavigation, userRole);
 
-  const results = roleFilteredItems
-    .map((item) => {
-      const labelMatch = item.label.toLowerCase().includes(normalizedQuery);
-      const moduleMatch = item.module.toLowerCase().includes(normalizedQuery);
-      const keywordMatches = item.keywords.filter((keyword) =>
-        keyword.toLowerCase().includes(normalizedQuery),
-      ).length;
-
-      const allWordsMatch = words.every(
-        (word) =>
-          item.label.toLowerCase().includes(word) ||
-          item.module.toLowerCase().includes(word) ||
-          item.keywords.some((kw) => kw.toLowerCase().includes(word)),
-      );
-
-      let score = 0;
-      if (labelMatch) score += 100;
-      if (moduleMatch) score += 30;
-      score += keywordMatches * 20;
-      if (allWordsMatch) score += 10;
-
-      if (item.label.toLowerCase() === normalizedQuery) score += 200;
-
+  const results: SearchResult[] = roleFilteredItems
+    .map((item): SearchResult => {
+      const matchDetails = calculateMatchDetails(item, normalizedQuery, words);
+      const score = calculateScore(matchDetails);
       return { item, score };
     })
     .filter((result) => result.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
-    .map((result) => result.item);
+    .slice(0, 8);
 
-  return results;
+  return results.map((result) => result.item);
 }

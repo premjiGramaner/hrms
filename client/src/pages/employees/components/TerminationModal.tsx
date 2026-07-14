@@ -2,6 +2,11 @@ import { useState, useRef, useEffect, ChangeEvent } from "react";
 import { terminateEmployee } from "../../../api/employee.api";
 import { getApiErrorMessage } from "../../../utils/errors";
 import Toast from "../../../utils/toast";
+import {
+  TERMINATION_REASON_OTHER,
+  TERMINATION_REASONS,
+  TERMINATION_TYPES,
+} from "../../../config/constants";
 
 interface TerminationModalProps {
   employeeId: number;
@@ -26,9 +31,9 @@ export default function TerminationModal({
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const formRef = useRef<Record<keyof typeof terminationForm, string>>(
-    {} as any,
-  );
+
+  type TerminationFormData = typeof terminationForm;
+  const formRef = useRef<TerminationFormData>(terminationForm);
 
   useEffect(() => {
     formRef.current = terminationForm;
@@ -61,7 +66,7 @@ export default function TerminationModal({
     if (!terminationForm.terminationReason.trim()) {
       newErrors.terminationReason = "Termination reason is required";
     } else if (
-      terminationForm.terminationReason === "Other" &&
+      terminationForm.terminationReason === TERMINATION_REASON_OTHER &&
       !terminationForm.terminationReasonOther.trim()
     ) {
       newErrors.terminationReasonOther =
@@ -84,7 +89,7 @@ export default function TerminationModal({
       setSaving(true);
 
       const reason =
-        terminationForm.terminationReason === "Other"
+        terminationForm.terminationReason === TERMINATION_REASON_OTHER
           ? terminationForm.terminationReasonOther.trim()
           : terminationForm.terminationReason.trim();
 
@@ -226,31 +231,19 @@ export default function TerminationModal({
                 }`}
               >
                 <option value="">Select a reason</option>
-                <option value="Contract Not Renewed">
-                  Contract Not Renewed
-                </option>
-                <option value="Deceased">Deceased</option>
-                <option value="Dismissed">Dismissed</option>
-                <option value="Laid-off">Laid-off</option>
-                <option value="Other">Other</option>
-                <option value="Physically Disabled/Compensated">
-                  Physically Disabled/Compensated
-                </option>
-                <option value="Resigned">Resigned</option>
-                <option value="Resigned - Company Requested">
-                  Resigned - Company Requested
-                </option>
-                <option value="Resigned - Self Proposed">
-                  Resigned - Self Proposed
-                </option>
-                <option value="Retired">Retired</option>
+                {TERMINATION_REASONS.map((reason) => (
+                  <option key={reason} value={reason}>
+                    {reason}
+                  </option>
+                ))}
               </select>
               {errors.terminationReason && (
                 <span className="text-xs text-red-600 mt-1 block">
                   {errors.terminationReason}
                 </span>
               )}
-              {terminationForm.terminationReason === "Other" && (
+              {terminationForm.terminationReason ===
+                TERMINATION_REASON_OTHER && (
                 <div className="mt-2">
                   <label className="text-xs font-semibold text-slate-600 block mb-1 uppercase tracking-wide">
                     Please specify reason
@@ -289,11 +282,11 @@ export default function TerminationModal({
                 onChange={set("terminationType")}
                 className="w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors border-slate-200 bg-slate-50 focus:border-slate-300"
               >
-                <option value="Voluntary">Voluntary</option>
-                <option value="Involuntary">Involuntary</option>
-                <option value="Retirement">Retirement</option>
-                <option value="Layoff">Layoff</option>
-                <option value="End of Contract">End of Contract</option>
+                {TERMINATION_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
               </select>
             </div>
 

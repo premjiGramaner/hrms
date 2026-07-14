@@ -31,7 +31,7 @@ const TABLE_COLUMNS = [
   "Username",
   "Employee Name",
   "Email",
-  "User Role(s)",
+  "User Roles",
   "Actions",
 ];
 

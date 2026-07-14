@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, ShieldCheck, Crown, UserCheck } from "lucide-react";
+import { Users, ShieldCheck, Crown } from "lucide-react";
 import Layout, { TabItem } from "../../components/Layout";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import useDebounce from "../../hooks/useDebounce";
 import { getSuperiorEmployees } from "../../api/employee.api";
 import { Employee, PaginatedResponse } from "../../types";
-import UserAvatar from "../../components/UserAvatar";
+import { BASIC_SUPERVISOR_ROLES, type UserRole } from "../../config/roles";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -64,22 +64,12 @@ function FilterSelect({
   minWidth?: number;
 }) {
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        style={{
-          padding: "9px 32px 9px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 10,
-          fontSize: 13,
-          outline: "none",
-          appearance: "none",
-          background: "#fff",
-          cursor: "pointer",
-          minWidth,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-        }}
+        className="py-[9px] pr-8 pl-3 border-[1.5px] border-slate-200 rounded-[10px] text-[13px] outline-none appearance-none bg-white cursor-pointer shadow-sm"
+        style={{ minWidth }}
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
@@ -88,17 +78,7 @@ function FilterSelect({
           </option>
         ))}
       </select>
-      <span
-        style={{
-          position: "absolute",
-          right: 10,
-          top: "50%",
-          transform: "translateY(-50%)",
-          pointerEvents: "none",
-          color: "#94a3b8",
-          fontSize: 11,
-        }}
-      >
+      <span className="absolute right-[10px] top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[11px]">
         v
       </span>
     </div>
@@ -180,7 +160,7 @@ export default function SuperiorSectionPage() {
   };
 
   const supervisorCount = rows.filter((row) =>
-    ["supervisor", "manager"].includes(row.role),
+    BASIC_SUPERVISOR_ROLES.includes(row.role as UserRole),
   ).length;
   const globalAdminCount = rows.filter((row) =>
     ["hradmin", "empmanager"].includes(row.role),
@@ -218,45 +198,22 @@ export default function SuperiorSectionPage() {
       key: "employee_id",
       header: "Employee ID",
       render: (employee) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="flex items-center gap-[10px]">
           <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "50%",
-              flexShrink: 0,
-              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-              boxShadow: "0 2px 6px rgba(27,42,107,0.18)",
-              color: "#fff",
-              fontSize: 11,
-              fontWeight: 700,
-            }}
+            className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden text-white text-[11px] font-bold shadow-[0_2px_6px_rgba(27,42,107,0.18)]"
+            style={{ background: "linear-gradient(135deg,#1b2a6b,#16a085)" }}
           >
             {employee.avatar ? (
               <img
                 src={avatarSrc(employee)}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                className="w-full h-full object-cover"
                 alt=""
               />
             ) : (
               initials(employee)
             )}
           </div>
-          <span
-            style={{
-              fontFamily: "monospace",
-              fontSize: 12.5,
-              background: "#f8fafc",
-              padding: "2px 7px",
-              borderRadius: 6,
-              color: "#475569",
-              border: "1px solid #e2e8f0",
-            }}
-          >
+          <span className="font-mono text-[12.5px] bg-slate-50 px-[7px] py-[2px] rounded-md text-slate-600 border border-slate-200">
             {employee.employee_id || "-"}
           </span>
         </div>
@@ -267,10 +224,10 @@ export default function SuperiorSectionPage() {
       header: "Name",
       render: (employee) => (
         <div>
-          <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 13.5 }}>
+          <div className="font-bold text-slate-800 text-[13.5px]">
             {displayName(employee)}
           </div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+          <div className="text-[11px] text-slate-400 mt-[1px]">
             {employee.email}
           </div>
         </div>
@@ -284,12 +241,8 @@ export default function SuperiorSectionPage() {
         const badge = roleBadge(employee.role);
         return (
           <span
+            className="inline-flex text-xs font-bold px-[10px] py-1 rounded-full"
             style={{
-              display: "inline-flex",
-              fontSize: 12,
-              fontWeight: 700,
-              padding: "4px 10px",
-              borderRadius: 999,
               background: badge.bg,
               color: badge.color,
               border: `1px solid ${badge.border}`,
@@ -304,7 +257,7 @@ export default function SuperiorSectionPage() {
       key: "job_title",
       header: "Job Title",
       render: (employee) => (
-        <span style={{ fontSize: 13, color: "#475569" }}>
+        <span className="text-[13px] text-slate-600">
           {employee.job_title || "-"}
         </span>
       ),
@@ -313,7 +266,7 @@ export default function SuperiorSectionPage() {
       key: "sub_unit",
       header: "Sub Unit",
       render: (employee) => (
-        <span style={{ fontSize: 13, color: "#64748b" }}>
+        <span className="text-[13px] text-slate-500">
           {employee.sub_unit || "-"}
         </span>
       ),
@@ -322,7 +275,7 @@ export default function SuperiorSectionPage() {
       key: "location",
       header: "Location",
       render: (employee) => (
-        <span style={{ fontSize: 13, color: "#64748b" }}>
+        <span className="text-[13px] text-slate-500">
           {employee.location || "-"}
         </span>
       ),
@@ -345,16 +298,7 @@ export default function SuperiorSectionPage() {
       {hasFilters && (
         <button
           onClick={clearFilters}
-          style={{
-            padding: "9px 14px",
-            border: "1.5px solid #e2e8f0",
-            borderRadius: 10,
-            fontSize: 13,
-            background: "#fff",
-            cursor: "pointer",
-            color: "#64748b",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-          }}
+          className="py-[9px] px-[14px] border-[1.5px] border-slate-200 rounded-[10px] text-[13px] bg-white cursor-pointer text-slate-500 shadow-sm hover:bg-slate-50 transition-colors"
         >
           Clear
         </button>
@@ -370,17 +314,8 @@ export default function SuperiorSectionPage() {
     >
       {pageError && (
         <div
-          style={{
-            marginBottom: 16,
-            padding: "12px 18px",
-            background: "linear-gradient(135deg,#fff5f5,#fff)",
-            border: "1px solid #fecaca",
-            borderLeft: "4px solid #ef4444",
-            borderRadius: 12,
-            color: "#dc2626",
-            fontSize: 13.5,
-            boxShadow: "0 2px 8px rgba(239,68,68,0.08)",
-          }}
+          className="mb-4 px-[18px] py-3 border border-red-300 border-l-4 border-l-red-500 rounded-xl text-red-600 text-[13.5px] shadow-[0_2px_8px_rgba(239,68,68,0.08)]"
+          style={{ background: "linear-gradient(135deg,#fff5f5,#fff)" }}
         >
           {pageError}
         </div>

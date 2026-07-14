@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { IconUsers, IconUser, IconEye } from "../../components/Icons";
+import { ShieldCheck } from "lucide-react";
 import Layout, { TabItem } from "../../components/Layout";
 import { Employee } from "../../types";
 import AddEmployeeModal from "./AddEmployeeModal";
@@ -11,9 +13,50 @@ import {
   setSearch,
 } from "../../store/employeeSlice";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
-import { IconUsers, IconUser } from "../../components/Icons";
-import { ShieldCheck } from "lucide-react";
 import Toast from "../../utils/toast";
+import { BASIC_SUPERVISOR_ROLES, type UserRole } from "../../config/roles";
+
+const THEME_COLORS = {
+  navy: {
+    primary: "#1b2a6b",
+    dark: "#162058",
+  },
+  teal: {
+    primary: "#16a085",
+    dark: "#117a62",
+  },
+  slate: {
+    50: "#f8fafc",
+    100: "#f1f5f9",
+    200: "#e2e8f0",
+    400: "#94a3b8",
+    500: "#64748b",
+    600: "#475569",
+    700: "#334155",
+    800: "#1e293b",
+  },
+  green: {
+    50: "#f0fdf4",
+    500: "#22c55e",
+    600: "#16a34a",
+    border: "#bbf7d0",
+    bg: "#dcfce7",
+  },
+  blue: {
+    50: "#eff6ff",
+    100: "#dbeafe",
+    200: "#bfdbfe",
+    300: "#93c5fd",
+    500: "#0284c7",
+    600: "#075985",
+    bg: "#e0f2fe",
+    border: "#bae6fd",
+  },
+  white: "#fff",
+  gradient: {
+    primary: "linear-gradient(135deg, #1b2a6b, #16a085)",
+  },
+} as const;
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -81,10 +124,10 @@ export default function EmployeeListPage() {
   const allRows = data?.data || [];
 
   const employeeCount = allRows.filter(
-    (e) => e.role === "employee" || !e.role,
+    (event) => event.role === "employee" || !event.role,
   ).length;
-  const supervisorCount = allRows.filter((e) =>
-    ["supervisor", "manager"].includes(e.role || ""),
+  const supervisorCount = allRows.filter((event) =>
+    BASIC_SUPERVISOR_ROLES.includes((event.role || "") as UserRole),
   ).length;
 
   const stats: StatCard[] = [
@@ -92,25 +135,25 @@ export default function EmployeeListPage() {
       label: "Total",
       value: data?.total || 0,
       icon: <IconUsers size={20} />,
-      color: "#1b2a6b",
-      bg: "#eff6ff",
-      border: "#bfdbfe",
+      color: THEME_COLORS.navy.primary,
+      bg: THEME_COLORS.blue[50],
+      border: THEME_COLORS.blue[200],
     },
     {
       label: "Employees",
       value: employeeCount,
       icon: <IconUser size={20} />,
-      color: "#16a34a",
-      bg: "#f0fdf4",
-      border: "#bbf7d0",
+      color: THEME_COLORS.green[600],
+      bg: THEME_COLORS.green[50],
+      border: THEME_COLORS.green.border,
     },
     {
       label: "Supervisors",
       value: supervisorCount,
       icon: <ShieldCheck size={20} />,
-      color: "#075985",
-      bg: "#e0f2fe",
-      border: "#bae6fd",
+      color: THEME_COLORS.blue[600],
+      bg: THEME_COLORS.blue.bg,
+      border: THEME_COLORS.blue.border,
     },
   ];
 
@@ -119,44 +162,21 @@ export default function EmployeeListPage() {
       key: "employee_id",
       header: "Employee ID",
       render: (employee) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "50%",
-              flexShrink: 0,
-              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-              boxShadow: "0 2px 6px rgba(27,42,107,0.18)",
-            }}
-          >
+        <div className="flex items-center gap-2.5">
+          <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#1b2a6b] to-[#16a085] shadow-[0_2px_6px_rgba(27,42,107,0.18)]">
             {employee.avatar ? (
               <img
                 src={employee.avatar}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                className="w-full h-full object-cover"
                 alt=""
               />
             ) : (
-              <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>
+              <span className="text-white text-[11px] font-bold">
                 {getInitials(employee)}
               </span>
             )}
           </div>
-          <span
-            style={{
-              fontFamily: "monospace",
-              fontSize: 12.5,
-              background: "#f8fafc",
-              padding: "2px 7px",
-              borderRadius: 6,
-              color: "#475569",
-              border: "1px solid #e2e8f0",
-            }}
-          >
+          <span className="font-mono text-xs bg-slate-50 px-[7px] py-0.5 rounded-md text-slate-600 border border-slate-200">
             {employee.employee_id || "—"}
           </span>
         </div>
@@ -167,10 +187,10 @@ export default function EmployeeListPage() {
       header: "Name",
       render: (employee) => (
         <div>
-          <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 13.5 }}>
+          <div className="font-bold text-slate-800 text-[13.5px]">
             {getDisplayName(employee)}
           </div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+          <div className="text-[11px] text-slate-400 mt-0.5">
             {employee.email}
           </div>
         </div>
@@ -181,31 +201,21 @@ export default function EmployeeListPage() {
       header: "Type",
       width: 130,
       render: (employee) => {
-        const isSupervisor = ["supervisor", "manager"].includes(
-          employee.role || "",
+        const isSupervisor = BASIC_SUPERVISOR_ROLES.includes(
+          (employee.role || "") as UserRole,
         );
         return (
           <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 12,
-              fontWeight: 600,
-              padding: "4px 10px",
-              borderRadius: 999,
-              background: isSupervisor ? "#e0f2fe" : "#dcfce7",
-              color: isSupervisor ? "#075985" : "#16a34a",
-              border: `1px solid ${isSupervisor ? "#bae6fd" : "#bbf7d0"}`,
-            }}
+            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${
+              isSupervisor
+                ? "bg-[#e0f2fe] text-[#075985] border-[#bae6fd]"
+                : "bg-[#dcfce7] text-[#16a34a] border-[#bbf7d0]"
+            }`}
           >
             <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: isSupervisor ? "#0284c7" : "#22c55e",
-              }}
+              className={`w-1.5 h-1.5 rounded-full ${
+                isSupervisor ? "bg-[#0284c7]" : "bg-[#22c55e]"
+              }`}
             />
             {isSupervisor ? "Supervisor" : "Employee"}
           </span>
@@ -216,7 +226,7 @@ export default function EmployeeListPage() {
       key: "job_title",
       header: "Job Title",
       render: (employee) => (
-        <span style={{ fontSize: 13, color: "#475569" }}>
+        <span className="text-slate-600 text-[13px]">
           {employee.job_title || "—"}
         </span>
       ),
@@ -225,7 +235,7 @@ export default function EmployeeListPage() {
       key: "sub_unit",
       header: "Sub Unit",
       render: (employee) => (
-        <span style={{ fontSize: 13, color: "#64748b" }}>
+        <span className="text-[13px] text-slate-500">
           {employee.sub_unit || "—"}
         </span>
       ),
@@ -234,7 +244,7 @@ export default function EmployeeListPage() {
       key: "location",
       header: "Location",
       render: (employee) => (
-        <span style={{ fontSize: 13, color: "#64748b" }}>
+        <span className="text-[13px] text-slate-500">
           {employee.location || "—"}
         </span>
       ),
@@ -243,7 +253,7 @@ export default function EmployeeListPage() {
       key: "supervisors",
       header: "Supervisor",
       render: (employee) => (
-        <span style={{ fontSize: 13, color: "#64748b" }}>
+        <span className="text-[13px] text-slate-500">
           {getSupervisor(employee)}
         </span>
       ),
@@ -261,38 +271,26 @@ export default function EmployeeListPage() {
       <DataTable<Employee>
         title="Employee List"
         subtitle="View and manage employee profile information"
-        icon={(<IconUsers size={18} />) as any}
+        icon="👥"
         rows={allRows}
         isLoading={loading}
         columns={columns}
         actions={[
           {
             label: "View",
-            color: "#1b2a6b",
-            bg: "#eff6ff",
-            bgHover: "#dbeafe",
-            borderColor: "#bfdbfe",
-            borderColorHover: "#93c5fd",
-            icon: (
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            ),
+            color: THEME_COLORS.navy.primary,
+            bg: THEME_COLORS.blue[50],
+            bgHover: THEME_COLORS.blue[100],
+            borderColor: THEME_COLORS.blue[200],
+            borderColorHover: THEME_COLORS.blue[300],
+            icon: <IconEye size={13} />,
             onClick: (employee) =>
               employee.id && navigate(`/employees/${employee.id}/profile`),
             title: "View profile",
           },
         ]}
         getKey={(employee) => employee.id}
-        emptyIcon={(<IconUser size={36} />) as any}
+        emptyIcon="👤"
         emptyTitle={
           search ? `No results for "${search}"` : "No employees found"
         }

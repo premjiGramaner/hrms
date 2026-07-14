@@ -13,7 +13,11 @@ import { getApiErrorMessage } from "../../utils/errors";
 import { useAppSelector } from "../../app/hooks";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
-import { ADMIN_ROLES, SUPERVISOR_ROLES } from "../../config/roles";
+import {
+  ADMIN_ROLES,
+  SUPERVISOR_ROLES,
+  type UserRole,
+} from "../../config/roles";
 
 function StatusBadge({ status }: { status: string }) {
   return <span>{status}</span>;
@@ -285,8 +289,8 @@ export default function LeaveDetailsPage() {
   }, [leaveId]);
 
   const isAdminOrHR =
-    ADMIN_ROLES.includes(user?.role || "") ||
-    SUPERVISOR_ROLES.includes(user?.role || "");
+    ADMIN_ROLES.includes((user?.role || "") as UserRole) ||
+    SUPERVISOR_ROLES.includes((user?.role || "") as UserRole);
 
   const isRequester = !!(
     leave?.user_id &&

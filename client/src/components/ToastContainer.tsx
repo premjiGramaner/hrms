@@ -17,7 +17,6 @@ export const ToastContainer = () => {
       position="top-right"
       reverseOrder={false}
       gutter={8}
-      containerClassName=""
       containerStyle={{
         top: 80,
         right: 20,

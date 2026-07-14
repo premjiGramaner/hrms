@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import DataTable, { ColumnDef } from "../../components/DataTable";
 import { useAppSelector } from "../../app/hooks";
@@ -18,6 +18,11 @@ import {
   downloadTerminationReportPDF,
   fetchReportFilterOptions,
 } from "../../api/report.api";
+import {
+  MONTH_OPTIONS,
+  YEARS_OF_SERVICE_OPTIONS,
+  TERMINATION_TYPE_COLORS,
+} from "../../config/uiConstants";
 
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: "/reports/birthday" },
@@ -32,9 +37,14 @@ type ReportRecord =
   | WorkAnniversaryReportRecord
   | TerminationReportRecord;
 
+// Helper function to get termination type badge background color
+const getTerminationTypeBgColor = (type: string): string => {
+  const color = TERMINATION_TYPE_COLORS[type];
+  return color || "#94A3B8";
+};
+
 export default function UnifiedReportsPage() {
   const user = useAppSelector((state) => state.auth.user);
-  const userRole = user?.role || "employee";
 
   const [reportType, setReportType] = useState<ReportType>("birthday");
 
@@ -155,15 +165,11 @@ export default function UnifiedReportsPage() {
   }, [loadReportData]);
 
   const handleExportExcel = async () => {
-    const currentYear = new Date().getFullYear();
-    let filename = "";
-
     try {
       if (reportType === "birthday") {
         const queryParams = {
           employee_name: searchQuery || undefined,
         };
-        filename = `Birthday_Report_${currentYear}.xlsx`;
         await downloadBirthdayReportExcel(queryParams);
       } else if (reportType === "anniversary") {
         const queryParams = {
@@ -172,7 +178,6 @@ export default function UnifiedReportsPage() {
           years_of_service: selectedYears || undefined,
           department: selectedDepartment || undefined,
         };
-        filename = `Work_Anniversary_Report_${currentYear}.xlsx`;
         await downloadWorkAnniversaryReportExcel(queryParams);
       } else if (reportType === "termination") {
         const queryParams = {
@@ -182,7 +187,6 @@ export default function UnifiedReportsPage() {
           group_company: selectedGroupCompany || undefined,
           location: selectedLocation || undefined,
         };
-        filename = `Termination_Report_${currentYear}.xlsx`;
         await downloadTerminationReportExcel(queryParams);
       }
     } catch (err) {
@@ -194,7 +198,6 @@ export default function UnifiedReportsPage() {
   const handleExportPDF = async () => {
     if (reportType !== "termination") return;
 
-    const currentYear = new Date().getFullYear();
     const queryParams = {
       employee_name: searchQuery || undefined,
       date_from: dateFrom || undefined,
@@ -217,7 +220,7 @@ export default function UnifiedReportsPage() {
       header: "Employee ID",
       width: 130,
       render: (row) => (
-        <span style={{ fontWeight: 600, color: "#1B2A6B" }}>
+        <span className="font-semibold text-[#1B2A6B]">
           {row.employee_id || "N/A"}
         </span>
       ),
@@ -236,14 +239,14 @@ export default function UnifiedReportsPage() {
       key: "full_name",
       header: "Full Name",
       width: 200,
-      render: (row) => <span style={{ fontWeight: 500 }}>{row.full_name}</span>,
+      render: (row) => <span className="font-medium">{row.full_name}</span>,
     },
     {
       key: "formatted_birthday",
       header: "Birthday Date",
       width: 150,
       render: (row) => (
-        <span style={{ fontWeight: 600, color: "#F97316" }}>
+        <span className="font-semibold text-orange-500">
           🎂 {row.formatted_birthday || "N/A"}
         </span>
       ),
@@ -267,7 +270,7 @@ export default function UnifiedReportsPage() {
         header: "Employee ID",
         width: 130,
         render: (row) => (
-          <span style={{ fontWeight: 600, color: "#1B2A6B" }}>
+          <span className="font-semibold text-[#1B2A6B]">
             {row.employee_id || "N/A"}
           </span>
         ),
@@ -277,7 +280,7 @@ export default function UnifiedReportsPage() {
         header: "Employee Name",
         width: 200,
         render: (row) => (
-          <span style={{ fontWeight: 500 }}>{row.employee_name}</span>
+          <span className="font-medium">{row.employee_name}</span>
         ),
       },
       {
@@ -305,7 +308,7 @@ export default function UnifiedReportsPage() {
         header: "Anniversary Date",
         width: 150,
         render: (row) => (
-          <span style={{ fontWeight: 600, color: "#7C3AED" }}>
+          <span className="font-semibold text-purple-600">
             {row.formatted_anniversary || "N/A"}
           </span>
         ),
@@ -315,16 +318,7 @@ export default function UnifiedReportsPage() {
         header: "Years of Service",
         width: 140,
         render: (row) => (
-          <span
-            style={{
-              padding: "6px 12px",
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 700,
-              background: "#16A085",
-              color: "#fff",
-            }}
-          >
+          <span className="px-3 py-1.5 rounded-md text-xs font-bold bg-[#16A085] text-white">
             {row.years_of_service} Year{row.years_of_service !== 1 ? "s" : ""}
           </span>
         ),
@@ -334,21 +328,10 @@ export default function UnifiedReportsPage() {
   const getTerminationColumns = (): ColumnDef<TerminationReportRecord>[] => [
     {
       key: "emp_id",
-      header: "EMP ID",
+      header: "Employee ID",
       width: 140,
       render: (row) => (
-        <span
-          style={{
-            fontWeight: 600,
-            color: "#1B2A6B",
-            display: "block",
-            padding: "8px 12px",
-            background: "#E0E7FF",
-            borderRadius: 8,
-            textAlign: "center",
-            fontSize: 14,
-          }}
-        >
+        <span className="font-semibold text-[#1B2A6B] block py-2 px-3 bg-indigo-100 rounded-lg text-center text-sm">
           {row.emp_id || "N/A"}
         </span>
       ),
@@ -358,21 +341,7 @@ export default function UnifiedReportsPage() {
       header: "Employee Name",
       width: 250,
       render: (row) => (
-        <span
-          style={{
-            fontWeight: 600,
-            fontSize: 15,
-            color: "#1e293b",
-            display: "block",
-            padding: "10px 14px",
-            background: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
-            borderRadius: 8,
-            border: "1px solid #BFDBFE",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
+        <span className="font-semibold text-[15px] text-slate-800 block py-2.5 px-3.5 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 whitespace-nowrap overflow-hidden text-ellipsis">
           {row.employee_name || "N/A"}
         </span>
       ),
@@ -382,13 +351,7 @@ export default function UnifiedReportsPage() {
       header: "Designation",
       width: 180,
       render: (row) => (
-        <span
-          style={{
-            whiteSpace: "normal",
-            wordBreak: "break-word",
-            fontSize: 13,
-          }}
-        >
+        <span className="whitespace-normal break-words text-[13px]">
           {row.designation || "N/A"}
         </span>
       ),
@@ -398,25 +361,13 @@ export default function UnifiedReportsPage() {
       header: "Termination Type",
       width: 150,
       render: (row) => {
-        const typeColors: Record<string, string> = {
-          Voluntary: "#16A085",
-          Involuntary: "#E53E3E",
-          Retirement: "#7C3AED",
-          Layoff: "#F97316",
-          "End of Contract": "#3B82F6",
-        };
         return (
           <span
+            className="px-3 py-1.5 rounded-md text-xs font-semibold text-white inline-block whitespace-nowrap text-center"
             style={{
-              padding: "6px 12px",
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              background: typeColors[row.termination_type || ""] || "#94A3B8",
-              color: "#fff",
-              display: "inline-block",
-              whiteSpace: "nowrap",
-              textAlign: "center",
+              background:
+                TERMINATION_TYPE_COLORS[row.termination_type || ""] ||
+                "#94A3B8",
             }}
           >
             {row.termination_type || "N/A"}
@@ -429,14 +380,7 @@ export default function UnifiedReportsPage() {
       header: "Termination Reason",
       width: 250,
       render: (row) => (
-        <span
-          style={{
-            fontSize: 13,
-            whiteSpace: "normal",
-            wordBreak: "break-word",
-            lineHeight: "1.5",
-          }}
-        >
+        <span className="text-[13px] whitespace-normal break-words leading-relaxed">
           {row.termination_reason || "N/A"}
         </span>
       ),
@@ -446,18 +390,7 @@ export default function UnifiedReportsPage() {
       header: "Join Date",
       width: 140,
       render: (row) => (
-        <span
-          style={{
-            whiteSpace: "nowrap",
-            fontWeight: 600,
-            fontSize: 14,
-            display: "block",
-            padding: "6px 10px",
-            background: "#F0FDF4",
-            borderRadius: 6,
-            textAlign: "center",
-          }}
-        >
+        <span className="whitespace-nowrap font-semibold text-sm block py-1.5 px-2.5 bg-green-50 rounded-md text-center">
           {row.date_of_joining || "N/A"}
         </span>
       ),
@@ -467,19 +400,7 @@ export default function UnifiedReportsPage() {
       header: "Exit Date",
       width: 140,
       render: (row) => (
-        <span
-          style={{
-            color: "#DC2626",
-            fontWeight: 700,
-            whiteSpace: "nowrap",
-            fontSize: 14,
-            display: "block",
-            padding: "20px 10px",
-            background: "#FEE2E2",
-            borderRadius: 6,
-            textAlign: "center",
-          }}
-        >
+        <span className="text-red-600 font-bold whitespace-nowrap text-sm block py-5 px-2.5 bg-red-100 rounded-md text-center">
           {row.date_of_exit || "N/A"}
         </span>
       ),
@@ -489,18 +410,7 @@ export default function UnifiedReportsPage() {
       header: "Last Working Day",
       width: 160,
       render: (row) => (
-        <span
-          style={{
-            fontWeight: 600,
-            whiteSpace: "nowrap",
-            fontSize: 14,
-            display: "block",
-            padding: "6px 10px",
-            background: "#FEF3C7",
-            borderRadius: 6,
-            textAlign: "center",
-          }}
-        >
+        <span className="font-semibold whitespace-nowrap text-sm block py-1.5 px-2.5 bg-amber-100 rounded-md text-center">
           {row.last_working_day || "N/A"}
         </span>
       ),
@@ -510,7 +420,7 @@ export default function UnifiedReportsPage() {
       header: "Notice Period",
       width: 120,
       render: (row) => (
-        <span style={{ fontSize: 13 }}>
+        <span className="text-[13px]">
           {row.notice_period_days ? `${row.notice_period_days} days` : "N/A"}
         </span>
       ),
@@ -521,16 +431,11 @@ export default function UnifiedReportsPage() {
       width: 130,
       render: (row) => (
         <span
-          style={{
-            padding: "6px 10px",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            background: row.exit_interview_completed ? "#D1FAE5" : "#FEE2E2",
-            color: row.exit_interview_completed ? "#065F46" : "#991B1B",
-            display: "inline-block",
-            whiteSpace: "nowrap",
-          }}
+          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-block whitespace-nowrap ${
+            row.exit_interview_completed
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
         >
           {row.exit_interview_completed ? "✓ Done" : "✗ Pending"}
         </span>
@@ -542,16 +447,11 @@ export default function UnifiedReportsPage() {
       width: 130,
       render: (row) => (
         <span
-          style={{
-            padding: "6px 10px",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            background: row.rehire_eligible ? "#D1FAE5" : "#FEE2E2",
-            color: row.rehire_eligible ? "#065F46" : "#991B1B",
-            display: "inline-block",
-            whiteSpace: "nowrap",
-          }}
+          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-block whitespace-nowrap ${
+            row.rehire_eligible
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
         >
           {row.rehire_eligible ? "✓ Yes" : "✗ No"}
         </span>
@@ -565,19 +465,11 @@ export default function UnifiedReportsPage() {
         const isDeleted = row.is_user_deleted === true;
         return (
           <span
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: "#1e293b",
-              display: "block",
-              padding: "10px 14px",
-              background: isDeleted ? "#FCA5A5" : "#FDE68A",
-              borderRadius: 8,
-              border: isDeleted ? "1px solid #F87171" : "1px solid #FCD34D",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
+            className={`text-sm font-semibold text-slate-800 block py-2.5 px-3.5 rounded-lg whitespace-nowrap overflow-hidden text-ellipsis ${
+              isDeleted
+                ? "bg-red-300 border border-red-400"
+                : "bg-amber-200 border border-amber-300"
+            }`}
           >
             {row.actual_supervisor || "N/A"}
             {isDeleted && " 🔴"}
@@ -593,19 +485,11 @@ export default function UnifiedReportsPage() {
         const isDeleted = row.is_user_deleted === true;
         return (
           <span
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: "#1e293b",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              display: "block",
-              padding: "10px 14px",
-              background: isDeleted ? "#FED7AA" : "#E0E7FF",
-              borderRadius: 8,
-              border: isDeleted ? "1px solid #FB923C" : "1px solid #C7D2FE",
-            }}
+            className={`text-sm font-semibold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis block py-2.5 px-3.5 rounded-lg ${
+              isDeleted
+                ? "bg-orange-200 border border-orange-300"
+                : "bg-indigo-100 border border-indigo-200"
+            }`}
           >
             {row.terminated_by || "N/A"}
             {isDeleted && " 🔴"}
@@ -624,36 +508,15 @@ export default function UnifiedReportsPage() {
 
   const renderBirthdayFilters = () => <></>;
 
-  const months = [
-    { value: "01", label: "January" },
-    { value: "02", label: "February" },
-    { value: "03", label: "March" },
-    { value: "04", label: "April" },
-    { value: "05", label: "May" },
-    { value: "06", label: "June" },
-    { value: "07", label: "July" },
-    { value: "08", label: "August" },
-    { value: "09", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
-  ];
-
   const renderAnniversaryFilters = () => (
     <>
       <select
         value={selectedMonth}
         onChange={(e) => setSelectedMonth(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Months</option>
-        {months.map((m) => (
+        {MONTH_OPTIONS.map((m) => (
           <option key={m.value} value={m.value}>
             {m.label}
           </option>
@@ -662,16 +525,10 @@ export default function UnifiedReportsPage() {
       <select
         value={selectedYears}
         onChange={(e) => setSelectedYears(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Years</option>
-        {[1, 2, 3, 5, 10, 15, 20, 25].map((y) => (
+        {YEARS_OF_SERVICE_OPTIONS.map((y) => (
           <option key={y} value={y}>
             {y} Year{y !== 1 ? "s" : ""}
           </option>
@@ -680,13 +537,7 @@ export default function UnifiedReportsPage() {
       <select
         value={selectedDepartment}
         onChange={(e) => setSelectedDepartment(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Departments</option>
         {filterOptions.subUnits.map((unit) => (
@@ -705,37 +556,19 @@ export default function UnifiedReportsPage() {
         value={dateFrom}
         onChange={(e) => setDateFrom(e.target.value)}
         placeholder="From Date"
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       />
       <input
         type="date"
         value={dateTo}
         onChange={(e) => setDateTo(e.target.value)}
         placeholder="To Date"
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       />
       <select
         value={selectedGroupCompany}
         onChange={(e) => setSelectedGroupCompany(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Companies</option>
         {filterOptions.subUnits.map((unit) => (
@@ -747,13 +580,7 @@ export default function UnifiedReportsPage() {
       <select
         value={selectedLocation}
         onChange={(e) => setSelectedLocation(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Locations</option>
         {filterOptions.locations.map((loc) => (
@@ -766,28 +593,11 @@ export default function UnifiedReportsPage() {
   );
 
   const filterToolbar = (
-    <div
-      style={{
-        display: "flex",
-        gap: 12,
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
+    <div className="flex gap-3 flex-wrap items-center">
       <select
         value={reportType}
         onChange={(e) => setReportType(e.target.value as ReportType)}
-        style={{
-          padding: "8px 16px",
-          border: "2px solid #1B2A6B",
-          borderRadius: 6,
-          fontSize: 14,
-          fontWeight: 600,
-          outline: "none",
-          background: "#fff",
-          color: "#1B2A6B",
-          cursor: "pointer",
-        }}
+        className="py-2 px-4 border-2 border-[#1B2A6B] rounded-md text-sm font-semibold outline-none bg-white text-[#1B2A6B] cursor-pointer"
       >
         <option value="birthday"> All Employee Birthday Details</option>
         <option value="anniversary"> All Employee Anniversary Details</option>
@@ -797,7 +607,7 @@ export default function UnifiedReportsPage() {
       </select>
 
       {/* Divider */}
-      <div style={{ width: 1, height: 32, background: "#e2e8f0" }} />
+      <div className="w-px h-8 bg-slate-200" />
 
       {/* Dynamic filters based on report type */}
       {reportType === "birthday" && renderBirthdayFilters()}
@@ -807,33 +617,14 @@ export default function UnifiedReportsPage() {
       {/* Export buttons */}
       <button
         onClick={handleExportExcel}
-        style={{
-          padding: "8px 16px",
-          background: "#16A085",
-          color: "#fff",
-          border: "none",
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
+        className="py-2 px-4 bg-[#16A085] text-white border-0 rounded-md text-[13px] font-semibold cursor-pointer"
       >
         Export Excel
       </button>
       {reportType === "termination" && (
         <button
           onClick={handleExportPDF}
-          style={{
-            padding: "8px 16px",
-            background: "linear-gradient(135deg, #172554, #14b8a6)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
+          className="py-2 px-4 bg-gradient-to-br from-[#172554] to-[#14b8a6] text-white border-0 rounded-md text-[13px] font-semibold cursor-pointer shadow-sm"
         >
           📄 Export PDF
         </button>
@@ -876,7 +667,7 @@ export default function UnifiedReportsPage() {
 
   return (
     <Layout title="Reports and Analytics" tabs={TABS} activeTab="Reports">
-      <div style={{ padding: "20px 40px" }}>
+      <div className="py-5 px-10">
         <DataTable
           title={reportTitles[reportType]}
           subtitle={reportSubtitles[reportType]}

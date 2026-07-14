@@ -100,11 +100,17 @@ export default function AddEmployeeModal({
       )
       .catch(() => setApiError("Failed to load supervisors"));
     getJobTitles()
-      .then((res) => setJobTitleOptions(res.data.map((JobTitle) => JobTitle.title)))
+      .then((res) =>
+        setJobTitleOptions(res.data.map((JobTitle) => JobTitle.title)),
+      )
       .catch(() => setApiError("Failed to load job titles"));
 
     getJobCategories()
-      .then((res) => setJobCategoryOptions(res.data.map((JobCategory) => JobCategory.category)))
+      .then((res) =>
+        setJobCategoryOptions(
+          res.data.map((JobCategory) => JobCategory.category),
+        ),
+      )
       .catch(() => setApiError("Failed to load job categories"));
 
     getSubUnits()
@@ -917,7 +923,7 @@ export default function AddEmployeeModal({
                   ),
                 )}
                 {FormField(
-                  "Attendance Calc",
+                  "Attendance Calculation Basics",
                   renderSelect("attendance_calc", [
                     "Work Schedule",
                     "Clock In/Out",

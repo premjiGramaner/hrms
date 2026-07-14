@@ -50,7 +50,7 @@ export const Alert = {
 
       const CustomAlert = (
         <div
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
           className="bg-white rounded-2xl p-6 min-w-[320px] max-w-[450px] shadow-2xl"
         >
           <div
@@ -134,7 +134,7 @@ export const Alert = {
 
       const CustomAlert = (
         <div
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
           className="bg-white rounded-2xl p-6 min-w-[320px] max-w-[450px] shadow-2xl"
         >
           <div

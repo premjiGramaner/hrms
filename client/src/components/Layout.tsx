@@ -13,7 +13,6 @@ import {
   IconChart,
   IconCalendar,
   IconBriefcase,
-  IconSearch,
   IconGear,
   IconLogout,
   IconHome,
@@ -57,7 +56,6 @@ export default function Layout({
 
   const role = user?.role || "employee";
   const isAdmin = isAdminRole(role);
-  const username = user?.name || user?.username || "User";
   const roleLabel = getRoleLabel(role);
 
   const isActive = (path: string) => location.pathname.startsWith(path);
@@ -107,112 +105,59 @@ export default function Layout({
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
       <div
-        className="relative flex-shrink-0"
-        style={{
-          width: collapsed ? 0 : 230,
-          minWidth: collapsed ? 0 : 0,
-          transition: "width 250ms ease-in-out",
-        }}
+        className={`relative flex-shrink-0 transition-[width] duration-[250ms] ease-in-out ${
+          collapsed ? "w-0 min-w-0" : "w-[230px]"
+        }`}
       >
         <aside
-          style={{
-            width: collapsed ? 0 : 230,
-            transition: "width 250ms ease-in-out",
-            overflow: "hidden",
-          }}
-          className="flex flex-col bg-white shadow-lg z-10 h-screen select-none"
+          className={`flex flex-col bg-white shadow-lg z-10 h-screen select-none overflow-hidden transition-[width] duration-[250ms] ease-in-out ${
+            collapsed ? "w-0" : "w-[230px]"
+          }`}
         >
-          <div
-            className="flex items-center justify-center border-b border-slate-100 flex-shrink-0"
-            style={{ height: 64, padding: "0 24px" }}
-          >
+          <div className="flex items-center justify-center border-b border-slate-100 flex-shrink-0 h-16 px-6">
             <img
               src={cannyforeLogo}
               alt="Cannyfore"
-              style={{
-                height: 38,
-                maxWidth: 140,
-                objectFit: "contain",
-                opacity: collapsed ? 0 : 1,
-                transition: "opacity 200ms ease-in-out",
-              }}
+              className={`h-[38px] max-w-[140px] object-contain transition-opacity duration-200 ease-in-out ${
+                collapsed ? "opacity-0" : "opacity-100"
+              }`}
             />
           </div>
 
           <div
-            className="flex flex-col items-center text-center border-b border-slate-100 flex-shrink-0"
-            style={{
-              padding: "20px 16px 14px",
-              maxHeight: collapsed ? 0 : 200,
-              opacity: collapsed ? 0 : 1,
-              overflow: "hidden",
-              transition:
-                "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
-            }}
+            className={`flex flex-col items-center text-center border-b border-slate-100 flex-shrink-0 pt-5 px-4 pb-3.5 overflow-hidden transition-all duration-[250ms] ease-in-out ${
+              collapsed ? "max-h-0 opacity-0" : "max-h-[200px] opacity-100"
+            }`}
           >
-            <div
-              className="relative flex-shrink-0"
-              style={{
-                marginBottom: 8,
-              }}
-            >
+            <div className="relative flex-shrink-0 mb-2">
               {/* Reusable UserAvatar component */}
               <UserAvatar
                 size={72}
                 className="border-[3px] border-white shadow-[0_2px_8px_rgba(0,0,0,0.14)]"
               />
 
-              <div
-                className="absolute flex items-center justify-center bg-white rounded-full"
-                style={{
-                  width: 20,
-                  height: 20,
-                  bottom: 2,
-                  right: 2,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-                }}
-              >
+              <div className="absolute flex items-center justify-center bg-white rounded-full w-5 h-5 bottom-0.5 right-0.5 shadow-[0_1px_3px_rgba(0,0,0,0.15)]">
                 <Link to="/my-info">
                   <IconGear size={10} color="#888" />
                 </Link>
               </div>
             </div>
-            <p
-              className="truncate w-full"
-              style={{
-                fontSize: 13.5,
-                fontWeight: 700,
-                color: "#0f172a",
-                margin: "2px 0 0",
-              }}
-            >
+            <p className="truncate w-full text-[13.5px] font-bold text-slate-900 mt-0.5">
               {userNames}
             </p>
-            <p
-              className="truncate w-full"
-              style={{ fontSize: 11.5, color: "#64748b", marginTop: 3 }}
-            >
+            <p className="truncate w-full text-[11.5px] text-slate-500 mt-0.5">
               {roleLabel}
             </p>
           </div>
           <div
-            style={{
-              padding: "12px 12px 10px",
-              maxHeight: collapsed ? 0 : 60,
-              opacity: collapsed ? 0 : 1,
-              overflow: "hidden",
-              transition:
-                "max-height 250ms ease-in-out, opacity 200ms ease-in-out",
-            }}
-            className="flex-shrink-0"
+            className={`flex-shrink-0 pt-3 px-3 pb-2.5 overflow-hidden transition-all duration-[250ms] ease-in-out ${
+              collapsed ? "max-h-0 opacity-0" : "max-h-[60px] opacity-100"
+            }`}
           >
             <NavigationSearch />
           </div>
 
-          <nav
-            className="flex-1 overflow-y-auto"
-            style={{ padding: "4px 8px 24px" }}
-          >
+          <nav className="flex-1 overflow-y-auto pt-1 px-2 pb-6">
             {navItems.map((item) => {
               let active = false;
               if (item.to !== "#") {
@@ -241,43 +186,13 @@ export default function Layout({
         <button
           onClick={() => setCollapsed((prev) => !prev)}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          style={{
-            position: "absolute",
-            right: -14,
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: 28,
-            height: 28,
-            borderRadius: "50%",
-            background: "#233B86",
-            border: "2px solid #ffffff",
-            color: "#fff",
-            cursor: "pointer",
-            zIndex: 30,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 2px 8px rgba(35,59,134,0.30)",
-            fontSize: 14,
-            fontWeight: 700,
-            flexShrink: 0,
-            transition: "background 200ms",
-          }}
-          onMouseEnter={(event) =>
-            ((event.currentTarget as HTMLElement).style.background = "#1a2e6e")
-          }
-          onMouseLeave={(event) =>
-            ((event.currentTarget as HTMLElement).style.background = "#233B86")
-          }
+          className="absolute right-[-14px] top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#233B86] hover:bg-[#1a2e6e] border-2 border-white text-white cursor-pointer z-30 flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(35,59,134,0.30)] text-sm font-bold transition-colors duration-200"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <span
-            style={{
-              display: "inline-block",
-              transition: "transform 250ms ease-in-out",
-              transform: collapsed ? "rotate(180deg)" : "rotate(0deg)",
-              lineHeight: 1,
-            }}
+            className={`inline-block transition-transform duration-[250ms] ease-in-out leading-none ${
+              collapsed ? "rotate-180" : "rotate-0"
+            }`}
           >
             ‹
           </span>
@@ -381,59 +296,44 @@ function SidebarNavItem({
 }) {
   const [hovered, setHovered] = useState(false);
 
-  const containerStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: collapsed ? 0 : 12,
-    padding: collapsed ? "10px 0" : "10px 12px",
-    borderRadius: 28,
-    marginBottom: 4,
-    textDecoration: "none",
-    cursor: "pointer",
-    transition: "background 180ms ease, padding 250ms ease, gap 250ms ease",
-    userSelect: "none",
-    justifyContent: collapsed ? "center" : "flex-start",
-    background: active
-      ? "linear-gradient(90deg, #233B86 0%, #12C7A5 100%)"
-      : hovered
-        ? "#f1f5f9"
-        : "transparent",
-    boxShadow: active ? "0 2px 10px rgba(35,59,134,0.20)" : "none",
-  };
-
-  const iconStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    flexShrink: 0,
-    color: active ? "#ffffff" : "#6B7BA4",
-    transition: "color 180ms",
-  };
-
-  const textStyle: React.CSSProperties = {
-    fontSize: 13.5,
-    fontWeight: active ? 600 : 500,
-    color: active ? "#ffffff" : hovered ? "#1e293b" : "#6B7BA4",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    letterSpacing: "0.01em",
-    opacity: collapsed ? 0 : 1,
-    maxWidth: collapsed ? 0 : 160,
-    transition: "color 180ms, opacity 200ms ease, max-width 250ms ease",
-  };
-
   const content = (
     <>
-      <span style={iconStyle}>{icon}</span>
-      <span style={textStyle}>{label}</span>
+      <span
+        className={`flex items-center flex-shrink-0 transition-colors duration-[180ms] ${
+          active ? "text-white" : "text-[#6B7BA4]"
+        }`}
+      >
+        {icon}
+      </span>
+      <span
+        className={`text-[13.5px] whitespace-nowrap overflow-hidden text-ellipsis tracking-[0.01em] transition-all duration-200 ease-in-out ${
+          active
+            ? "font-semibold text-white"
+            : hovered
+              ? "font-medium text-slate-800"
+              : "font-medium text-[#6B7BA4]"
+        } ${collapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-[160px]"}`}
+      >
+        {label}
+      </span>
     </>
   );
+
+  const linkClasses = `flex items-center rounded-[28px] mb-1 no-underline cursor-pointer select-none transition-all duration-[180ms] ease ${
+    collapsed ? "gap-0 p-2.5 justify-center" : "gap-3 py-2.5 px-3 justify-start"
+  } ${
+    active
+      ? "bg-gradient-to-r from-[#233B86] to-[#12C7A5] shadow-[0_2px_10px_rgba(35,59,134,0.20)]"
+      : hovered
+        ? "bg-slate-100"
+        : "bg-transparent"
+  }`;
 
   if (to === "#") {
     return (
       <a
         href="#"
-        style={containerStyle}
+        className={linkClasses}
         title={collapsed ? label : undefined}
         onClick={(event) => event.preventDefault()}
         onMouseEnter={() => setHovered(true)}
@@ -447,7 +347,7 @@ function SidebarNavItem({
   return (
     <Link
       to={to}
-      style={containerStyle}
+      className={linkClasses}
       title={collapsed ? label : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

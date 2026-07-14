@@ -8,7 +8,14 @@ import { getApiErrorMessage } from "../../../utils/errors";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { updateUserAvatar, updateUserName } from "../../../store/authSlice";
 import { getAvatarSrc } from "../../../utils/avatar";
-import { IconUpload, IconEye } from "../../../components/Icons";
+import { IconUpload, IconEye, IconX } from "../../../components/Icons";
+import {
+  AVATAR_PLACEHOLDER_SERVICE,
+  MAX_FILE_SIZE_MB,
+  MAX_FILE_SIZE_BYTES,
+  SUPPORTED_IMAGE_TYPES,
+  SUPPORTED_IMAGE_EXTENSIONS,
+} from "../../../config/constants";
 
 interface EmployeeProfileCardProps {
   employee: Employee;
@@ -78,21 +85,18 @@ export default function EmployeeProfileCard({
     fileInputRef.current?.click();
   };
 
-  const handleViewImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (avatarUrl && !avatarUrl.includes("ui-avatars.com")) {
+  const handleViewImage = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (avatarUrl && !avatarUrl.includes(AVATAR_PLACEHOLDER_SERVICE)) {
       setShowImageModal(true);
     }
   };
 
-  const MAX_FILE_SIZE_MB = 5;
-  const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
-
   const validateImageFile = (file: File): string | null => {
-    if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
-      return "Please select a JPG, JPEG, or PNG image.";
+    if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+      return `Please select a ${SUPPORTED_IMAGE_EXTENSIONS.join(", ").toUpperCase()} image.`;
     }
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
       return `File size must be less than ${MAX_FILE_SIZE_MB} MB.`;
     }
 
@@ -203,7 +207,7 @@ export default function EmployeeProfileCard({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-base font-semibold text-[#333333] mb-4">About</h2>
+      <h2 className="text-base font-semibold text-slate-800 mb-4">About</h2>
 
       {uploadMessage && (
         <div
@@ -220,7 +224,7 @@ export default function EmployeeProfileCard({
 
       <div className="flex flex-col sm:flex-row gap-6">
         <div className="flex-shrink-0">
-          <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-blue-950 to-teal-500 flex items-center justify-center border-4 border-white shadow-lg group">
+          <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-blue-950 to-slate-500 flex items-center justify-center border-4 border-white shadow-lg group">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -245,15 +249,16 @@ export default function EmployeeProfileCard({
                   >
                     <IconUpload size={20} color="#fff" />
                   </button>
-                  {avatarUrl && !avatarUrl.includes("ui-avatars.com") && (
-                    <button
-                      onClick={handleViewImage}
-                      className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110"
-                      title="View full image"
-                    >
-                      <IconEye size={20} color="#fff" />
-                    </button>
-                  )}
+                  {avatarUrl &&
+                    !avatarUrl.includes(AVATAR_PLACEHOLDER_SERVICE) && (
+                      <button
+                        onClick={handleViewImage}
+                        className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110"
+                        title="View full image"
+                      >
+                        <IconEye size={20} color="#fff" />
+                      </button>
+                    )}
                 </>
               )}
             </div>
@@ -262,17 +267,17 @@ export default function EmployeeProfileCard({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".jpg,.jpeg,.png"
+            accept={SUPPORTED_IMAGE_EXTENSIONS.join(",")}
             onChange={handleFileChange}
             className="hidden"
           />
 
           <div className="text-center mt-4">
-            <h3 className="font-bold text-lg text-[#333333]">{fullName}</h3>
-            <p className="text-sm text-[#757575]">
+            <h3 className="font-bold text-lg text-slate-800">{fullName}</h3>
+            <p className="text-sm text-slate-600">
               {employee.job_title || "Employee"}
             </p>
-            <p className="text-xs text-[#00897b] mt-1">
+            <p className="text-xs text-slate-600 mt-1">
               📍 {employee.location || "Not specified"}
             </p>
           </div>
@@ -280,35 +285,35 @@ export default function EmployeeProfileCard({
 
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6 border-l pl-6">
           <div>
-            <h4 className="text-sm font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-slate-600 mb-3">
               Basic info
             </h4>
             <div className="space-y-2">
               <div>
-                <p className="text-xs text-[#757575]">Employee Id</p>
-                <p className="text-sm text-[#00897b] font-medium">
+                <p className="text-xs text-slate-600">Employee Id</p>
+                <p className="text-sm text-slate-600 font-medium">
                   {employee.employee_id || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Full Name</p>
-                <p className="text-sm text-[#333333] font-medium">{fullName}</p>
+                <p className="text-xs text-slate-600">Full Name</p>
+                <p className="text-sm text-slate-800 font-medium">{fullName}</p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Designation</p>
-                <p className="text-sm text-[#333333]">
+                <p className="text-xs text-slate-600">Designation</p>
+                <p className="text-sm text-slate-800">
                   {employee.job_title || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Location</p>
-                <p className="text-sm text-[#333333]">
+                <p className="text-xs text-slate-600">Location</p>
+                <p className="text-sm text-slate-800">
                   {employee.location || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Birthday</p>
-                <p className="text-sm text-[#333333]">
+                <p className="text-xs text-slate-600">Birthday</p>
+                <p className="text-sm text-slate-800">
                   {employee.dob
                     ? new Date(employee.dob).toLocaleDateString("en-US", {
                         month: "short",
@@ -321,13 +326,13 @@ export default function EmployeeProfileCard({
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-slate-600 mb-3">
               Employment
             </h4>
             <div className="space-y-2">
               <div>
-                <p className="text-xs text-[#757575]">Joined Date</p>
-                <p className="text-sm text-[#333333]">
+                <p className="text-xs text-slate-600">Joined Date</p>
+                <p className="text-sm text-slate-800">
                   {employee.joined_date
                     ? new Date(employee.joined_date).toLocaleDateString(
                         "en-US",
@@ -341,57 +346,57 @@ export default function EmployeeProfileCard({
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Sub Unit</p>
-                <p className="text-sm text-[#333333]">
+                <p className="text-xs text-slate-600">Sub Unit</p>
+                <p className="text-sm text-slate-800">
                   {employee.sub_unit || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Job Category</p>
-                <p className="text-sm text-[#333333]">
+                <p className="text-xs text-slate-600">Job Category</p>
+                <p className="text-sm text-slate-800">
                   {employee.job_category || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Status</p>
+                <p className="text-xs text-slate-600">Status</p>
                 <div className="flex items-center gap-2">
                   <span
                     className={`w-2 h-2 rounded-full ${
                       employee.is_active ? "bg-green-500" : "bg-red-500"
                     }`}
                   ></span>
-                  <span className="text-sm text-[#333333]">
+                  <span className="text-sm text-slate-800">
                     {employee.is_active ? "Active" : "Inactive"}
                   </span>
                 </div>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Supervisor</p>
-                <p className="text-sm text-[#333333]">{getSupervisorNames()}</p>
+                <p className="text-xs text-slate-600">Supervisor</p>
+                <p className="text-sm text-slate-800">{getSupervisorNames()}</p>
               </div>
             </div>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-slate-600 mb-3">
               Contact
             </h4>
             <div className="space-y-2">
               <div>
-                <p className="text-xs text-[#757575]">Work Phone</p>
-                <p className="text-sm text-[#00897b]">
+                <p className="text-xs text-slate-600">Work Phone</p>
+                <p className="text-sm text-slate-600">
                   {employee.work_tel || employee.mobile || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Work Email</p>
-                <p className="text-sm text-[#00897b] break-all">
+                <p className="text-xs text-slate-600">Work Email</p>
+                <p className="text-sm text-slate-600 break-all">
                   {employee.work_email || employee.email || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#757575]">Employment Status</p>
-                <p className="text-sm text-[#333333]">
+                <p className="text-xs text-slate-600">Employment Status</p>
+                <p className="text-sm text-slate-800">
                   {employee.employment_status || "N/A"}
                 </p>
               </div>
@@ -408,15 +413,16 @@ export default function EmployeeProfileCard({
           <div className="relative max-w-4xl max-h-[90vh]">
             <button
               onClick={() => setShowImageModal(false)}
-              className="absolute -top-12 right-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-xl transition-all"
+              className="absolute -top-12 right-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+              aria-label="Close image viewer"
             >
-              ✕
+              <IconX size={20} color="#fff" />
             </button>
             <img
               src={avatarUrl}
               alt={fullName}
               className="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
             />
           </div>
         </div>
