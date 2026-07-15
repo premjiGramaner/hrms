@@ -106,8 +106,8 @@ BEGIN
           WHERE TRIM(elem::text) ~ '^[0-9]+$'
         )
       END
-    ) AS supervisor_id
-    LEFT JOIN tbl_appusers s ON s.id = supervisor_id AND s.is_deleted = FALSE;
+    ) AS sup_id
+    LEFT JOIN tbl_appusers s ON s.id = sup_id AND s.is_deleted = FALSE;
     
     -- Get terminated by name
     SELECT COALESCE(t.name, CONCAT_WS(' ', t.first_name, t.last_name))
@@ -250,8 +250,8 @@ SELECT
           WHERE TRIM(elem::text) ~ '^[0-9]+$'
         )
       END
-    ) AS supervisor_id
-    LEFT JOIN tbl_appusers s ON s.id = supervisor_id AND s.is_deleted = FALSE
+    ) AS sup_id
+    LEFT JOIN tbl_appusers s ON s.id = sup_id AND s.is_deleted = FALSE
   ) as supervisor_names,
   COALESCE(u.termination_date, u.updated_at::date),
   COALESCE(u.termination_reason, 'Employee Terminated'),

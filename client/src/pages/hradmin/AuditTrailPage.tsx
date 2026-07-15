@@ -1,12 +1,20 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import { getAuditTrail } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
-import { IconClipboardList, IconActivity, IconPlusCircle, IconEdit, IconXCircle } from "../../components/Icons";
-import { getDisplayName } from "../employees/EmployeeListPage";
-import { getMyInfo } from "../../api/employee.api";
-import { Employee } from "../../types";
+import { getAvatarSrc, getInitials } from "../../utils/avatar";
+import { ScrollText, FileText } from "lucide-react";
+
+import {
+  IconActivity,
+  IconPlusCircle,
+  IconEdit,
+  IconXCircle,
+  IconAlertCircle,
+  IconX,
+} from "../../components/Icons";
+import { ACTION_COLORS } from "../../config/uiConstants";
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
   { label: "Job Categories", path: "/hradmin/job-categories" },
@@ -14,25 +22,14 @@ const TABS: TabItem[] = [
   { label: "Role Access", path: "/hradmin/role-access" },
   { label: "Audit Trail", path: "/hradmin/audit-trail" },
 ];
-const Adminuser: Employee | null = JSON.parse(
-  localStorage.getItem("hrms_user") || "null"
-);
-console.log(Adminuser)
-
-const ACTION_COLOR: Record<string, { bg: string; color: string; dot: string }> =
-  {
-    CREATE: { bg: "#dcfce7", color: "#16a34a", dot: "#22c55e" },
-    UPDATE: { bg: "#fef9c3", color: "#a16207", dot: "#eab308" },
-    DELETE: { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
-    TERMINATE: { bg: "#fce7f3", color: "#9d174d", dot: "#ec4899" },
-  };
 
 interface AuditRecord {
   id: number;
-  employee_id?: number;
-  employee_code?: string;
+  employee_id?: number | null;
+  employee_code?: string | null;
   action_owner: string;
   action_owner_username: string;
+  action_owner_avatar?: string | null;
   employee: string;
   employee_username: string;
   section: string;
@@ -44,7 +41,6 @@ interface AuditRecord {
   event_time: string;
   created_at: string;
 }
-
 
 function formatDateTime(iso: string): string {
   if (!iso) return "—";
@@ -75,42 +71,23 @@ function FilterSelect({
   placeholder: string;
   minWidth?: number;
 }) {
+  const widthClass = minWidth === 150 ? "min-w-[150px]" : "min-w-[140px]";
+
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{
-          padding: "9px 32px 9px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 10,
-          fontSize: 13,
-          outline: "none",
-          appearance: "none",
-          background: "#fff",
-          cursor: "pointer",
-          minWidth,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-        }}
+        className={`py-[9px] pl-3 pr-8 border-[1.5px] border-slate-200 rounded-[10px] text-[13px] outline-none appearance-none bg-white cursor-pointer shadow-sm ${widthClass}`}
       >
         <option value="all">{placeholder}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
           </option>
         ))}
       </select>
-      <span
-        style={{
-          position: "absolute",
-          right: 10,
-          top: "50%",
-          transform: "translateY(-50%)",
-          pointerEvents: "none",
-          color: "#94a3b8",
-          fontSize: 11,
-        }}
-      >
+      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[11px]">
         ▼
       </span>
     </div>
@@ -126,19 +103,21 @@ export default function AuditTrailPage() {
   const [actionFilter, setActionFilter] = useState("all");
   const [sectionFilter, setSectionFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(50);
   const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     setIsLoading(true);
-    getAuditTrail()
+    getAuditTrail(currentPage, pageSize)
       .then((res) => {
         setAllRecords(res.data);
         setFilteredRecords(res.data);
+        setTotalPages(res.pagination.totalPages);
       })
       .catch(() => setPageError("Failed to load audit trail. Please refresh."))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [currentPage, pageSize]);
 
   const uniqueActions = [
     ...new Set(allRecords.map((allRecord) => allRecord.action).filter(Boolean)),
@@ -201,7 +180,6 @@ export default function AuditTrailPage() {
   const hasFilters =
     searchQuery !== "" || actionFilter !== "all" || sectionFilter !== "all";
 
-  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const pagedRecords = useMemo(() => {
     const sorted = [...filteredRecords].sort((a, b) => {
       const diff =
@@ -225,7 +203,7 @@ export default function AuditTrailPage() {
     {
       label: "Total Events",
       value: allRecords.length,
-      icon: <IconActivity size={20} /> as any ,
+      icon: <IconActivity size={20} />,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
@@ -261,9 +239,7 @@ export default function AuditTrailPage() {
       key: "event_time",
       header: "Date",
       render: (row) => (
-        <span
-          style={{ color: "#475569", fontSize: 12.5, whiteSpace: "nowrap" }}
-        >
+        <span className="text-slate-600 text-[12.5px] whitespace-nowrap">
           {formatDateTime(row.event_time)}
         </span>
       ),
@@ -271,78 +247,87 @@ export default function AuditTrailPage() {
     {
       key: "action_owner",
       header: "Action Owner",
-      render: (row) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              flexShrink: 0,
-              background: "linear-gradient(135deg,#1b2a6b,#16a085)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 11,
-              fontWeight: 700,
-              boxShadow: "0 2px 6px rgba(27,42,107,0.2)",
-            }}
-          >
-           
-            
-            {(row.action_owner || "?")
-              .split(" ")
-              .map((w) => w[0])
-              .slice(0, 2)
-              .join("")
-              .toUpperCase()}
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 13 }}>
-              {row.action_owner || "—"}
+      render: (row) => {
+        const avatarSrc = getAvatarSrc(row.action_owner_avatar);
+
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#1b2a6b] to-[#16a085] flex items-center justify-center text-white text-[11px] font-bold shadow-[0_2px_6px_rgba(27,42,107,0.2)]">
+              {avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt={row.action_owner || "Action owner"}
+                  className="w-full h-full object-cover block"
+                />
+              ) : (
+                getInitials(row.action_owner)
+              )}
             </div>
-            <div style={{ color: "#94a3b8", fontSize: 11 }}>
-              {row.action_owner_username || ""}
+            <div>
+              <div className="font-semibold text-slate-800 text-[13px]">
+                {row.action_owner || "—"}
+              </div>
+              <div className="text-slate-400 text-[11px]">
+                {row.action_owner_username || ""}
+              </div>
             </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: "action",
       header: "Action",
       width: 110,
       render: (row) => {
-        const s = ACTION_COLOR[row.action] ?? {
-          bg: "#f1f5f9",
-          color: "#64748b",
-          dot: "#94a3b8",
+        const actionColors = ACTION_COLORS[
+          row.action as keyof typeof ACTION_COLORS
+        ] ?? {
+          backgroundColor: "#f1f5f9",
+          textColor: "#64748b",
+          indicatorColor: "#94a3b8",
         };
+
+        const bgClass =
+          row.action === "CREATE"
+            ? "bg-[#dcfce7]"
+            : row.action === "UPDATE"
+              ? "bg-[#fef9c3]"
+              : row.action === "DELETE"
+                ? "bg-[#fee2e2]"
+                : row.action === "TERMINATE"
+                  ? "bg-[#fce7f3]"
+                  : "bg-slate-100";
+
+        const colorClass =
+          row.action === "CREATE"
+            ? "text-[#16a34a]"
+            : row.action === "UPDATE"
+              ? "text-[#a16207]"
+              : row.action === "DELETE"
+                ? "text-[#dc2626]"
+                : row.action === "TERMINATE"
+                  ? "text-[#9d174d]"
+                  : "text-slate-600";
+
+        const dotBgClass =
+          row.action === "CREATE"
+            ? "bg-[#22c55e]"
+            : row.action === "UPDATE"
+              ? "bg-[#eab308]"
+              : row.action === "DELETE"
+                ? "bg-[#ef4444]"
+                : row.action === "TERMINATE"
+                  ? "bg-[#ec4899]"
+                  : "bg-slate-400";
+
         return (
           <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 11.5,
-              fontWeight: 700,
-              padding: "4px 10px",
-              borderRadius: 999,
-              background: s.bg,
-              color: s.color,
-              border: `1px solid ${s.bg}`,
-              letterSpacing: 0.3,
-            }}
+            className={`inline-flex items-center gap-[5px] text-[11.5px] font-bold px-2.5 py-1 rounded-full tracking-wide border ${bgClass} ${colorClass}`}
+            style={{ borderColor: actionColors.backgroundColor }}
           >
             <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: s.dot,
-                flexShrink: 0,
-              }}
+              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotBgClass}`}
             />
             {row.action}
           </span>
@@ -354,11 +339,11 @@ export default function AuditTrailPage() {
       header: "Employee",
       render: (row) => (
         <div>
-          <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 13 }}>
+          <div className="font-semibold text-slate-800 text-[13px]">
             {row.employee || "—"}
           </div>
           {row.employee_username && (
-            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+            <div className="text-[11px] text-slate-400 mt-px">
               @{row.employee_username}
             </div>
           )}
@@ -370,19 +355,7 @@ export default function AuditTrailPage() {
       header: "Employee ID",
       width: 120,
       render: (row) => (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            padding: "4px 10px",
-            borderRadius: 6,
-            background: "#f0f9ff",
-            color: "#0369a1",
-            fontSize: 12,
-            fontWeight: 600,
-            border: "1px solid #bae6fd",
-          }}
-        >
+        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-sky-50 text-sky-700 text-xs font-semibold border border-sky-200">
           {row.employee_code || "—"}
         </span>
       ),
@@ -392,16 +365,7 @@ export default function AuditTrailPage() {
       header: "Section",
       width: 120,
       render: (row) => (
-        <span
-          style={{
-            padding: "3px 10px",
-            borderRadius: 6,
-            background: "#f1f5f9",
-            color: "#475569",
-            fontSize: 12,
-            fontWeight: 500,
-          }}
-        >
+        <span className="px-2.5 py-[3px] rounded-md bg-slate-100 text-slate-600 text-xs font-medium">
           {row.section || "—"}
         </span>
       ),
@@ -410,7 +374,7 @@ export default function AuditTrailPage() {
       key: "performed_screen",
       header: "Performed Screen",
       render: (row) => (
-        <span style={{ color: "#64748b", fontSize: 12.5 }}>
+        <span className="text-slate-500 text-[12.5px]">
           {row.performed_screen || "—"}
         </span>
       ),
@@ -419,17 +383,7 @@ export default function AuditTrailPage() {
       key: "action_description",
       header: "Action Description",
       render: (row) => (
-        <span
-          style={{
-            color: "#64748b",
-            fontSize: 12.5,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical" as const,
-            overflow: "hidden",
-            maxWidth: 260,
-          }}
-        >
+        <span className="text-slate-500 text-[12.5px] line-clamp-2 max-w-[260px]">
           {row.action_description || "—"}
         </span>
       ),
@@ -438,17 +392,7 @@ export default function AuditTrailPage() {
       key: "notes",
       header: "Notes",
       render: (row) => (
-        <span
-          style={{
-            color: "#64748b",
-            fontSize: 12.5,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical" as const,
-            overflow: "hidden",
-            maxWidth: 240,
-          }}
-        >
+        <span className="text-slate-500 text-[12.5px] line-clamp-2 max-w-[240px]">
           {row.notes || "—"}
         </span>
       ),
@@ -474,21 +418,9 @@ export default function AuditTrailPage() {
       {hasFilters && (
         <button
           onClick={handleClear}
-          style={{
-            padding: "9px 14px",
-            border: "1.5px solid #e2e8f0",
-            borderRadius: 10,
-            fontSize: 13,
-            background: "#fff",
-            cursor: "pointer",
-            color: "#64748b",
-            display: "flex",
-            alignItems: "center",
-            gap: 5,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-          }}
+          className="py-[9px] px-3.5 border-[1.5px] border-slate-200 rounded-[10px] text-[13px] bg-white cursor-pointer text-slate-500 flex items-center gap-[5px] shadow-sm"
         >
-          ✕ Clear
+          <IconX size={14} /> Clear
         </button>
       )}
     </>
@@ -497,39 +429,16 @@ export default function AuditTrailPage() {
   return (
     <Layout title="HR Administration" tabs={TABS} activeTab="Audit Trail">
       {pageError && (
-        <div
-          style={{
-            marginBottom: 16,
-            padding: "12px 18px",
-            background: "linear-gradient(135deg,#fff5f5,#fff)",
-            border: "1px solid #fecaca",
-            borderLeft: "4px solid #ef4444",
-            borderRadius: 12,
-            color: "#dc2626",
-            fontSize: 13.5,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            boxShadow: "0 2px 8px rgba(239,68,68,0.08)",
-          }}
-        >
-          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 16 }}>⚠</span>
+        <div className="mb-4 py-3 px-[18px] bg-gradient-to-br from-red-50 to-white border border-red-200 border-l-4 border-l-red-500 rounded-xl text-red-600 text-[13.5px] flex items-center justify-between shadow-[0_2px_8px_rgba(239,68,68,0.08)]">
+          <span className="flex items-center gap-2">
+            <IconAlertCircle size={18} />
             {pageError}
           </span>
           <button
             onClick={() => setPageError("")}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#dc2626",
-              fontSize: 18,
-              padding: 0,
-              lineHeight: 1,
-            }}
+            className="bg-transparent border-0 cursor-pointer text-red-600 text-lg p-0 leading-none"
           >
-            ✕
+            <IconX size={18} />
           </button>
         </div>
       )}
@@ -537,13 +446,13 @@ export default function AuditTrailPage() {
       <DataTable<AuditRecord>
         title="Audit Trail"
         subtitle="Full history of all user & employee actions"
-        icon={<IconClipboardList size={18} /> as any }
+        icon={<ScrollText size={20} />}
         rows={pagedRecords}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row, idx) => `${row.id}-${idx}`}
-        emptyIcon={<IconClipboardList size={36}  /> as any }
+        emptyIcon={<FileText size={32} />}
         emptyTitle={
           hasFilters
             ? "No records match the current filters"

@@ -830,7 +830,6 @@ export default function EmployeeProfilePage() {
           onSuccess={() => {
             navigate("/employees", {
               replace: true,
-              state: { message: "Employee terminated successfully." },
             });
           }}
         />

@@ -85,9 +85,6 @@ const listLeaves = async (req, res, next) => {
       // Employees are always restricted to their own leaves only.
       filters.own_employee_id = req.user.id;
     } else if (req.query.own_employee_id) {
-      // Admins / supervisors may pass own_employee_id to fetch only their own
-      // leaves (e.g. the "Last Leave Taken" card on the Apply Leave page).
-      // Use Number() on both sides to avoid strict-equality type mismatches.
       const requestedId = Number(req.query.own_employee_id);
       if (!isNaN(requestedId) && requestedId === Number(req.user.id)) {
         filters.own_employee_id = Number(req.user.id);
@@ -260,9 +257,20 @@ const rejectLeave = async (req, res, next) => {
     const actorId = req.user.id;
     const actorRole = req.user.role;
 
-    const PRIVILEGED_ROLES = ["empmanager", "hradmin", "supervisor", "manager", "line_manager", "reporting_manager"];
+    const PRIVILEGED_ROLES = [
+      "empmanager",
+      "hradmin",
+      "supervisor",
+      "manager",
+      "line_manager",
+      "reporting_manager",
+    ];
     if (!PRIVILEGED_ROLES.includes(actorRole))
-      return error(res, "You do not have permission to reject leave requests", 403);
+      return error(
+        res,
+        "You do not have permission to approve leave requests",
+        403,
+      );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot reject your own leave request", 403);
     if (["Cancelled", "Rejected"].includes(leave.status)) {
@@ -290,13 +298,14 @@ const cancelLeave = async (req, res, next) => {
     const actorRole = req.user.role;
     const leaveEmployeeId = parseInt(leave.employee_id);
     const isOwner = leaveEmployeeId === actorId;
-    const isPrivileged = ["empmanager", "hradmin", "supervisor", "manager", "line_manager", "reporting_manager"].includes(actorRole);
+    const isAdminOrHR = ["empmanager", "hradmin"].includes(actorRole);
 
     if (!isOwner && !isPrivileged) {
       return error(res, "Forbidden", 403);
     }
 
     if (leave.status === "Cancelled") {
+      F;
       return error(res, "Leave is already cancelled", 400);
     }
 

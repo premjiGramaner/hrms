@@ -27,7 +27,7 @@ export default function TemplatePreviewModal({ template, onClose }: Props) {
             <h3 className="mb-3 text-sm font-bold text-navy-700">
               {section.name} (Weight {section.weight})
             </h3>
-            <div className="space-y-2">
+            <div className="info-section">
               {sortTemplateQuestions(section).map((question) => (
                 <div
                   key={question.id}

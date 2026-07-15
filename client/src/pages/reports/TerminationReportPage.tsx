@@ -184,12 +184,12 @@ export default function TerminationReportPage() {
     {
       key: "date_of_joining",
       header: "Join Date",
-      width: 120,
+      width: 140,
     },
     {
       key: "date_of_exit",
       header: "Exit Date",
-      width: 120,
+      width: 140,
       render: (row) => (
         <span style={{ color: "#E53E3E", fontWeight: 600 }}>
           {row.date_of_exit || "N/A"}
@@ -247,11 +247,11 @@ export default function TerminationReportPage() {
       ),
     },
     {
-      key: "reporting_manager",
-      header: "Manager",
+      key: "actual_supervisor",
+      header: "Supervisor",
       width: 160,
       render: (row) => (
-        <span style={{ fontSize: 13 }}>{row.reporting_manager || "N/A"}</span>
+        <span style={{ fontSize: 13 }}>{row.actual_supervisor || "N/A"}</span>
       ),
     },
     {
@@ -350,13 +350,13 @@ export default function TerminationReportPage() {
           cursor: "pointer",
         }}
       >
-        📊 Export Excel
+         Export Excel
       </button>
       <button
         onClick={handleExportPDF}
         style={{
           padding: "8px 16px",
-          background: "#E53E3E",
+          background: "#21088dff",
           color: "#fff",
           border: "none",
           borderRadius: 6,
@@ -365,7 +365,7 @@ export default function TerminationReportPage() {
           cursor: "pointer",
         }}
       >
-        📄 Export PDF
+         Export PDF
       </button>
     </div>
   );

@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { smtpUser, smtpPass, mailFrom } from "./src/config/env.js";
+import { logError, logEmail } from "./src/utils/logger.js";
 
 const transporter =
   smtpUser && smtpPass
@@ -14,7 +15,7 @@ const transporter =
 
 async function sendMail(options) {
   if (!transporter) {
-    console.error("[EMAIL] SMTP not configured - transporter is null");
+    logError("SMTP not configured - transporter is null");
     throw new Error(
       "SMTP_USER and SMTP_PASS must be configured before sending email.",
     );

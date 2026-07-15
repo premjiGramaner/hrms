@@ -914,16 +914,26 @@ const updateUserRole = async (req, res, next) => {
   }
 };
 
-const getAuditTrail = async (_req, res, next) => {
+const getAuditTrail = async (req, res, next) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+
     const { rows: tableCheck } = await pool.query(
       `SELECT to_regclass('public.tbl_audit_log') AS tbl`,
     );
     const auditTableExists = tableCheck[0]?.tbl !== null;
 
     let rows = [];
+    let totalCount = 0;
 
     if (auditTableExists) {
+      const { rows: countRows } = await pool.query(
+        `SELECT COUNT(*)::int AS total FROM tbl_audit_log`,
+      );
+      totalCount = countRows[0]?.total || 0;
+
       const { rows: logRows } = await pool.query(
         `SELECT
            al.id::bigint                        AS id,
@@ -935,6 +945,7 @@ const getAuditTrail = async (_req, res, next) => {
            al.action,
            COALESCE(al.actor_name, 'System')    AS action_owner,
            COALESCE(al.actor_username, '')      AS action_owner_username,
+           actor.avatar                         AS action_owner_avatar,
            COALESCE(al.source, 'Web Application')             AS source,
            COALESCE(al.performed_screen, 'HR Administration') AS performed_screen,
            COALESCE(al.action_description, '')  AS action_description,
@@ -949,13 +960,23 @@ const getAuditTrail = async (_req, res, next) => {
                 ON al.employee_id IS NOT NULL
                AND emp.id = al.employee_id
          LEFT JOIN tbl_employee_terminations term
-                ON al.action = 'TERMINATE'
-               AND term.employee_id = al.employee_id
-               AND term.is_deleted = FALSE
-         ORDER BY al.event_time DESC`,
+                ON term.employee_id = al.employee_id
+         LEFT JOIN tbl_appusers actor
+                ON actor.id = al.actor_id
+         ORDER BY al.event_time DESC
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
       );
       rows = logRows;
     }
+
+    const { rows: derivedCountRows } = await pool.query(
+      `SELECT 
+        (SELECT COUNT(*) FROM tbl_appusers) + 
+        (SELECT COUNT(*) FROM tbl_appusers WHERE updated_at IS NOT NULL AND updated_at::timestamptz > (created_at::timestamptz + interval '1 second') AND is_deleted = false) +
+        (SELECT COUNT(*) FROM tbl_appusers WHERE is_deleted = true) AS total`,
+    );
+    const derivedTotalCount = derivedCountRows[0]?.total || 0;
 
     const { rows: derivedRows } = await pool.query(
       `
@@ -976,6 +997,10 @@ const getAuditTrail = async (_req, res, next) => {
           WHEN emp.created_by = '0' OR emp.created_by IS NULL THEN 'admin'
           ELSE COALESCE(actor_cre.username, '')
         END                                           AS action_owner_username,
+        CASE
+          WHEN emp.created_by = '0' OR emp.created_by IS NULL THEN NULL
+          ELSE actor_cre.avatar
+        END                                           AS action_owner_avatar,
         'Web Application'                             AS source,
         'HR Administration'                           AS performed_screen,
         'Record created by ' ||
@@ -1012,6 +1037,10 @@ const getAuditTrail = async (_req, res, next) => {
           WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'admin'
           ELSE COALESCE(actor_upd.username, '')
         END                                           AS action_owner_username,
+        CASE
+          WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN NULL
+          ELSE actor_upd.avatar
+        END                                           AS action_owner_avatar,
         'Web Application'                             AS source,
         'HR Administration'                           AS performed_screen,
         'Record updated by ' ||
@@ -1051,6 +1080,10 @@ const getAuditTrail = async (_req, res, next) => {
           WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN 'admin'
           ELSE COALESCE(actor_del.username, '')
         END                                           AS action_owner_username,
+        CASE
+          WHEN emp.updated_by = '0' OR emp.updated_by IS NULL THEN NULL
+          ELSE actor_del.avatar
+        END                                           AS action_owner_avatar,
         'Web Application'                             AS source,
         'HR Administration'                           AS performed_screen,
         'Record terminated by ' ||
@@ -1070,10 +1103,14 @@ const getAuditTrail = async (_req, res, next) => {
       WHERE emp.is_deleted = true
 
       ORDER BY event_time DESC NULLS LAST
+      LIMIT $1 OFFSET $2
       `,
+      [limit, offset],
     );
 
     let finalRows;
+    let finalTotalCount = totalCount + derivedTotalCount;
+
     if (auditTableExists && rows.length > 0) {
       const loggedUsernames = new Set(rows.map((r) => r.employee_username));
       const gap = derivedRows.filter(
@@ -1087,7 +1124,15 @@ const getAuditTrail = async (_req, res, next) => {
       finalRows = derivedRows;
     }
 
-    return success(res, finalRows);
+    return success(res, {
+      data: finalRows,
+      pagination: {
+        page,
+        limit,
+        totalCount: finalTotalCount,
+        totalPages: Math.ceil(finalTotalCount / limit),
+      },
+    });
   } catch (err) {
     next(err);
   }

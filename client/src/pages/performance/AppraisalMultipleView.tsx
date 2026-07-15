@@ -15,6 +15,7 @@ import {
   AppraisalDetail,
   TemplateQuestion,
 } from "../../types/performance.types";
+import { getAvatarSrc } from "../../utils/avatar";
 
 type ReviewerType = "self" | "supervisor";
 type RatingDraft = Record<string, { score: number; comment: string }>;
@@ -28,24 +29,22 @@ function Avatar({
   avatar?: string | null;
   className?: string;
 }) {
-  const initials = name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("");
+  const avatarUrl = getAvatarSrc(avatar);
 
   return (
     <div
-      className={`grid place-items-center overflow-hidden rounded-full bg-gradient-to-br from-blue-950 to-teal-500 text-3xl font-bold text-white ${className}`}
+      className={`relative flex items-center justify-center overflow-hidden rounded-full border-4 border-white bg-gradient-to-br from-blue-950 to-teal-500 shadow-lg ${className}`}
     >
-      {avatar ? (
+      {avatarUrl ? (
         <img
-          src={`/${avatar}`}
+          src={avatarUrl}
           alt={name}
           className="h-full w-full object-cover"
         />
       ) : (
-        initials
+        <span className="text-4xl font-bold text-white">
+          {(name[0] || "E").toUpperCase()}
+        </span>
       )}
     </div>
   );
@@ -158,9 +157,9 @@ export default function AppraisalMultipleView() {
     getAppraisalDetail(id)
       .then((detail) => {
         setAppraisal(detail);
-        const isAdmin = user?.role === "hradmin" || user?.role === "empmanager";
         const supervisorReview =
-          isAdmin || String(user?.id) === detail.mainEvaluator?.id;
+          Boolean(detail.mainEvaluator?.id) &&
+          String(user?.id) === String(detail.mainEvaluator?.id);
         const type: ReviewerType =
           supervisorReview && detail.mainEvaluator ? "supervisor" : "self";
         setRatings(
@@ -191,12 +190,16 @@ export default function AppraisalMultipleView() {
     : "Performance / Appraisals / My Appraisal List";
   const activeTab = isPerformanceAdmin ? "Appraisal List" : "My Appraisals";
 
-  const reviewerType: ReviewerType = useMemo(() => {
-    if (!appraisal) return "self";
-    const supervisorReview =
-      isPerformanceAdmin || String(user?.id) === appraisal.mainEvaluator?.id;
-    return supervisorReview && appraisal.mainEvaluator ? "supervisor" : "self";
-  }, [appraisal, isPerformanceAdmin, user?.id]);
+  const isSelfReviewer =
+    Boolean(appraisal?.employee?.id) &&
+    String(user?.id) === String(appraisal?.employee?.id);
+  const isAssignedEvaluator =
+    Boolean(appraisal?.mainEvaluator?.id) &&
+    String(user?.id) === String(appraisal?.mainEvaluator?.id);
+  const reviewerType: ReviewerType =
+    appraisal && isAssignedEvaluator && appraisal.mainEvaluator
+      ? "supervisor"
+      : "self";
 
   // Live rating — recalculates on every segment click
   const visibleRating = useMemo(() => ratingAverage(ratings), [ratings]);
@@ -216,14 +219,13 @@ export default function AppraisalMultipleView() {
     reviewerType === "supervisor" ? appraisal.mainEvaluator : employee;
   const canEdit =
     reviewerType === "supervisor"
-      ? !appraisal.supervisorSubmitted
-      : !appraisal.selfSubmitted;
+      ? isAssignedEvaluator && !appraisal.supervisorSubmitted
+      : isSelfReviewer && !appraisal.selfSubmitted;
   const reviewWeight =
     reviewerType === "supervisor"
       ? appraisal.supervisorWeight
       : appraisal.selfWeight;
 
-  // Final rating only shown when BOTH supervisor and employee have submitted
   const bothSubmitted =
     appraisal.selfSubmitted && appraisal.supervisorSubmitted;
   const finalRatingValue = bothSubmitted

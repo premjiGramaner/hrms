@@ -23,7 +23,6 @@ const __dirname = path.dirname(__filename);
 
 async function runMigration() {
   try {
-    // Read the migration SQL file
     const migrationPath = path.join(__dirname, "cleanup_leave_types.sql");
 
     if (!fs.existsSync(migrationPath)) {
@@ -34,7 +33,6 @@ async function runMigration() {
 
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    // Execute the migration
     const result = await pool.query(sql);
 
     const verifications = [

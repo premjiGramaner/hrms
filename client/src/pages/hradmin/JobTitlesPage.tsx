@@ -16,6 +16,8 @@ import DataTable, {
   ActionDef,
   StatCard,
 } from "../../components/DataTable";
+import Toast from "../../utils/toast";
+import Alert from "../../utils/alert";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -32,8 +34,6 @@ export default function JobTitlesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [titleToEdit, setTitleToEdit] = useState<JobTitle | null>(null);
-  const [titleToDelete, setTitleToDelete] = useState<JobTitle | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [pageError, setPageError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -74,17 +74,16 @@ export default function JobTitlesPage() {
     return filteredList.slice(start, start + pageSize);
   }, [filteredList, currentPage, pageSize]);
 
-  const handleDeleteConfirm = async () => {
-    if (!titleToDelete) return;
-    setIsDeleting(true);
+  const handleDeleteConfirm = async (title: JobTitle) => {
+    const confirmed = await Alert.confirmDelete(title.title);
+    if (!confirmed) return;
+
     try {
-      await deleteJobTitle(titleToDelete.id);
-      setTitleToDelete(null);
+      await deleteJobTitle(title.id);
+      Toast.deleted("Job Title");
       fetchJobTitles();
     } catch {
-      setPageError("Failed to delete job title. Please try again.");
-    } finally {
-      setIsDeleting(false);
+      Toast.error("Failed to delete job title. Please try again.");
     }
   };
   const handleSaved = () => {
@@ -209,7 +208,7 @@ export default function JobTitlesPage() {
       bgHover: "#ffe4e6",
       borderColor: "#fecdd3",
       borderColorHover: "#fda4af",
-      onClick: (row) => setTitleToDelete(row),
+      onClick: (row) => handleDeleteConfirm(row),
       title: "Delete job title",
     },
   ];
@@ -306,14 +305,6 @@ export default function JobTitlesPage() {
           onError={(msg) => setPageError(msg)}
         />
       )}
-      {titleToDelete && (
-        <DeleteConfirmModal
-          titleName={titleToDelete.title}
-          isLoading={isDeleting}
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setTitleToDelete(null)}
-        />
-      )}
     </Layout>
   );
 }
@@ -351,12 +342,14 @@ function JobTitleFormModal({
           title: title.trim(),
           description: description.trim() || undefined,
         } as CreateJobTitlePayload);
+        Toast.created("Job Title");
       } else if (mode === "edit" && jobTitle) {
         await updateJobTitle(jobTitle.id, {
           title: title.trim(),
           description: description.trim() || undefined,
           is_active: isActive,
         } as UpdateJobTitlePayload);
+        Toast.updated("Job Title");
       }
       onSaved();
     } catch (err: any) {
@@ -665,158 +658,6 @@ function JobTitleFormModal({
         </div>
       </div>
       <style>{`@keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
-    </div>
-  );
-}
-
-interface DeleteConfirmModalProps {
-  titleName: string;
-  isLoading: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function DeleteConfirmModal({
-  titleName,
-  isLoading,
-  onConfirm,
-  onCancel,
-}: DeleteConfirmModalProps) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.5)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 20,
-          width: "100%",
-          maxWidth: 420,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.22)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            background: "linear-gradient(135deg,#fff1f2,#fff5f5)",
-            borderBottom: "1px solid #fecdd3",
-            padding: "24px 28px 20px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg,#fee2e2,#fecdd3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 14px",
-              fontSize: 26,
-              boxShadow: "0 4px 16px rgba(239,68,68,0.2)",
-            }}
-          >
-            🗑
-          </div>
-          <h3
-            style={{
-              margin: "0 0 6px",
-              fontSize: 18,
-              fontWeight: 800,
-              color: "#1e293b",
-            }}
-          >
-            Delete Job Title
-          </h3>
-          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
-            This action cannot be undone
-          </p>
-        </div>
-
-        <div style={{ padding: "20px 28px" }}>
-          <div
-            style={{
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
-              borderRadius: 12,
-              padding: "14px 16px",
-              fontSize: 14,
-              color: "#64748b",
-              lineHeight: 1.6,
-            }}
-          >
-            Are you sure you want to delete{" "}
-            <strong
-              style={{
-                color: "#1e293b",
-                background: "#fee2e2",
-                padding: "1px 6px",
-                borderRadius: 4,
-              }}
-            >
-              "{titleName}"
-            </strong>
-            ?
-            <br />
-            <span style={{ fontSize: 12.5, color: "#94a3b8" }}>
-              Employees with this title will keep it, but it won't appear in new
-              records.
-            </span>
-          </div>
-        </div>
-
-        <div style={{ padding: "0 28px 24px", display: "flex", gap: 10 }}>
-          <button
-            onClick={onCancel}
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: "11px",
-              borderRadius: 10,
-              border: "1.5px solid #e2e8f0",
-              background: "#fff",
-              fontSize: 13.5,
-              fontWeight: 600,
-              cursor: "pointer",
-              color: "#64748b",
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: "11px",
-              borderRadius: 10,
-              border: "none",
-              background: isLoading
-                ? "#94a3b8"
-                : "linear-gradient(135deg,#dc2626,#e11d48)",
-              color: "#fff",
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: isLoading ? "not-allowed" : "pointer",
-              boxShadow: isLoading ? "none" : "0 2px 10px rgba(220,38,38,0.3)",
-            }}
-          >
-            {isLoading ? "Deleting…" : "Yes, Delete"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

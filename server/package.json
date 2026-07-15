@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "migrate": "node run_migration.js",
+    "migrate:status": "node run_migration.js status"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -18,7 +20,9 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.1",
     "pdfkit": "^0.19.1",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "react-hot-toast": "^2.6.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.0"

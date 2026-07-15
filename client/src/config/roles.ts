@@ -1,20 +1,35 @@
-export const ADMIN_ROLES = ["empmanager", "hradmin"];
-export const SUPERVISOR_ROLES = [
+export type UserRole =
+  | "empmanager"
+  | "hradmin"
+  | "employee"
+  | "supervisor"
+  | "manager"
+  | "line_manager"
+  | "reporting_manager";
+
+export const ADMIN_ROLES: UserRole[] = ["hradmin", "empmanager"];
+
+export const BASIC_SUPERVISOR_ROLES: readonly UserRole[] = [
+  "supervisor",
+  "manager",
+] as const;
+
+export const SUPERVISOR_ROLES: readonly UserRole[] = [
   "supervisor",
   "manager",
   "line_manager",
   "reporting_manager",
-];
+] as const;
 
-export function isAdminRole(role?: string | null) {
-  return ADMIN_ROLES.includes(role || "");
+export function isAdminRole(role?: UserRole | string | null): boolean {
+  return ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number]);
 }
 
-export function isSupervisorRole(role?: string | null) {
-  return SUPERVISOR_ROLES.includes(role || "");
+export function isSupervisorRole(role?: UserRole | string | null): boolean {
+  return SUPERVISOR_ROLES.includes(role as UserRole);
 }
 
-export function getRoleLabel(role?: string | null) {
+export function getRoleLabel(role?: UserRole | string | null): string {
   switch (role) {
     case "empmanager":
       return "Employee Manager";

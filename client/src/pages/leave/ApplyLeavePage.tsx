@@ -13,6 +13,7 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 
 import UserAvatar from "../../components/UserAvatar";
+
 function daysBetween(start: string, end: string): number {
   if (!start || !end) return 0;
   const diff =
@@ -65,54 +66,44 @@ export default function ApplyLeavePage() {
   const financialYear =
     new Date().getMonth() >= 3 ? currentYear + 1 : currentYear;
 
+  // Check if user has a valid ID
+  const isValidUser = (user?.id ?? 0) > 0;
+
   const fetchData = async () => {
     setLoadingTypes(true);
     try {
-      const [types, balancesData, leaveData, allLeavesData] = await Promise.all(
-        [
-          getLeaveTypes(),
-          user?.id && user.id > 0
-            ? getLeaveBalance(user.id, financialYear)
-            : Promise.resolve([]),
-          // Always fetch the latest leave for the logged-in user specifically,
-          // regardless of role (employee / supervisor / admin).
-          user?.id && user.id > 0
-            ? getLeaves({
-                page: 1,
-                limit: 1,
-                statuses: [],
-                own_employee_id: user.id,
-              })
-            : Promise.resolve({ data: [] }),
-          // Overlap check must also be scoped to the logged-in user only.
-          user?.id && user.id > 0
-            ? getLeaves({
-                page: 1,
-                limit: 1000,
-                statuses: [
-                  "Pending Approval",
-                  "Approved",
-                  "Scheduled",
-                  "Taken",
-                ],
-                own_employee_id: user.id,
-              })
-            : Promise.resolve({ data: [] }),
-        ],
-      );
+      const [types, balances, leaveData, allLeavesData] = await Promise.all([
+        getLeaveTypes(),
+        isValidUser
+          ? getLeaveBalance(user!.id, financialYear)
+          : Promise.resolve([]),
+
+        isValidUser
+          ? getLeaves({
+              page: 1,
+              limit: 1,
+              statuses: [],
+              own_employee_id: user!.id,
+            })
+          : Promise.resolve({ data: [] }),
+        isValidUser
+          ? getLeaves({
+              page: 1,
+              limit: 1000,
+              statuses: ["Pending Approval", "Approved", "Scheduled"],
+              own_employee_id: user!.id,
+            })
+          : Promise.resolve({ data: [] }),
+      ]);
       setLeaveTypes(types);
       setBalances(balancesData as LeaveBalance[]);
 
       const leavePage = leaveData as { data: LeaveRequest[] };
-      // Double-check: only show a leave that actually belongs to the logged-in
-      // user. Guards against stale server state or any backend filter bypass.
+
       const ownLeave =
         leavePage.data?.find((l) => Number(l.user_id) === Number(user?.id)) ??
         null;
       setLatestLeave(ownLeave);
-
-      const allLeavesPage = allLeavesData as { data: LeaveRequest[] };
-      setExistingLeaves(allLeavesPage.data ?? []);
     } catch (error) {
       console.error("Failed to load leave data:", error);
     } finally {
@@ -121,7 +112,7 @@ export default function ApplyLeavePage() {
   };
 
   useEffect(() => {
-    if (user?.id && user.id > 0) {
+    if (isValidUser) {
       fetchData();
     }
   }, [user?.id, financialYear]); // Re-fetch when user ID changes or financial year changes

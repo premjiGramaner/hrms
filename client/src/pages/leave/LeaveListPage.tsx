@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState, useCallback } from "react";
+﻿import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchLeaves, setFilters } from "../../store/leaveSlice";
@@ -18,14 +18,17 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
 import Pagination from "../../components/Pagination";
-import { ADMIN_ROLES, SUPERVISOR_ROLES } from "../../config/roles";
+import {
+  ADMIN_ROLES,
+  SUPERVISOR_ROLES,
+  type UserRole,
+} from "../../config/roles";
 
 const ATTACH_STATUSES = ["Available", "Pending"];
 const STATUS_OPTIONS = [
   "Cancelled",
   "Pending Approval",
   "Scheduled",
-  "Taken",
   "Rejected",
   "Approved",
 ];
@@ -215,7 +218,10 @@ export default function LeaveListPage() {
   const navigate = useNavigate();
   const { data, loading, filters } = useAppSelector((s) => s.leaves);
   const user = useAppSelector((s) => s.auth.user);
-  const isAdmin = ADMIN_ROLES.includes(user?.role || "") || SUPERVISOR_ROLES.includes(user?.role || "");
+
+  const isAdmin =
+    ADMIN_ROLES.includes((user?.role || "") as UserRole) ||
+    SUPERVISOR_ROLES.includes((user?.role || "") as UserRole);
   const { toasts, addToast, removeToast } = useToast();
 
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -510,14 +516,17 @@ export default function LeaveListPage() {
                     <select
                       value={form.location || ""}
                       onChange={(event) =>
-                        setForm((p) => ({ ...p, location: event.target.value }))
+                        setForm((prev) => ({
+                          ...prev,
+                          location: event.target.value,
+                        }))
                       }
                       className={selectCls}
                     >
                       <option value="">All</option>
-                      {filterOpts.locations.map((l) => (
-                        <option key={l} value={l}>
-                          {l}
+                      {filterOpts.locations.map((location) => (
+                        <option key={location} value={location}>
+                          {location}
                         </option>
                       ))}
                     </select>
@@ -542,9 +551,9 @@ export default function LeaveListPage() {
                       className={selectCls}
                     >
                       <option value="">All</option>
-                      {leaveTypes.map((lt) => (
-                        <option key={lt.id} value={String(lt.id)}>
-                          {lt.name}
+                      {leaveTypes.map((leaveType) => (
+                        <option key={leaveType.id} value={String(leaveType.id)}>
+                          {leaveType.name}
                         </option>
                       ))}
                     </select>
@@ -598,9 +607,9 @@ export default function LeaveListPage() {
                       className={selectCls}
                     >
                       <option value="">All</option>
-                      {filterOpts.employment_statuses.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
+                      {filterOpts.employment_statuses.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
                         </option>
                       ))}
                     </select>
@@ -654,9 +663,9 @@ export default function LeaveListPage() {
                       className={selectCls}
                     >
                       <option value="">All</option>
-                      {ATTACH_STATUSES.map((a) => (
-                        <option key={a} value={a}>
-                          {a}
+                      {ATTACH_STATUSES.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
                         </option>
                       ))}
                     </select>
@@ -672,8 +681,8 @@ export default function LeaveListPage() {
                     type="checkbox"
                     checked={form.include_past || false}
                     onChange={(event) =>
-                      setForm((p) => ({
-                        ...p,
+                      setForm((prev) => ({
+                        ...prev,
                         include_past: event.target.checked,
                       }))
                     }
@@ -686,8 +695,8 @@ export default function LeaveListPage() {
                     type="checkbox"
                     checked={form.only_subordinates || false}
                     onChange={(event) =>
-                      setForm((p) => ({
-                        ...p,
+                      setForm((prev) => ({
+                        ...prev,
                         only_subordinates: event.target.checked,
                       }))
                     }
@@ -886,6 +895,7 @@ export default function LeaveListPage() {
                           onApprove={() => handleApprove(row.id)}
                           onReject={() => setRejectTarget(row.id)}
                           onCancel={() => handleCancel(row.id)}
+                          currentUserId={user?.id}
                         />
                       </td>
                     </tr>
@@ -924,6 +934,7 @@ function ActionDropdown({
   onApprove,
   onReject,
   onCancel,
+  currentUserId,
 }: {
   row: LeaveRequest;
   isAdmin: boolean;
@@ -932,6 +943,7 @@ function ActionDropdown({
   onApprove: () => void;
   onReject: () => void;
   onCancel: () => void;
+  currentUserId?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -977,8 +989,25 @@ function ActionDropdown({
     );
 
   const isPending = row.status === "Pending Approval";
-  const canApproveReject = isAdmin && !isRequester && isPending;
-  const canCancel = isPending && (isRequester || isAdmin);
+
+  let isSupervisor = false;
+  if (currentUserId && row.supervisors) {
+    try {
+      const supervisorArray =
+        typeof row.supervisors === "string"
+          ? JSON.parse(row.supervisors)
+          : row.supervisors;
+      isSupervisor =
+        Array.isArray(supervisorArray) &&
+        supervisorArray.includes(String(currentUserId));
+    } catch (_) {
+      isSupervisor = false;
+    }
+  }
+
+  const canApproveReject =
+    (isAdmin || isSupervisor) && !isRequester && isPending;
+  const canCancel = isPending && (isRequester || isAdmin || isSupervisor);
 
   if (!canApproveReject && !canCancel) {
     return <span className="text-xs text-slate-400">—</span>;
@@ -1006,13 +1035,10 @@ function ActionDropdown({
         <div
           ref={menuRef}
           style={{
-            position: "fixed",
             top: pos.top,
             left: pos.left,
-            transform: "translateX(-100%)",
-            zIndex: 9999,
           }}
-          className="bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-36"
+          className="fixed -translate-x-full z-[9999] bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-36"
         >
           {canApproveReject && (
             <>

@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { logError } from "../utils/logger.js";
 
 /**
  * Insert a record into tbl_audit_log.
@@ -67,6 +68,11 @@ export async function writeAuditLog({
       ],
     );
   } catch (err) {
-    console.error("[audit] Failed to write audit log:", err.message);
+    logError("Failed to write audit log", err, {
+      employeeId,
+      employeeName,
+      action,
+      actorName,
+    });
   }
 }
