@@ -80,15 +80,24 @@ async function bulkCreateEntitlements(
         [empId, leaveTypeId, year],
       );
       if (rows.length > 0) {
-        results.skipped.push(empId);
-        continue;
+        // Entitlement already exists — add the new days on top so admin can
+        // grant additional leave without being blocked.
+        await client.query(
+          `UPDATE tbl_leave_entitlements
+             SET total_days = total_days + $1,
+                 updated_at = NOW()
+           WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4
+             AND is_deleted = FALSE`,
+          [totalDays, empId, leaveTypeId, year],
+        );
+      } else {
+        await client.query(
+          `INSERT INTO tbl_leave_entitlements
+             (employee_id, leave_type_id, year, total_days, used_days, carried_days, is_deleted)
+           VALUES ($1, $2, $3, $4, 0, 0, FALSE)`,
+          [empId, leaveTypeId, year, totalDays],
+        );
       }
-      await client.query(
-        `INSERT INTO tbl_leave_entitlements
-           (employee_id, leave_type_id, year, total_days, used_days, carried_days, is_deleted)
-         VALUES ($1, $2, $3, $4, 0, 0, FALSE)`,
-        [empId, leaveTypeId, year, totalDays],
-      );
       results.created.push(empId);
     }
     await client.query("COMMIT");
@@ -99,6 +108,23 @@ async function bulkCreateEntitlements(
     client.release();
   }
   return results;
+}
+
+/**
+ * Reset used_days to 0 for every entitlement whose leave period has ended.
+ * Financial year N = Apr 1 (N-1) → Mar 31 (N).
+ * A row expires when today is after Mar 31 of that year.
+ * Called automatically whenever entitlements are saved — no scheduler needed.
+ */
+async function resetExpiredEntitlements() {
+  await pool.query(
+    `UPDATE tbl_leave_entitlements
+        SET used_days = 0,
+            updated_at = NOW()
+      WHERE is_deleted = FALSE
+        AND used_days > 0
+        AND (year::text || '-03-31')::date < CURRENT_DATE`,
+  );
 }
 
 async function findMyEntitlements(employeeId) {
@@ -192,6 +218,7 @@ export {
   findActiveLeaveTypes,
   createEntitlement,
   bulkCreateEntitlements,
+  resetExpiredEntitlements,
   findMyEntitlements,
   findEntitlements,
 };

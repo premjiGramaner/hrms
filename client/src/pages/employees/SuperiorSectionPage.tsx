@@ -33,11 +33,8 @@ function initials(employee: Employee) {
 
 function avatarSrc(employee: Employee) {
   if (!employee.avatar) return "";
-  // return employee.avatar.startsWith("uploads/")
-  //   ? `/${employee.avatar}`
-  //   : `/uploads/${employee.avatar}`;
-
-  return employee.avatar
+  // Direct Base64 string from API
+  return employee.avatar;
 }
 
 function displayRole(role: string) {

@@ -18,6 +18,7 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
 import Pagination from "../../components/Pagination";
+import { ADMIN_ROLES, SUPERVISOR_ROLES } from "../../config/roles";
 
 const ATTACH_STATUSES = ["Available", "Pending"];
 const STATUS_OPTIONS = [
@@ -28,13 +29,27 @@ const STATUS_OPTIONS = [
   "Rejected",
   "Approved",
 ];
-const YEAR_START = `${new Date().getFullYear()}-01-01`;
-const YEAR_END = `${new Date().getFullYear()}-12-31`;
-const TODAY = new Date().toISOString().split("T")[0];
+
+const today = new Date();
+
+const fromDate = new Date(today.getFullYear(), today.getMonth(), 21);
+
+const toDate = new Date(today.getFullYear(), today.getMonth() + 1, 20);
+
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const from_date = formatDate(fromDate);
+const to_date = formatDate(toDate);
 
 const EMPTY_FORM: LeaveFilters = {
-  from_date: TODAY,
-  to_date: TODAY,
+  from_date: from_date,
+  to_date: to_date,
   employee_name: "",
   sub_unit: "",
   location: "",
@@ -200,7 +215,7 @@ export default function LeaveListPage() {
   const navigate = useNavigate();
   const { data, loading, filters } = useAppSelector((s) => s.leaves);
   const user = useAppSelector((s) => s.auth.user);
-  const isAdmin = user?.role === "empmanager" || user?.role === "hradmin";
+  const isAdmin = ADMIN_ROLES.includes(user?.role || "") || SUPERVISOR_ROLES.includes(user?.role || "");
   const { toasts, addToast, removeToast } = useToast();
 
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);

@@ -11,19 +11,8 @@ import { getApiErrorMessage } from "../../utils/errors";
 import { useAppSelector } from "../../app/hooks";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
+
 import UserAvatar from "../../components/UserAvatar";
-
-function initials(name = "") {
-  return (
-    name
-      .split(" ")
-      .map((word) => word[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "?"
-  );
-}
-
 function daysBetween(start: string, end: string): number {
   if (!start || !end) return 0;
   const diff =
@@ -79,27 +68,51 @@ export default function ApplyLeavePage() {
   const fetchData = async () => {
     setLoadingTypes(true);
     try {
-      const [types, balances, leaveData, allLeavesData] = await Promise.all([
-        getLeaveTypes(),
-        user?.id && user.id > 0
-          ? getLeaveBalance(user.id, financialYear)
-          : Promise.resolve([]),
-        getLeaves({ page: 1, limit: 1, statuses: [] }),
-        getLeaves({
-          page: 1,
-          limit: 1000,
-          statuses: ["Pending Approval", "Approved", "Scheduled", "Taken"],
-        }),
-      ]);
+      const [types, balancesData, leaveData, allLeavesData] = await Promise.all(
+        [
+          getLeaveTypes(),
+          user?.id && user.id > 0
+            ? getLeaveBalance(user.id, financialYear)
+            : Promise.resolve([]),
+          // Always fetch the latest leave for the logged-in user specifically,
+          // regardless of role (employee / supervisor / admin).
+          user?.id && user.id > 0
+            ? getLeaves({
+                page: 1,
+                limit: 1,
+                statuses: [],
+                own_employee_id: user.id,
+              })
+            : Promise.resolve({ data: [] }),
+          // Overlap check must also be scoped to the logged-in user only.
+          user?.id && user.id > 0
+            ? getLeaves({
+                page: 1,
+                limit: 1000,
+                statuses: [
+                  "Pending Approval",
+                  "Approved",
+                  "Scheduled",
+                  "Taken",
+                ],
+                own_employee_id: user.id,
+              })
+            : Promise.resolve({ data: [] }),
+        ],
+      );
       setLeaveTypes(types);
-      setBalances(balances as LeaveBalance[]);
+      setBalances(balancesData as LeaveBalance[]);
+
       const leavePage = leaveData as { data: LeaveRequest[] };
-      if (leavePage.data?.length) setLatestLeave(leavePage.data[0]);
+      // Double-check: only show a leave that actually belongs to the logged-in
+      // user. Guards against stale server state or any backend filter bypass.
+      const ownLeave =
+        leavePage.data?.find((l) => Number(l.user_id) === Number(user?.id)) ??
+        null;
+      setLatestLeave(ownLeave);
 
       const allLeavesPage = allLeavesData as { data: LeaveRequest[] };
-      if (allLeavesPage.data) {
-        setExistingLeaves(allLeavesPage.data);
-      }
+      setExistingLeaves(allLeavesPage.data ?? []);
     } catch (error) {
       console.error("Failed to load leave data:", error);
     } finally {

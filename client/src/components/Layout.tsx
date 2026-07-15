@@ -17,6 +17,7 @@ import {
   IconGear,
   IconLogout,
   IconHome,
+  IconChevronLeft,
 } from "./Icons";
 import { fetchEmployeesWithLimit } from "../store/employeeSlice";
 
@@ -31,6 +32,8 @@ interface Props {
   tabs?: TabItem[];
   activeTab?: string;
   onFab?: () => void;
+  /** When set, replaces the home button with a back arrow that navigates to this path */
+  backTo?: string;
 }
 
 export default function Layout({
@@ -39,6 +42,7 @@ export default function Layout({
   tabs,
   activeTab,
   onFab,
+  backTo,
 }: Props) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
@@ -300,13 +304,14 @@ export default function Layout({
         >
           <span
             style={{
-              display: "inline-block",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
               transition: "transform 250ms ease-in-out",
               transform: collapsed ? "rotate(180deg)" : "rotate(0deg)",
-              lineHeight: 1,
             }}
           >
-            ‹
+            <IconChevronLeft size={14} color="#ffffff" />
           </span>
         </button>
       </div>
@@ -335,13 +340,23 @@ export default function Layout({
         </header>
 
         <div className="bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-x-auto gap-0">
-          <Link
-            to={homeRoute}
-            title="Home"
-            className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition"
-          >
-            <IconHome size={15} color="#64748b" />
-          </Link>
+          {backTo ? (
+            <Link
+              to={backTo}
+              title="Back"
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition"
+            >
+              <IconChevronLeft size={16} color="#64748b" />
+            </Link>
+          ) : (
+            <Link
+              to={homeRoute}
+              title="Home"
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition"
+            >
+              <IconHome size={15} color="#64748b" />
+            </Link>
+          )}
 
           {tabs && tabs.length > 0 && (
             <>

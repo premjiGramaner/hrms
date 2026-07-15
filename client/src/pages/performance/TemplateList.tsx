@@ -124,6 +124,7 @@ export default function TemplateList() {
       tabs={appraisalConfigurationTabs}
       activeTab="Templates"
       onFab={openAddModal}
+      backTo="/performance/appraisals_list"
     >
       <div className="min-h-full bg-[#fbf6ff] p-2">
         <div className="rounded-[8px] bg-white p-8">
