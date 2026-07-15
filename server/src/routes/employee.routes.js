@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware.js";
 import validate from "../middleware/validate.middleware.js";
-import upload from "../services/upload.service.js";
+import { uploadSingle } from "../services/upload.service.js";
 import { employeeSchema } from "../validators/employee.validator.js";
 import {
   listEmployees,
@@ -36,17 +36,17 @@ router.get("/", listEmployees);
 router.get("/:id", getEmployee);
 router.post(
   "/",
-  upload.single("avatar"),
+  uploadSingle("avatar"),
   validate(employeeSchema),
   createEmployee,
 );
 router.put(
   "/:id",
-  upload.single("avatar"),
+  uploadSingle("avatar"),
   validate(employeeSchema),
   updateEmployee,
 );
-router.patch("/:id/profile-image", upload.single("avatar"), updateProfileImage);
+router.patch("/:id/profile-image", uploadSingle("avatar"), updateProfileImage);
 router.delete("/:id", deleteEmployee);
 router.post("/:id/terminate", terminateEmployee);
 
