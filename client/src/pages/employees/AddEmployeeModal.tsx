@@ -36,6 +36,11 @@ import Toast from "../../utils/toast";
 
 const PREDEFINED_LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"];
 
+// Email field name constants
+const WORK_EMAIL_FIELD = "work_email" as const;
+const OTHER_EMAIL_FIELD = "other_email" as const;
+type EmailFieldName = typeof WORK_EMAIL_FIELD | typeof OTHER_EMAIL_FIELD;
+
 interface Props {
   employee: Employee | null;
   onClose: () => void;
@@ -80,9 +85,9 @@ export default function AddEmployeeModal({
   const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
   const [subUnitRecords, setSubUnitRecords] = useState<SubUnit[]>([]);
   const [checkingEmail, setCheckingEmail] = useState<{
-    work_email: boolean;
-    other_email: boolean;
-  }>({ work_email: false, other_email: false });
+    [WORK_EMAIL_FIELD]: boolean;
+    [OTHER_EMAIL_FIELD]: boolean;
+  }>({ [WORK_EMAIL_FIELD]: false, [OTHER_EMAIL_FIELD]: false });
   const [checkingEmployeeId, setCheckingEmployeeId] = useState(false);
   const [lastEmployeeId, setLastEmployeeId] = useState<string | null>(null);
 
@@ -214,10 +219,10 @@ export default function AddEmployeeModal({
     }
 
     if (stepNumber === 4) {
-      const workEmail = formRef.current.work_email?.trim();
+      const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim();
 
-      if (errors.work_email && workEmail) {
-        nextErrors.work_email = errors.work_email;
+      if (errors[WORK_EMAIL_FIELD] && workEmail) {
+        nextErrors[WORK_EMAIL_FIELD] = errors[WORK_EMAIL_FIELD];
       }
     }
 
@@ -309,12 +314,12 @@ export default function AddEmployeeModal({
         errorMessage.toLowerCase().includes("email") &&
         errorMessage.toLowerCase().includes("exist")
       ) {
-        const workEmail = formRef.current.work_email?.trim();
+        const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim();
 
         if (workEmail) {
           setErrors((prev) => ({
             ...prev,
-            work_email: "This email address is already registered",
+            [WORK_EMAIL_FIELD]: "This email address is already registered",
           }));
         }
 
@@ -400,10 +405,10 @@ export default function AddEmployeeModal({
 
   const handleEmailBlur = async (
     email: string,
-    fieldName: "work_email" | "other_email",
+    fieldName: EmailFieldName,
     element: HTMLInputElement,
   ) => {
-    if (fieldName === "other_email") {
+    if (fieldName === OTHER_EMAIL_FIELD) {
       setErrors((prev) => {
         const updatedErrors = { ...prev };
         delete updatedErrors[fieldName];
@@ -557,10 +562,7 @@ export default function AddEmployeeModal({
     </div>
   );
 
-  const renderEmailInput = (
-    name: "work_email" | "other_email",
-    placeholder = "",
-  ) => (
+  const renderEmailInput = (name: EmailFieldName, placeholder = "") => (
     <div>
       <input
         name={name}
@@ -969,12 +971,12 @@ export default function AddEmployeeModal({
               <TwoColumnGrid>
                 {FormField(
                   "Work Email",
-                  renderEmailInput("work_email", "work@company.com"),
+                  renderEmailInput(WORK_EMAIL_FIELD, "work@company.com"),
                   true,
                 )}
                 {FormField(
                   "Other Email",
-                  renderEmailInput("other_email", "personal@email.com"),
+                  renderEmailInput(OTHER_EMAIL_FIELD, "personal@email.com"),
                 )}
 
                 {FormField(
