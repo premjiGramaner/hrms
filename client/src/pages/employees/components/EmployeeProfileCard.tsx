@@ -8,7 +8,12 @@ import { getApiErrorMessage } from "../../../utils/errors";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { updateUserAvatar, updateUserName } from "../../../store/authSlice";
 import { getAvatarSrc } from "../../../utils/avatar";
-import { IconUpload, IconEye, IconX } from "../../../components/Icons";
+import {
+  IconUpload,
+  IconEye,
+  IconX,
+  IconMapPin,
+} from "../../../components/Icons";
 import {
   AVATAR_PLACEHOLDER_SERVICE,
   MAX_FILE_SIZE_MB,
@@ -17,30 +22,6 @@ import {
   SUPPORTED_IMAGE_EXTENSIONS,
 } from "../../../config/constants";
 import { IconButton } from "../../../components/common/Button";
-
-function IconMapPin({
-  size = 12,
-  color = "currentColor",
-}: {
-  size?: number;
-  color?: string;
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
 
 interface EmployeeProfileCardProps {
   employee: Employee;
@@ -51,6 +32,10 @@ interface Supervisor {
   name: string;
   id: number;
 }
+
+// Reusable CSS class constants
+const LABEL_CLASSES = "text-xs text-slate-600";
+const VALUE_CLASSES = "text-sm text-slate-800";
 
 export default function EmployeeProfileCard({
   employee,
@@ -166,7 +151,7 @@ export default function EmployeeProfileCard({
         );
       } else {
         console.log(
-          "ℹ️  Not updating Redux - Current user:",
+          "ℹ Not updating Redux - Current user:",
           currentUser?.id,
           "Updated employee:",
           updatedEmployee.id,
@@ -303,10 +288,10 @@ export default function EmployeeProfileCard({
 
           <div className="text-center mt-4">
             <h3 className="font-bold text-lg text-slate-800">{fullName}</h3>
-            <p className="text-sm text-slate-600">
-              {employee.job_title || "Employee"}
-            </p>
-            <p className="text-xs text-slate-600 mt-1 flex items-center justify-center gap-1">
+            <p className={VALUE_CLASSES}>{employee.job_title || "Employee"}</p>
+            <p
+              className={`${LABEL_CLASSES} mt-1 flex items-center justify-center gap-1`}
+            >
               <IconMapPin size={12} color="#64748b" />
               {employee.location || "Not specified"}
             </p>
@@ -320,30 +305,26 @@ export default function EmployeeProfileCard({
             </h4>
             <div className="info-section">
               <div>
-                <p className="text-xs text-slate-600">Employee Id</p>
+                <p className={LABEL_CLASSES}>Employee Id</p>
                 <p className="text-sm text-slate-600 font-medium">
                   {employee.employee_id || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Full Name</p>
-                <p className="text-sm text-slate-800 font-medium">{fullName}</p>
+                <p className={LABEL_CLASSES}>Full Name</p>
+                <p className={`${VALUE_CLASSES} font-medium`}>{fullName}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Designation</p>
-                <p className="text-sm text-slate-800">
-                  {employee.job_title || "N/A"}
-                </p>
+                <p className={LABEL_CLASSES}>Designation</p>
+                <p className={VALUE_CLASSES}>{employee.job_title || "N/A"}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Location</p>
-                <p className="text-sm text-slate-800">
-                  {employee.location || "N/A"}
-                </p>
+                <p className={LABEL_CLASSES}>Location</p>
+                <p className={VALUE_CLASSES}>{employee.location || "N/A"}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Birthday</p>
-                <p className="text-sm text-slate-800">
+                <p className={LABEL_CLASSES}>Birthday</p>
+                <p className={VALUE_CLASSES}>
                   {employee.dob
                     ? new Date(employee.dob).toLocaleDateString("en-US", {
                         month: "short",
@@ -361,8 +342,8 @@ export default function EmployeeProfileCard({
             </h4>
             <div className="info-section">
               <div>
-                <p className="text-xs text-slate-600">Joined Date</p>
-                <p className="text-sm text-slate-800">
+                <p className={LABEL_CLASSES}>Joined Date</p>
+                <p className={VALUE_CLASSES}>
                   {employee.joined_date
                     ? new Date(employee.joined_date).toLocaleDateString(
                         "en-US",
@@ -376,33 +357,31 @@ export default function EmployeeProfileCard({
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Sub Unit</p>
-                <p className="text-sm text-slate-800">
-                  {employee.sub_unit || "N/A"}
-                </p>
+                <p className={LABEL_CLASSES}>Sub Unit</p>
+                <p className={VALUE_CLASSES}>{employee.sub_unit || "N/A"}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Job Category</p>
-                <p className="text-sm text-slate-800">
+                <p className={LABEL_CLASSES}>Job Category</p>
+                <p className={VALUE_CLASSES}>
                   {employee.job_category || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Status</p>
+                <p className={LABEL_CLASSES}>Status</p>
                 <div className="flex items-center gap-2">
                   <span
                     className={`w-2 h-2 rounded-full ${
                       employee.is_active ? "bg-green-500" : "bg-red-500"
                     }`}
                   ></span>
-                  <span className="text-sm text-slate-800">
+                  <span className={VALUE_CLASSES}>
                     {employee.is_active ? "Active" : "Inactive"}
                   </span>
                 </div>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Supervisor</p>
-                <p className="text-sm text-slate-800">{getSupervisorNames()}</p>
+                <p className={LABEL_CLASSES}>Supervisor</p>
+                <p className={VALUE_CLASSES}>{getSupervisorNames()}</p>
               </div>
             </div>
           </div>
@@ -413,20 +392,20 @@ export default function EmployeeProfileCard({
             </h4>
             <div className="info-section">
               <div>
-                <p className="text-xs text-slate-600">Work Phone</p>
+                <p className={LABEL_CLASSES}>Work Phone</p>
                 <p className="text-sm text-slate-600">
                   {employee.work_tel || employee.mobile || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Work Email</p>
+                <p className={LABEL_CLASSES}>Work Email</p>
                 <p className="text-sm text-slate-600 break-all">
                   {employee.work_email || employee.email || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-600">Employment Status</p>
-                <p className="text-sm text-slate-800">
+                <p className={LABEL_CLASSES}>Employment Status</p>
+                <p className={VALUE_CLASSES}>
                   {employee.employment_status || "N/A"}
                 </p>
               </div>

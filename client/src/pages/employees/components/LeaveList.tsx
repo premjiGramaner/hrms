@@ -139,7 +139,7 @@ export default function LeaveList({ employee }: LeaveListProps) {
                 {month}
               </h3>
 
-              <div className="space-y-2">
+              <div className="info-section">
                 {monthLeaves.map((leave) => (
                   <div
                     key={leave.id}
