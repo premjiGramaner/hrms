@@ -1092,7 +1092,7 @@ export default function AddEmployeeModal({
                               ]
                                 .filter(Boolean)
                                 .join(" - ")}
-                            </div>
+                          </div>
                           )}
                         </div>
                         {checked && (

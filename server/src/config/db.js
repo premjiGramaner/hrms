@@ -46,7 +46,9 @@ const pool = new Pool({
   ...poolConfig,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // Increased from 2000ms to 10000ms (10 seconds)
+  query_timeout: 60000, // Added: 60 seconds query timeout
+  statement_timeout: 60000, // Added: 60 seconds statement timeout
 });
 
 pool.on("error", (err) => {
