@@ -13,17 +13,6 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import UserAvatar from "../../components/UserAvatar";
 
-function initials(name = "") {
-  return (
-    name
-      .split(" ")
-      .map((word) => word[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "?"
-  );
-}
-
 function daysBetween(start: string, end: string): number {
   if (!start || !end) return 0;
   const diff =
@@ -76,30 +65,43 @@ export default function ApplyLeavePage() {
   const financialYear =
     new Date().getMonth() >= 3 ? currentYear + 1 : currentYear;
 
+  // Check if user has a valid ID
+  const isValidUser = (user?.id ?? 0) > 0;
+
   const fetchData = async () => {
     setLoadingTypes(true);
     try {
       const [types, balances, leaveData, allLeavesData] = await Promise.all([
         getLeaveTypes(),
-        user?.id && user.id > 0
-          ? getLeaveBalance(user.id, financialYear)
+        isValidUser
+          ? getLeaveBalance(user!.id, financialYear)
           : Promise.resolve([]),
-        getLeaves({ page: 1, limit: 1, statuses: [] }),
-        getLeaves({
-          page: 1,
-          limit: 1000,
-          statuses: ["Pending Approval", "Approved", "Scheduled", "Taken"],
-        }),
+
+        isValidUser
+          ? getLeaves({
+              page: 1,
+              limit: 1,
+              statuses: [],
+              own_employee_id: user!.id,
+            })
+          : Promise.resolve({ data: [] }),
+        isValidUser
+          ? getLeaves({
+              page: 1,
+              limit: 1000,
+              statuses: ["Pending Approval", "Approved", "Scheduled"],
+              own_employee_id: user!.id,
+            })
+          : Promise.resolve({ data: [] }),
       ]);
       setLeaveTypes(types);
       setBalances(balances as LeaveBalance[]);
       const leavePage = leaveData as { data: LeaveRequest[] };
-      if (leavePage.data?.length) setLatestLeave(leavePage.data[0]);
 
-      const allLeavesPage = allLeavesData as { data: LeaveRequest[] };
-      if (allLeavesPage.data) {
-        setExistingLeaves(allLeavesPage.data);
-      }
+      const ownLeave =
+        leavePage.data?.find((l) => Number(l.user_id) === Number(user?.id)) ??
+        null;
+      setLatestLeave(ownLeave);
     } catch (error) {
       console.error("Failed to load leave data:", error);
     } finally {
@@ -108,7 +110,7 @@ export default function ApplyLeavePage() {
   };
 
   useEffect(() => {
-    if (user?.id && user.id > 0) {
+    if (isValidUser) {
       fetchData();
     }
   }, [user?.id, financialYear]); // Re-fetch when user ID changes or financial year changes

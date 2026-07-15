@@ -26,7 +26,6 @@ export default function BirthdayReportPage() {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedGender, setSelectedGender] = useState("");
   const [selectedMaritalStatus, setSelectedMaritalStatus] = useState("");
-  const [selectedRole, setSelectedRole] = useState("");
 
   const loadReportData = useCallback(async () => {
     setIsLoading(true);
@@ -38,7 +37,6 @@ export default function BirthdayReportPage() {
         month: selectedMonth || undefined,
         gender: selectedGender || undefined,
         marital_status: selectedMaritalStatus || undefined,
-        role: selectedRole || undefined,
         sort_column: "real_dob",
         sort_direction: "asc",
       };
@@ -60,7 +58,6 @@ export default function BirthdayReportPage() {
     selectedMonth,
     selectedGender,
     selectedMaritalStatus,
-    selectedRole,
   ]);
 
   useEffect(() => {
@@ -73,7 +70,6 @@ export default function BirthdayReportPage() {
       month: selectedMonth || undefined,
       gender: selectedGender || undefined,
       marital_status: selectedMaritalStatus || undefined,
-      role: selectedRole || undefined,
     };
     try {
       await downloadBirthdayReportExcel(queryParams);
@@ -129,32 +125,6 @@ export default function BirthdayReportPage() {
       key: "marital_status",
       header: "Marital Status",
       width: 140,
-    },
-    {
-      key: "user_type",
-      header: "Role/User Type",
-      width: 140,
-      render: (row) => {
-        const roleColors: Record<string, string> = {
-          hradmin: "#7C3AED",
-          empmanager: "#3B82F6",
-          employee: "#16A085",
-        };
-        return (
-          <span
-            style={{
-              padding: "4px 10px",
-              borderRadius: 4,
-              fontSize: 11,
-              fontWeight: 600,
-              background: roleColors[row.user_type || ""] || "#94A3B8",
-              color: "#fff",
-            }}
-          >
-            {row.user_type || "N/A"}
-          </span>
-        );
-      },
     },
   ];
 
@@ -233,22 +203,6 @@ export default function BirthdayReportPage() {
         <option value="Divorced">Divorced</option>
         <option value="Widowed">Widowed</option>
       </select>
-      <select
-        value={selectedRole}
-        onChange={(e) => setSelectedRole(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
-      >
-        <option value="">All Roles</option>
-        <option value="hradmin">HR Admin</option>
-        <option value="empmanager">Supervisor</option>
-        <option value="employee">Employee</option>
-      </select>
       <button
         onClick={handleExportExcel}
         style={{
@@ -262,7 +216,7 @@ export default function BirthdayReportPage() {
           cursor: "pointer",
         }}
       >
-        📊 Export Excel
+        Export Excel
       </button>
     </div>
   );
@@ -276,7 +230,7 @@ export default function BirthdayReportPage() {
       <div style={{ padding: "20px 40px" }}>
         <DataTable
           title="Birthday Report"
-          subtitle="View employee birthdays with role-based filtering"
+          subtitle="View all employee birthdays"
           icon=""
           rows={reportData}
           columns={columns}

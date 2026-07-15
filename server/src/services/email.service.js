@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import { smtpUser, smtpPass, mailFrom } from "../config/env.js";
+import { logEmail, logError } from "../utils/logger.js";
 
-console.log(process.env.SMTP_USER);
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -31,7 +31,14 @@ export async function sendWelcomeEmail({ to, name, username, password }) {
     </div>
   `;
 
-  await transporter.sendMail({ from: mailFrom, to, subject, html });
+  try {
+    logEmail("Sending welcome email", to, { username });
+    await transporter.sendMail({ from: mailFrom, to, subject, html });
+    logEmail("Welcome email sent successfully", to);
+  } catch (error) {
+    logError("Failed to send welcome email", error, { recipient: to });
+    throw error;
+  }
 }
 
 export async function sendPasswordResetEmail({ to, name, resetLink }) {
@@ -51,5 +58,12 @@ export async function sendPasswordResetEmail({ to, name, resetLink }) {
     </div>
   `;
 
-  await transporter.sendMail({ from: mailFrom, to, subject, html });
+  try {
+    logEmail("Sending password reset email", to, { name });
+    await transporter.sendMail({ from: mailFrom, to, subject, html });
+    logEmail("Password reset email sent successfully", to);
+  } catch (error) {
+    logError("Failed to send password reset email", error, { recipient: to });
+    throw error;
+  }
 }

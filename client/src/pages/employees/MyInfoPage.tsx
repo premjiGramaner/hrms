@@ -47,6 +47,7 @@ import {
 } from "../../utils/profileValidation";
 import { updateUserAvatar, updateUserName } from "../../store/authSlice";
 import { getNumericValue } from "./components/inputHelpers";
+import Toast from "../../utils/toast";
 
 const ADMIN_TABS: TabItem[] = [
   { label: "Employee List", path: "/employees" },
@@ -70,7 +71,6 @@ export default function MyInfoPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {},
@@ -232,12 +232,11 @@ export default function MyInfoPage() {
 
       if (hasErrors(errors)) {
         setValidationErrors(errors);
-        setMessage("Please fix the validation errors before saving.");
+        Toast.warning("Please fix the validation errors before saving.");
         return;
       }
 
       setSaving(true);
-      setMessage("");
       setValidationErrors({});
 
       const formData = new FormData();
@@ -278,10 +277,9 @@ export default function MyInfoPage() {
         }),
       );
 
-      setMessage("Profile updated successfully.");
-      setTimeout(() => setMessage(""), 3000);
+      Toast.success("Profile updated successfully");
     } catch (err: unknown) {
-      setMessage(getApiErrorMessage(err, "Failed to update profile."));
+      Toast.error(getApiErrorMessage(err, "Failed to update profile"));
     } finally {
       setSaving(false);
     }
@@ -762,15 +760,9 @@ export default function MyInfoPage() {
 
   return (
     <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
-      {message && (
-        <div
-          className={`mb-3.5 p-2.5 border-l-4 rounded text-sm ${
-            message.toLowerCase().includes("failed")
-              ? "bg-red-50 border-red-400 text-red-800"
-              : "bg-green-50 border-green-400 text-green-900"
-          }`}
-        >
-          {message}
+      {error && (
+        <div className="mb-3.5 p-2.5 border-l-4 rounded text-sm bg-red-50 border-red-400 text-red-800">
+          {error}
         </div>
       )}
 

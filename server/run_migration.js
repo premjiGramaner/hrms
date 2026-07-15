@@ -59,9 +59,7 @@ async function ensureMigrationsTable(client) {
 }
 
 async function getApplied(client) {
-  const { rows } = await client.query(
-    "SELECT filename FROM schema_migrations",
-  );
+  const { rows } = await client.query("SELECT filename FROM schema_migrations");
   return new Set(rows.map((r) => r.filename));
 }
 
@@ -118,7 +116,7 @@ export async function runMigrations(options = {}) {
       applied.push(fileName);
       log(`✓ applied ${fileName}`);
     } catch (error) {
-      await client.query("ROLLBACK").catch(() => { });
+      await client.query("ROLLBACK").catch(() => {});
       console.error(`✗ failed  ${fileName}: ${error.message}`);
       throw error;
     } finally {

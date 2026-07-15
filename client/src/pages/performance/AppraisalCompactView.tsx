@@ -145,7 +145,7 @@ function WeightBar({ weight }: { weight: number }) {
   );
 }
 
-function KpiRatingCell({
+function KeyPerformanceIndicatorRatingCell({
   question,
   totalQuestions,
   score,
@@ -294,16 +294,23 @@ export default function AppraisalCompactView() {
     ? "Performance / Appraisals / Appraisal List"
     : "Performance / Appraisals / My Appraisal List";
   const activeTab = isPerformanceAdmin ? "Appraisal List" : "My Appraisals";
+  const isSelfReviewer = useMemo(
+    () =>
+      Boolean(appraisal?.employee?.id) &&
+      String(user?.id) === String(appraisal?.employee?.id),
+    [appraisal?.employee?.id, user?.id],
+  );
+  const isAssignedEvaluator = useMemo(
+    () =>
+      Boolean(appraisal?.mainEvaluator?.id) &&
+      String(user?.id) === String(appraisal?.mainEvaluator?.id),
+    [appraisal?.mainEvaluator?.id, user?.id],
+  );
 
   const activeReviewer: ReviewerType = useMemo(() => {
-    if (isPerformanceAdmin) return "supervisor";
-    if (
-      appraisal?.mainEvaluator?.id &&
-      String(user?.id) === appraisal.mainEvaluator.id
-    )
-      return "supervisor";
+    if (isAssignedEvaluator) return "supervisor";
     return "self";
-  }, [appraisal?.mainEvaluator?.id, isPerformanceAdmin, user?.id]);
+  }, [isAssignedEvaluator]);
 
   const liveSupervisorRating = useMemo(
     () => calcAverage(Object.values(ratings).map((r) => r.supervisor)),
@@ -326,12 +333,13 @@ export default function AppraisalCompactView() {
 
   const supervisor = appraisal.mainEvaluator;
   const employee = appraisal.employee;
-  const showMultipleView =
-    isPerformanceAdmin || activeReviewer === "supervisor";
+  const showMultipleView = isPerformanceAdmin || isAssignedEvaluator;
 
   const canEditSupervisor =
-    showMultipleView && Boolean(supervisor) && !appraisal.supervisorSubmitted;
-  const canEditSelf = !showMultipleView && !appraisal.selfSubmitted;
+    isAssignedEvaluator &&
+    Boolean(supervisor) &&
+    !appraisal.supervisorSubmitted;
+  const canEditSelf = isSelfReviewer && !appraisal.selfSubmitted;
   const canEditActiveReviewer =
     activeReviewer === "supervisor" ? canEditSupervisor : canEditSelf;
 
@@ -434,6 +442,14 @@ export default function AppraisalCompactView() {
               </p>
             </div>
 
+            <ReviewerPanel
+              title="Self"
+              name={employee.name}
+              avatar={employee.avatar}
+              liveRating={liveSelfRating}
+              submitted={appraisal.selfSubmitted ?? false}
+            />
+
             {showMultipleView ? (
               <ReviewerPanel
                 title="Final Review"
@@ -443,14 +459,6 @@ export default function AppraisalCompactView() {
                 submitted={appraisal.supervisorSubmitted ?? false}
               />
             ) : null}
-
-            <ReviewerPanel
-              title="Self"
-              name={employee.name}
-              avatar={employee.avatar}
-              liveRating={liveSelfRating}
-              submitted={appraisal.selfSubmitted ?? false}
-            />
           </div>
 
           {/* Weight row */}
@@ -462,15 +470,15 @@ export default function AppraisalCompactView() {
               <br />
               Competencies
             </h2>
+            <WeightBar weight={appraisal.selfWeight + 50} />
             {showMultipleView ? (
               <WeightBar weight={appraisal.supervisorWeight + 50} />
             ) : null}
-            <WeightBar weight={appraisal.selfWeight + 50} />
           </div>
 
-          {/* KPI table */}
+          {/* Key Performance Indicator table */}
           <h3 className="border-b border-slate-100 py-2 text-xl font-bold text-slate-500">
-            KPI's
+            Key Performance Indicator
           </h3>
           <div>
             {appraisal.questions.map((kpi) => (
@@ -489,35 +497,55 @@ export default function AppraisalCompactView() {
                 </div>
 
                 {showMultipleView ? (
-                  <KpiRatingCell
+                  <>
+                    <KeyPerformanceIndicatorRatingCell
+                      question={kpi}
+                      totalQuestions={appraisal.questions.length}
+                      score={scoreForReviewer(ratings[kpi.id], "self")}
+                      comment={commentForReviewer(ratings[kpi.id], "self")}
+                      editable={canEditSelf}
+                      onScore={(score) =>
+                        setQuestionRating(kpi.id, "self", score)
+                      }
+                      onComment={() =>
+                        setCommentTarget({ question: kpi, reviewer: "self" })
+                      }
+                    />
+                    <KeyPerformanceIndicatorRatingCell
+                      question={kpi}
+                      totalQuestions={appraisal.questions.length}
+                      score={scoreForReviewer(ratings[kpi.id], "supervisor")}
+                      comment={commentForReviewer(
+                        ratings[kpi.id],
+                        "supervisor",
+                      )}
+                      editable={canEditSupervisor}
+                      onScore={(score) =>
+                        setQuestionRating(kpi.id, "supervisor", score)
+                      }
+                      onComment={() =>
+                        setCommentTarget({
+                          question: kpi,
+                          reviewer: "supervisor",
+                        })
+                      }
+                    />
+                  </>
+                ) : (
+                  <KeyPerformanceIndicatorRatingCell
                     question={kpi}
                     totalQuestions={appraisal.questions.length}
-                    score={scoreForReviewer(ratings[kpi.id], "supervisor")}
-                    comment={commentForReviewer(ratings[kpi.id], "supervisor")}
-                    editable={canEditSupervisor}
+                    score={scoreForReviewer(ratings[kpi.id], "self")}
+                    comment={commentForReviewer(ratings[kpi.id], "self")}
+                    editable={canEditSelf}
                     onScore={(score) =>
-                      setQuestionRating(kpi.id, "supervisor", score)
+                      setQuestionRating(kpi.id, "self", score)
                     }
                     onComment={() =>
-                      setCommentTarget({
-                        question: kpi,
-                        reviewer: "supervisor",
-                      })
+                      setCommentTarget({ question: kpi, reviewer: "self" })
                     }
                   />
-                ) : null}
-
-                <KpiRatingCell
-                  question={kpi}
-                  totalQuestions={appraisal.questions.length}
-                  score={scoreForReviewer(ratings[kpi.id], "self")}
-                  comment={commentForReviewer(ratings[kpi.id], "self")}
-                  editable={canEditSelf}
-                  onScore={(score) => setQuestionRating(kpi.id, "self", score)}
-                  onComment={() =>
-                    setCommentTarget({ question: kpi, reviewer: "self" })
-                  }
-                />
+                )}
               </div>
             ))}
           </div>

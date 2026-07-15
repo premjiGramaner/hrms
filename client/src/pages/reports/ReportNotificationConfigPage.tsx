@@ -18,6 +18,9 @@ import {
   IconCheck,
   IconAlertCircle,
 } from "../../components/Icons";
+import Alert from "../../utils/alert";
+import { getNumericValue } from "../employees/components/inputHelpers";
+import { validateEmail } from "../../validations/employee.validation";
 
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: "/reports/birthday" },
@@ -78,7 +81,6 @@ export default function ReportNotificationConfigPage() {
       setAnniversaryConfig(config.work_anniversary);
 
       if (config.birthday) {
-        setBirthdayRecipients(config.birthday.recipient_user_ids || []);
         setBirthdayDaysBefore(config.birthday.days_before || 2);
         setBirthdayActive(config.birthday.is_active !== false);
 
@@ -93,9 +95,6 @@ export default function ReportNotificationConfigPage() {
       }
 
       if (config.work_anniversary) {
-        setAnniversaryRecipients(
-          config.work_anniversary.recipient_user_ids || [],
-        );
         setAnniversaryDaysBefore(config.work_anniversary.days_before || 2);
         setAnniversaryActive(config.work_anniversary.is_active !== false);
 
@@ -144,7 +143,7 @@ export default function ReportNotificationConfigPage() {
 
       await updateNotificationConfig({
         notification_type: "birthday",
-        recipient_user_ids: birthdayRecipients,
+        recipient_user_ids: [],
         days_before: birthdayDaysBefore,
         is_active: birthdayActive,
         external_emails: externalEmailsString,
@@ -171,9 +170,10 @@ export default function ReportNotificationConfigPage() {
     setSaveMessage("");
     try {
       const externalEmailsString = anniversaryExternalEmails.join(",");
+
       await updateNotificationConfig({
         notification_type: "work_anniversary",
-        recipient_user_ids: anniversaryRecipients,
+        recipient_user_ids: [],
         days_before: anniversaryDaysBefore,
         is_active: anniversaryActive,
         external_emails: externalEmailsString,
@@ -207,12 +207,7 @@ export default function ReportNotificationConfigPage() {
     }
   };
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const addExternalEmail = (
+  const addExternalEmail = async (
     email: string,
     currentList: string[],
     setList: (list: string[]) => void,
@@ -220,15 +215,15 @@ export default function ReportNotificationConfigPage() {
   ) => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) {
-      alert("Please enter an email address");
+      await Alert.info("Email Required", "Please enter an email address");
       return;
     }
     if (!validateEmail(trimmedEmail)) {
-      alert("Please enter a valid email address");
+      await Alert.info("Invalid Email", "Please enter a valid email address");
       return;
     }
     if (currentList.includes(trimmedEmail)) {
-      alert("This email is already in the list");
+      await Alert.info("Duplicate Email", "This email is already in the list");
       return;
     }
     setList([...currentList, trimmedEmail]);
@@ -244,11 +239,16 @@ export default function ReportNotificationConfigPage() {
   };
 
   const handleTestNotifications = async () => {
-    if (
-      !window.confirm(
+    const confirmed = await Alert.confirm({
+      title: "Test Notifications",
+      message:
         "This will trigger notification emails immediately for any upcoming birthdays/anniversaries. Continue?",
-      )
-    ) {
+      confirmText: "Yes, Send Test",
+      cancelText: "Cancel",
+      type: "warning",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -304,28 +304,10 @@ export default function ReportNotificationConfigPage() {
         tabs={TABS}
         activeTab="Notifications"
       >
-        <div style={{ padding: "40px", textAlign: "center" }}>
-          <div
-            style={{
-              display: "inline-block",
-              padding: "30px 50px",
-              background: "#fff",
-              borderRadius: 12,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                border: "4px solid #e2e8f0",
-                borderTopColor: "#14b8a6",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-                margin: "0 auto 15px",
-              }}
-            />
-            <p style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}>
+        <div className="p-10 text-center">
+          <div className="inline-block p-8 px-12 bg-white rounded-xl shadow-md">
+            <div className="w-10 h-10 border-4 border-slate-200 border-t-teal-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm text-slate-500 font-medium">
               Loading notification configuration...
             </p>
           </div>
@@ -336,47 +318,18 @@ export default function ReportNotificationConfigPage() {
 
   return (
     <Layout title="Reports and Analytics" tabs={TABS} activeTab="Notifications">
-      <div style={{ padding: "30px 40px", maxWidth: 1400, margin: "0 auto" }}>
-        <div
-          style={{
-            marginBottom: 30,
-            background: "linear-gradient(135deg, #172554 0%, #14b8a6 100%)",
-            padding: "25px 35px",
-            borderRadius: 12,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            color: "#fff",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 20,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
-              <div
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  background: "rgba(255,255,255,0.2)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+      <div className="py-8 px-10 max-w-[1400px] mx-auto">
+        <div className="mb-8 bg-gradient-to-br from-blue-950 to-teal-500 py-6 px-9 rounded-xl shadow-lg text-white">
+          <div className="flex items-center justify-between flex-wrap gap-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
                 <IconBell size={24} color="#fff" />
               </div>
               <div>
-                <h1
-                  style={{ fontSize: 24, fontWeight: 700, margin: "0 0 8px 0" }}
-                >
+                <h1 className="text-2xl font-bold m-0 mb-2">
                   Email Notification Configuration
                 </h1>
-                <p style={{ fontSize: 14, margin: 0, opacity: 0.9 }}>
+                <p className="text-sm m-0 opacity-90">
                   Configure automated email alerts for birthdays and work
                   anniversaries
                 </p>
@@ -386,21 +339,11 @@ export default function ReportNotificationConfigPage() {
             <button
               onClick={handleTestNotifications}
               disabled={isTesting}
-              style={{
-                padding: "12px 24px",
-                background: isTesting ? "rgba(255,255,255,0.3)" : "#fff",
-                color: isTesting ? "rgba(255,255,255,0.7)" : "#172554",
-                border: "none",
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: isTesting ? "not-allowed" : "pointer",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
+              className={`px-6 py-3 ${
+                isTesting
+                  ? "bg-white/30 text-white/70 cursor-not-allowed"
+                  : "bg-white text-blue-950 hover:bg-white/90"
+              } border-none rounded-lg text-sm font-semibold shadow-md transition-all flex items-center gap-2`}
             >
               <IconFlask
                 size={16}
@@ -413,119 +356,50 @@ export default function ReportNotificationConfigPage() {
 
         {saveMessage && (
           <div
-            style={{
-              padding: "16px 24px",
-              background:
-                saveMessage.includes("success") ||
-                saveMessage.includes("✅") ||
-                saveMessage.includes("🎉")
-                  ? "#D1FAE5"
-                  : "#FEE2E2",
-              color:
-                saveMessage.includes("success") ||
-                saveMessage.includes("✅") ||
-                saveMessage.includes("🎉")
-                  ? "#065F46"
-                  : "#991B1B",
-              borderRadius: 10,
-              marginBottom: 25,
-              fontSize: 14,
-              fontWeight: 500,
-              whiteSpace: "pre-line",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              border:
-                saveMessage.includes("success") ||
-                saveMessage.includes("✅") ||
-                saveMessage.includes("🎉")
-                  ? "2px solid #10B981"
-                  : "2px solid #EF4444",
-            }}
+            className={`px-6 py-4 rounded-xl mb-6 text-sm font-medium whitespace-pre-line shadow-sm ${
+              saveMessage.includes("success") ||
+              saveMessage.includes("✅") ||
+              saveMessage.includes("🎉")
+                ? "bg-emerald-100 text-emerald-900 border-2 border-emerald-500"
+                : "bg-red-100 text-red-900 border-2 border-red-500"
+            }`}
           >
             {saveMessage}
           </div>
         )}
 
-        <div
-          style={{
-            background: "#fff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 12,
-            marginBottom: 30,
-            overflow: "hidden",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-          }}
-        >
-          <div
-            style={{
-              background: "linear-gradient(135deg, #172554 0%, #14b8a6 100%)",
-              padding: "20px 30px",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+        <div className="bg-white border border-slate-200 rounded-xl mb-8 overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-br from-blue-950 to-teal-500 py-5 px-7 text-white flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
               <IconGift size={22} color="#fff" />
             </div>
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
-                Birthday Notifications
-              </h2>
-              <p style={{ fontSize: 13, margin: "4px 0 0", opacity: 0.9 }}>
+              <h2 className="text-xl font-bold m-0">Birthday Notifications</h2>
+              <p className="text-[13px] mt-1 mb-0 opacity-90">
                 Automated email reminders for upcoming employee birthdays
               </p>
             </div>
           </div>
 
-          <div style={{ padding: "30px" }}>
-            <div style={{ marginBottom: 25 }}>
+          <div className="p-7">
+            <div className="mb-6">
               <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  fontSize: 15,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  padding: "14px 18px",
-                  background: birthdayActive ? "#ecfdf5" : "#f8fafc",
-                  borderRadius: 10,
-                  border: `2px solid ${birthdayActive ? "#14b8a6" : "#e2e8f0"}`,
-                  transition: "all 0.2s",
-                  boxShadow: birthdayActive
-                    ? "0 2px 8px rgba(20,184,166,0.15)"
-                    : "none",
-                }}
+                className={`flex items-center gap-2.5 text-[15px] font-semibold cursor-pointer py-3.5 px-4 rounded-xl border-2 transition-all ${
+                  birthdayActive
+                    ? "bg-emerald-50 border-teal-500 shadow-[0_2px_8px_rgba(20,184,166,0.15)]"
+                    : "bg-slate-50 border-slate-200"
+                }`}
               >
                 <input
                   type="checkbox"
                   checked={birthdayActive}
                   onChange={(e) => setBirthdayActive(e.target.checked)}
-                  style={{
-                    width: 18,
-                    height: 18,
-                    cursor: "pointer",
-                    accentColor: "#14b8a6",
-                  }}
+                  className="w-[18px] h-[18px] cursor-pointer accent-teal-500"
                 />
                 <span
-                  style={{
-                    color: birthdayActive ? "#14b8a6" : "#64748b",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
+                  className={`flex items-center gap-2 ${
+                    birthdayActive ? "text-teal-500" : "text-slate-500"
+                  }`}
                 >
                   {birthdayActive && <IconCheck size={16} color="#14b8a6" />}
                   {birthdayActive
@@ -535,167 +409,78 @@ export default function ReportNotificationConfigPage() {
               </label>
             </div>
 
-            <div style={{ marginBottom: 25 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#374151",
-                  marginBottom: 10,
-                }}
-              ></label>
-              <input
-                type="number"
-                min="0"
-                max="30"
-                value={birthdayDaysBefore}
-                onChange={(e) =>
-                  setBirthdayDaysBefore(parseInt(e.target.value) || 0)
-                }
-                style={{
-                  padding: "11px 14px",
-                  border: "1.5px solid #e2e8f0",
-                  borderRadius: 10,
-                  fontSize: 13.5,
-                  width: 220,
-                  outline: "none",
-                  transition: "border-color 0.2s",
-                }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
-              />
-              <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>
-                Set to 0 for same-day notifications, or 1-30 for advance
-                notifications
-              </p>
-            </div>
-
-            <div style={{ marginBottom: 25 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#374151",
-                  marginBottom: 12,
-                }}
-              >
-                Select Recipients (System Users)
+            <div className="mb-6">
+              <label className="block text-[13.5px] font-semibold text-gray-700 mb-2.5">
+                Days Before Birthday (0-30 days)
               </label>
-              <div
-                style={{
-                  maxHeight: 250,
-                  overflowY: "auto",
-                  border: "1.5px solid #e2e8f0",
-                  borderRadius: 10,
-                  padding: 14,
-                  background: "#f8fafc",
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Enter days (0-30)"
+                value={birthdayDaysBefore}
+                onChange={(e) => {
+                  const value = getNumericValue(e);
+                  const numValue = value === "" ? 0 : parseInt(value, 10);
+                  if (numValue <= 30) {
+                    setBirthdayDaysBefore(numValue);
+                  }
                 }}
-              >
-                {hrAdminUsers.map((user) => (
-                  <label
-                    key={user.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      borderRadius: 8,
-                      transition: "background 0.15s",
-                      background: "#fff",
-                      marginBottom: 6,
-                      border: "1px solid #e2e8f0",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "#f1f5f9")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "#fff")
-                    }
-                  >
-                    <input
-                      type="checkbox"
-                      checked={birthdayRecipients.includes(user.id)}
-                      onChange={() =>
-                        toggleRecipient(
-                          user.id,
-                          birthdayRecipients,
-                          setBirthdayRecipients,
-                        )
-                      }
-                      style={{
-                        width: 16,
-                        height: 16,
-                        cursor: "pointer",
-                        accentColor: "#14b8a6",
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontSize: 13.5,
-                        color: "#1e293b",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {user.name || `${user.first_name} ${user.last_name}`}
-                    </span>
-                    <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
-                      ({user.email})
-                    </span>
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        padding: "3px 10px",
-                        borderRadius: 6,
-                        fontSize: 10.5,
-                        fontWeight: 600,
-                        background:
-                          user.role === "hradmin" ? "#7C3AED" : "#3B82F6",
-                        color: "#fff",
-                      }}
-                    >
-                      {user.role}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "#64748b",
-                  marginTop: 10,
-                  fontWeight: 500,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
+                onBlur={(e) => {
+                  const value = e.target.value.trim();
+                  if (value === "" || isNaN(parseInt(value, 10))) {
+                    setBirthdayDaysBefore(2);
+                  }
                 }}
-              >
-                <IconCheck size={14} color="#14b8a6" />
-                Selected: {birthdayRecipients.length} recipient
-                {birthdayRecipients.length !== 1 ? "s" : ""}
+                className="py-[11px] px-3.5 border-[1.5px] border-slate-200 rounded-xl text-[13.5px] w-[220px] outline-none transition-colors focus:border-blue-950"
+              />
+              <p className="text-xs text-slate-400 mt-2">
+                <strong>0 days:</strong> Send notification for birthdays TODAY
+                only
+                <br />
+                <strong>1-30 days:</strong> Send notifications for TODAY + next
+                N days
+                <br />
+                <em>
+                  Example: Enter 2 to get reminders for today, tomorrow, and day
+                  after tomorrow
+                </em>
+                <br />
+                <em className="text-amber-500 font-medium">
+                  💡 You can type any number from 0 to 30
+                </em>
               </p>
             </div>
 
-            <div style={{ marginBottom: 25 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#374151",
-                  marginBottom: 12,
-                }}
-              >
+            <div className="mb-6">
+              <div className="py-4 px-5 bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-500 rounded-xl flex items-start gap-3">
+                <div className="mt-0.5">
+                  <IconCheck size={20} color="#10b981" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-emerald-900 mb-1.5">
+                    📧 Auto Recipients: All Global Admins
+                  </div>
+                  <div className="text-[13px] text-emerald-800 leading-relaxed">
+                    Notifications are automatically sent to{" "}
+                    <strong>all global admins</strong> (HR Admins and Employee
+                    Managers) in the system.
+                    <br />
+                    You don't need to select recipients - the system handles
+                    this automatically!
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-[13.5px] font-semibold text-gray-700 mb-3">
                 Add External Email Recipients{" "}
-                <span
-                  style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}
-                >
+                <span className="text-[11px] font-normal text-slate-400">
                   (optional)
                 </span>
               </label>
-              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+              <div className="flex gap-2.5 mb-3">
                 <input
                   type="email"
                   placeholder="Enter email address (e.g., manager@company.com)"
@@ -712,21 +497,7 @@ export default function ReportNotificationConfigPage() {
                       );
                     }
                   }}
-                  style={{
-                    flex: 1,
-                    padding: "11px 14px",
-                    border: "1.5px solid #e2e8f0",
-                    borderRadius: 10,
-                    fontSize: 13.5,
-                    outline: "none",
-                    transition: "border-color 0.2s",
-                  }}
-                  onFocus={(e) =>
-                    (e.currentTarget.style.borderColor = "#172554")
-                  }
-                  onBlur={(e) =>
-                    (e.currentTarget.style.borderColor = "#e2e8f0")
-                  }
+                  className="flex-1 py-[11px] px-3.5 border-[1.5px] border-slate-200 rounded-xl text-[13.5px] outline-none transition-colors focus:border-blue-950"
                 />
                 <button
                   type="button"
@@ -738,73 +509,23 @@ export default function ReportNotificationConfigPage() {
                       setBirthdayEmailInput,
                     )
                   }
-                  style={{
-                    padding: "11px 24px",
-                    background: "linear-gradient(135deg, #172554, #14b8a6)",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 10,
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    boxShadow: "0 2px 8px rgba(23,37,84,0.2)",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.transform = "translateY(-1px)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.transform = "translateY(0)")
-                  }
+                  className="py-[11px] px-6 bg-gradient-to-br from-blue-950 to-teal-500 text-white border-none rounded-xl text-[13.5px] font-semibold cursor-pointer whitespace-nowrap shadow-[0_2px_8px_rgba(23,37,84,0.2)] transition-transform hover:-translate-y-0.5"
                 >
                   + Add Email
                 </button>
               </div>
               {birthdayExternalEmails.length > 0 && (
-                <div
-                  style={{
-                    border: "1.5px solid #e2e8f0",
-                    borderRadius: 10,
-                    padding: 14,
-                    background: "#f8fafc",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      color: "#374151",
-                      marginBottom: 10,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
+                <div className="border-[1.5px] border-slate-200 rounded-xl p-3.5 bg-slate-50">
+                  <div className="text-[12.5px] font-semibold text-gray-700 mb-2.5 flex items-center gap-1.5">
                     <IconMail size={16} color="#14b8a6" />
                     External Email Recipients ({birthdayExternalEmails.length}):
                   </div>
                   {birthdayExternalEmails.map((email) => (
                     <div
                       key={email}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "10px 12px",
-                        background: "#fff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 8,
-                        marginBottom: 6,
-                      }}
+                      className="flex items-center justify-between py-2.5 px-3 bg-white border border-slate-200 rounded-lg mb-1.5"
                     >
-                      <span
-                        style={{
-                          fontSize: 13.5,
-                          color: "#1e293b",
-                          fontWeight: 500,
-                        }}
-                      >
+                      <span className="text-[13.5px] text-slate-800 font-medium">
                         {email}
                       </span>
                       <button
@@ -816,25 +537,7 @@ export default function ReportNotificationConfigPage() {
                             setBirthdayExternalEmails,
                           )
                         }
-                        style={{
-                          padding: "5px 12px",
-                          background:
-                            "linear-gradient(135deg, #dc2626, #e11d48)",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 6,
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          boxShadow: "0 2px 6px rgba(220,38,38,0.2)",
-                          transition: "all 0.2s",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.transform = "translateY(-1px)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.transform = "translateY(0)")
-                        }
+                        className="py-1.5 px-3 bg-gradient-to-br from-red-600 to-pink-600 text-white border-none rounded-md text-[11.5px] font-semibold cursor-pointer shadow-[0_2px_6px_rgba(220,38,38,0.2)] transition-transform hover:-translate-y-0.5"
                       >
                         Remove
                       </button>
@@ -842,7 +545,7 @@ export default function ReportNotificationConfigPage() {
                   ))}
                 </div>
               )}
-              <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 10 }}>
+              <p className="text-xs text-slate-400 mt-2.5">
                 Add external email addresses to receive notifications outside of
                 system users
               </p>
@@ -851,30 +554,11 @@ export default function ReportNotificationConfigPage() {
             <button
               onClick={handleSaveBirthdayConfig}
               disabled={isSaving}
-              style={{
-                padding: "12px 28px",
-                background: isSaving
-                  ? "#94a3b8"
-                  : "linear-gradient(135deg, #172554, #14b8a6)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 10,
-                fontSize: 14.5,
-                fontWeight: 700,
-                cursor: isSaving ? "not-allowed" : "pointer",
-                boxShadow: isSaving ? "none" : "0 4px 12px rgba(23,37,84,0.25)",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-              onMouseEnter={(e) =>
-                !isSaving &&
-                (e.currentTarget.style.transform = "translateY(-2px)")
-              }
-              onMouseLeave={(e) =>
-                !isSaving && (e.currentTarget.style.transform = "translateY(0)")
-              }
+              className={`py-3 px-7 text-white border-none rounded-xl text-[14.5px] font-bold transition-all flex items-center gap-2 ${
+                isSaving
+                  ? "bg-slate-400 cursor-not-allowed"
+                  : "bg-gradient-to-br from-blue-950 to-teal-500 cursor-pointer shadow-[0_4px_12px_rgba(23,37,84,0.25)] hover:-translate-y-0.5"
+              }`}
             >
               <IconSave size={16} color="#fff" />
               {isSaving ? "Saving..." : "Save Birthday Configuration"}
@@ -883,89 +567,42 @@ export default function ReportNotificationConfigPage() {
         </div>
 
         {/* Work Anniversary Notifications Card */}
-        <div
-          style={{
-            background: "#fff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 12,
-            marginBottom: 30,
-            overflow: "hidden",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-          }}
-        >
-          <div
-            style={{
-              background: "linear-gradient(135deg, #172554 0%, #14b8a6 100%)",
-              padding: "20px 30px",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+        <div className="bg-white border border-slate-200 rounded-xl mb-8 overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-br from-blue-950 to-teal-500 py-5 px-7 text-white flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
               <IconAward size={22} color="#fff" />
             </div>
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
+              <h2 className="text-xl font-bold m-0">
                 Work Anniversary Notifications
               </h2>
-              <p style={{ fontSize: 13, margin: "4px 0 0", opacity: 0.9 }}>
+              <p className="text-[13px] mt-1 mb-0 opacity-90">
                 Automated email reminders for employee work anniversaries
               </p>
             </div>
           </div>
 
           {/* Card Body */}
-          <div style={{ padding: "30px" }}>
+          <div className="p-7">
             {/* Enable Checkbox */}
-            <div style={{ marginBottom: 25 }}>
+            <div className="mb-6">
               <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  fontSize: 15,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  padding: "14px 18px",
-                  background: anniversaryActive ? "#ecfdf5" : "#f8fafc",
-                  borderRadius: 10,
-                  border: `2px solid ${anniversaryActive ? "#14b8a6" : "#e2e8f0"}`,
-                  transition: "all 0.2s",
-                  boxShadow: anniversaryActive
-                    ? "0 2px 8px rgba(20,184,166,0.15)"
-                    : "none",
-                }}
+                className={`flex items-center gap-2.5 text-[15px] font-semibold cursor-pointer py-3.5 px-4 rounded-xl border-2 transition-all ${
+                  anniversaryActive
+                    ? "bg-emerald-50 border-teal-500 shadow-[0_2px_8px_rgba(20,184,166,0.15)]"
+                    : "bg-slate-50 border-slate-200"
+                }`}
               >
                 <input
                   type="checkbox"
                   checked={anniversaryActive}
                   onChange={(e) => setAnniversaryActive(e.target.checked)}
-                  style={{
-                    width: 18,
-                    height: 18,
-                    cursor: "pointer",
-                    accentColor: "#14b8a6",
-                  }}
+                  className="w-[18px] h-[18px] cursor-pointer accent-teal-500"
                 />
                 <span
-                  style={{
-                    color: anniversaryActive ? "#14b8a6" : "#64748b",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
+                  className={`flex items-center gap-2 ${
+                    anniversaryActive ? "text-teal-500" : "text-slate-500"
+                  }`}
                 >
                   {anniversaryActive && <IconCheck size={16} color="#14b8a6" />}
                   {anniversaryActive
@@ -975,169 +612,79 @@ export default function ReportNotificationConfigPage() {
               </label>
             </div>
 
-            <div style={{ marginBottom: 25 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#374151",
-                  marginBottom: 10,
-                }}
-              >
-                Send Notification (Days Before Anniversary)
+            <div className="mb-6">
+              <label className="block text-[13.5px] font-semibold text-gray-700 mb-2.5">
+                Days Before Anniversary (0-30 days)
               </label>
               <input
-                type="number"
-                min="0"
-                max="30"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Enter days (0-30)"
                 value={anniversaryDaysBefore}
-                onChange={(e) =>
-                  setAnniversaryDaysBefore(parseInt(e.target.value) || 0)
-                }
-                style={{
-                  padding: "11px 14px",
-                  border: "1.5px solid #e2e8f0",
-                  borderRadius: 10,
-                  fontSize: 13.5,
-                  width: 220,
-                  outline: "none",
-                  transition: "border-color 0.2s",
+                onChange={(e) => {
+                  const value = getNumericValue(e);
+                  const numValue = value === "" ? 0 : parseInt(value, 10);
+                  if (numValue <= 30) {
+                    setAnniversaryDaysBefore(numValue);
+                  }
                 }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
+                onBlur={(e) => {
+                  const value = e.target.value.trim();
+                  if (value === "" || isNaN(parseInt(value, 10))) {
+                    setAnniversaryDaysBefore(2);
+                  }
+                }}
+                className="py-[11px] px-3.5 border-[1.5px] border-slate-200 rounded-xl text-[13.5px] w-[220px] outline-none transition-colors focus:border-blue-950"
               />
-              <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>
-                Set to 0 for same-day notifications, or 1-30 for advance
-                notifications
+              <p className="text-xs text-slate-400 mt-2">
+                <strong>0 days:</strong> Send notification for anniversaries
+                TODAY only
+                <br />
+                <strong>1-30 days:</strong> Send notifications for TODAY + next
+                N days
+                <br />
+                <em>
+                  Example: Enter 2 to get reminders for today, tomorrow, and day
+                  after tomorrow
+                </em>
+                <br />
+                <em className="text-amber-500 font-medium">
+                  💡 You can type any number from 0 to 30
+                </em>
               </p>
             </div>
 
-            <div style={{ marginBottom: 25 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#374151",
-                  marginBottom: 12,
-                }}
-              >
-                Select Recipients (System Users)
-              </label>
-              <div
-                style={{
-                  maxHeight: 250,
-                  overflowY: "auto",
-                  border: "1.5px solid #e2e8f0",
-                  borderRadius: 10,
-                  padding: 14,
-                  background: "#f8fafc",
-                }}
-              >
-                {hrAdminUsers.map((user) => (
-                  <label
-                    key={user.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      borderRadius: 8,
-                      transition: "background 0.15s",
-                      background: "#fff",
-                      marginBottom: 6,
-                      border: "1px solid #e2e8f0",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "#f1f5f9")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "#fff")
-                    }
-                  >
-                    <input
-                      type="checkbox"
-                      checked={anniversaryRecipients.includes(user.id)}
-                      onChange={() =>
-                        toggleRecipient(
-                          user.id,
-                          anniversaryRecipients,
-                          setAnniversaryRecipients,
-                        )
-                      }
-                      style={{
-                        width: 16,
-                        height: 16,
-                        cursor: "pointer",
-                        accentColor: "#14b8a6",
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontSize: 13.5,
-                        color: "#1e293b",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {user.name || `${user.first_name} ${user.last_name}`}
-                    </span>
-                    <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
-                      ({user.email})
-                    </span>
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        padding: "3px 10px",
-                        borderRadius: 6,
-                        fontSize: 10.5,
-                        fontWeight: 600,
-                        background:
-                          user.role === "hradmin" ? "#7C3AED" : "#3B82F6",
-                        color: "#fff",
-                      }}
-                    >
-                      {user.role}
-                    </span>
-                  </label>
-                ))}
+            {/* Auto Recipients Info Box */}
+            <div className="mb-6">
+              <div className="py-4 px-5 bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-500 rounded-xl flex items-start gap-3">
+                <div className="mt-0.5">
+                  <IconCheck size={20} color="#10b981" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-emerald-900 mb-1.5">
+                    📧 Auto Recipients: All Global Admins
+                  </div>
+                  <div className="text-[13px] text-emerald-800 leading-relaxed">
+                    Notifications are automatically sent to{" "}
+                    <strong>all global admins</strong> (HR Admins and Employee
+                    Managers) in the system.
+                    <br />
+                    You don't need to select recipients - the system handles
+                    this automatically!
+                  </div>
+                </div>
               </div>
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "#64748b",
-                  marginTop: 10,
-                  fontWeight: 500,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <IconCheck size={14} color="#14b8a6" />
-                Selected: {anniversaryRecipients.length} recipient
-                {anniversaryRecipients.length !== 1 ? "s" : ""}
-              </p>
             </div>
 
-            <div style={{ marginBottom: 25 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  color: "#374151",
-                  marginBottom: 12,
-                }}
-              >
+            <div className="mb-6">
+              <label className="block text-[13.5px] font-semibold text-gray-700 mb-3">
                 Add External Email Recipients{" "}
-                <span
-                  style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}
-                >
+                <span className="text-[11px] font-normal text-slate-400">
                   (optional)
                 </span>
               </label>
-              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+              <div className="flex gap-2.5 mb-3">
                 <input
                   type="email"
                   placeholder="Enter email address (e.g., manager@company.com)"
@@ -1154,21 +701,7 @@ export default function ReportNotificationConfigPage() {
                       );
                     }
                   }}
-                  style={{
-                    flex: 1,
-                    padding: "11px 14px",
-                    border: "1.5px solid #e2e8f0",
-                    borderRadius: 10,
-                    fontSize: 13.5,
-                    outline: "none",
-                    transition: "border-color 0.2s",
-                  }}
-                  onFocus={(e) =>
-                    (e.currentTarget.style.borderColor = "#172554")
-                  }
-                  onBlur={(e) =>
-                    (e.currentTarget.style.borderColor = "#e2e8f0")
-                  }
+                  className="flex-1 py-[11px] px-3.5 border-[1.5px] border-slate-200 rounded-xl text-[13.5px] outline-none transition-colors focus:border-blue-950"
                 />
                 <button
                   type="button"
@@ -1180,49 +713,14 @@ export default function ReportNotificationConfigPage() {
                       setAnniversaryEmailInput,
                     )
                   }
-                  style={{
-                    padding: "11px 24px",
-                    background: "linear-gradient(135deg, #172554, #14b8a6)",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 10,
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    boxShadow: "0 2px 8px rgba(23,37,84,0.2)",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.transform = "translateY(-1px)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.transform = "translateY(0)")
-                  }
+                  className="py-[11px] px-6 bg-gradient-to-br from-blue-950 to-teal-500 text-white border-none rounded-xl text-[13.5px] font-semibold cursor-pointer whitespace-nowrap shadow-[0_2px_8px_rgba(23,37,84,0.2)] transition-transform hover:-translate-y-0.5"
                 >
                   + Add Email
                 </button>
               </div>
               {anniversaryExternalEmails.length > 0 && (
-                <div
-                  style={{
-                    border: "1.5px solid #e2e8f0",
-                    borderRadius: 10,
-                    padding: 14,
-                    background: "#f8fafc",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      color: "#374151",
-                      marginBottom: 10,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
+                <div className="border-[1.5px] border-slate-200 rounded-xl p-3.5 bg-slate-50">
+                  <div className="text-[12.5px] font-semibold text-gray-700 mb-2.5 flex items-center gap-1.5">
                     <IconMail size={16} color="#14b8a6" />
                     External Email Recipients (
                     {anniversaryExternalEmails.length}):
@@ -1230,24 +728,9 @@ export default function ReportNotificationConfigPage() {
                   {anniversaryExternalEmails.map((email) => (
                     <div
                       key={email}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "10px 12px",
-                        background: "#fff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 8,
-                        marginBottom: 6,
-                      }}
+                      className="flex items-center justify-between py-2.5 px-3 bg-white border border-slate-200 rounded-lg mb-1.5"
                     >
-                      <span
-                        style={{
-                          fontSize: 13.5,
-                          color: "#1e293b",
-                          fontWeight: 500,
-                        }}
-                      >
+                      <span className="text-[13.5px] text-slate-800 font-medium">
                         {email}
                       </span>
                       <button
@@ -1259,25 +742,7 @@ export default function ReportNotificationConfigPage() {
                             setAnniversaryExternalEmails,
                           )
                         }
-                        style={{
-                          padding: "5px 12px",
-                          background:
-                            "linear-gradient(135deg, #dc2626, #e11d48)",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 6,
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          boxShadow: "0 2px 6px rgba(220,38,38,0.2)",
-                          transition: "all 0.2s",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.transform = "translateY(-1px)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.transform = "translateY(0)")
-                        }
+                        className="py-1.5 px-3 bg-gradient-to-br from-red-600 to-pink-600 text-white border-none rounded-md text-[11.5px] font-semibold cursor-pointer shadow-[0_2px_6px_rgba(220,38,38,0.2)] transition-transform hover:-translate-y-0.5"
                       >
                         Remove
                       </button>
@@ -1285,7 +750,7 @@ export default function ReportNotificationConfigPage() {
                   ))}
                 </div>
               )}
-              <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 10 }}>
+              <p className="text-xs text-slate-400 mt-2.5">
                 Add external email addresses to receive notifications outside of
                 system users
               </p>
@@ -1294,30 +759,11 @@ export default function ReportNotificationConfigPage() {
             <button
               onClick={handleSaveAnniversaryConfig}
               disabled={isSaving}
-              style={{
-                padding: "12px 28px",
-                background: isSaving
-                  ? "#94a3b8"
-                  : "linear-gradient(135deg, #172554, #14b8a6)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 10,
-                fontSize: 14.5,
-                fontWeight: 700,
-                cursor: isSaving ? "not-allowed" : "pointer",
-                boxShadow: isSaving ? "none" : "0 4px 12px rgba(23,37,84,0.25)",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-              onMouseEnter={(e) =>
-                !isSaving &&
-                (e.currentTarget.style.transform = "translateY(-2px)")
-              }
-              onMouseLeave={(e) =>
-                !isSaving && (e.currentTarget.style.transform = "translateY(0)")
-              }
+              className={`py-3 px-7 text-white border-none rounded-xl text-[14.5px] font-bold transition-all flex items-center gap-2 ${
+                isSaving
+                  ? "bg-slate-400 cursor-not-allowed"
+                  : "bg-gradient-to-br from-blue-950 to-teal-500 cursor-pointer shadow-[0_4px_12px_rgba(23,37,84,0.25)] hover:-translate-y-0.5"
+              }`}
             >
               <IconSave size={16} color="#fff" />
               {isSaving ? "Saving..." : "Save Anniversary Configuration"}

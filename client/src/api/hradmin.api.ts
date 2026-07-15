@@ -28,14 +28,14 @@ export interface CreateHRUserPayload {
   employee_name: string;
   email: string;
   role: string;
-  status: string;
+  status?: string;
 }
 
 export interface UpdateHRUserPayload {
   employee_name: string;
   email: string;
   role: string;
-  status: string;
+  status?: string;
 }
 
 export const getHRUsers = async (
@@ -246,11 +246,46 @@ export const deleteSubUnit = async (subUnitId: number): Promise<void> => {
   await api.delete(`/hradmin/sub-units/${subUnitId}`);
 };
 
-export const getAuditTrail = async (): Promise<{ data: any[] }> => {
-  const response = await api.get<{ success: boolean; data: any[] }>(
-    "/hradmin/audit-trail",
-  );
-  return { data: response.data.data };
+export interface AuditTrailRecord {
+  id: number;
+  employee_id: number | null;
+  employee_code: string | null;
+  action_owner: string;
+  action_owner_username: string;
+  action_owner_avatar: string | null;
+  employee: string;
+  employee_username: string;
+  section: string;
+  action: string;
+  source: string;
+  performed_screen: string;
+  action_description: string;
+  notes: string;
+  event_time: string;
+  created_at: string;
+}
+
+export interface AuditTrailPagination {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+}
+
+export interface AuditTrailResponse {
+  data: AuditTrailRecord[];
+  pagination: AuditTrailPagination;
+}
+
+export const getAuditTrail = async (
+  page: number = 1,
+  limit: number = 50,
+): Promise<AuditTrailResponse> => {
+  const response = await api.get<{
+    success: boolean;
+    data: AuditTrailResponse;
+  }>(`/hradmin/audit-trail?page=${page}&limit=${limit}`);
+  return response.data.data;
 };
 
 export interface RoleAccessUser {
@@ -286,18 +321,26 @@ export interface RoleAccessQueryParams {
 export const getRoleAccess = async (
   params: RoleAccessQueryParams = {},
 ): Promise<{ data: RoleAccessPaginatedResponse }> => {
-  const { page = 1, limit = 10, search = "", role = "", gender = "", status = "" } = params;
+  const {
+    page = 1,
+    limit = 10,
+    search = "",
+    role = "",
+    gender = "",
+    status = "",
+  } = params;
   const qs = new URLSearchParams({
     page: String(page),
     limit: String(limit),
     ...(search ? { search } : {}),
-    ...(role   ? { role }   : {}),
+    ...(role ? { role } : {}),
     ...(gender ? { gender } : {}),
     ...(status ? { status } : {}),
   }).toString();
-  const response = await api.get<{ success: boolean; data: RoleAccessPaginatedResponse }>(
-    `/hradmin/role-access?${qs}`,
-  );
+  const response = await api.get<{
+    success: boolean;
+    data: RoleAccessPaginatedResponse;
+  }>(`/hradmin/role-access?${qs}`);
   return { data: response.data.data };
 };
 

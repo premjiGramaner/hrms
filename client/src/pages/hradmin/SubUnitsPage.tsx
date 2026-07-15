@@ -10,12 +10,21 @@ import {
   UpdateSubUnitPayload,
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
-import { EditIcon, DeleteIcon, IconGrid, IconCheckCircle, IconUser } from "../../components/Icons";
+import {
+  EditIcon,
+  DeleteIcon,
+  IconGrid,
+  IconCheckCircle,
+  IconUser,
+} from "../../components/Icons";
 import DataTable, {
   ColumnDef,
   ActionDef,
   StatCard,
 } from "../../components/DataTable";
+import Toast from "../../utils/toast";
+import Alert from "../../utils/alert";
+import Button from "../../components/common/Button";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -32,8 +41,6 @@ export default function SubUnitsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [subUnitToEdit, setSubUnitToEdit] = useState<SubUnit | null>(null);
-  const [subUnitToDelete, setSubUnitToDelete] = useState<SubUnit | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [pageError, setPageError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -74,17 +81,16 @@ export default function SubUnitsPage() {
     return filteredList.slice(start, start + pageSize);
   }, [filteredList, currentPage, pageSize]);
 
-  const handleDeleteConfirm = async () => {
-    if (!subUnitToDelete) return;
-    setIsDeleting(true);
+  const handleDeleteConfirm = async (subUnit: SubUnit) => {
+    const confirmed = await Alert.confirmDelete(subUnit.sub_unit_name);
+    if (!confirmed) return;
+
     try {
-      await deleteSubUnit(subUnitToDelete.id);
-      setSubUnitToDelete(null);
+      await deleteSubUnit(subUnit.id);
+      Toast.deleted("Sub Unit");
       fetchSubUnits();
     } catch {
-      setPageError("Failed to delete sub unit. Please try again.");
-    } finally {
-      setIsDeleting(false);
+      Toast.error("Failed to delete sub unit. Please try again.");
     }
   };
 
@@ -100,7 +106,7 @@ export default function SubUnitsPage() {
     {
       label: "Total Sub Units",
       value: subUnitList.length,
-      icon: <IconGrid size={20} /> as any ,
+      icon: <IconGrid size={20} />,
       color: "#0369a1",
       bg: "#f0f9ff",
       border: "#bae6fd",
@@ -108,7 +114,7 @@ export default function SubUnitsPage() {
     {
       label: "Active",
       value: activeCount,
-      icon: <IconCheckCircle size={20} /> as any ,
+      icon: <IconCheckCircle size={20} />,
       color: "#16a34a",
       bg: "#f0fdf4",
       border: "#bbf7d0",
@@ -116,7 +122,7 @@ export default function SubUnitsPage() {
     {
       label: "With Supervisor",
       value: withSupervisor,
-      icon: <IconUser size={20} /> as any ,
+      icon: <IconUser size={20} />,
       color: "#0284c7",
       bg: "#e0f2fe",
       border: "#7dd3fc",
@@ -277,7 +283,7 @@ export default function SubUnitsPage() {
       bgHover: "#ffe4e6",
       borderColor: "#fecdd3",
       borderColorHover: "#fda4af",
-      onClick: (row) => setSubUnitToDelete(row),
+      onClick: (row) => handleDeleteConfirm(row),
       title: "Delete sub unit",
     },
   ];
@@ -324,13 +330,13 @@ export default function SubUnitsPage() {
       <DataTable<SubUnit>
         title="Sub Units"
         subtitle="Manage your organisation's sub units"
-        icon={<IconGrid size={18} /> as any }
+        icon={<IconGrid size={18} />}
         rows={pagedList}
         isLoading={isLoading}
         columns={columns.filter((column) => column.key !== "supervisor_name")}
         actions={actions}
         getKey={(row) => row.id}
-        emptyIcon={<IconGrid size={36} /> as any }
+        emptyIcon={<IconGrid size={36} />}
         emptyTitle={
           searchQuery ? `No results for "${searchQuery}"` : "No sub units yet"
         }
@@ -375,14 +381,6 @@ export default function SubUnitsPage() {
           onError={(m) => setPageError(m)}
         />
       )}
-      {subUnitToDelete && (
-        <DeleteConfirmModal
-          subUnitName={subUnitToDelete.sub_unit_name}
-          isLoading={isDeleting}
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setSubUnitToDelete(null)}
-        />
-      )}
     </Layout>
   );
 }
@@ -420,9 +418,6 @@ function SubUnitFormModal({
   onError,
 }: SubUnitFormModalProps) {
   const [subUnitName, setSubUnitName] = useState(subUnit?.sub_unit_name || "");
-  const [supervisorName, setSupervisorName] = useState(
-    subUnit?.supervisor_name || "",
-  );
   const [description, setDescription] = useState(subUnit?.description || "");
   const [isActive, setIsActive] = useState(subUnit?.is_active !== false);
   const [isSaving, setIsSaving] = useState(false);
@@ -438,16 +433,18 @@ function SubUnitFormModal({
       if (mode === "add") {
         await createSubUnit({
           sub_unit_name: subUnitName.trim(),
-          supervisor_name: supervisorName.trim() || null,
+          supervisor_name: null,
           description: description.trim() || undefined,
         } as CreateSubUnitPayload);
+        Toast.created("Sub Unit");
       } else if (mode === "edit" && subUnit) {
         await updateSubUnit(subUnit.id, {
           sub_unit_name: subUnitName.trim(),
-          supervisor_name: supervisorName.trim() || null,
+          supervisor_name: null,
           description: description.trim() || undefined,
           is_active: isActive,
         } as UpdateSubUnitPayload);
+        Toast.updated("Sub Unit");
       }
       onSaved();
     } catch (err: any) {
@@ -601,26 +598,6 @@ function SubUnitFormModal({
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={labelStyle}>
-              Supervisor{" "}
-              <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>
-                (optional)
-              </span>
-            </label>
-            <input
-              value={supervisorName}
-              onChange={(e) => setSupervisorName(e.target.value)}
-              placeholder="e.g. John Smith"
-              style={inputStyle}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
-            />
-            <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
-              This name will appear in the employee list under the Supervisor
-              column.
-            </span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={labelStyle}>
               Description{" "}
               <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>
                 (optional)
@@ -707,197 +684,18 @@ function SubUnitFormModal({
             <span style={{ color: "#ef4444" }}>*</span> Required fields
           </span>
           <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: "10px 22px",
-                borderRadius: 10,
-                border: "1.5px solid #e2e8f0",
-                background: "#fff",
-                fontSize: 13.5,
-                fontWeight: 600,
-                cursor: "pointer",
-                color: "#64748b",
-              }}
-            >
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleSubmit}
               disabled={isSaving}
-              style={{
-                padding: "10px 28px",
-                borderRadius: 10,
-                border: "none",
-                background: isSaving
-                  ? "#94a3b8"
-                  : "linear-gradient(135deg,#172554,#14b8a6)",
-                color: "#fff",
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: isSaving ? "not-allowed" : "pointer",
-                boxShadow: isSaving
-                  ? "none"
-                  : "0 2px 10px rgba(23,37,84,0.25)",
-              }}
+              loading={isSaving}
             >
-              {isSaving
-                ? "Saving…"
-                : mode === "add"
-                  ? "Add Sub Unit"
-                  : "Save Changes"}
-            </button>
+              {mode === "add" ? "Add Sub Unit" : "Save Changes"}
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface DeleteConfirmModalProps {
-  subUnitName: string;
-  isLoading: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function DeleteConfirmModal({
-  subUnitName,
-  isLoading,
-  onConfirm,
-  onCancel,
-}: DeleteConfirmModalProps) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.5)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 20,
-          width: "100%",
-          maxWidth: 420,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.22)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            background: "linear-gradient(135deg,#fff1f2,#fff5f5)",
-            borderBottom: "1px solid #fecdd3",
-            padding: "24px 28px 20px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg,#fee2e2,#fecdd3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 14px",
-              fontSize: 26,
-              boxShadow: "0 4px 16px rgba(239,68,68,0.2)",
-            }}
-          >
-            🗑
-          </div>
-          <h3
-            style={{
-              margin: "0 0 6px",
-              fontSize: 18,
-              fontWeight: 800,
-              color: "#1e293b",
-            }}
-          >
-            Delete Sub Unit
-          </h3>
-          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
-            This action cannot be undone
-          </p>
-        </div>
-        <div style={{ padding: "20px 28px" }}>
-          <div
-            style={{
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
-              borderRadius: 12,
-              padding: "14px 16px",
-              fontSize: 14,
-              color: "#64748b",
-              lineHeight: 1.6,
-            }}
-          >
-            Are you sure you want to delete{" "}
-            <strong
-              style={{
-                color: "#1e293b",
-                background: "#fee2e2",
-                padding: "1px 6px",
-                borderRadius: 4,
-              }}
-            >
-              "{subUnitName}"
-            </strong>
-            ?
-            <br />
-            <span style={{ fontSize: 12.5, color: "#94a3b8" }}>
-              Employees assigned to this sub unit will keep their records, but
-              it won't appear in new entries.
-            </span>
-          </div>
-        </div>
-        <div style={{ padding: "0 28px 24px", display: "flex", gap: 10 }}>
-          <button
-            onClick={onCancel}
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: "11px",
-              borderRadius: 10,
-              border: "1.5px solid #e2e8f0",
-              background: "#fff",
-              fontSize: 13.5,
-              fontWeight: 600,
-              cursor: "pointer",
-              color: "#64748b",
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: "11px",
-              borderRadius: 10,
-              border: "none",
-              background: isLoading
-                ? "#94a3b8"
-                : "linear-gradient(135deg,#dc2626,#e11d48)",
-              color: "#fff",
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: isLoading ? "not-allowed" : "pointer",
-              boxShadow: isLoading ? "none" : "0 2px 10px rgba(220,38,38,0.3)",
-            }}
-          >
-            {isLoading ? "Deleting…" : "Yes, Delete"}
-          </button>
         </div>
       </div>
     </div>

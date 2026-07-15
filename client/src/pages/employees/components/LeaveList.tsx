@@ -3,12 +3,22 @@ import { useNavigate } from "react-router-dom";
 import { getLeaves } from "../../../api/leave.api";
 import { Employee, LeaveRequest } from "../../../types";
 import LoaderCard from "../../../components/LoaderCard";
+import {
+  LEAVE_STATUS_COLORS,
+  LEAVE_STATUS_BADGE_COLORS,
+} from "../../../config/uiConstants";
 
-interface Props {
+interface LeaveListProps {
   employee: Employee;
 }
 
-function formatDate(dateString: string) {
+interface FormattedDate {
+  day: string;
+  dayName: string;
+  month: string;
+}
+
+function formatDate(dateString: string): FormattedDate {
   const date = new Date(dateString);
   return {
     day: date.getDate().toString().padStart(2, "0"),
@@ -17,22 +27,21 @@ function formatDate(dateString: string) {
   };
 }
 
-function getStatusColor(status: string) {
-  switch (status.toLowerCase()) {
-    case "approved":
-      return "bg-green-500";
-    case "pending approval":
-      return "bg-yellow-500";
-    case "rejected":
-      return "bg-red-500";
-    case "cancelled":
-      return "bg-gray-500";
-    default:
-      return "bg-blue-500";
-  }
+function getStatusColor(status: string): string {
+  const normalizedStatus =
+    status.toLowerCase() as keyof typeof LEAVE_STATUS_COLORS;
+  return LEAVE_STATUS_COLORS[normalizedStatus] || LEAVE_STATUS_COLORS.default;
 }
 
-export default function LeaveList({ employee }: Props) {
+function getStatusBadgeClass(status: string): string {
+  return (
+    LEAVE_STATUS_BADGE_COLORS[
+      status as keyof typeof LEAVE_STATUS_BADGE_COLORS
+    ] || "bg-gray-100 text-gray-800"
+  );
+}
+
+export default function LeaveList({ employee }: LeaveListProps) {
   const navigate = useNavigate();
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,23 +111,17 @@ export default function LeaveList({ employee }: Props) {
           leave.start_date === leave.end_date
             ? leave.start_date
             : `${leave.start_date} - ${leave.end_date}`,
-        statusClass:
-          leave.status === "Approved"
-            ? "bg-green-100 text-green-800"
-            : leave.status === "Pending Approval"
-              ? "bg-yellow-100 text-yellow-800"
-              : leave.status === "Rejected"
-                ? "bg-red-100 text-red-800"
-                : "bg-gray-100 text-gray-800",
+        statusClass: getStatusBadgeClass(leave.status),
       })),
     }),
   );
+
   return (
     <div
       className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
       onClick={handleWidgetClick}
     >
-      <h2 className="text-base font-semibold text-[#333333] mb-4">
+      <h2 className="text-base font-semibold text-slate-800 mb-4">
         Leave List
       </h2>
 
@@ -132,11 +135,11 @@ export default function LeaveList({ employee }: Props) {
         ) : (
           displayGroupedLeaves.map(({ month, monthLeaves }) => (
             <div key={month}>
-              <h3 className="text-sm font-semibold text-[#333333] mb-2">
+              <h3 className="text-sm font-semibold text-slate-800 mb-2">
                 {month}
               </h3>
 
-              <div className="space-y-2">
+              <div className="info-section">
                 {monthLeaves.map((leave) => (
                   <div
                     key={leave.id}
@@ -153,11 +156,11 @@ export default function LeaveList({ employee }: Props) {
                       </div>
 
                       <div>
-                        <p className="text-sm font-medium text-[#333333]">
+                        <p className="text-sm font-medium text-slate-800">
                           {leave.leave_type}
                         </p>
 
-                        <p className="text-xs text-[#757575]">
+                        <p className="text-xs text-slate-600">
                           {leave.displayDate}
                         </p>
 
@@ -166,10 +169,10 @@ export default function LeaveList({ employee }: Props) {
                     </div>
 
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-[#333333]">
+                      <p className="text-sm font-semibold text-slate-800">
                         {Number(leave.requested_days).toFixed(1)}
                       </p>
-                      <p className="text-xs text-[#757575]">Day(s)</p>
+                      <p className="text-xs text-slate-600">Day(s)</p>
                     </div>
                   </div>
                 ))}
@@ -179,7 +182,7 @@ export default function LeaveList({ employee }: Props) {
         )}
         {leaves.length > 0 && (
           <div className="mt-4 pt-3 border-t border-gray-100">
-            <p className="text-xs text-center text-[#007bff] font-medium">
+            <p className="text-xs text-center text-blue-600 font-medium">
               Click to view all leaves
             </p>
           </div>

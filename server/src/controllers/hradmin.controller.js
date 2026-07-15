@@ -914,16 +914,26 @@ const updateUserRole = async (req, res, next) => {
   }
 };
 
-const getAuditTrail = async (_req, res, next) => {
+const getAuditTrail = async (req, res, next) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+
     const { rows: tableCheck } = await pool.query(
       `SELECT to_regclass('public.tbl_audit_log') AS tbl`,
     );
     const auditTableExists = tableCheck[0]?.tbl !== null;
 
     let rows = [];
+    let totalCount = 0;
 
     if (auditTableExists) {
+      const { rows: countRows } = await pool.query(
+        `SELECT COUNT(*)::int AS total FROM tbl_audit_log`,
+      );
+      totalCount = countRows[0]?.total || 0;
+
       const { rows: logRows } = await pool.query(
         `SELECT
            al.id::bigint                        AS id,
@@ -949,19 +959,24 @@ const getAuditTrail = async (_req, res, next) => {
          LEFT JOIN tbl_appusers emp
                 ON al.employee_id IS NOT NULL
                AND emp.id = al.employee_id
+         LEFT JOIN tbl_employee_terminations term
+                ON term.employee_id = al.employee_id
          LEFT JOIN tbl_appusers actor
-                ON (
-                  (al.actor_id IS NOT NULL AND actor.id = al.actor_id)
-                  OR (
-                    al.actor_id IS NULL
-                    AND al.actor_username IS NOT NULL
-                    AND actor.username = al.actor_username
-                  )
-                )
-         ORDER BY al.event_time DESC`,
+                ON actor.id = al.actor_id
+         ORDER BY al.event_time DESC
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
       );
       rows = logRows;
     }
+
+    const { rows: derivedCountRows } = await pool.query(
+      `SELECT 
+        (SELECT COUNT(*) FROM tbl_appusers) + 
+        (SELECT COUNT(*) FROM tbl_appusers WHERE updated_at IS NOT NULL AND updated_at::timestamptz > (created_at::timestamptz + interval '1 second') AND is_deleted = false) +
+        (SELECT COUNT(*) FROM tbl_appusers WHERE is_deleted = true) AS total`,
+    );
+    const derivedTotalCount = derivedCountRows[0]?.total || 0;
 
     const { rows: derivedRows } = await pool.query(
       `
@@ -1088,10 +1103,14 @@ const getAuditTrail = async (_req, res, next) => {
       WHERE emp.is_deleted = true
 
       ORDER BY event_time DESC NULLS LAST
+      LIMIT $1 OFFSET $2
       `,
+      [limit, offset],
     );
 
     let finalRows;
+    let finalTotalCount = totalCount + derivedTotalCount;
+
     if (auditTableExists && rows.length > 0) {
       const loggedUsernames = new Set(rows.map((r) => r.employee_username));
       const gap = derivedRows.filter(
@@ -1105,7 +1124,15 @@ const getAuditTrail = async (_req, res, next) => {
       finalRows = derivedRows;
     }
 
-    return success(res, finalRows);
+    return success(res, {
+      data: finalRows,
+      pagination: {
+        page,
+        limit,
+        totalCount: finalTotalCount,
+        totalPages: Math.ceil(finalTotalCount / limit),
+      },
+    });
   } catch (err) {
     next(err);
   }

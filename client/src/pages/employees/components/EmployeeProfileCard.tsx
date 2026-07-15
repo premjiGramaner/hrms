@@ -8,6 +8,20 @@ import { getApiErrorMessage } from "../../../utils/errors";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { updateUserAvatar, updateUserName } from "../../../store/authSlice";
 import { getAvatarSrc } from "../../../utils/avatar";
+import {
+  IconUpload,
+  IconEye,
+  IconX,
+  IconMapPin,
+} from "../../../components/Icons";
+import {
+  AVATAR_PLACEHOLDER_SERVICE,
+  MAX_FILE_SIZE_MB,
+  MAX_FILE_SIZE_BYTES,
+  SUPPORTED_IMAGE_TYPES,
+  SUPPORTED_IMAGE_EXTENSIONS,
+} from "../../../config/constants";
+import { IconButton } from "../../../components/common/Button";
 
 interface EmployeeProfileCardProps {
   employee: Employee;
@@ -19,6 +33,24 @@ interface Supervisor {
   id: number;
 }
 
+// Reusable CSS class constants
+const LABEL_CLASSES = "text-xs text-slate-600";
+const VALUE_CLASSES = "text-sm text-slate-800";
+
+// Reusable InfoField component
+interface InfoFieldProps {
+  label: string;
+  value: React.ReactNode;
+  valueClassName?: string;
+}
+
+const InfoField = ({ label, value, valueClassName }: InfoFieldProps) => (
+  <div>
+    <p className={LABEL_CLASSES}>{label}</p>
+    <p className={valueClassName || VALUE_CLASSES}>{value}</p>
+  </div>
+);
+
 export default function EmployeeProfileCard({
   employee,
   onEmployeeUpdate,
@@ -28,6 +60,7 @@ export default function EmployeeProfileCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
+  const [showImageModal, setShowImageModal] = useState(false);
   const [supervisorMap, setSupervisorMap] = useState<
     Map<string | number, string>
   >(new Map());
@@ -76,14 +109,18 @@ export default function EmployeeProfileCard({
     fileInputRef.current?.click();
   };
 
-  const MAX_FILE_SIZE_MB = 5;
-  const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
+  const handleViewImage = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (avatarUrl && !avatarUrl.includes(AVATAR_PLACEHOLDER_SERVICE)) {
+      setShowImageModal(true);
+    }
+  };
 
   const validateImageFile = (file: File): string | null => {
-    if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
-      return "Please select a JPG, JPEG, or PNG image.";
+    if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+      return `Please select a ${SUPPORTED_IMAGE_EXTENSIONS.join(", ").toUpperCase()} image.`;
     }
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
       return `File size must be less than ${MAX_FILE_SIZE_MB} MB.`;
     }
 
@@ -128,7 +165,7 @@ export default function EmployeeProfileCard({
         );
       } else {
         console.log(
-          "ℹ️  Not updating Redux - Current user:",
+          "ℹ Not updating Redux - Current user:",
           currentUser?.id,
           "Updated employee:",
           updatedEmployee.id,
@@ -194,7 +231,7 @@ export default function EmployeeProfileCard({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-base font-semibold text-[#333333] mb-4">About</h2>
+      <h2 className="text-base font-semibold text-slate-800 mb-4">About</h2>
 
       {uploadMessage && (
         <div
@@ -211,10 +248,7 @@ export default function EmployeeProfileCard({
 
       <div className="flex flex-col sm:flex-row gap-6">
         <div className="flex-shrink-0">
-          <div
-            className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-blue-950 to-teal-500 flex items-center justify-center border-4 border-white shadow-lg cursor-pointer hover:shadow-xl transition-shadow group"
-            onClick={handleImageClick}
-          >
+          <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-blue-950 to-slate-500 flex items-center justify-center border-4 border-white shadow-lg group">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -227,29 +261,33 @@ export default function EmployeeProfileCard({
               </span>
             )}
 
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               {uploading ? (
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                <svg
-                  className="w-6 h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                <>
+                  <IconButton
+                    onClick={handleImageClick}
+                    icon={<IconUpload size={20} color="#fff" />}
+                    variant="ghost"
+                    size="md"
+                    rounded
+                    className="bg-white/20 backdrop-blur-sm hover:bg-white/30 hover:scale-110"
+                    title="Upload new photo"
                   />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
+                  {avatarUrl &&
+                    !avatarUrl.includes(AVATAR_PLACEHOLDER_SERVICE) && (
+                      <IconButton
+                        onClick={handleViewImage}
+                        icon={<IconEye size={20} color="#fff" />}
+                        variant="ghost"
+                        size="md"
+                        rounded
+                        className="bg-white/20 backdrop-blur-sm hover:bg-white/30 hover:scale-110"
+                        title="View full image"
+                      />
+                    )}
+                </>
               )}
             </div>
           </div>
@@ -257,79 +295,67 @@ export default function EmployeeProfileCard({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".jpg,.jpeg,.png"
+            accept={SUPPORTED_IMAGE_EXTENSIONS.join(",")}
             onChange={handleFileChange}
             className="hidden"
           />
 
           <div className="text-center mt-4">
-            <h3 className="font-bold text-lg text-[#333333]">{fullName}</h3>
-            <p className="text-sm text-[#757575]">
-              {employee.job_title || "Employee"}
-            </p>
-            <p className="text-xs text-[#00897b] mt-1">
-              📍 {employee.location || "Not specified"}
-            </p>
+            <h3 className="font-bold text-lg text-slate-800">{fullName}</h3>
+            <p className={VALUE_CLASSES}>{employee.job_title || "Employee"}</p>
             <p
-              className="text-xs text-gray-500 mt-2 cursor-pointer"
-              onClick={handleImageClick}
+              className={`${LABEL_CLASSES} mt-1 flex items-center justify-center gap-1`}
             >
-              Click to change photo
+              <IconMapPin size={12} color="#64748b" />
+              {employee.location || "Not specified"}
             </p>
           </div>
         </div>
 
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6 border-l pl-6">
           <div>
-            <h4 className="text-sm font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-slate-600 mb-3">
               Basic info
             </h4>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs text-[#757575]">Employee Id</p>
-                <p className="text-sm text-[#00897b] font-medium">
-                  {employee.employee_id || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Full Name</p>
-                <p className="text-sm text-[#333333] font-medium">{fullName}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Designation</p>
-                <p className="text-sm text-[#333333]">
-                  {employee.job_title || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Location</p>
-                <p className="text-sm text-[#333333]">
-                  {employee.location || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Birthday</p>
-                <p className="text-sm text-[#333333]">
-                  {employee.dob
+            <div className="info-section">
+              <InfoField
+                label="Employee Id"
+                value={employee.employee_id || "N/A"}
+                valueClassName="text-sm text-slate-600 font-medium"
+              />
+              <InfoField
+                label="Full Name"
+                value={fullName}
+                valueClassName={`${VALUE_CLASSES} font-medium`}
+              />
+              <InfoField
+                label="Designation"
+                value={employee.job_title || "N/A"}
+              />
+              <InfoField label="Location" value={employee.location || "N/A"} />
+              <InfoField
+                label="Birthday"
+                value={
+                  employee.dob
                     ? new Date(employee.dob).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                       })
-                    : "N/A"}
-                </p>
-              </div>
+                    : "N/A"
+                }
+              />
             </div>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-slate-600 mb-3">
               Employment
             </h4>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs text-[#757575]">Joined Date</p>
-                <p className="text-sm text-[#333333]">
-                  {employee.joined_date
+            <div className="info-section">
+              <InfoField
+                label="Joined Date"
+                value={
+                  employee.joined_date
                     ? new Date(employee.joined_date).toLocaleDateString(
                         "en-US",
                         {
@@ -338,68 +364,79 @@ export default function EmployeeProfileCard({
                           year: "numeric",
                         },
                       )
-                    : "N/A"}
-                </p>
-              </div>
+                    : "N/A"
+                }
+              />
+              <InfoField label="Sub Unit" value={employee.sub_unit || "N/A"} />
+              <InfoField
+                label="Job Category"
+                value={employee.job_category || "N/A"}
+              />
               <div>
-                <p className="text-xs text-[#757575]">Sub Unit</p>
-                <p className="text-sm text-[#333333]">
-                  {employee.sub_unit || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Job Category</p>
-                <p className="text-sm text-[#333333]">
-                  {employee.job_category || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Status</p>
+                <p className={LABEL_CLASSES}>Status</p>
                 <div className="flex items-center gap-2">
                   <span
                     className={`w-2 h-2 rounded-full ${
                       employee.is_active ? "bg-green-500" : "bg-red-500"
                     }`}
                   ></span>
-                  <span className="text-sm text-[#333333]">
+                  <span className={VALUE_CLASSES}>
                     {employee.is_active ? "Active" : "Inactive"}
                   </span>
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-[#757575]">Supervisor</p>
-                <p className="text-sm text-[#333333]">{getSupervisorNames()}</p>
-              </div>
+              <InfoField label="Supervisor" value={getSupervisorNames()} />
             </div>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-[#757575] mb-3">
+            <h4 className="text-sm font-semibold text-slate-600 mb-3">
               Contact
             </h4>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs text-[#757575]">Work Phone</p>
-                <p className="text-sm text-[#00897b]">
-                  {employee.work_tel || employee.mobile || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Work Email</p>
-                <p className="text-sm text-[#00897b] break-all">
-                  {employee.work_email || employee.email || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-[#757575]">Employment Status</p>
-                <p className="text-sm text-[#333333]">
-                  {employee.employment_status || "N/A"}
-                </p>
-              </div>
+            <div className="info-section">
+              <InfoField
+                label="Work Phone"
+                value={employee.work_tel || employee.mobile || "N/A"}
+                valueClassName="text-sm text-slate-600"
+              />
+              <InfoField
+                label="Work Email"
+                value={employee.work_email || employee.email || "N/A"}
+                valueClassName="text-sm text-slate-600 break-all"
+              />
+              <InfoField
+                label="Employment Status"
+                value={employee.employment_status || "N/A"}
+              />
             </div>
           </div>
         </div>
       </div>
+
+      {showImageModal && avatarUrl && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <IconButton
+              onClick={() => setShowImageModal(false)}
+              icon={<IconX size={20} color="#fff" />}
+              variant="ghost"
+              size="md"
+              rounded
+              className="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white"
+              aria-label="Close image viewer"
+            />
+            <img
+              src={avatarUrl}
+              alt={fullName}
+              className="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

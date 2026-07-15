@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
 import { loginSuccess, logout } from "./store/authSlice";
 import { self } from "./api/auth.api";
+import ToastContainer from "./components/ToastContainer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import {
@@ -40,7 +41,7 @@ import CompetencyProfiles from "./pages/performance/CompetencyProfiles";
 import CreateAppraisalCycle from "./pages/performance/CreateAppraisalCycle";
 import PerformanceTrackers from "./pages/performance/PerformanceTrackers";
 import TemplateFormDesign from "./pages/performance/TemplateFormDesign";
-import { ADMIN_ROLES } from "./config/roles";
+import { ADMIN_ROLES, type UserRole } from "./config/roles";
 import {
   TerminationReportPage,
   BirthdayReportPage,
@@ -54,7 +55,7 @@ function PerformanceHomeRedirect() {
   return (
     <Navigate
       to={
-        ADMIN_ROLES.includes(role)
+        ADMIN_ROLES.includes(role as UserRole)
           ? "/performance/appraisals_list"
           : "/performance/my_appraisals"
       }
@@ -65,7 +66,7 @@ function PerformanceHomeRedirect() {
 
 function PerformanceAdminOnly({ children }: { children: React.ReactNode }) {
   const role = useAppSelector((state) => state.auth.user?.role || "employee");
-  if (!ADMIN_ROLES.includes(role))
+  if (!ADMIN_ROLES.includes(role as UserRole))
     return <Navigate to="/performance/my_appraisals" replace />;
   return <>{children}</>;
 }
@@ -121,6 +122,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -10,8 +10,7 @@ import Button from "../../components/common/Button";
 import DataTable from "../../components/common/DataTable";
 import Modal from "../../components/common/Modal";
 import RichTextEditor from "../../components/common/RichTextEditor";
-import Layout from "../../components/Layout";
-import { appraisalConfigurationTabs } from "../../config/performanceNavigation";
+import PerformanceLayout from "../../components/layout/PerformanceLayout";
 import { defaultPerformanceEvaluationHeader } from "../../config/performanceTemplates";
 import { richTextEditorConfig } from "../../config/richTextEditor";
 import { AppraisalTemplate } from "../../types/performance.types";
@@ -119,12 +118,7 @@ export default function TemplateList() {
   };
 
   return (
-    <Layout
-      title="Performance / Configuration / Appraisal"
-      tabs={appraisalConfigurationTabs}
-      activeTab="Templates"
-      onFab={openAddModal}
-    >
+    <PerformanceLayout title="Performance" activeTab="Templates">
       <div className="min-h-full bg-[#fbf6ff] p-2">
         <div className="rounded-[8px] bg-white p-8">
           <div className="mb-6 flex justify-end">
@@ -259,6 +253,6 @@ export default function TemplateList() {
           </Modal>
         ) : null}
       </div>
-    </Layout>
+    </PerformanceLayout>
   );
 }

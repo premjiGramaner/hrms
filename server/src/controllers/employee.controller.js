@@ -3,6 +3,7 @@ import { success, created, error } from "../utils/response.js";
 import { writeAuditLog } from "../services/audit.service.js";
 import { sendWelcomeEmail } from "../../email.service.js";
 import { clientBaseUrl } from "../config/env.js";
+import { logInfo, logError } from "../utils/logger.js";
 
 function getClientUrl(req) {
   if (clientBaseUrl) return clientBaseUrl.replace(/\/$/, "");
@@ -172,10 +173,28 @@ const createEmployee = async (req, res, next) => {
         loginUrl,
       });
     } catch (err) {
-      console.error(`[EMPLOYEE] Failed to send welcome email:`, err.message);
+      logError("Failed to send welcome email", err, {
+        employeeEmail: emp.email,
+        employeeName: emp.name,
+      });
       emailSent = false;
       emailMessage =
         "Employee created, but welcome email could not be sent. Check SMTP configuration.";
+    }
+
+    try {
+      const { checkAndSendImmediateNotifications } =
+        await import("../services/reportNotification.service.js");
+      await checkAndSendImmediateNotifications(emp.id);
+      logInfo("Checked immediate birthday/anniversary notifications", {
+        employeeId: emp.id,
+        employeeName: emp.name,
+      });
+    } catch (notifErr) {
+      logError("Failed to check immediate notifications", notifErr, {
+        employeeId: emp.id,
+        employeeName: emp.name,
+      });
     }
 
     return created(res, {
@@ -242,7 +261,7 @@ const updateEmployee = async (req, res, next) => {
     });
     return success(res, { message: "Employee updated successfully" });
   } catch (err) {
-    console.error("❌ Update employee error:", err);
+    logError("Update employee failed", err, { employeeId: id });
     next(err);
   }
 };
@@ -317,7 +336,9 @@ const checkEmailExists = async (req, res, next) => {
       return success(res, { exists: false });
     }
 
-    const existing = await EmployeeModel.findByEmail(email.trim());
+    const existing = await EmployeeModel.findByEmail(
+      email.trim().toLowerCase(),
+    );
 
     if (!existing) {
       return success(res, { exists: false });
@@ -338,15 +359,15 @@ const terminateEmployee = async (req, res, next) => {
     const id = parseInt(req.params.id);
     if (isNaN(id) || id <= 0) return error(res, "Invalid employee ID", 400);
 
-    const { 
-      terminationReason, 
-      terminationDateTime, 
+    const {
+      terminationReason,
+      terminationDateTime,
       terminationType,
       lastWorkingDay,
       noticePeriodDays,
       exitInterviewCompleted,
       rehireEligible,
-      notes 
+      notes,
     } = req.body;
 
     if (!terminationReason || String(terminationReason).trim() === "")
@@ -384,7 +405,7 @@ const terminateEmployee = async (req, res, next) => {
       action: "TERMINATE",
       actor: req.user,
       performedScreen: "Employee Management",
-      actionDescription: `Employee terminated: ${existing.name}. Reason: ${terminationReason}. Type: ${terminationType || 'Voluntary'}`,
+      actionDescription: `Employee terminated: ${existing.name}. Reason: ${terminationReason}. Type: ${terminationType || "Voluntary"}`,
     });
 
     return success(res, { message: "Employee terminated successfully" });
@@ -402,7 +423,7 @@ const checkEmployeeIdExists = async (req, res, next) => {
     }
 
     const existing = await EmployeeModel.findByEmployeeId(
-      String(employee_id).trim(),
+      String(employee_id).trim().toLowerCase(),
     );
 
     if (!existing) {

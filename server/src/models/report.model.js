@@ -105,8 +105,37 @@ async function getTerminationReportData(filterCriteria, paginationOptions) {
       t.exit_interview_completed,
       t.rehire_eligible,
       COALESCE(NULLIF(TRIM(t.termination_notes), ''), 'No additional notes') AS termination_notes,
-      t.supervisor_names AS reporting_manager,
+      COALESCE(
+        CASE
+          -- If supervisor_names exists and is not empty, use it
+          WHEN t.supervisor_names IS NOT NULL AND TRIM(t.supervisor_names) != '' 
+               AND t.supervisor_names != 'N/A' THEN t.supervisor_names
+          -- Otherwise try to get from employee record
+          ELSE (
+            SELECT 
+              CASE 
+                WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' OR u.supervisors = '[]' THEN NULL
+                -- Parse JSON array and join names
+                WHEN u.supervisors::text ~ '^\\[' THEN (
+                  SELECT STRING_AGG(TRIM(BOTH '\"' FROM elem::text), ', ')
+                  FROM jsonb_array_elements_text(u.supervisors::jsonb) AS elem
+                  WHERE TRIM(BOTH '\"' FROM elem::text) != ''
+                )
+                -- If it's just a plain string, use it
+                ELSE TRIM(BOTH '\"' FROM u.supervisors)
+              END
+            FROM tbl_appusers u
+            WHERE u.id = t.employee_id
+          )
+        END,
+        'N/A'
+      ) AS actual_supervisor,
       COALESCE(t.terminated_by_name, 'System') AS terminated_by,
+      -- Check if user is deleted/terminated
+      COALESCE(
+        (SELECT u.is_deleted FROM tbl_appusers u WHERE u.id = t.employee_id),
+        TRUE
+      ) AS is_user_deleted,
       t.created_at::text AS termination_created_at,
       t.updated_at::text AS termination_updated_at
     FROM tbl_employee_terminations t
@@ -126,10 +155,6 @@ async function getTerminationReportData(filterCriteria, paginationOptions) {
   };
 }
 
-/**
- * Birthday Report Query
- * Retrieves employees with upcoming birthdays filtered by role access
- */
 async function getBirthdayReportData(filterCriteria, userContext) {
   const {
     monthFilter,
@@ -156,39 +181,18 @@ async function getBirthdayReportData(filterCriteria, userContext) {
   const values = [];
   let valueIndex = 1;
 
-  // Role-based access control
   if (userRole === "employee") {
-    // Employees can only see their own birthday
     conditions.push(`u.id = $${valueIndex}`);
     values.push(userId);
     valueIndex++;
-  } else if (userRole === "empmanager") {
-    // Supervisors can see their subordinates + themselves
-    conditions.push(`(u.id = $${valueIndex} OR $${valueIndex} = ANY(
-      SELECT UNNEST(
-        CASE 
-          WHEN supervisors IS NULL OR TRIM(supervisors) = '' THEN ARRAY[]::bigint[]
-          ELSE (
-            SELECT ARRAY_AGG(NULLIF(TRIM(elem::text), '')::bigint)
-            FROM jsonb_array_elements_text(supervisors::jsonb) AS elem
-            WHERE TRIM(elem::text) ~ '^[0-9]+$'
-          )
-        END
-      )
-    ))`);
-    values.push(userId);
-    valueIndex++;
   }
-  // hradmin can see all employees (no additional filter)
 
-  // Month filter (e.g., "01" for January)
   if (monthFilter) {
     conditions.push(`EXTRACT(MONTH FROM u.real_dob) = $${valueIndex}::int`);
     values.push(parseInt(monthFilter, 10));
     valueIndex++;
   }
 
-  // Date range filter for birthday month and day
   if (dateFrom && dateTo) {
     conditions.push(
       `TO_CHAR(u.real_dob, 'MM-DD') BETWEEN $${valueIndex} AND $${valueIndex + 1}`,
@@ -231,7 +235,6 @@ async function getBirthdayReportData(filterCriteria, userContext) {
 
   const whereClause = conditions.join(" AND ");
 
-  // Validate sort column
   const allowedSortColumns = [
     "employee_id",
     "first_name",
@@ -247,7 +250,6 @@ async function getBirthdayReportData(filterCriteria, userContext) {
     : "real_dob";
   const safeSortDirection = sortDirection === "asc" ? "ASC" : "DESC";
 
-  // Get total count
   const countQuery = `SELECT COUNT(*)::int AS total_records FROM tbl_appusers u WHERE ${whereClause}`;
   const { rows: countRows } = await pool.query(countQuery, values);
   const totalRecords = countRows[0].total_records;
@@ -288,10 +290,6 @@ async function getBirthdayReportData(filterCriteria, userContext) {
   };
 }
 
-/**
- * Work Anniversary Report Query
- * Retrieves employees with upcoming work anniversaries filtered by role access
- */
 async function getWorkAnniversaryReportData(filterCriteria, userContext) {
   const {
     monthFilter,
@@ -317,36 +315,18 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
   const values = [];
   let valueIndex = 1;
 
-  // Role-based access control
   if (userRole === "employee") {
     conditions.push(`u.id = $${valueIndex}`);
     values.push(userId);
     valueIndex++;
-  } else if (userRole === "empmanager") {
-    conditions.push(`(u.id = $${valueIndex} OR $${valueIndex} = ANY(
-      SELECT UNNEST(
-        CASE 
-          WHEN supervisors IS NULL OR TRIM(supervisors) = '' THEN ARRAY[]::bigint[]
-          ELSE (
-            SELECT ARRAY_AGG(NULLIF(TRIM(elem::text), '')::bigint)
-            FROM jsonb_array_elements_text(supervisors::jsonb) AS elem
-            WHERE TRIM(elem::text) ~ '^[0-9]+$'
-          )
-        END
-      )
-    ))`);
-    values.push(userId);
-    valueIndex++;
   }
 
-  // Month filter
   if (monthFilter) {
     conditions.push(`EXTRACT(MONTH FROM u.joined_date) = $${valueIndex}::int`);
     values.push(parseInt(monthFilter, 10));
     valueIndex++;
   }
 
-  // Date range filter
   if (dateFrom && dateTo) {
     conditions.push(
       `TO_CHAR(u.joined_date, 'MM-DD') BETWEEN $${valueIndex} AND $${valueIndex + 1}`,
@@ -369,7 +349,6 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
     valueIndex++;
   }
 
-  // Filter by years of service
   if (yearFilter) {
     const currentYear = new Date().getFullYear();
     conditions.push(
@@ -387,7 +366,6 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
 
   const whereClause = conditions.join(" AND ");
 
-  // Validate sort column
   const allowedSortColumns = [
     "employee_id",
     "name",
@@ -402,12 +380,10 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
     : "joined_date";
   const safeSortDirection = sortDirection === "asc" ? "ASC" : "DESC";
 
-  // Get total count
   const countQuery = `SELECT COUNT(*)::int AS total_records FROM tbl_appusers u WHERE ${whereClause}`;
   const { rows: countRows } = await pool.query(countQuery, values);
   const totalRecords = countRows[0].total_records;
 
-  // Get paginated data with calculated tenure
   const dataQuery = `
     SELECT 
       u.id,
@@ -444,10 +420,16 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
   };
 }
 
-/**
- * Get upcoming birthdays for notification system (next N days)
- */
 async function getUpcomingBirthdays(daysAhead = 2) {
+  const dateChecks = [];
+  for (let i = 0; i <= daysAhead; i++) {
+    dateChecks.push(
+      `TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '${i} days', 'MM-DD')`,
+    );
+  }
+
+  const dateCondition = dateChecks.join(" OR ");
+
   const query = `
     SELECT 
       u.id,
@@ -456,6 +438,16 @@ async function getUpcomingBirthdays(daysAhead = 2) {
       COALESCE(u.name, CONCAT_WS(' ', u.first_name, u.last_name)) AS employee_name,
       u.real_dob::text AS birthday_date,
       TO_CHAR(u.real_dob, 'Month DD') AS formatted_birthday,
+      CASE 
+        WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') THEN 'Today'
+        WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '1 day', 'MM-DD') THEN 'Tomorrow'
+        WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '2 days', 'MM-DD') THEN 'In 2 days'
+        ELSE 'In ' || (
+          SELECT COUNT(*) 
+          FROM generate_series(0, ${daysAhead}) AS day_num
+          WHERE TO_CHAR(CURRENT_DATE + (day_num || ' days')::INTERVAL, 'MM-DD') = TO_CHAR(u.real_dob, 'MM-DD')
+        ) || ' days'
+      END AS when_is_birthday,
       u.job_title,
       u.sub_unit,
       u.location
@@ -463,20 +455,31 @@ async function getUpcomingBirthdays(daysAhead = 2) {
     WHERE u.is_deleted = FALSE 
       AND u.is_active = TRUE 
       AND u.real_dob IS NOT NULL
-      AND TO_CHAR(u.real_dob, 'MM-DD') BETWEEN 
-          TO_CHAR(CURRENT_DATE + INTERVAL '${daysAhead} days', 'MM-DD') 
-          AND TO_CHAR(CURRENT_DATE + INTERVAL '${daysAhead} days', 'MM-DD')
-    ORDER BY TO_CHAR(u.real_dob, 'MM-DD')
+      AND (${dateCondition})
+    ORDER BY 
+      CASE 
+        WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') THEN 0
+        WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '1 day', 'MM-DD') THEN 1
+        WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '2 days', 'MM-DD') THEN 2
+        ELSE 3
+      END,
+      u.real_dob
   `;
 
   const { rows } = await pool.query(query);
   return rows;
 }
 
-/**
- * Get upcoming work anniversaries for notification system (next N days)
- */
 async function getUpcomingWorkAnniversaries(daysAhead = 2) {
+  const dateChecks = [];
+  for (let i = 0; i <= daysAhead; i++) {
+    dateChecks.push(
+      `TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '${i} days', 'MM-DD')`,
+    );
+  }
+
+  const dateCondition = dateChecks.join(" OR ");
+
   const query = `
     SELECT 
       u.id,
@@ -485,7 +488,18 @@ async function getUpcomingWorkAnniversaries(daysAhead = 2) {
       COALESCE(u.name, CONCAT_WS(' ', u.first_name, u.last_name)) AS employee_name,
       u.joined_date::text AS date_of_joining,
       TO_CHAR(u.joined_date, 'Month DD') AS formatted_anniversary,
-      EXTRACT(YEAR FROM AGE(CURRENT_DATE + INTERVAL '${daysAhead} days', u.joined_date))::int AS years_completing,
+      CASE 
+        WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') THEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, u.joined_date))::int
+        WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '1 day', 'MM-DD') THEN EXTRACT(YEAR FROM AGE(CURRENT_DATE + INTERVAL '1 day', u.joined_date))::int
+        WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '2 days', 'MM-DD') THEN EXTRACT(YEAR FROM AGE(CURRENT_DATE + INTERVAL '2 day', u.joined_date))::int
+        ELSE EXTRACT(YEAR FROM AGE(CURRENT_DATE + INTERVAL '${daysAhead} days', u.joined_date))::int
+      END AS years_completing,
+      CASE 
+        WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') THEN 'Today'
+        WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '1 day', 'MM-DD') THEN 'Tomorrow'
+        WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '2 days', 'MM-DD') THEN 'In 2 days'
+        ELSE 'Upcoming'
+      END AS when_is_anniversary,
       u.job_title,
       u.sub_unit,
       u.location
@@ -493,18 +507,22 @@ async function getUpcomingWorkAnniversaries(daysAhead = 2) {
     WHERE u.is_deleted = FALSE 
       AND u.is_active = TRUE 
       AND u.joined_date IS NOT NULL
-      AND TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '${daysAhead} days', 'MM-DD')
-      AND EXTRACT(YEAR FROM AGE(CURRENT_DATE + INTERVAL '${daysAhead} days', u.joined_date)) >= 1
-    ORDER BY years_completing DESC
+      AND (${dateCondition})
+      AND EXTRACT(YEAR FROM AGE(CURRENT_DATE, u.joined_date)) >= 1
+    ORDER BY 
+      CASE 
+        WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') THEN 0
+        WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '1 day', 'MM-DD') THEN 1
+        WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '2 days', 'MM-DD') THEN 2
+        ELSE 3
+      END,
+      years_completing DESC
   `;
 
   const { rows } = await pool.query(query);
   return rows;
 }
 
-/**
- * Notification Configuration Management
- */
 async function getNotificationConfig(notificationType) {
   const { rows } = await pool.query(
     `SELECT id, notification_type, recipient_user_ids, days_before, is_active, external_emails, created_at, updated_at
@@ -580,9 +598,6 @@ async function checkNotificationAlreadySent(
   return rows.length > 0;
 }
 
-/**
- * Get distinct filter values for dropdowns
- */
 async function getDistinctSubUnits() {
   const { rows } = await pool.query(
     `SELECT DISTINCT sub_unit FROM tbl_appusers 

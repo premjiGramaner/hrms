@@ -2,11 +2,11 @@ import pg from "pg";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
+import { logError, logDatabase } from "../utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env from server root (go up two levels: config -> src -> server)
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const { Pool } = pg;
@@ -20,8 +20,8 @@ const requiredEnvVars = [
 const missingEnvVars = requiredEnvVars.filter((v) => !process.env[v]);
 
 if (missingEnvVars.length > 0) {
-  console.error(`Missing environment variables: ${missingEnvVars.join(", ")}`);
-  console.error("Please check your .env file configuration");
+  logError(`Missing environment variables: ${missingEnvVars.join(", ")}`);
+  logError("Please check your .env file configuration");
 }
 
 // Prefer discrete DB_* connection fields when provided, since they are the
@@ -50,7 +50,7 @@ const pool = new Pool({
 });
 
 pool.on("error", (err) => {
-  console.error("PostgreSQL pool error:", err.message);
+  logError("PostgreSQL pool error", err);
 });
 
 export default pool;

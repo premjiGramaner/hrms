@@ -26,6 +26,7 @@ export interface Employee {
   work_tel?: string;
   address1?: string;
   address2?: string;
+  
   city?: string;
   country?: string;
   state?: string;
@@ -114,6 +115,7 @@ export interface LeaveRequest {
   approved_on?: string;
   rejected_on?: string;
   cancelled_on?: string;
+  supervisors?: string | string[]; 
 }
 
 export interface LeaveBalance {
@@ -140,10 +142,18 @@ export interface LeaveFilters {
   job_category?: string;
   attachment_status?: string;
   include_past?: boolean;
+   own_employee_id?: number;
   only_subordinates?: boolean;
   statuses?: string[];
   page?: number;
   limit?: number;
+}
+
+export enum KeyboardKey {
+  ArrowDown = "ArrowDown",
+  ArrowUp = "ArrowUp",
+  Enter = "Enter",
+  Escape = "Escape",
 }
 
 export interface TerminationReportRecord {
@@ -152,7 +162,7 @@ export interface TerminationReportRecord {
   employee_name: string;
   designation?: string;
   group_company?: string;
-  reporting_manager?: string;
+  actual_supervisor?: string;
   location?: string;
   date_of_joining?: string;
   date_of_exit?: string;
@@ -164,6 +174,7 @@ export interface TerminationReportRecord {
   rehire_eligible?: boolean;
   termination_notes?: string;
   terminated_by?: string;
+  is_user_deleted?: boolean;
 }
 
 export interface BirthdayReportRecord {

@@ -200,7 +200,8 @@ async function findLeaveRequests(filters = {}, page = 1, limit = 15) {
       lr.rejection_reason,
       lr.attachment_status,
       lr.comments,
-      COALESCE(lr.net_leave_balance_at_request, 0) AS net_leave_balance
+      COALESCE(lr.net_leave_balance_at_request, 0) AS net_leave_balance,
+      u.supervisors
     FROM tbl_leave_requests lr
     JOIN tbl_appusers u  ON u.id = lr.employee_id AND u.is_deleted = FALSE
     JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id

@@ -1,7 +1,12 @@
+import { useNavigate } from "react-router-dom";
+
 export default function QuickAccess() {
+  const navigate = useNavigate();
+
   const items = [
     {
-      label: "Appraisals",
+      label: "My Appraisals",
+      path: "/performance/my_appraisals",
       icon: (
         <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
@@ -20,6 +25,7 @@ export default function QuickAccess() {
         {items.map((item) => (
           <button
             key={item.label}
+            onClick={() => navigate(item.path)}
             className={`w-full ${item.color} text-white p-4 rounded-lg flex items-center gap-4 hover:shadow-md transition`}
           >
             <div className="flex-shrink-0">{item.icon}</div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getJobCategories,
@@ -11,12 +11,11 @@ import {
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import { EditIcon, DeleteIcon } from "../../components/Icons";
-import DataTable, {
-  ColumnDef,
-  ActionDef,
-  StatCard,
-} from "../../components/DataTable";
+import DataTable, { ColumnDef, ActionDef } from "../../components/DataTable";
 import { inputStyle, labelStyle } from "../../constants/styles";
+import Toast from "../../utils/toast";
+import Alert from "../../utils/alert";
+import Button from "../../components/common/Button";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -35,10 +34,6 @@ export default function JobCategoriesPage() {
   const [categoryToEdit, setCategoryToEdit] = useState<JobCategory | null>(
     null,
   );
-  const [categoryToDelete, setCategoryToDelete] = useState<JobCategory | null>(
-    null,
-  );
-  const [isDeleting, setIsDeleting] = useState(false);
   const [pageError, setPageError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -81,17 +76,16 @@ export default function JobCategoriesPage() {
     return filteredList.slice(start, start + pageSize);
   }, [filteredList, currentPage, pageSize]);
 
-  const handleDeleteConfirm = async () => {
-    if (!categoryToDelete) return;
-    setIsDeleting(true);
+  const handleDeleteConfirm = async (category: JobCategory) => {
+    const confirmed = await Alert.confirmDelete(category.category);
+    if (!confirmed) return;
+
     try {
-      await deleteJobCategory(categoryToDelete.id);
-      setCategoryToDelete(null);
+      await deleteJobCategory(category.id);
+      Toast.deleted("Job Category");
       fetchCategories();
     } catch {
-      setPageError("Failed to delete job category. Please try again.");
-    } finally {
-      setIsDeleting(false);
+      Toast.error("Failed to delete job category. Please try again.");
     }
   };
 
@@ -100,8 +94,6 @@ export default function JobCategoriesPage() {
     setCategoryToEdit(null);
     fetchCategories();
   };
-
-  const activeCount = categoryList.filter((c) => c.is_active).length;
 
   const columns: ColumnDef<JobCategory>[] = [
     {
@@ -217,7 +209,7 @@ export default function JobCategoriesPage() {
       bgHover: "#ffe4e6",
       borderColor: "#fecdd3",
       borderColorHover: "#fda4af",
-      onClick: (row) => setCategoryToDelete(row),
+      onClick: (row) => handleDeleteConfirm(row),
       title: "Delete category",
     },
   ];
@@ -316,14 +308,6 @@ export default function JobCategoriesPage() {
           onError={(m) => setPageError(m)}
         />
       )}
-      {categoryToDelete && (
-        <DeleteConfirmModal
-          categoryName={categoryToDelete.category}
-          isLoading={isDeleting}
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setCategoryToDelete(null)}
-        />
-      )}
     </Layout>
   );
 }
@@ -363,12 +347,14 @@ function JobCategoryFormModal({
           category: categoryName.trim(),
           description: description.trim() || undefined,
         } as CreateJobCategoryPayload);
+        Toast.created("Job Category");
       } else if (mode === "edit" && jobCategory) {
         await updateJobCategory(jobCategory.id, {
           category: categoryName.trim(),
           description: description.trim() || undefined,
           is_active: isActive,
         } as UpdateJobCategoryPayload);
+        Toast.updated("Job Category");
       }
       onSaved();
     } catch (err: any) {
@@ -606,195 +592,18 @@ function JobCategoryFormModal({
             <span style={{ color: "#ef4444" }}>*</span> Required fields
           </span>
           <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: "10px 22px",
-                borderRadius: 10,
-                border: "1.5px solid #e2e8f0",
-                background: "#fff",
-                fontSize: 13.5,
-                fontWeight: 600,
-                cursor: "pointer",
-                color: "#64748b",
-              }}
-            >
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleSubmit}
               disabled={isSaving}
-              style={{
-                padding: "10px 28px",
-                borderRadius: 10,
-                border: "none",
-                background: isSaving
-                  ? "#94a3b8"
-                  : "linear-gradient(135deg,#172554,#14b8a6)",
-                color: "#fff",
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: isSaving ? "not-allowed" : "pointer",
-                boxShadow: isSaving ? "none" : "0 2px 10px rgba(23,37,84,0.25)",
-              }}
+              loading={isSaving}
             >
-              {isSaving
-                ? "Saving…"
-                : mode === "add"
-                  ? "Add Category"
-                  : "Save Changes"}
-            </button>
+              {mode === "add" ? "Add Category" : "Save Changes"}
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface DeleteConfirmModalProps {
-  categoryName: string;
-  isLoading: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function DeleteConfirmModal({
-  categoryName,
-  isLoading,
-  onConfirm,
-  onCancel,
-}: DeleteConfirmModalProps) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.5)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 20,
-          width: "100%",
-          maxWidth: 420,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.22)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            background: "linear-gradient(135deg,#fff1f2,#fff5f5)",
-            borderBottom: "1px solid #fecdd3",
-            padding: "24px 28px 20px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg,#fee2e2,#fecdd3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 14px",
-              fontSize: 26,
-              boxShadow: "0 4px 16px rgba(239,68,68,0.2)",
-            }}
-          >
-            🗑
-          </div>
-          <h3
-            style={{
-              margin: "0 0 6px",
-              fontSize: 18,
-              fontWeight: 800,
-              color: "#1e293b",
-            }}
-          >
-            Delete Job Category
-          </h3>
-          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
-            This action cannot be undone
-          </p>
-        </div>
-        <div style={{ padding: "20px 28px" }}>
-          <div
-            style={{
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
-              borderRadius: 12,
-              padding: "14px 16px",
-              fontSize: 14,
-              color: "#64748b",
-              lineHeight: 1.6,
-            }}
-          >
-            Are you sure you want to delete{" "}
-            <strong
-              style={{
-                color: "#1e293b",
-                background: "#fee2e2",
-                padding: "1px 6px",
-                borderRadius: 4,
-              }}
-            >
-              "{categoryName}"
-            </strong>
-            ?
-            <br />
-            <span style={{ fontSize: 12.5, color: "#94a3b8" }}>
-              Employees with this category will keep it, but it won't appear in
-              new records.
-            </span>
-          </div>
-        </div>
-        <div style={{ padding: "0 28px 24px", display: "flex", gap: 10 }}>
-          <button
-            onClick={onCancel}
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: "11px",
-              borderRadius: 10,
-              border: "1.5px solid #e2e8f0",
-              background: "#fff",
-              fontSize: 13.5,
-              fontWeight: 600,
-              cursor: "pointer",
-              color: "#64748b",
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              padding: "11px",
-              borderRadius: 10,
-              border: "none",
-              background: isLoading
-                ? "#94a3b8"
-                : "linear-gradient(135deg,#dc2626,#e11d48)",
-              color: "#fff",
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: isLoading ? "not-allowed" : "pointer",
-              boxShadow: isLoading ? "none" : "0 2px 10px rgba(220,38,38,0.3)",
-            }}
-          >
-            {isLoading ? "Deleting…" : "Yes, Delete"}
-          </button>
         </div>
       </div>
     </div>

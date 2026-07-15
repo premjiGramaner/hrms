@@ -1,5 +1,9 @@
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export const validateEmail = (email: string): boolean => {
+  return EMAIL_REGEX.test(email);
+};
+
 const NAME_REGEX = /^[A-Za-z\s'\-]+$/;
 
 const MOBILE_10DIGIT_REGEX = /^\d{10}$/;

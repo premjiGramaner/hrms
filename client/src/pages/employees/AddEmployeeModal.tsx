@@ -24,14 +24,22 @@ import { getApiErrorMessage } from "../../utils/errors";
 import { validateEmployeeStep } from "../../validations/employee.validation";
 import {
   STEPS,
-  EMPLOYMENT_STATUSES,
   COUNTRIES,
   NATIONALITIES,
   BLOOD_GROUPS,
+  EMPLOYMENT_STATUSES,
 } from "../../constants/employeeOptions";
 import { ISO_DATE_PATTERN } from "../../constants/employeeOptions";
 import { EMAIL_REGEX } from "./validation";
 import { handleMobileInput } from "./components/inputHelpers";
+import Toast from "../../utils/toast";
+
+const PREDEFINED_LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"];
+
+// Email field name constants
+const WORK_EMAIL_FIELD = "work_email" as const;
+const OTHER_EMAIL_FIELD = "other_email" as const;
+type EmailFieldName = typeof WORK_EMAIL_FIELD | typeof OTHER_EMAIL_FIELD;
 
 interface Props {
   employee: Employee | null;
@@ -77,14 +85,11 @@ export default function AddEmployeeModal({
   const [subUnitOptions, setSubUnitOptions] = useState<string[]>([]);
   const [subUnitRecords, setSubUnitRecords] = useState<SubUnit[]>([]);
   const [checkingEmail, setCheckingEmail] = useState<{
-    work_email: boolean;
-    other_email: boolean;
-  }>({ work_email: false, other_email: false });
+    [WORK_EMAIL_FIELD]: boolean;
+    [OTHER_EMAIL_FIELD]: boolean;
+  }>({ [WORK_EMAIL_FIELD]: false, [OTHER_EMAIL_FIELD]: false });
   const [checkingEmployeeId, setCheckingEmployeeId] = useState(false);
   const [lastEmployeeId, setLastEmployeeId] = useState<string | null>(null);
-  const [showCustomLocation, setShowCustomLocation] = useState(false);
-  const [customLocation, setCustomLocation] = useState("");
-  const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
 
   const avatarRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<Record<keyof typeof initialForm, string>>({} as any);
@@ -100,17 +105,23 @@ export default function AddEmployeeModal({
       )
       .catch(() => setApiError("Failed to load supervisors"));
     getJobTitles()
-      .then((res) => setJobTitleOptions(res.data.map((j) => j.title)))
+      .then((res) =>
+        setJobTitleOptions(res.data.map((JobTitle) => JobTitle.title)),
+      )
       .catch(() => setApiError("Failed to load job titles"));
 
     getJobCategories()
-      .then((res) => setJobCategoryOptions(res.data.map((j) => j.category)))
+      .then((res) =>
+        setJobCategoryOptions(
+          res.data.map((JobCategory) => JobCategory.category),
+        ),
+      )
       .catch(() => setApiError("Failed to load job categories"));
 
     getSubUnits()
       .then((res) => {
         setSubUnitRecords(res.data);
-        setSubUnitOptions(res.data.map((s) => s.sub_unit_name));
+        setSubUnitOptions(res.data.map((SubUnit) => SubUnit.sub_unit_name));
       })
       .catch(() => setApiError("Failed to load sub units"));
 
@@ -123,20 +134,9 @@ export default function AddEmployeeModal({
     if (employee?.supervisors && Array.isArray(employee.supervisors)) {
       setSelectedSupervisors(
         employee.supervisors
-          .map((s) => parseInt(String(s), 10))
+          .map((supervisor) => parseInt(String(supervisor), 10))
           .filter((id) => !isNaN(id)),
       );
-    }
-  }, [employee?.id]);
-
-  useEffect(() => {
-    if (employee?.location) {
-      const predefinedLocations = ["Bangalore", "Coimbatore", "Hyderabad"];
-      if (!predefinedLocations.includes(employee.location)) {
-        setShowCustomLocation(true);
-        setCustomLocation(employee.location);
-        formRef.current.location = "Other";
-      }
     }
   }, [employee?.id]);
 
@@ -158,9 +158,9 @@ export default function AddEmployeeModal({
       license_number: employee?.license_number || "",
       license_expiry: toDateStr(employee?.license_expiry) || "",
       job_title: employee?.job_title || "",
-      employment_status: employee?.employment_status || "",
       job_category: employee?.job_category || "",
       sub_unit: employee?.sub_unit || "",
+      employment_status: employee?.employment_status || "",
       job_specification: employee?.job_specification || "",
       attendance_calc: employee?.attendance_calc || "",
       probation_end_date: toDateStr(employee?.probation_end_date) || "",
@@ -212,10 +212,6 @@ export default function AddEmployeeModal({
     );
 
     if (stepNumber === 1) {
-      if (formRef.current.location === "Other" && !customLocation.trim()) {
-        nextErrors.customLocation = "Please enter a location";
-      }
-
       const employeeId = formRef.current.employee_id?.trim();
       if (errors.employee_id && employeeId) {
         nextErrors.employee_id = errors.employee_id;
@@ -223,15 +219,10 @@ export default function AddEmployeeModal({
     }
 
     if (stepNumber === 4) {
-      const workEmail = formRef.current.work_email?.trim();
-      const otherEmail = formRef.current.other_email?.trim();
+      const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim();
 
-      if (errors.work_email && workEmail) {
-        nextErrors.work_email = errors.work_email;
-      }
-
-      if (errors.other_email && otherEmail) {
-        nextErrors.other_email = errors.other_email;
+      if (errors[WORK_EMAIL_FIELD] && workEmail) {
+        nextErrors[WORK_EMAIL_FIELD] = errors[WORK_EMAIL_FIELD];
       }
     }
 
@@ -291,18 +282,19 @@ export default function AddEmployeeModal({
       const formData = new FormData();
       const formDataToSubmit = { ...formRef.current };
 
-      if (formRef.current.location === "Other" && customLocation.trim()) {
-        formDataToSubmit.location = customLocation.trim();
-      }
-
       Object.entries(formDataToSubmit).forEach(([key, val]) => {
         const value = String(val).trim();
         if (value) formData.append(key, value);
       });
       if (avatarFile) formData.append("avatar", avatarFile);
       formData.append("supervisors", JSON.stringify(selectedSupervisors));
-      if (employee?.id) await updateEmployee(employee.id, formData);
-      else await createEmployee(formData);
+      if (employee?.id) {
+        await updateEmployee(employee.id, formData);
+        Toast.updated("Employee");
+      } else {
+        await createEmployee(formData);
+        Toast.created("Employee");
+      }
       onSaved();
       onClose();
     } catch (err: any) {
@@ -317,30 +309,25 @@ export default function AddEmployeeModal({
           employee_id: "Employee ID already exists",
         }));
         setStep(1);
+        Toast.error("Employee ID already exists");
       } else if (
         errorMessage.toLowerCase().includes("email") &&
         errorMessage.toLowerCase().includes("exist")
       ) {
-        const workEmail = formRef.current.work_email?.trim();
-        const otherEmail = formRef.current.other_email?.trim();
+        const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim();
 
         if (workEmail) {
           setErrors((prev) => ({
             ...prev,
-            work_email: "This email address is already registered",
-          }));
-        }
-
-        if (otherEmail === workEmail) {
-          setErrors((prev) => ({
-            ...prev,
-            other_email: "This email address is already registered",
+            [WORK_EMAIL_FIELD]: "This email address is already registered",
           }));
         }
 
         setStep(4);
+        Toast.error("Email address already exists");
       } else {
         setErrors({ submit: errorMessage });
+        Toast.error(errorMessage);
       }
     } finally {
       setSaving(false);
@@ -388,22 +375,6 @@ export default function AddEmployeeModal({
   ) => {
     formRef.current[fieldName] = event.target.value;
 
-    if (fieldName === "location") {
-      if (event.target.value === "Other") {
-        setShowCustomLocation(true);
-      } else {
-        setShowCustomLocation(false);
-        setCustomLocation("");
-        if (errors.customLocation) {
-          setErrors((prev) => {
-            const updatedErrors = { ...prev };
-            delete updatedErrors.customLocation;
-            return updatedErrors;
-          });
-        }
-      }
-    }
-
     if (errors[fieldName]) {
       setErrors((prev) => {
         const updatedErrors = { ...prev };
@@ -434,9 +405,18 @@ export default function AddEmployeeModal({
 
   const handleEmailBlur = async (
     email: string,
-    fieldName: "work_email" | "other_email",
+    fieldName: EmailFieldName,
     element: HTMLInputElement,
   ) => {
+    if (fieldName === OTHER_EMAIL_FIELD) {
+      setErrors((prev) => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors[fieldName];
+        return updatedErrors;
+      });
+      return;
+    }
+
     if (!email.trim()) {
       setErrors((prev) => {
         const updatedErrors = { ...prev };
@@ -457,7 +437,7 @@ export default function AddEmployeeModal({
 
     setCheckingEmail((prev) => ({ ...prev, [fieldName]: true }));
     try {
-      const result = await checkEmailExists(email, employee?.id);
+      const result = await checkEmailExists(email.toLowerCase(), employee?.id);
       if (result.data.exists) {
         setErrors((prev) => ({
           ...prev,
@@ -496,7 +476,10 @@ export default function AddEmployeeModal({
 
     setCheckingEmployeeId(true);
     try {
-      const result = await checkEmployeeIdExists(employeeId, employee?.id);
+      const result = await checkEmployeeIdExists(
+        employeeId.toLowerCase(),
+        employee?.id,
+      );
       if (result.data.exists) {
         setErrors((prev) => ({
           ...prev,
@@ -579,10 +562,7 @@ export default function AddEmployeeModal({
     </div>
   );
 
-  const renderEmailInput = (
-    name: "work_email" | "other_email",
-    placeholder = "",
-  ) => (
+  const renderEmailInput = (name: EmailFieldName, placeholder = "") => (
     <div>
       <input
         name={name}
@@ -629,9 +609,9 @@ export default function AddEmployeeModal({
         }`}
       >
         <option value="">{placeholder}</option>
-        {opts.map((o) => (
-          <option key={o} value={o}>
-            {o}
+        {opts.map((option) => (
+          <option key={option} value={option}>
+            {option}
           </option>
         ))}
       </select>
@@ -709,17 +689,6 @@ export default function AddEmployeeModal({
     );
   };
 
-  const handleCustomLocationChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setCustomLocation(e.target.value);
-
-    if (errors.customLocation) {
-      setErrors((prev) => {
-        const updatedErrors = { ...prev };
-        delete updatedErrors.customLocation;
-        return updatedErrors;
-      });
-    }
-  };
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
@@ -863,39 +832,11 @@ export default function AddEmployeeModal({
                     )}
                     {FormField(
                       "Location",
-                      <div>
-                        {renderSelect(
-                          "location",
-                          [...predefinedLocations, "Other"],
-                          "-- Select Location --",
-                        )}
-                        {showCustomLocation && (
-                          <div className="mt-2">
-                            <label className="text-xs font-semibold text-slate-600 block mb-1 tracking-wide">
-                              Specify Location
-                              <span className="text-red-600 ml-0.5">*</span>
-                            </label>
-                            <input
-                              name="customLocation"
-                              type="text"
-                              placeholder="Enter custom location"
-                              value={customLocation}
-                              onChange={handleCustomLocationChange}
-                              className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
-                                errors.customLocation
-                                  ? "border-red-500 bg-red-50"
-                                  : "border-slate-200 bg-slate-50 focus:border-slate-300"
-                              }`}
-                            />
-                            {errors.customLocation && (
-                              <span className="text-xs text-red-600 mt-1 block">
-                                {errors.customLocation}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>,
-                      true,
+                      renderSelect(
+                        "location",
+                        PREDEFINED_LOCATIONS,
+                        "-- Select Location --",
+                      ),
                     )}
                   </TwoColumnGrid>
                 </div>
@@ -962,21 +903,21 @@ export default function AddEmployeeModal({
                   true,
                 )}
                 {FormField(
-                  "Employment Status",
-                  renderSelect(
-                    "employment_status",
-                    EMPLOYMENT_STATUSES,
-                    "-- Select --",
-                  ),
-                  true,
-                )}
-                {FormField(
                   "Job Category",
                   renderSelect("job_category", jobCategoryOptions),
                 )}
                 {FormField(
                   "Sub Unit",
                   renderSelect("sub_unit", subUnitOptions),
+                )}
+                {FormField(
+                  "Employment Status",
+                  renderSelect(
+                    "employment_status",
+                    EMPLOYMENT_STATUSES,
+                    "-- Select Employment Status --",
+                  ),
+                  true,
                 )}
                 {FormField(
                   "Job Specification",
@@ -987,7 +928,7 @@ export default function AddEmployeeModal({
                   ),
                 )}
                 {FormField(
-                  "Attendance Calc",
+                  "Attendance Calculation Basics",
                   renderSelect("attendance_calc", [
                     "Work Schedule",
                     "Clock In/Out",
@@ -1030,12 +971,12 @@ export default function AddEmployeeModal({
               <TwoColumnGrid>
                 {FormField(
                   "Work Email",
-                  renderEmailInput("work_email", "work@company.com"),
+                  renderEmailInput(WORK_EMAIL_FIELD, "work@company.com"),
                   true,
                 )}
                 {FormField(
                   "Other Email",
-                  renderEmailInput("other_email", "personal@email.com"),
+                  renderEmailInput(OTHER_EMAIL_FIELD, "personal@email.com"),
                 )}
 
                 {FormField(
@@ -1129,7 +1070,7 @@ export default function AddEmployeeModal({
                         <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {supervis.name
                             .split(" ")
-                            .map((w: string) => w[0])
+                            .map((user: string) => user[0])
                             .slice(0, 2)
                             .join("")
                             .toUpperCase()}

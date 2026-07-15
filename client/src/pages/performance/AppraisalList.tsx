@@ -79,12 +79,15 @@ function DateField({
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-12 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 pr-12 text-sm text-slate-600 outline-none focus:border-teal-400"
+          className="h-12 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 pr-12 text-sm text-slate-600 outline-none focus:border-teal-400 [&::-webkit-calendar-picker-indicator]:hidden"
+          style={{
+            colorScheme: "light",
+          }}
         />
         <button
           type="button"
           onClick={() => ref.current?.showPicker?.()}
-          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl bg-[#f4f1f8] text-slate-500"
+          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl bg-[#f4f1f8] text-slate-500 hover:bg-[#e8e3f0] transition-colors"
         >
           <CalendarDays size={17} />
         </button>
@@ -335,13 +338,7 @@ function FilterModal({
             value={draft.to}
             onChange={(v) => set("to", v)}
           />
-          {showCycleFilter && (
-            <CycleDropdown
-              cycles={cycles}
-              value={draft.cycleId}
-              onChange={(v) => set("cycleId", v)}
-            />
-          )}
+
           <StatusTagInput
             value={draft.statuses}
             onChange={(v) => set("statuses", v)}
@@ -474,10 +471,7 @@ export default function AppraisalList() {
 
   return (
     <>
-      <PerformanceLayout
-        activeTab={activeTab}
-        onFab={() => navigate("/performance/appraisal_cycles/create")}
-      >
+      <PerformanceLayout activeTab={activeTab}>
         <div className="rounded-[8px] bg-white p-8">
           <div className="mb-7 flex items-center justify-end gap-3">
             {isAdmin && (
