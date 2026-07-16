@@ -11,8 +11,8 @@ import { getApiErrorMessage } from "../../utils/errors";
 import { useAppSelector } from "../../app/hooks";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
-import UserAvatar from "../../components/UserAvatar";
 
+import UserAvatar from "../../components/UserAvatar";
 function daysBetween(start: string, end: string): number {
   if (!start || !end) return 0;
   const diff =
@@ -96,6 +96,7 @@ export default function ApplyLeavePage() {
       ]);
       setLeaveTypes(types);
       setBalances(balances as LeaveBalance[]);
+
       const leavePage = leaveData as { data: LeaveRequest[] };
 
       const ownLeave =

@@ -571,7 +571,7 @@ export default function LeaveDetailsPage() {
                   rel="noreferrer"
                   className="text-xs text-blue-700 hover:text-blue-900 px-3 py-1.5 border border-blue-200 rounded-lg no-underline transition"
                 >
-                  View
+                  Download
                 </a>
               </div>
             ) : (

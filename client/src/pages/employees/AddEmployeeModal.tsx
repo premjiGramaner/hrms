@@ -93,6 +93,7 @@ export default function AddEmployeeModal({
 
   const avatarRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<Record<keyof typeof initialForm, string>>({} as any);
+  const validatedWorkEmailRef = useRef<string>("");
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [apiError, setApiError] = useState("");
 
@@ -187,6 +188,87 @@ export default function AddEmployeeModal({
     formRef.current = initialForm;
   }, [initialForm]);
 
+  // Reset stale loading state when leaving Step 4
+  useEffect(() => {
+    if (step !== 4) {
+      setCheckingEmail((prev) => ({
+        ...prev,
+        [WORK_EMAIL_FIELD]: false,
+      }));
+    }
+  }, [step]);
+
+  // Centralized work email validation function
+  const validateWorkEmailExists = async (): Promise<boolean> => {
+    const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim().toLowerCase();
+
+    if (!workEmail || !EMAIL_REGEX.test(workEmail)) {
+      return false;
+    }
+
+    // If already validated and unchanged, skip API call
+    if (
+      validatedWorkEmailRef.current === workEmail &&
+      !errors[WORK_EMAIL_FIELD]
+    ) {
+      return true;
+    }
+
+    setCheckingEmail((prev) => ({
+      ...prev,
+      [WORK_EMAIL_FIELD]: true,
+    }));
+
+    try {
+      const result = await checkEmailExists(workEmail, employee?.id);
+
+      if (result.data.exists) {
+        validatedWorkEmailRef.current = "";
+        setErrors((prev) => ({
+          ...prev,
+          [WORK_EMAIL_FIELD]: "This email address is already registered",
+        }));
+        return false;
+      }
+
+      validatedWorkEmailRef.current = workEmail;
+      setErrors((prev) => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors[WORK_EMAIL_FIELD];
+        return updatedErrors;
+      });
+      return true;
+    } catch {
+      validatedWorkEmailRef.current = "";
+      setErrors((prev) => ({
+        ...prev,
+        [WORK_EMAIL_FIELD]: "Could not validate this email right now",
+      }));
+      return false;
+    } finally {
+      setCheckingEmail((prev) => ({
+        ...prev,
+        [WORK_EMAIL_FIELD]: false,
+      }));
+    }
+  };
+
+  // Validate work email when entering step 4
+  useEffect(() => {
+    if (step === 4) {
+      const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim().toLowerCase();
+
+      // Only validate if email exists and hasn't been validated yet
+      if (
+        workEmail &&
+        EMAIL_REGEX.test(workEmail) &&
+        validatedWorkEmailRef.current !== workEmail
+      ) {
+        validateWorkEmailExists();
+      }
+    }
+  }, [step, employee?.id]);
+
   const handleFieldChange =
     (fieldName: keyof typeof initialForm) =>
     (
@@ -194,7 +276,17 @@ export default function AddEmployeeModal({
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       >,
     ) => {
-      formRef.current[fieldName] = event.target.value;
+      const value = event.target.value;
+      formRef.current[fieldName] = value;
+
+      // Clear validated email cache when work email changes
+      if (fieldName === WORK_EMAIL_FIELD) {
+        const normalizedEmail = value.trim().toLowerCase();
+        if (validatedWorkEmailRef.current !== normalizedEmail) {
+          validatedWorkEmailRef.current = "";
+        }
+      }
+
       if (errors[fieldName])
         setErrors((prev) => {
           const updatedErrors = { ...prev };
@@ -216,6 +308,8 @@ export default function AddEmployeeModal({
       if (errors.employee_id && employeeId) {
         nextErrors.employee_id = errors.employee_id;
       }
+      // Don't preserve avatar error - it should not block navigation
+      // Avatar size error only prevents upload, not form progression
     }
 
     if (stepNumber === 4) {
@@ -238,7 +332,7 @@ export default function AddEmployeeModal({
     5: () => validateCurrentStep(5),
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validators[step] && !validators[step]()) {
       const firstErrorField = Object.keys(errors)[0];
       if (firstErrorField) {
@@ -272,6 +366,15 @@ export default function AddEmployeeModal({
       }
       return;
     }
+
+    // Validate work email on step 4 before proceeding
+    if (step === 4) {
+      const emailAvailable = await validateWorkEmailExists();
+      if (!emailAvailable) {
+        return;
+      }
+    }
+
     setStep((s) => s + 1);
   };
 
@@ -408,7 +511,27 @@ export default function AddEmployeeModal({
     fieldName: EmailFieldName,
     element: HTMLInputElement,
   ) => {
+    // For OTHER_EMAIL_FIELD: only validate format, not existence
     if (fieldName === OTHER_EMAIL_FIELD) {
+      if (!email.trim()) {
+        setErrors((prev) => {
+          const updatedErrors = { ...prev };
+          delete updatedErrors[fieldName];
+          return updatedErrors;
+        });
+        return;
+      }
+
+      if (!EMAIL_REGEX.test(email)) {
+        setErrors((prev) => ({
+          ...prev,
+          [fieldName]: "Enter a valid email",
+        }));
+        setTimeout(() => element.focus(), 100);
+        return;
+      }
+
+      // Clear error if format is valid
       setErrors((prev) => {
         const updatedErrors = { ...prev };
         delete updatedErrors[fieldName];
@@ -417,6 +540,7 @@ export default function AddEmployeeModal({
       return;
     }
 
+    // For WORK_EMAIL_FIELD: validate both format and existence
     if (!email.trim()) {
       setErrors((prev) => {
         const updatedErrors = { ...prev };
@@ -515,7 +639,7 @@ export default function AddEmployeeModal({
         placeholder={placeholder}
         defaultValue={formRef.current[name]}
         onChange={handleFieldChange(name)}
-        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
             : "border-slate-200 bg-slate-50 focus:border-slate-300"
@@ -536,7 +660,7 @@ export default function AddEmployeeModal({
         defaultValue={formRef.current.employee_id}
         onChange={handleFieldChange("employee_id")}
         onBlur={(e) => handleEmployeeIdBlur(e.target.value, e.target)}
-        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
           errors.employee_id
             ? "border-red-500 bg-red-50"
             : checkingEmployeeId
@@ -573,7 +697,7 @@ export default function AddEmployeeModal({
         onBlur={(e) => {
           handleEmailBlur(e.target.value, name, e.target);
         }}
-        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
             : checkingEmail[name]
@@ -602,7 +726,7 @@ export default function AddEmployeeModal({
         name={name}
         defaultValue={formRef.current[name]}
         onChange={(e) => handleSelectChange(name, e)}
-        className={`w-full px-3 py-2 pr-7 border-1.5 rounded-lg text-sm outline-none appearance-none transition-colors ${
+        className={`w-full px-3 py-2 pr-7 border-2 rounded-lg text-sm outline-none appearance-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
             : "border-slate-200 bg-slate-50 focus:border-slate-300"
@@ -674,7 +798,7 @@ export default function AddEmployeeModal({
           onChange={(e) =>
             handleMobileInput(e, formRef, field, errors, setErrors)
           }
-          className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+          className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
             errors[field]
               ? "border-red-500 bg-red-50"
               : "border-slate-200 bg-slate-50 focus:border-slate-300"
@@ -691,7 +815,7 @@ export default function AddEmployeeModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[100vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-900 to-teal-600">
           <h2 className="m-0 text-base font-bold text-white">
             {employee ? "Edit Employee" : "Add New Employee"}
@@ -760,11 +884,15 @@ export default function AddEmployeeModal({
 
           {step === 1 && (
             <Section title="Basic Information">
-              <div className="flex gap-4 mb-3">
+              <div className="flex gap-10 mb-3">
                 <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
                   <div
                     onClick={() => avatarRef.current?.click()}
-                    className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 cursor-pointer overflow-hidden flex items-center justify-center hover:bg-slate-100 transition"
+                    className={`w-20 h-20 rounded-full border-2 border-dashed cursor-pointer overflow-hidden flex items-center justify-center hover:bg-slate-100 transition ${
+                      errors.avatar
+                        ? "border-red-500 bg-red-50"
+                        : "border-slate-300 bg-slate-50"
+                    }`}
                   >
                     {avatarPreview ? (
                       <img
@@ -787,11 +915,23 @@ export default function AddEmployeeModal({
                       </svg>
                     )}
                   </div>
-                  <span className="text-xs text-slate-400 text-center leading-tight">
+                  <span
+                    className={`text-xs text-center  leading-tight ${errors.avatar ? "text-red-600" : "text-slate-400"}`}
+                  >
                     Click to
                     <br />
                     upload
                   </span>
+                  {errors.avatar && (
+                    <span className="text-xs text-red-600 text-center leading-tight">
+                      {errors.avatar}
+                    </span>
+                  )}
+                  {!errors.avatar && (
+                    <span className="text-xs text-slate-400 text-center leading-tight">
+                      Max 5MB
+                    </span>
+                  )}
                   <input
                     ref={avatarRef}
                     type="file"
@@ -800,6 +940,26 @@ export default function AddEmployeeModal({
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
+
+                      // Validate file size (max 5MB)
+                      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                      if (file.size > maxSize) {
+                        Toast.error("Image size must be less than 5MB");
+                        setErrors((prev) => ({
+                          ...prev,
+                          avatar: "Image size must be less than 5MB",
+                        }));
+                        e.target.value = ""; // Reset file input
+                        return;
+                      }
+
+                      // Clear any previous avatar error
+                      setErrors((prev) => {
+                        const updatedErrors = { ...prev };
+                        delete updatedErrors.avatar;
+                        return updatedErrors;
+                      });
+
                       setAvatarFile(file);
                       const reader = new FileReader();
                       reader.onload = (ev) =>
@@ -808,7 +968,7 @@ export default function AddEmployeeModal({
                     }}
                   />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 ">
                   <TwoColumnGrid>
                     {FormField(
                       "First Name",
@@ -959,7 +1119,7 @@ export default function AddEmployeeModal({
                     defaultValue={formRef.current.comments}
                     onChange={handleFieldChange("comments")}
                     placeholder="Any notes…"
-                    className="w-full px-3 py-2 border-1.5 border-slate-200 rounded-lg text-sm outline-none bg-slate-50 focus:border-slate-300 resize-none h-16"
+                    className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg text-sm outline-none bg-slate-50 focus:border-slate-300 resize-none h-16"
                   />,
                 )}
               </div>
@@ -1170,9 +1330,16 @@ export default function AddEmployeeModal({
               <button
                 type="button"
                 onClick={handleNext}
-                className="px-7 py-2 rounded-full border-0 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-bold cursor-pointer hover:shadow-lg transition"
+                disabled={step === 4 && checkingEmail[WORK_EMAIL_FIELD]}
+                className={`px-7 py-2 rounded-full border-0 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-bold transition ${
+                  step === 4 && checkingEmail[WORK_EMAIL_FIELD]
+                    ? "opacity-65 cursor-not-allowed"
+                    : "cursor-pointer hover:shadow-lg"
+                }`}
               >
-                Next →
+                {step === 4 && checkingEmail[WORK_EMAIL_FIELD]
+                  ? "Checking..."
+                  : "Next →"}
               </button>
             ) : (
               <button

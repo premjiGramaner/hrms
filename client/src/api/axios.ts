@@ -24,8 +24,16 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem(STORAGE_KEYS.token);
       localStorage.removeItem(STORAGE_KEYS.user);
-      if (window.location.pathname !== "/login")
+      const pathname = window.location.pathname;
+      // Don't redirect if user is on authentication/password pages
+      if (
+        pathname !== "/login" &&
+        pathname !== "/reset-password" &&
+        pathname !== "/create-password" &&
+        pathname !== "/forgot-password"
+      ) {
         window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   },

@@ -61,24 +61,13 @@ const createEntitlements = async (req, res, next) => {
       req.user?.id || null,
     );
 
-    const total = ids.length;
+    // After every save, reset used_days for any periods that have already ended
+    // so that leave balance cards on /leave/apply show 0 for expired periods.
+    await EntitlementModel.resetExpiredEntitlements().catch(() => {});
+
     const created_count = results.created.length;
-    const skipped = results.skipped.length;
-
-    if (created_count === 0) {
-      return error(
-        res,
-        `All ${skipped} entitlement(s) already exist for the selected period.`,
-        409,
-      );
-    }
-
-    const msg =
-      skipped > 0
-        ? `${created_count} entitlement(s) created. ${skipped} skipped (already exist).`
-        : `${created_count} entitlement(s) created successfully.`;
-
-    return created(res, { message: msg, created: created_count, skipped });
+    const msg = `${created_count} entitlement(s) saved successfully.`;
+    return created(res, { message: msg, created: created_count, skipped: 0 });
   } catch (err) {
     next(err);
   }

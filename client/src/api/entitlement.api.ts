@@ -22,6 +22,12 @@ export interface EntitlementRecord {
   used_days: number;
   carried_days: number;
   net_balance: number;
+  credited_on: string;       // Date when entitlement was created
+  updated_at: string;         // Date when entitlement was last updated
+  valid_from: string;         // Period start date (April 1)
+  valid_to: string;           // Period end date (March 31)
+  expired: boolean;           // True if current date > valid_to
+  last_added_days: number;    // Most recent addition amount
 }
 
 // Returned by GET /api/leave/entitlements/my — detailed view with period fields

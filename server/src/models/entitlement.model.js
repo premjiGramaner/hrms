@@ -80,15 +80,58 @@ async function bulkCreateEntitlements(
         [empId, leaveTypeId, year],
       );
       if (rows.length > 0) {
-        results.skipped.push(empId);
-        continue;
+        // Entitlement already exists — add the new days on top so admin can
+        // grant additional leave without being blocked.
+        const entitlementId = rows[0].id;
+        await client.query(
+          `UPDATE tbl_leave_entitlements
+             SET total_days = total_days + $1,
+                 updated_at = NOW()
+           WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4
+             AND is_deleted = FALSE`,
+          [totalDays, empId, leaveTypeId, year],
+        );
+        // Track this addition in history
+        await client.query(
+          `INSERT INTO tbl_entitlement_history 
+             (entitlement_id, employee_id, leave_type_id, year, days_added, comments, added_by, added_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [
+            entitlementId,
+            empId,
+            leaveTypeId,
+            year,
+            totalDays,
+            comments,
+            createdBy,
+          ],
+        );
+      } else {
+        // Create new entitlement
+        const { rows: newRows } = await client.query(
+          `INSERT INTO tbl_leave_entitlements
+             (employee_id, leave_type_id, year, total_days, used_days, carried_days, is_deleted)
+           VALUES ($1, $2, $3, $4, 0, 0, FALSE)
+           RETURNING id`,
+          [empId, leaveTypeId, year, totalDays],
+        );
+        const entitlementId = newRows[0].id;
+        // Track this initial creation in history
+        await client.query(
+          `INSERT INTO tbl_entitlement_history 
+             (entitlement_id, employee_id, leave_type_id, year, days_added, comments, added_by, added_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [
+            entitlementId,
+            empId,
+            leaveTypeId,
+            year,
+            totalDays,
+            comments,
+            createdBy,
+          ],
+        );
       }
-      await client.query(
-        `INSERT INTO tbl_leave_entitlements
-           (employee_id, leave_type_id, year, total_days, used_days, carried_days, is_deleted)
-         VALUES ($1, $2, $3, $4, 0, 0, FALSE)`,
-        [empId, leaveTypeId, year, totalDays],
-      );
       results.created.push(empId);
     }
     await client.query("COMMIT");
@@ -99,6 +142,23 @@ async function bulkCreateEntitlements(
     client.release();
   }
   return results;
+}
+
+/**
+ * Reset used_days to 0 for every entitlement whose leave period has ended.
+ * Financial year N = Apr 1 (N-1) → Mar 31 (N).
+ * A row expires when today is after Mar 31 of that year.
+ * Called automatically whenever entitlements are saved — no scheduler needed.
+ */
+async function resetExpiredEntitlements() {
+  await pool.query(
+    `UPDATE tbl_leave_entitlements
+        SET used_days = 0,
+            updated_at = NOW()
+      WHERE is_deleted = FALSE
+        AND used_days > 0
+        AND (year::text || '-03-31')::date < CURRENT_DATE`,
+  );
 }
 
 async function findMyEntitlements(employeeId) {
@@ -161,12 +221,21 @@ async function findEntitlements({
               (e.total_days + e.carried_days - e.used_days) AS net_balance,
               u.employee_id AS emp_code, u.name AS employee_name,
               u.job_title, u.sub_unit,
-              lt.name AS leave_type_name, lt.id AS leave_type_id
+              lt.name AS leave_type_name, lt.id AS leave_type_id,
+              e.created_at AS credited_on,
+              e.updated_at,
+              MAKE_DATE(e.year - 1, 4, 1) AS valid_from,
+              MAKE_DATE(e.year, 3, 31) AS valid_to,
+              CASE WHEN CURRENT_DATE > MAKE_DATE(e.year, 3, 31) THEN true ELSE false END AS expired,
+              COALESCE((SELECT days_added FROM tbl_entitlement_history 
+               WHERE entitlement_id = e.id 
+               ORDER BY added_at DESC 
+               LIMIT 1), e.total_days) AS last_added_days
        FROM tbl_leave_entitlements e
        JOIN tbl_appusers u ON u.id = e.employee_id
        JOIN tbl_leave_types lt ON lt.id = e.leave_type_id
        WHERE ${clause}
-       ORDER BY u.name, lt.name
+       ORDER BY e.created_at DESC, e.id DESC
        LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
       [...values, limit, offset],
     ),
@@ -192,6 +261,7 @@ export {
   findActiveLeaveTypes,
   createEntitlement,
   bulkCreateEntitlements,
+  resetExpiredEntitlements,
   findMyEntitlements,
   findEntitlements,
 };
