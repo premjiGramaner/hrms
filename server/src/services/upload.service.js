@@ -6,11 +6,11 @@ const MAX_SIZE_MB = MAX_SIZE / (1024 * 1024);
 
 const storage = multer.memoryStorage();
 
-const fileFilter = (_req, file, cb) => {
+const fileFilter = (_req, file, callback) => {
   if (ALLOWED_MIME.test(file.mimetype)) {
-    cb(null, true);
+    callback(null, true);
   } else {
-    cb(
+    callback(
       new Error("Only JPG, JPEG, PNG, and WEBP image files are allowed"),
       false,
     );
@@ -19,8 +19,6 @@ const fileFilter = (_req, file, cb) => {
 
 const upload = multer({ storage, limits: { fileSize: MAX_SIZE }, fileFilter });
 
-// Wraps upload.single() so oversized/invalid file errors surface a clear
-// message and 400 status instead of falling through as a 500 error.
 export const uploadSingle = (fieldName) => (req, res, next) => {
   upload.single(fieldName)(req, res, (err) => {
     if (!err) return next();

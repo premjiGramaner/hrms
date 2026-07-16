@@ -409,6 +409,35 @@ export default function AddEmployeeModal({
     }
   };
 
+  const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const showFileError = (message: string) => {
+      Toast.error(message);
+      e.target.value = "";
+    };
+
+    if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+      showFileError(
+        `Invalid file type. Please upload ${SUPPORTED_IMAGE_EXTENSIONS.join(", ").toUpperCase()} images only.`,
+      );
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      showFileError(
+        `File size exceeds ${MAX_FILE_SIZE_MB}MB. Please upload a smaller image.`,
+      );
+      return;
+    }
+
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleEmailBlur = async (
     email: string,
     fieldName: EmailFieldName,
@@ -804,34 +833,7 @@ export default function AddEmployeeModal({
                     type="file"
                     accept={SUPPORTED_IMAGE_EXTENSIONS.join(",")}
                     className="hidden"
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-
-                      // Validate file type
-                      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
-                        Toast.error(
-                          `Invalid file type. Please upload ${SUPPORTED_IMAGE_EXTENSIONS.join(", ").toUpperCase()} images only.`,
-                        );
-                        e.target.value = "";
-                        return;
-                      }
-
-                      // Validate file size
-                      if (file.size > MAX_FILE_SIZE_BYTES) {
-                        Toast.error(
-                          `File size exceeds ${MAX_FILE_SIZE_MB}MB. Please upload a smaller image.`,
-                        );
-                        e.target.value = "";
-                        return;
-                      }
-
-                      setAvatarFile(file);
-                      const reader = new FileReader();
-                      reader.onload = (ev) =>
-                        setAvatarPreview(ev.target?.result as string);
-                      reader.readAsDataURL(file);
-                    }}
+                    onChange={handleAvatarChange}
                   />
                 </div>
                 <div className="flex-1">
