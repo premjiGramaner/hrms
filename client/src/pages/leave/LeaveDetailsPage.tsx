@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import UserAvatar from "../../components/UserAvatar";
 import {
   getLeaveDetails,
   approveLeave,
@@ -17,8 +18,6 @@ import {
   SUPERVISOR_ROLES,
   type UserRole,
 } from "../../config/roles";
-import UserAvatar from "../../components/UserAvatar";
-
 
 function StatusBadge({ status }: { status: string }) {
   return <span>{status}</span>;
@@ -572,7 +571,7 @@ export default function LeaveDetailsPage() {
                   rel="noreferrer"
                   className="text-xs text-blue-700 hover:text-blue-900 px-3 py-1.5 border border-blue-200 rounded-lg no-underline transition"
                 >
-                  View
+                  Download
                 </a>
               </div>
             ) : (

@@ -13,7 +13,6 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 
 import UserAvatar from "../../components/UserAvatar";
-
 function daysBetween(start: string, end: string): number {
   if (!start || !end) return 0;
   const diff =
@@ -96,7 +95,7 @@ export default function ApplyLeavePage() {
           : Promise.resolve({ data: [] }),
       ]);
       setLeaveTypes(types);
-      setBalances(balancesData as LeaveBalance[]);
+      setBalances(balances as LeaveBalance[]);
 
       const leavePage = leaveData as { data: LeaveRequest[] };
 

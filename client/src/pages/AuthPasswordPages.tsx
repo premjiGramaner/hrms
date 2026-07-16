@@ -9,6 +9,7 @@ import cannyforeLogo from "../assets/logo.png";
 import orangeHrmLogo from "../assets/orangehrm-logo.png";
 import rightPanelImage from "../assets/login_intelligent.png";
 import { getApiErrorMessage } from "../utils/errors";
+import { IconEye, IconEyeOff } from "../components/Icons";
 
 function validatePassword(password: string, confirmPassword: string) {
   if (!password || !confirmPassword)
@@ -86,18 +87,30 @@ function PasswordInput({
   onChange: (value: string) => void;
   autoComplete: string;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <label className="mb-3 block">
       <span className="mb-1.5 block text-sm font-semibold text-slate-700">
         {label}
       </span>
-      <input
-        type="password"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
-      />
+      <div className="relative">
+        <input
+          type={showPassword ? "text" : "password"}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 pr-11 text-sm text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+          title={showPassword ? "Hide password" : "Show password"}
+        >
+          {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+        </button>
+      </div>
     </label>
   );
 }

@@ -16,7 +16,7 @@ import {
   IconGear,
   IconLogout,
   IconHome,
-  IconChevronLeft, 
+  IconChevronLeft,
 } from "./Icons";
 import { fetchEmployeesWithLimit } from "../store/employeeSlice";
 import NavigationSearch from "./NavigationSearch";
@@ -33,7 +33,6 @@ interface Props {
   activeTab?: string;
   topNav?: React.ReactNode;
   onFab?: () => void;
-  /** When set, replaces the home button with a back arrow that navigates to this path */
   backTo?: string;
 }
 
@@ -190,19 +189,15 @@ export default function Layout({
         <button
           onClick={() => setCollapsed((prev) => !prev)}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="absolute right-[-14px] top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#233B86] hover:bg-[#1a2e6e] border-2 border-white text-white cursor-pointer z-30 flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(35,59,134,0.30)] text-sm font-bold transition-colors duration-200"
+          className="absolute right-[-14px] top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#233B86] hover:bg-[#1a2e6e] border-2 border-white text-white cursor-pointer z-30 flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(35,59,134,0.30)] transition-colors duration-200"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "transform 250ms ease-in-out",
-              transform: collapsed ? "rotate(180deg)" : "rotate(0deg)",
-            }}
+            className={`inline-flex items-center justify-center leading-[0] transition-transform duration-[250ms] ease-in-out ${
+              collapsed ? "rotate-180" : "rotate-0"
+            }`}
           >
-            <IconChevronLeft size={14} color="#ffffff" />
+            <IconChevronLeft size={14} color="white" />
           </span>
         </button>
       </div>
@@ -230,20 +225,20 @@ export default function Layout({
           </button>
         </header>
 
-        <div className="bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-x-auto gap-0">
+        <div className="relative bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-visible z-40">
           {backTo ? (
             <Link
               to={backTo}
               title="Back"
-              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition"
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition py-5 py-2"
             >
-              <IconChevronLeft size={16} color="#64748b" />
+              <IconChevronLeft size={15} color="#64748b" />
             </Link>
           ) : (
             <Link
               to={homeRoute}
               title="Home"
-              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition"
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition py-5 py-2"
             >
               <IconHome size={15} color="#64748b" />
             </Link>

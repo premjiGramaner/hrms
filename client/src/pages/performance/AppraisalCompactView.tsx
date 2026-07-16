@@ -420,7 +420,7 @@ export default function AppraisalCompactView() {
         {/* Top bar */}
         <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="rounded-full bg-[#fff1ec] px-7 py-2 text-sm font-semibold text-navy-700 shadow-sm">
-            {appraisal.description} - {employee.name}
+            {appraisal.description}
           </div>
         </div>
 

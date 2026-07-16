@@ -88,9 +88,7 @@ function EmployeeAutocomplete({
           placeholder="Type for hints…"
           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition pr-8"
         />
-        {fetching ? (
-          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-        ) : value ? (
+        {value && (
           <button
             type="button"
             onClick={() => {
@@ -102,7 +100,7 @@ function EmployeeAutocomplete({
           >
             ×
           </button>
-        ) : null}
+        )}
       </div>
 
       {open && options.length > 0 && (
@@ -301,11 +299,12 @@ export default function EntitlementListPage() {
                   "Employee ID",
                   "Employee Name",
                   "Leave Type",
-                  "Leave Period (Year)",
-                  "Total Days",
-                  "Used Days",
-                  "Carried Days",
-                  "Available Balance",
+                  "Entitlement",
+                  "Credit On",
+                  "Valid From",
+                  "Valid To",
+                  "Expired Date",
+                  "Leave Entitlements",
                 ].map((heading) => (
                   <th
                     key={heading}
@@ -320,7 +319,7 @@ export default function EntitlementListPage() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="text-center py-16 text-slate-400">
+                  <td colSpan={9} className="text-center py-16 text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-7 h-7 border-2 border-blue-900 border-t-transparent rounded-full animate-spin" />
                       <span className="text-sm">Fetching records…</span>
@@ -332,7 +331,7 @@ export default function EntitlementListPage() {
               {!loading && !searched && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="text-center py-16 text-slate-400 text-sm"
                   >
                     Click{" "}
@@ -344,7 +343,7 @@ export default function EntitlementListPage() {
 
               {!loading && searched && records.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-16 text-slate-400">
+                  <td colSpan={9} className="text-center py-16 text-slate-400">
                     <div className="text-3xl mb-2">📋</div>
                     <p className="text-sm font-medium text-slate-500">
                       No Records Found
@@ -358,48 +357,65 @@ export default function EntitlementListPage() {
               )}
 
               {!loading &&
-                records.map((record, rowIndex) => (
-                  <tr
-                    key={record.id}
-                    className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors ${
-                      rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
-                    }`}
-                  >
-                    <td className="px-4 py-3 text-xs font-mono text-slate-600">
-                      {record.emp_code || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
-                      {record.employee_name}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-700">
-                      {record.leave_type_name}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 text-center">
-                      {record.year}
-                    </td>
-                    <td className="px-4 py-3 text-xs font-semibold text-blue-700 text-center">
-                      {Number(record.total_days).toFixed(1)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-amber-700 text-center">
-                      {Number(record.used_days).toFixed(1)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 text-center">
-                      {Number(record.carried_days).toFixed(1)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-center">
-                      <span
-                        className={`inline-block font-bold px-2.5 py-0.5 rounded-full text-xs
-                          ${
-                            Number(record.net_balance) > 0
-                              ? "bg-green-50 text-green-700 border border-green-200"
-                              : "bg-red-50 text-red-600 border border-red-200"
-                          }`}
-                      >
-                        {Number(record.net_balance).toFixed(1)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                records.map((record, rowIndex) => {
+                  const formatDate = (dateStr: string) => {
+                    const date = new Date(dateStr);
+                    return date.toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    });
+                  };
+
+                  return (
+                    <tr
+                      key={record.id}
+                      className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors ${
+                        rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
+                      }`}
+                    >
+                      <td className="px-4 py-3 text-xs font-mono text-slate-600">
+                        {record.emp_code || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
+                        {record.employee_name}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-700">
+                        {record.leave_type_name}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 text-center">
+                        <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200">
+                          Added
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                        {formatDate(record.credited_on)}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                        {formatDate(record.valid_from)}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                        {formatDate(record.valid_to)}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                        {record.expired ? (
+                          <span className="inline-block px-2 py-0.5 bg-red-50 text-red-700 rounded border border-red-200">
+                            {formatDate(record.valid_to)}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-center">
+                        <span className="inline-block font-bold px-2.5 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
+                          {Number(
+                            record.last_added_days || record.total_days,
+                          ).toFixed(1)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>

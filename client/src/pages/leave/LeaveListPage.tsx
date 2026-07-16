@@ -18,11 +18,7 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
 import Pagination from "../../components/Pagination";
-import {
-  ADMIN_ROLES,
-  SUPERVISOR_ROLES,
-  type UserRole,
-} from "../../config/roles";
+import { ADMIN_ROLES, SUPERVISOR_ROLES, UserRole } from "../../config/roles";
 
 const ATTACH_STATUSES = ["Available", "Pending"];
 const STATUS_OPTIONS = [
@@ -218,10 +214,10 @@ export default function LeaveListPage() {
   const navigate = useNavigate();
   const { data, loading, filters } = useAppSelector((s) => s.leaves);
   const user = useAppSelector((s) => s.auth.user);
-
-  const isAdmin =
-    ADMIN_ROLES.includes((user?.role || "") as UserRole) ||
-    SUPERVISOR_ROLES.includes((user?.role || "") as UserRole);
+  const isAdmin = Boolean(
+    (user?.role && ADMIN_ROLES.includes(user.role as UserRole)) ||
+    (user?.role && SUPERVISOR_ROLES.includes(user.role as UserRole)),
+  );
   const { toasts, addToast, removeToast } = useToast();
 
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -777,11 +773,6 @@ export default function LeaveListPage() {
               ? `${data.total} record${data.total !== 1 ? "s" : ""}`
               : "Results"}
           </span>
-          {isAdmin && (
-            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-700 rounded border border-slate-200 hover:bg-slate-200 transition cursor-pointer">
-              ⚙ Save
-            </button>
-          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
