@@ -24,29 +24,31 @@ if (missingEnvVars.length > 0) {
   logError("Please check your .env file configuration");
 }
 
-// Prefer discrete DB_* connection fields when provided, since they are the
-// authoritative credentials for this project. Fall back to DATABASE_URL only
-// when the discrete fields are not fully configured.
 const hasDiscreteConfig =
   process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME;
 
 const poolConfig = hasDiscreteConfig
   ? {
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || "5432"),
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-  }
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || "5432"),
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+    }
   : {
-    connectionString: process.env.DATABASE_URL.replace("{PASSWORD}", process.env.DB_PASSWORD),
-  };
+      connectionString: process.env.DATABASE_URL.replace(
+        "{PASSWORD}",
+        process.env.DB_PASSWORD,
+      ),
+    };
 
 const pool = new Pool({
   ...poolConfig,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // Increased from 2000ms to 10000ms (10 seconds)
+  query_timeout: 60000, // Added: 60 seconds query timeout
+  statement_timeout: 60000, // Added: 60 seconds statement timeout
 });
 
 pool.on("error", (err) => {

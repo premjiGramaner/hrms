@@ -56,7 +56,7 @@ function PerformanceHomeRedirect() {
     <Navigate
       to={
         ADMIN_ROLES.includes(role as UserRole)
-          ? "/performance/appraisals_list"
+          ? "/performance/appraisal_cycles"
           : "/performance/my_appraisals"
       }
       replace

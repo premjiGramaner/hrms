@@ -300,14 +300,11 @@ const cancelLeave = async (req, res, next) => {
       "line_manager",
       "reporting_manager",
     ].includes(actorRole);
-    F;
-
     if (!isOwner && !isPrivileged) {
       return error(res, "Forbidden", 403);
     }
 
     if (leave.status === "Cancelled") {
-      F;
       return error(res, "Leave is already cancelled", 400);
     }
 

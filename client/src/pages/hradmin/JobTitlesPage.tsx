@@ -92,8 +92,6 @@ export default function JobTitlesPage() {
     fetchJobTitles();
   };
 
-  const activeCount = jobTitleList.filter((j) => j.is_active).length;
-
   const columns: ColumnDef<JobTitle>[] = [
     {
       key: "title",
@@ -153,38 +151,6 @@ export default function JobTitlesPage() {
             No description
           </span>
         ),
-    },
-    {
-      key: "is_active",
-      header: "Status",
-      width: 120,
-      render: (row) => (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            fontSize: 12,
-            fontWeight: 600,
-            padding: "4px 12px",
-            borderRadius: 999,
-            background: row.is_active ? "#dcfce7" : "#f1f5f9",
-            color: row.is_active ? "#16a34a" : "#94a3b8",
-            border: `1px solid ${row.is_active ? "#bbf7d0" : "#e2e8f0"}`,
-          }}
-        >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              flexShrink: 0,
-              background: row.is_active ? "#22c55e" : "#cbd5e1",
-            }}
-          />
-          {row.is_active ? "Active" : "Inactive"}
-        </span>
-      ),
     },
   ];
 

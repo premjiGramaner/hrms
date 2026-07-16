@@ -132,20 +132,20 @@ export default function Layout({
             <div className="relative flex-shrink-0 mb-2">
               {/* Reusable UserAvatar component */}
               <UserAvatar
-                size={72}
+                size={84}
                 className="border-[3px] border-white shadow-[0_2px_8px_rgba(0,0,0,0.14)]"
               />
 
-              <div className="absolute flex items-center justify-center bg-white rounded-full w-5 h-5 bottom-0.5 right-0.5 shadow-[0_1px_3px_rgba(0,0,0,0.15)]">
+              <div className="absolute flex items-center justify-center bg-white rounded-full w-6 h-6 bottom-0.5 right-0.5 shadow-[0_1px_3px_rgba(0,0,0,0.15)]">
                 <Link to="/my-info">
-                  <IconGear size={10} color="#888" />
+                  <IconGear size={12} color="#888" />
                 </Link>
               </div>
             </div>
-            <p className="truncate w-full text-[13.5px] font-bold text-slate-900 mt-0.5">
+            <p className="truncate w-full text-[17px] font-bold text-slate-900 mt-0.5">
               {userNames}
             </p>
-            <p className="truncate w-full text-[11.5px] text-slate-500 mt-0.5">
+            <p className="truncate w-full text-[13px] text-slate-500 mt-0.5">
               {roleLabel}
             </p>
           </div>
@@ -214,11 +214,10 @@ export default function Layout({
                 navigate("/login");
               }
             }}
-            className="flex items-center gap-1.75 bg-white/20 border border-white/35 text-white rounded-full px-4 py-1.5 text-sm font-medium cursor-pointer hover:bg-white/30 transition"
+            className="flex items-center gap-2 bg-white/20 border border-white/35 text-white rounded-full px-4 py-1.5 text-sm font-medium cursor-pointer hover:bg-white/30 transition"
           >
             <IconLogout size={15} />
-            Log Out
-            <span className="text-xs opacity-80">▾</span>
+            Logout
           </button>
         </header>
 
