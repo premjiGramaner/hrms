@@ -3,8 +3,13 @@ export const AVATAR_PLACEHOLDER_SERVICE = "ui-avatars.com";
 export const MAX_FILE_SIZE_MB = 5;
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-export const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
-export const SUPPORTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png"];
+export const SUPPORTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
+export const SUPPORTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"];
 
 export const TERMINATION_REASON_OTHER = "Other";
 

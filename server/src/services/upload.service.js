@@ -1,6 +1,6 @@
 import multer from "multer";
 
-const ALLOWED_MIME = /^image\/(jpeg|jpg|png)$/;
+const ALLOWED_MIME = /^image\/(jpeg|jpg|png|webp)$/;
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_SIZE_MB = MAX_SIZE / (1024 * 1024);
 
@@ -10,7 +10,10 @@ const fileFilter = (_req, file, cb) => {
   if (ALLOWED_MIME.test(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only JPG, JPEG, and PNG image files are allowed"), false);
+    cb(
+      new Error("Only JPG, JPEG, PNG, and WEBP image files are allowed"),
+      false,
+    );
   }
 };
 

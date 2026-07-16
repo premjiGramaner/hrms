@@ -33,6 +33,12 @@ import { ISO_DATE_PATTERN } from "../../constants/employeeOptions";
 import { EMAIL_REGEX } from "./validation";
 import { handleMobileInput } from "./components/inputHelpers";
 import Toast from "../../utils/toast";
+import {
+  SUPPORTED_IMAGE_TYPES,
+  SUPPORTED_IMAGE_EXTENSIONS,
+  MAX_FILE_SIZE_BYTES,
+  MAX_FILE_SIZE_MB,
+} from "../../config/constants";
 
 const PREDEFINED_LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"];
 
@@ -712,7 +718,8 @@ export default function AddEmployeeModal({
             return (
               <div
                 key={stepNumber}
-                className="flex flex-col items-center flex-1 relative"
+                onClick={() => setStep(stepNumber)}
+                className="flex flex-col items-center flex-1 relative cursor-pointer hover:opacity-80 transition-opacity"
               >
                 {stepIndex < STEPS.length - 1 && (
                   <div
@@ -795,11 +802,30 @@ export default function AddEmployeeModal({
                   <input
                     ref={avatarRef}
                     type="file"
-                    accept="image/*"
+                    accept={SUPPORTED_IMAGE_EXTENSIONS.join(",")}
                     className="hidden"
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
+
+                      // Validate file type
+                      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+                        Toast.error(
+                          `Invalid file type. Please upload ${SUPPORTED_IMAGE_EXTENSIONS.join(", ").toUpperCase()} images only.`,
+                        );
+                        e.target.value = "";
+                        return;
+                      }
+
+                      // Validate file size
+                      if (file.size > MAX_FILE_SIZE_BYTES) {
+                        Toast.error(
+                          `File size exceeds ${MAX_FILE_SIZE_MB}MB. Please upload a smaller image.`,
+                        );
+                        e.target.value = "";
+                        return;
+                      }
+
                       setAvatarFile(file);
                       const reader = new FileReader();
                       reader.onload = (ev) =>
@@ -1092,7 +1118,7 @@ export default function AddEmployeeModal({
                               ]
                                 .filter(Boolean)
                                 .join(" - ")}
-                          </div>
+                            </div>
                           )}
                         </div>
                         {checked && (

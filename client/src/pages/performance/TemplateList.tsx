@@ -63,6 +63,7 @@ export default function TemplateList() {
     {
       key: "isDefault",
       header: "Is Default",
+      width: "120px",
       render: (row) => (row.isDefault ? "Yes" : "No"),
     },
     {
