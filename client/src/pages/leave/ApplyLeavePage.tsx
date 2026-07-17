@@ -18,8 +18,8 @@ import UserAvatar from "../../components/UserAvatar";
 function calculateWorkingDays(fromDate: string, toDate: string): number {
   if (!fromDate || !toDate) return 0;
 
-  const startDate = new Date(fromDate + 'T00:00:00');
-  const endDate = new Date(toDate + 'T00:00:00');
+  const startDate = new Date(fromDate + "T00:00:00");
+  const endDate = new Date(toDate + "T00:00:00");
 
   if (startDate > endDate) return 0;
 
@@ -72,11 +72,15 @@ export default function ApplyLeavePage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [partialDays, setPartialDays] = useState<
-    "None" | "All Days" | "Start Day Only" | "End Day Only" | "Start and End Day"
+    | "None"
+    | "All Days"
+    | "Start Day Only"
+    | "End Day Only"
+    | "Start and End Day"
   >("None");
-  const [startDayHalf, setStartDayHalf] = useState<"First Half" | "Second Half">(
-    "First Half",
-  );
+  const [startDayHalf, setStartDayHalf] = useState<
+    "First Half" | "Second Half"
+  >("First Half");
   const [endDayHalf, setEndDayHalf] = useState<"First Half" | "Second Half">(
     "First Half",
   );
@@ -184,7 +188,8 @@ export default function ApplyLeavePage() {
   };
 
   const totalDuration = calculateTotalDuration();
-  const workingDaysInRange = startDate && endDate ? calculateWorkingDays(startDate, endDate) : 0;
+  const workingDaysInRange =
+    startDate && endDate ? calculateWorkingDays(startDate, endDate) : 0;
   const isMultipleDayRange = workingDaysInRange > 1;
   const selectedBalance = selectedTypeId ? getBalance(selectedTypeId) : 0;
   const isFormComplete = selectedTypeId && startDate && totalDuration > 0;
@@ -199,7 +204,10 @@ export default function ApplyLeavePage() {
 
   // Reset partial days options when switching to single day or invalid range
   useEffect(() => {
-    if (!isMultipleDayRange && (partialDays === "Start and End Day" || partialDays === "All Days")) {
+    if (
+      !isMultipleDayRange &&
+      (partialDays === "Start and End Day" || partialDays === "All Days")
+    ) {
       setPartialDays("None");
     }
   }, [isMultipleDayRange, partialDays]);
@@ -215,7 +223,7 @@ export default function ApplyLeavePage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     if (!selectedTypeId) {
       addToast("Please select a leave type.", "error");
       return;
@@ -225,7 +233,10 @@ export default function ApplyLeavePage() {
       return;
     }
     if (totalDuration <= 0) {
-      addToast("The selected date range does not contain any working days.", "error");
+      addToast(
+        "The selected date range does not contain any working days.",
+        "error",
+      );
       return;
     }
     if (hasDateOverlap) {
@@ -242,7 +253,7 @@ export default function ApplyLeavePage() {
       );
       return;
     }
-    
+
     setSubmitting(true);
     try {
       const result = await applyLeave({
@@ -550,11 +561,14 @@ export default function ApplyLeavePage() {
                   <div className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-700">
                     {totalDuration.toFixed(2)} Day(s)
                   </div>
-                  {totalDuration === 0 && workingDaysInRange === 0 && startDate && (
-                    <p className="text-xs text-red-600 mt-1">
-                      The selected date range does not contain any working days.
-                    </p>
-                  )}
+                  {totalDuration === 0 &&
+                    workingDaysInRange === 0 &&
+                    startDate && (
+                      <p className="text-xs text-red-600 mt-1">
+                        The selected date range does not contain any working
+                        days.
+                      </p>
+                    )}
                 </div>
               </>
             )}
