@@ -18,7 +18,7 @@ import { DataTableColumn } from "../../types/table.types";
 import { htmlToPreview } from "../../utils/htmlPreview";
 import TemplatePreviewModal from "./TemplatePreviewModal";
 import { FieldShell, IconButton, SoftInput } from "./performanceUi";
- 
+
 export default function TemplateList() {
   const [templates, setTemplates] = useState<AppraisalTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +34,7 @@ export default function TemplateList() {
   });
   const [error, setError] = useState("");
   const navigate = useNavigate();
- 
+
   const resetAddDraft = () => {
     setError("");
     setDraft({
@@ -44,19 +44,19 @@ export default function TemplateList() {
       header: defaultPerformanceEvaluationHeader,
     });
   };
- 
+
   const openAddModal = () => {
     resetAddDraft();
     setIsAdding(true);
   };
- 
+
   useEffect(() => {
     getPerformanceTemplates()
       .then(setTemplates)
       .catch(() => setTemplates([]))
       .finally(() => setLoading(false));
   }, []);
- 
+
   const columns: DataTableColumn<AppraisalTemplate>[] = [
     { key: "templateName", header: "Name", width: "320px", sortable: true },
     { key: "description", header: "Description", render: () => "" },
@@ -74,7 +74,7 @@ export default function TemplateList() {
       ),
     },
   ];
- 
+
   const toggleSelect = (id: string) => {
     setSelectedIds((current) =>
       current.includes(id)
@@ -82,7 +82,7 @@ export default function TemplateList() {
         : [...current, id],
     );
   };
- 
+
   const clone = async (template: AppraisalTemplate) => {
     try {
       setError("");
@@ -98,7 +98,7 @@ export default function TemplateList() {
       setError("Unable to clone template. Please try again.");
     }
   };
- 
+
   const saveTemplate = async () => {
     if (!draft.jobTitle.trim() || !draft.templateName.trim()) {
       setError("Job title and template name are required.");
@@ -117,7 +117,7 @@ export default function TemplateList() {
       `/performance/configuration/appraisal/templates/${created.id}/design`,
     );
   };
- 
+
   return (
     <PerformanceLayout title="Performance" activeTab="Templates">
       <div className="min-h-full bg-[#fbf6ff] p-2">

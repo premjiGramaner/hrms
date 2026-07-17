@@ -326,11 +326,9 @@ const cancelLeave = async (req, res, next) => {
     }
 
     if (leave.status === "Cancelled") {
-      F;
       return error(res, "Leave is already cancelled", 400);
     }
 
-    // if (isOwner && !isPrivileged && leave.status !== "Pending Approval") {
     if (isOwner && !isPrivileged && leave.status !== "Pending Approval") {
       return error(
         res,

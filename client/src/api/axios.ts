@@ -18,6 +18,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const AUTH_PATHS = [
+  "/login",
+  "/reset-password",
+  "/create-password",
+  "/forgot-password",
+];
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -25,13 +32,7 @@ api.interceptors.response.use(
       localStorage.removeItem(STORAGE_KEYS.token);
       localStorage.removeItem(STORAGE_KEYS.user);
       const pathname = window.location.pathname;
-      // Don't redirect if user is on authentication/password pages
-      if (
-        pathname !== "/login" &&
-        pathname !== "/reset-password" &&
-        pathname !== "/create-password" &&
-        pathname !== "/forgot-password"
-      ) {
+      if (!AUTH_PATHS.includes(pathname)) {
         window.location.href = "/login";
       }
     }

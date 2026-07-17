@@ -13,13 +13,29 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 
 import UserAvatar from "../../components/UserAvatar";
-function daysBetween(start: string, end: string): number {
-  if (!start || !end) return 0;
-  const diff =
-    (new Date(end).getTime() - new Date(start).getTime()) /
-      (1000 * 60 * 60 * 24) +
-    1;
-  return diff > 0 ? diff : 0;
+
+// Helper function to calculate working days (excluding weekends)
+function calculateWorkingDays(fromDate: string, toDate: string): number {
+  if (!fromDate || !toDate) return 0;
+
+  const startDate = new Date(fromDate + 'T00:00:00');
+  const endDate = new Date(toDate + 'T00:00:00');
+
+  if (startDate > endDate) return 0;
+
+  let workingDays = 0;
+  const currentDate = new Date(startDate);
+
+  while (currentDate <= endDate) {
+    const dayOfWeek = currentDate.getDay();
+    // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      workingDays++;
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return workingDays;
 }
 
 function checkDateOverlap(
@@ -55,7 +71,15 @@ export default function ApplyLeavePage() {
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [duration, setDuration] = useState<string>("");
+  const [partialDays, setPartialDays] = useState<
+    "None" | "All Days" | "Start Day Only" | "End Day Only" | "Start and End Day"
+  >("None");
+  const [startDayHalf, setStartDayHalf] = useState<"First Half" | "Second Half">(
+    "First Half",
+  );
+  const [endDayHalf, setEndDayHalf] = useState<"First Half" | "Second Half">(
+    "First Half",
+  );
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -96,13 +120,13 @@ export default function ApplyLeavePage() {
       ]);
       setLeaveTypes(types);
       setBalances(balances as LeaveBalance[]);
-
       const leavePage = leaveData as { data: LeaveRequest[] };
-
       const ownLeave =
         leavePage.data?.find((l) => Number(l.user_id) === Number(user?.id)) ??
         null;
       setLatestLeave(ownLeave);
+      const existingLeavesData = allLeavesData as { data: LeaveRequest[] };
+      setExistingLeaves(existingLeavesData.data || []);
     } catch (error) {
       console.error("Failed to load leave data:", error);
     } finally {
@@ -136,30 +160,49 @@ export default function ApplyLeavePage() {
     return balance ? Number(balance.net_balance) : 0;
   };
 
-  const calculateDaysForDuration = (fullDays: number, dur: string): number => {
-    if (dur === "First Half" || dur === "Second Half") return 0.5;
-    return fullDays;
+  // Calculate total duration based on working days and partial days
+  const calculateTotalDuration = (): number => {
+    if (!startDate) return 0;
+
+    const effectiveEndDate = endDate || startDate;
+    let workingDays = calculateWorkingDays(startDate, effectiveEndDate);
+
+    if (workingDays === 0) return 0;
+
+    // Apply partial day reductions
+    if (partialDays === "All Days") {
+      return workingDays * 0.5; // All working days counted as half days
+    } else if (partialDays === "Start Day Only") {
+      workingDays -= 0.5;
+    } else if (partialDays === "End Day Only") {
+      workingDays -= 0.5;
+    } else if (partialDays === "Start and End Day") {
+      workingDays -= 1.0; // 0.5 from start + 0.5 from end
+    }
+
+    return Math.max(0, workingDays);
   };
 
-  const isHalfDay = duration === "First Half" || duration === "Second Half";
-  const fullDays =
-    duration === "Full Day" ? daysBetween(startDate, endDate) : 1;
-  const requestedDays = calculateDaysForDuration(fullDays, duration);
+  const totalDuration = calculateTotalDuration();
+  const workingDaysInRange = startDate && endDate ? calculateWorkingDays(startDate, endDate) : 0;
+  const isMultipleDayRange = workingDaysInRange > 1;
   const selectedBalance = selectedTypeId ? getBalance(selectedTypeId) : 0;
-  const isFormComplete =
-    selectedTypeId &&
-    startDate &&
-    duration &&
-    (duration !== "Full Day" || endDate) &&
-    (duration !== "Full Day" || fullDays > 0);
+  const isFormComplete = selectedTypeId && startDate && totalDuration > 0;
 
-  // Check for overlap - use endDate for Full Day, startDate for Half Day
-  const checkDateForApply = duration === "Full Day" ? endDate : startDate;
+  // Check for overlap
+  const effectiveEndDateForCheck = endDate || startDate;
   const hasDateOverlap = checkDateOverlap(
     startDate,
-    checkDateForApply,
+    effectiveEndDateForCheck,
     existingLeaves,
   );
+
+  // Reset partial days options when switching to single day or invalid range
+  useEffect(() => {
+    if (!isMultipleDayRange && (partialDays === "Start and End Day" || partialDays === "All Days")) {
+      setPartialDays("None");
+    }
+  }, [isMultipleDayRange, partialDays]);
 
   const scrollCards = (dir: "left" | "right") => {
     if (scrollRef.current) {
@@ -172,6 +215,7 @@ export default function ApplyLeavePage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    
     if (!selectedTypeId) {
       addToast("Please select a leave type.", "error");
       return;
@@ -180,16 +224,8 @@ export default function ApplyLeavePage() {
       addToast("Please select From date.", "error");
       return;
     }
-    if (!duration) {
-      addToast("Please select a duration.", "error");
-      return;
-    }
-    if (duration === "Full Day" && !endDate) {
-      addToast("Please select To date for Full Day leave.", "error");
-      return;
-    }
-    if (duration === "Full Day" && fullDays <= 0) {
-      addToast("End date must be on or after start date.", "error");
+    if (totalDuration <= 0) {
+      addToast("The selected date range does not contain any working days.", "error");
       return;
     }
     if (hasDateOverlap) {
@@ -199,20 +235,21 @@ export default function ApplyLeavePage() {
       );
       return;
     }
-    if (selectedBalance < requestedDays) {
+    if (selectedBalance < totalDuration) {
       addToast(
         `Insufficient balance. Available: ${selectedBalance.toFixed(2)} day(s).`,
         "error",
       );
       return;
     }
+    
     setSubmitting(true);
     try {
       const result = await applyLeave({
         leave_type_id: selectedTypeId,
         start_date: startDate,
-        end_date: duration === "Full Day" ? endDate : startDate,
-        requested_days: requestedDays,
+        end_date: endDate || startDate,
+        requested_days: totalDuration,
         comments: comments || undefined,
       });
       addToast("Leave application submitted successfully.", "success");
@@ -346,8 +383,8 @@ export default function ApplyLeavePage() {
                   value={startDate}
                   onChange={(event) => {
                     setStartDate(event.target.value);
-                    if (!duration && event.target.value) {
-                      setDuration("Full Day");
+                    if (endDate && event.target.value > endDate) {
+                      setEndDate("");
                     }
                   }}
                   placeholder="yyyy-mm-dd"
@@ -356,10 +393,7 @@ export default function ApplyLeavePage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  To Date{" "}
-                  {duration === "Full Day" && (
-                    <span className="text-red-500">*</span>
-                  )}
+                  To Date
                 </label>
                 <input
                   type="date"
@@ -367,37 +401,162 @@ export default function ApplyLeavePage() {
                   min={startDate}
                   onChange={(event) => setEndDate(event.target.value)}
                   placeholder="yyyy-mm-dd"
-                  disabled={isHalfDay}
-                  className={`w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition ${
-                    isHalfDay ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition"
                 />
               </div>
             </div>
 
             {startDate && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Duration <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    value={duration}
-                    onChange={(event) => setDuration(event.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition appearance-none pr-8 cursor-pointer"
-                  >
-                    <option value="Full Day">Full Day</option>
-                    <option value="First Half">First Half</option>
-                    <option value="Second Half">Second Half</option>
-                  </select>
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                    ▾
-                  </span>
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-2">
+                    Partial Days
+                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="partialDays"
+                        value="None"
+                        checked={partialDays === "None"}
+                        onChange={() => setPartialDays("None")}
+                        className="w-4 h-4 text-blue-600 cursor-pointer"
+                      />
+                      <span className="text-sm text-slate-700">None</span>
+                    </label>
+                    <label
+                      className={`flex items-center gap-2 ${
+                        !isMultipleDayRange
+                          ? "opacity-50 cursor-not-allowed"
+                          : "cursor-pointer"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="partialDays"
+                        value="All Days"
+                        checked={partialDays === "All Days"}
+                        onChange={() => setPartialDays("All Days")}
+                        disabled={!isMultipleDayRange}
+                        className="w-4 h-4 text-blue-600 cursor-pointer disabled:cursor-not-allowed"
+                      />
+                      <span className="text-sm text-slate-700">All Days</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="partialDays"
+                        value="Start Day Only"
+                        checked={partialDays === "Start Day Only"}
+                        onChange={() => setPartialDays("Start Day Only")}
+                        className="w-4 h-4 text-blue-600 cursor-pointer"
+                      />
+                      <span className="text-sm text-slate-700">
+                        Start Day Only
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="partialDays"
+                        value="End Day Only"
+                        checked={partialDays === "End Day Only"}
+                        onChange={() => setPartialDays("End Day Only")}
+                        className="w-4 h-4 text-blue-600 cursor-pointer"
+                      />
+                      <span className="text-sm text-slate-700">
+                        End Day Only
+                      </span>
+                    </label>
+                    <label
+                      className={`flex items-center gap-2 ${
+                        !isMultipleDayRange
+                          ? "opacity-50 cursor-not-allowed"
+                          : "cursor-pointer"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="partialDays"
+                        value="Start and End Day"
+                        checked={partialDays === "Start and End Day"}
+                        onChange={() => setPartialDays("Start and End Day")}
+                        disabled={!isMultipleDayRange}
+                        className="w-4 h-4 text-blue-600 cursor-pointer disabled:cursor-not-allowed"
+                      />
+                      <span className="text-sm text-slate-700">
+                        Start and End Day
+                      </span>
+                    </label>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  {requestedDays.toFixed(2)} day(s) will be deducted
-                </p>
-              </div>
+
+                {(partialDays === "Start Day Only" ||
+                  partialDays === "Start and End Day") && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">
+                      Start Day <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={startDayHalf}
+                        onChange={(event) =>
+                          setStartDayHalf(
+                            event.target.value as "First Half" | "Second Half",
+                          )
+                        }
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition appearance-none pr-8 cursor-pointer"
+                      >
+                        <option value="First Half">First Half</option>
+                        <option value="Second Half">Second Half</option>
+                      </select>
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                        ▾
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {(partialDays === "End Day Only" ||
+                  partialDays === "Start and End Day") && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">
+                      End Day <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={endDayHalf}
+                        onChange={(event) =>
+                          setEndDayHalf(
+                            event.target.value as "First Half" | "Second Half",
+                          )
+                        }
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition appearance-none pr-8 cursor-pointer"
+                      >
+                        <option value="First Half">First Half</option>
+                        <option value="Second Half">Second Half</option>
+                      </select>
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                        ▾
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Total Duration
+                  </label>
+                  <div className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-700">
+                    {totalDuration.toFixed(2)} Day(s)
+                  </div>
+                  {totalDuration === 0 && workingDaysInRange === 0 && startDate && (
+                    <p className="text-xs text-red-600 mt-1">
+                      The selected date range does not contain any working days.
+                    </p>
+                  )}
+                </div>
+              </>
             )}
 
             {startDate && (

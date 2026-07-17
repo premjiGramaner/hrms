@@ -70,78 +70,97 @@ async function bulkCreateEntitlements(
   createdBy,
 ) {
   const client = await pool.connect();
-  const results = { created: [], skipped: [] };
+
+  const results = {
+    created: [],
+    updated: [],
+    skipped: [],
+  };
+
   try {
     await client.query("BEGIN");
+
     for (const empId of employeeIds) {
       const { rows } = await client.query(
-        `SELECT id FROM tbl_leave_entitlements
-         WHERE employee_id = $1 AND leave_type_id = $2 AND year = $3 AND is_deleted = FALSE`,
+        `SELECT id
+         FROM tbl_leave_entitlements
+         WHERE employee_id = $1
+           AND leave_type_id = $2
+           AND year = $3
+           AND is_deleted = FALSE`,
         [empId, leaveTypeId, year],
       );
+
+      let entitlementId;
+
       if (rows.length > 0) {
-        // Entitlement already exists — add the new days on top so admin can
-        // grant additional leave without being blocked.
-        const entitlementId = rows[0].id;
+        entitlementId = rows[0].id;
+
         await client.query(
           `UPDATE tbl_leave_entitlements
-             SET total_days = total_days + $1,
-                 updated_at = NOW()
-           WHERE employee_id = $2 AND leave_type_id = $3 AND year = $4
-             AND is_deleted = FALSE`,
-          [totalDays, empId, leaveTypeId, year],
+           SET total_days = total_days + $1,
+               updated_at = NOW()
+           WHERE id = $2`,
+          [totalDays, entitlementId],
         );
-        // Track this addition in history
-        await client.query(
-          `INSERT INTO tbl_entitlement_history 
-             (entitlement_id, employee_id, leave_type_id, year, days_added, comments, added_by, added_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-          [
-            entitlementId,
-            empId,
-            leaveTypeId,
-            year,
-            totalDays,
-            comments,
-            createdBy,
-          ],
-        );
+
+        results.updated.push(empId);
       } else {
-        // Create new entitlement
         const { rows: newRows } = await client.query(
           `INSERT INTO tbl_leave_entitlements
-             (employee_id, leave_type_id, year, total_days, used_days, carried_days, is_deleted)
+             (
+               employee_id,
+               leave_type_id,
+               year,
+               total_days,
+               used_days,
+               carried_days,
+               is_deleted
+             )
            VALUES ($1, $2, $3, $4, 0, 0, FALSE)
            RETURNING id`,
           [empId, leaveTypeId, year, totalDays],
         );
-        const entitlementId = newRows[0].id;
-        // Track this initial creation in history
-        await client.query(
-          `INSERT INTO tbl_entitlement_history 
-             (entitlement_id, employee_id, leave_type_id, year, days_added, comments, added_by, added_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-          [
-            entitlementId,
-            empId,
-            leaveTypeId,
-            year,
-            totalDays,
-            comments,
-            createdBy,
-          ],
-        );
+
+        entitlementId = newRows[0].id;
+
+        results.created.push(empId);
       }
-      results.created.push(empId);
+
+      await client.query(
+        `INSERT INTO tbl_entitlement_history
+           (
+             entitlement_id,
+             employee_id,
+             leave_type_id,
+             year,
+             days_added,
+             comments,
+             added_by,
+             added_at
+           )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+        [
+          entitlementId,
+          empId,
+          leaveTypeId,
+          year,
+          totalDays,
+          comments,
+          createdBy,
+        ],
+      );
     }
+
     await client.query("COMMIT");
-  } catch (err) {
+
+    return results;
+  } catch (error) {
     await client.query("ROLLBACK");
-    throw err;
+    throw error;
   } finally {
     client.release();
   }
-  return results;
 }
 
 /**
@@ -195,20 +214,20 @@ async function findEntitlements({
   page = 1,
   limit = 20,
 }) {
-  const conditions = ["e.is_deleted = FALSE"];
+  const conditions = ["u.is_deleted = FALSE AND u.is_active = TRUE"];
   const values = [];
   let paramIndex = 1;
 
   if (employee_id) {
-    conditions.push(`e.employee_id = $${paramIndex++}`);
+    conditions.push(`h.employee_id = $${paramIndex++}`);
     values.push(employee_id);
   }
   if (leave_type_id) {
-    conditions.push(`e.leave_type_id = $${paramIndex++}`);
+    conditions.push(`h.leave_type_id = $${paramIndex++}`);
     values.push(leave_type_id);
   }
   if (year) {
-    conditions.push(`e.year = $${paramIndex++}`);
+    conditions.push(`h.year = $${paramIndex++}`);
     values.push(year);
   }
 
@@ -217,32 +236,34 @@ async function findEntitlements({
 
   const [dataRes, countRes] = await Promise.all([
     pool.query(
-      `SELECT e.id, e.year, e.total_days, e.used_days, e.carried_days,
-              (e.total_days + e.carried_days - e.used_days) AS net_balance,
-              u.employee_id AS emp_code, u.name AS employee_name,
-              u.job_title, u.sub_unit,
-              lt.name AS leave_type_name, lt.id AS leave_type_id,
-              e.created_at AS credited_on,
-              e.updated_at,
-              MAKE_DATE(e.year - 1, 4, 1) AS valid_from,
-              MAKE_DATE(e.year, 3, 31) AS valid_to,
-              CASE WHEN CURRENT_DATE > MAKE_DATE(e.year, 3, 31) THEN true ELSE false END AS expired,
-              COALESCE((SELECT days_added FROM tbl_entitlement_history 
-               WHERE entitlement_id = e.id 
-               ORDER BY added_at DESC 
-               LIMIT 1), e.total_days) AS last_added_days
-       FROM tbl_leave_entitlements e
-       JOIN tbl_appusers u ON u.id = e.employee_id
-       JOIN tbl_leave_types lt ON lt.id = e.leave_type_id
+      `SELECT h.id, 
+              h.year, 
+              h.days_added AS last_added_days,
+              h.days_added AS total_days,
+              u.employee_id AS emp_code, 
+              u.name AS employee_name,
+              u.job_title, 
+              u.sub_unit,
+              lt.name AS leave_type_name, 
+              lt.id AS leave_type_id,
+              h.added_at AS credited_on,
+              h.comments,
+              MAKE_DATE(h.year - 1, 4, 1) AS valid_from,
+              MAKE_DATE(h.year, 3, 31) AS valid_to,
+              CASE WHEN CURRENT_DATE > MAKE_DATE(h.year, 3, 31) THEN true ELSE false END AS expired
+       FROM tbl_entitlement_history h
+       JOIN tbl_appusers u ON u.id = h.employee_id
+       JOIN tbl_leave_types lt ON lt.id = h.leave_type_id
        WHERE ${clause}
-       ORDER BY e.created_at DESC, e.id DESC
+       ORDER BY h.added_at DESC, h.id DESC
        LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
       [...values, limit, offset],
     ),
     pool.query(
-      `SELECT COUNT(*)::int AS total FROM tbl_leave_entitlements e
-       JOIN tbl_appusers u ON u.id = e.employee_id
-       JOIN tbl_leave_types lt ON lt.id = e.leave_type_id
+      `SELECT COUNT(*)::int AS total 
+       FROM tbl_entitlement_history h
+       JOIN tbl_appusers u ON u.id = h.employee_id
+       JOIN tbl_leave_types lt ON lt.id = h.leave_type_id
        WHERE ${clause}`,
       values,
     ),

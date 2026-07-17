@@ -33,7 +33,6 @@ function initials(employee: Employee) {
 
 function avatarSrc(employee: Employee) {
   if (!employee.avatar) return "";
-  // Direct Base64 string from API
   return employee.avatar;
 }
 

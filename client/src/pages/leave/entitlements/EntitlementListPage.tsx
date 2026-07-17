@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import {
   getEntitlementList,
   getEntitlementLeaveTypes,
@@ -10,6 +10,17 @@ import { LeaveType } from "../../../types";
 import { getApiErrorMessage } from "../../../utils/errors";
 import Toast, { useToast } from "../../../components/Toast";
 import EntitlementsLayout from "./EntitlementsLayout";
+import { X } from "lucide-react";
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
 
 function EmployeeAutocomplete({
   value,
@@ -96,9 +107,9 @@ function EmployeeAutocomplete({
               setOpen(false);
               onClear();
             }}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer bg-transparent border-none text-base leading-none"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer bg-transparent border-none flex items-center justify-center"
           >
-            ×
+            <X size={16} />
           </button>
         )}
       </div>
@@ -125,11 +136,6 @@ function EmployeeAutocomplete({
           ))}
         </div>
       )}
-      {open && !fetching && options.length === 0 && query.trim() && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 px-4 py-3 text-sm text-slate-400">
-          No employees found
-        </div>
-      )}
     </div>
   );
 }
@@ -150,13 +156,21 @@ export default function EntitlementListPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false); // true after first Search click
+  const [initialLoad, setInitialLoad] = useState(false); // track if initial load is done
 
   useEffect(() => {
     getEntitlementLeaveTypes()
       .then(setLeaveTypes)
       .catch(() => {});
   }, []);
+
+  // Load all history by default on page mount
+  useEffect(() => {
+    if (!initialLoad) {
+      fetchRecords(1);
+      setInitialLoad(true);
+    }
+  }, [initialLoad]);
 
   const fetchRecords = async (p: number) => {
     setLoading(true);
@@ -184,22 +198,17 @@ export default function EntitlementListPage() {
   };
 
   const handleSearch = () => {
-    setSearched(true);
     fetchRecords(1);
   };
 
   const handleReset = () => {
     setSelectedEmployee(null);
     setLeaveTypeId("");
-    setRecords([]);
-    setTotal(0);
-    setTotalPages(1);
-    setPage(1);
-    setSearched(false);
+    fetchRecords(1); // Reload all history after reset
   };
 
   useEffect(() => {
-    if (searched) fetchRecords(page);
+    if (initialLoad) fetchRecords(page);
   }, [page]);
 
   const selectCls =
@@ -283,11 +292,9 @@ export default function EntitlementListPage() {
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-700">
-            {!searched
-              ? "Use the filters above and click Search"
-              : loading
-                ? "Loading…"
-                : `${total} record${total !== 1 ? "s" : ""} found`}
+            {loading
+              ? "Loading…"
+              : `${total} record${total !== 1 ? "s" : ""} found`}
           </span>
         </div>
 
@@ -328,20 +335,7 @@ export default function EntitlementListPage() {
                 </tr>
               )}
 
-              {!loading && !searched && (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="text-center py-16 text-slate-400 text-sm"
-                  >
-                    Click{" "}
-                    <span className="font-semibold text-slate-600">Search</span>{" "}
-                    to load entitlement records.
-                  </td>
-                </tr>
-              )}
-
-              {!loading && searched && records.length === 0 && (
+              {!loading && records.length === 0 && (
                 <tr>
                   <td colSpan={9} className="text-center py-16 text-slate-400">
                     <div className="text-3xl mb-2">📋</div>
@@ -357,70 +351,59 @@ export default function EntitlementListPage() {
               )}
 
               {!loading &&
-                records.map((record, rowIndex) => {
-                  const formatDate = (dateStr: string) => {
-                    const date = new Date(dateStr);
-                    return date.toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    });
-                  };
-
-                  return (
-                    <tr
-                      key={record.id}
-                      className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors ${
-                        rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
-                      }`}
-                    >
-                      <td className="px-4 py-3 text-xs font-mono text-slate-600">
-                        {record.emp_code || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
-                        {record.employee_name}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-700">
-                        {record.leave_type_name}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 text-center">
-                        <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200">
-                          Added
+                records.map((record, rowIndex) => (
+                  <tr
+                    key={record.id}
+                    className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors ${
+                      rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
+                    }`}
+                  >
+                    <td className="px-4 py-3 text-xs font-mono text-slate-600">
+                      {record.emp_code || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
+                      {record.employee_name}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-700">
+                      {record.leave_type_name}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600 text-center">
+                      <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200">
+                        Added
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                      {formatDate(record.credited_on)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                      {formatDate(record.valid_from)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                      {formatDate(record.valid_to)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                      {record.expired ? (
+                        <span className="inline-block px-2 py-0.5 bg-red-50 text-red-700 rounded border border-red-200">
+                          {formatDate(record.valid_to)}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                        {formatDate(record.credited_on)}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                        {formatDate(record.valid_from)}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                        {formatDate(record.valid_to)}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                        {record.expired ? (
-                          <span className="inline-block px-2 py-0.5 bg-red-50 text-red-700 rounded border border-red-200">
-                            {formatDate(record.valid_to)}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-center">
-                        <span className="inline-block font-bold px-2.5 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
-                          {Number(
-                            record.last_added_days || record.total_days,
-                          ).toFixed(1)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-center">
+                      <span className="inline-block font-bold px-2.5 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
+                        {Number(
+                          record.last_added_days || record.total_days,
+                        ).toFixed(1)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
 
-        {searched && totalPages > 1 && (
+        {totalPages > 1 && (
           <div className="px-5 py-3 border-t border-slate-100 flex items-center gap-3 text-sm text-slate-600">
             <button
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}

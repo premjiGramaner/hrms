@@ -105,19 +105,17 @@ export default function AuditTrailPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
-  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     setIsLoading(true);
-    getAuditTrail(currentPage, pageSize)
+    getAuditTrail(1, 10000)
       .then((res) => {
         setAllRecords(res.data);
         setFilteredRecords(res.data);
-        setTotalPages(res.pagination.totalPages);
       })
       .catch(() => setPageError("Failed to load audit trail. Please refresh."))
       .finally(() => setIsLoading(false));
-  }, [currentPage, pageSize]);
+  }, []);
 
   const uniqueActions = [
     ...new Set(allRecords.map((allRecord) => allRecord.action).filter(Boolean)),
@@ -188,6 +186,8 @@ export default function AuditTrailPage() {
     });
     return sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   }, [filteredRecords, currentPage, pageSize, dateSort]);
+
+  const totalPages = Math.ceil(filteredRecords.length / pageSize);
 
   const createCount = allRecords.filter(
     (Record) => Record.action === "CREATE",
