@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import DataTable, { ColumnDef } from "../../components/DataTable";
 import type { BirthdayReportRecord } from "../../types";
@@ -6,12 +6,13 @@ import {
   fetchBirthdayReport,
   downloadBirthdayReportExcel,
 } from "../../api/report.api";
+import { PAGE_PATHS } from "../../config/roles";
 
 const TABS: TabItem[] = [
-  { label: "Birthday Report", path: "/reports/birthday" },
-  { label: "Work Anniversary", path: "/reports/work-anniversary" },
-  { label: "Termination Report", path: "/reports/termination" },
-  { label: "Notifications", path: "/reports/notifications" },
+  { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
+  { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },
+  { label: "Termination Report", path: PAGE_PATHS.reportsTermination },
+  { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
 ];
 
 export default function BirthdayReportPage() {

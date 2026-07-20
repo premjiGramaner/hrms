@@ -6,6 +6,7 @@ import {
   LeaveFilters,
   PaginatedResponse,
 } from "../types";
+import { LEAVE_PATHS } from "../constants/apiPaths";
 
 function toQueryString(params: Record<string, unknown>): string {
   const parts: string[] = [];
@@ -23,7 +24,7 @@ function toQueryString(params: Record<string, unknown>): string {
 
 export const getLeaveTypes = async () => {
   const res = await api.get<{ success: boolean; data: LeaveType[] }>(
-    "/leaves/types",
+    LEAVE_PATHS.TYPES,
   );
   return res.data.data;
 };
@@ -44,7 +45,7 @@ export const getLeaveFilterOptions = async (): Promise<{
       employment_statuses: string[];
       job_categories: { id: number; name: string }[];
     };
-  }>("/leaves/filter-options");
+  }>(LEAVE_PATHS.FILTER_OPTIONS);
   return res.data.data;
 };
 
@@ -57,14 +58,14 @@ export const searchLeaveEmployees = async (
   const res = await api.get<{
     success: boolean;
     data: { id: number; employee_id: string; name: string; username: string }[];
-  }>(`/leaves/employees/search?q=${encodeURIComponent(searchQuery)}`);
+  }>(`${LEAVE_PATHS.EMPLOYEES_SEARCH}?q=${encodeURIComponent(searchQuery)}`);
   return res.data.data;
 };
 
 export const getLeaveBalance = async (employeeId?: number, year?: number) => {
   const queryString = toQueryString({ employee_id: employeeId, year });
   const res = await api.get<{ success: boolean; data: LeaveBalance[] }>(
-    `/leaves/balance${queryString}`,
+    `${LEAVE_PATHS.BALANCE}${queryString}`,
   );
   return res.data.data;
 };
@@ -74,20 +75,20 @@ export const getLeaves = async (filters: LeaveFilters = {}) => {
   const res = await api.get<{
     success: boolean;
     data: PaginatedResponse<LeaveRequest>;
-  }>(`/leaves${queryString}&_=${Date.now()}`);
+  }>(`${LEAVE_PATHS.BASE}${queryString}&_=${Date.now()}`);
   return res.data.data;
 };
 
 export const getLeave = async (id: number) => {
   const res = await api.get<{ success: boolean; data: LeaveRequest }>(
-    `/leaves/${id}`,
+    LEAVE_PATHS.byId(id),
   );
   return res.data.data;
 };
 
 export const getLeaveDetails = async (id: number) => {
   const res = await api.get<{ success: boolean; data: LeaveRequest }>(
-    `/leaves/${id}/details`,
+    LEAVE_PATHS.details(id),
   );
   return res.data.data;
 };
@@ -98,7 +99,7 @@ export const uploadLeaveAttachment = async (id: number, file: File) => {
   const res = await api.post<{
     success: boolean;
     data: { message: string; attachment_path: string };
-  }>(`/leaves/${id}/attachment`, formData, {
+  }>(LEAVE_PATHS.attachment(id), formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return res.data.data;
@@ -108,20 +109,20 @@ export const applyLeave = async (payload: Partial<LeaveRequest>) => {
   const res = await api.post<{
     success: boolean;
     data: { message: string; id: number };
-  }>("/leaves", payload);
+  }>(LEAVE_PATHS.BASE, payload);
   return res.data.data;
 };
 
 export const approveLeave = async (id: number) => {
   const res = await api.post<{ success: boolean; data: { message: string } }>(
-    `/leaves/${id}/approve`,
+    LEAVE_PATHS.approve(id),
   );
   return res.data.data;
 };
 
 export const rejectLeave = async (id: number, rejection_reason: string) => {
   const res = await api.post<{ success: boolean; data: { message: string } }>(
-    `/leaves/${id}/reject`,
+    LEAVE_PATHS.reject(id),
     { rejection_reason },
   );
   return res.data.data;
@@ -129,7 +130,7 @@ export const rejectLeave = async (id: number, rejection_reason: string) => {
 
 export const cancelLeave = async (id: number) => {
   const res = await api.post<{ success: boolean; data: { message: string } }>(
-    `/leaves/${id}/cancel`,
+    LEAVE_PATHS.cancel(id),
   );
   return res.data.data;
 };
@@ -157,7 +158,7 @@ async function downloadExport(url: string, filename: string) {
 export const exportSummaryExcel = async (filters: LeaveFilters = {}) => {
   const queryString = toQueryString(filters as Record<string, unknown>);
   await downloadExport(
-    `/api/leaves/export/summary${queryString}`,
+    `${LEAVE_PATHS.EXPORT_SUMMARY}${queryString}`,
     "leave_summary.xlsx",
   );
 };
@@ -165,7 +166,7 @@ export const exportSummaryExcel = async (filters: LeaveFilters = {}) => {
 export const exportDetailExcel = async (filters: LeaveFilters = {}) => {
   const queryString = toQueryString(filters as Record<string, unknown>);
   await downloadExport(
-    `/api/leaves/export/detail${queryString}`,
+    `${LEAVE_PATHS.EXPORT_DETAIL}${queryString}`,
     "leave_detail.xlsx",
   );
 };

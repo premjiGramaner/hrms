@@ -20,6 +20,7 @@ import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
 import Pagination from "../../components/Pagination";
 import {
   ADMIN_ROLES,
+  PAGE_PATHS,
   SUPERVISOR_ROLES,
   type UserRole,
 } from "../../config/roles";
@@ -848,7 +849,7 @@ export default function LeaveListPage() {
                           )
                         )
                           return;
-                        navigate(`/leave/view_leave_list/details/${row.id}`);
+                        navigate(PAGE_PATHS.leaveDetails(row.id));
                       }}
                       className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
                     >

@@ -1,16 +1,16 @@
 import nodemailer from "nodemailer";
 import { smtpUser, smtpPass, mailFrom } from "./src/config/env.js";
-import { logError, logEmail } from "./src/utils/logger.js";
+import { logError } from "./src/utils/logger.js";
 
 const transporter =
   smtpUser && smtpPass
     ? nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      })
+      service: "gmail",
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    })
     : null;
 
 async function sendMail(options) {
@@ -21,8 +21,7 @@ async function sendMail(options) {
     );
   }
   try {
-    const result = await transporter.sendMail(options);
-    return result;
+    return await transporter.sendMail(options);
   } catch (err) {
     throw err;
   }

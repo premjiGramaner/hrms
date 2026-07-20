@@ -11,14 +11,7 @@ const pool = new Pool({
 
 async function verifyTerminationData() {
   try {
-    const totalResult = await pool.query(`
-      SELECT COUNT(*) as total
-      FROM tbl_appusers 
-      WHERE is_deleted = TRUE
-    `);
-    const total = totalResult.rows[0].total;
-
-    const completeResult = await pool.query(`
+    await pool.query(`
       SELECT 
         COUNT(*) as total_with_data,
         COUNT(CASE WHEN termination_date IS NOT NULL THEN 1 END) as has_date,
@@ -30,8 +23,7 @@ async function verifyTerminationData() {
       WHERE is_deleted = TRUE
     `);
 
-    const stats = completeResult.rows[0];
-    const sampleResult = await pool.query(`
+    await pool.query(`
       SELECT 
         employee_id,
         name,
@@ -48,15 +40,6 @@ async function verifyTerminationData() {
       ORDER BY termination_date DESC
       LIMIT 3
     `);
-
-    sampleResult.rows.forEach((row, idx) => {});
-
-    const allComplete =
-      stats.has_date === total &&
-      stats.has_reason === total &&
-      stats.has_type === total &&
-      stats.has_last_day === total &&
-      stats.has_notes === total;
 
     await pool.end();
   } catch (error) {

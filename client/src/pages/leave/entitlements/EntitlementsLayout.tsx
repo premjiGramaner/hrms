@@ -2,15 +2,16 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAppSelector } from "../../../app/hooks";
 import LeaveLayout from "../LeaveLayout";
+import { PAGE_PATHS, isAdminRole } from "../../../config/roles";
 
 const ADMIN_TABS = [
-  { label: "Add Entitlements", path: "/leave/entitlements/add" },
-  { label: "Entitlement List", path: "/leave/entitlements/list" },
-  { label: "My Entitlements", path: "/leave/entitlements/my" },
+  { label: "Add Entitlements", path: PAGE_PATHS.leaveEntitlementsAdd },
+  { label: "Entitlement List", path: PAGE_PATHS.leaveEntitlementsList },
+  { label: "My Entitlements", path: PAGE_PATHS.leaveEntitlementsMy },
 ];
 
 const EMPLOYEE_TABS = [
-  { label: "My Entitlements", path: "/leave/entitlements/my" },
+  { label: "My Entitlements", path: PAGE_PATHS.leaveEntitlementsMy },
 ];
 
 interface Props {
@@ -20,7 +21,7 @@ interface Props {
 export default function EntitlementsLayout({ children }: Props) {
   const { pathname } = useLocation();
   const user = useAppSelector((s) => s.auth.user);
-  const isAdmin = user?.role === "hradmin" || user?.role === "empmanager";
+  const isAdmin = isAdminRole(user?.role);
   const tabs = isAdmin ? ADMIN_TABS : EMPLOYEE_TABS;
 
   return (

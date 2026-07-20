@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { requireRole } from "../middleware/auth.middleware.js";
+import { ROLES } from "../constants/roles.js";
 import {
   leaveRequestSchema,
   rejectLeaveSchema,
@@ -61,12 +62,12 @@ router.get("/employees/search", searchEmployees);
 
 router.get(
   "/export/summary",
-  requireRole("empmanager", "hradmin"),
+  requireRole(ROLES.EMP_MANAGER, ROLES.HR_ADMIN),
   exportSummary,
 );
 router.get(
   "/export/detail",
-  requireRole("empmanager", "hradmin"),
+  requireRole(ROLES.EMP_MANAGER, ROLES.HR_ADMIN),
   exportDetail,
 );
 

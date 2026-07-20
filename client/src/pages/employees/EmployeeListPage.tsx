@@ -14,7 +14,12 @@ import {
 } from "../../store/employeeSlice";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import Toast from "../../utils/toast";
-import { BASIC_SUPERVISOR_ROLES, type UserRole } from "../../config/roles";
+import {
+  BASIC_SUPERVISOR_ROLES,
+  PAGE_PATHS,
+  ROLES,
+  type UserRole,
+} from "../../config/roles";
 
 const THEME_COLORS = {
   navy: {
@@ -59,9 +64,9 @@ const THEME_COLORS = {
 } as const;
 
 const TABS: TabItem[] = [
-  { label: "Employee List", path: "/employees" },
-  { label: "Superior Section", path: "/employees/superior-section" },
-  { label: "My Info", path: "/my-info" },
+  { label: "Employee List", path: PAGE_PATHS.employees },
+  { label: "Superior Section", path: PAGE_PATHS.employeesSuperior },
+  { label: "My Info", path: PAGE_PATHS.myInfo },
 ];
 
 export const getDisplayName = (employe: Employee) =>
@@ -124,7 +129,7 @@ export default function EmployeeListPage() {
   const allRows = data?.data || [];
 
   const employeeCount = allRows.filter(
-    (event) => event.role === "employee" || !event.role,
+    (event) => event.role === ROLES.EMPLOYEE || !event.role,
   ).length;
   const supervisorCount = allRows.filter((event) =>
     BASIC_SUPERVISOR_ROLES.includes((event.role || "") as UserRole),
@@ -285,7 +290,7 @@ export default function EmployeeListPage() {
             borderColorHover: THEME_COLORS.blue[300],
             icon: <IconEye size={13} />,
             onClick: (employee) =>
-              employee.id && navigate(`/employees/${employee.id}/profile`),
+              employee.id && navigate(PAGE_PATHS.employeeProfile(employee.id)),
             title: "View profile",
           },
         ]}

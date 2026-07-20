@@ -11,18 +11,16 @@ import {
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
 import { EMAIL_REGEX } from "../../validations/employee.validation";
-import Button, {
-  ActionButton,
-  IconButton,
-} from "../../components/common/Button";
+import Button, { ActionButton } from "../../components/common/Button";
+import { PAGE_PATHS, ROLES } from "../../config/roles";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
 const DEFAULT_PAGE_SIZE = 10;
 
 const TABS: TabItem[] = [
-  { label: "Job Titles", path: "/hradmin/job-titles" },
-  { label: "Job Categories", path: "/hradmin/job-categories" },
-  { label: "Sub Units", path: "/hradmin/sub-units" },
+  { label: "Job Titles", path: PAGE_PATHS.hradminJobTitles },
+  { label: "Job Categories", path: PAGE_PATHS.hradminJobCategories },
+  { label: "Sub Units", path: PAGE_PATHS.hradminSubUnits },
 ];
 
 const ROLE_DISPLAY_MAP: Record<string, string> = {
@@ -636,7 +634,7 @@ function UserFormModal({
   const [formData, setFormData] = useState({
     employee_name: user?.name || "",
     email: user?.email || "",
-    role: user?.role || "empmanager",
+    role: user?.role || ROLES.EMP_MANAGER,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -789,8 +787,8 @@ function UserFormModal({
               <FormSelect
                 value={formData.role}
                 options={[
-                  { value: "empmanager", label: "Employee Manager" },
-                  { value: "hradmin", label: "HR Administrator" },
+                  { value: ROLES.EMP_MANAGER, label: "Employee Manager" },
+                  { value: ROLES.HR_ADMIN, label: "HR Administrator" },
                 ]}
                 onChange={(value) => handleFieldChange("role", value)}
               />

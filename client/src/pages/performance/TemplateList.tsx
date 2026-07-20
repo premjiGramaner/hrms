@@ -18,6 +18,7 @@ import { DataTableColumn } from "../../types/table.types";
 import { htmlToPreview } from "../../utils/htmlPreview";
 import TemplatePreviewModal from "./TemplatePreviewModal";
 import { FieldShell, IconButton, SoftInput } from "./performanceUi";
+import { PAGE_PATHS } from "../../config/roles";
 
 export default function TemplateList() {
   const [templates, setTemplates] = useState<AppraisalTemplate[]>([]);
@@ -91,9 +92,7 @@ export default function TemplateList() {
         ...current.filter((item) => item.id !== cloned.id),
         cloned,
       ]);
-      navigate(
-        `/performance/configuration/appraisal/templates/${cloned.id}/design`,
-      );
+      navigate(PAGE_PATHS.performanceTemplateDesign(cloned.id));
     } catch {
       setError("Unable to clone template. Please try again.");
     }
@@ -113,9 +112,7 @@ export default function TemplateList() {
     setTemplates((current) => [...current, created]);
     setIsAdding(false);
     resetAddDraft();
-    navigate(
-      `/performance/configuration/appraisal/templates/${created.id}/design`,
-    );
+    navigate(PAGE_PATHS.performanceTemplateDesign(created.id));
   };
 
   return (
@@ -146,9 +143,7 @@ export default function TemplateList() {
                 <IconButton
                   title="Edit Template"
                   onClick={() =>
-                    navigate(
-                      `/performance/configuration/appraisal/templates/${row.id}/design`,
-                    )
+                    navigate(PAGE_PATHS.performanceTemplateDesign(row.id))
                   }
                 >
                   <Edit size={18} />

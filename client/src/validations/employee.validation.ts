@@ -8,8 +8,6 @@ const NAME_REGEX = /^[A-Za-z\s'\-]+$/;
 
 const MOBILE_10DIGIT_REGEX = /^\d{10}$/;
 
-const WORK_TEL_REGEX = /^\d{7,15}$/;
-
 const LICENSE_REGEX = /^[A-Z]{2}\d{2}\d{4}\d{7}$/;
 
 export interface EmployeeFormValues {

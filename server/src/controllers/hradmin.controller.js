@@ -5,6 +5,11 @@ import { writeAuditLog } from "../services/audit.service.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendWelcomeEmail } from "../../email.service.js";
+import {
+  ROLES,
+  ADMIN_ROLES,
+  BASIC_SUPERVISOR_ROLES,
+} from "../constants/roles.js";
 
 const SPACE_REGEX = /\s+/g;
 const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
@@ -13,9 +18,9 @@ const TRIM_UNDERSCORE_REGEX = /^_+|_+$/g;
 async function generateUniqueUsername(email, fullName) {
   let base = fullName
     ? fullName
-        .toLowerCase()
-        .replace(SPACE_REGEX, "_")
-        .replace(INVALID_CHAR_REGEX, "")
+      .toLowerCase()
+      .replace(SPACE_REGEX, "_")
+      .replace(INVALID_CHAR_REGEX, "")
     : email.split("@")[0];
   base = base.replace(TRIM_UNDERSCORE_REGEX, "") || email.split("@")[0];
 
@@ -72,10 +77,12 @@ const getUsers = async (req, res, next) => {
       ? "AND (name ILIKE $1 OR username ILIKE $1 OR email ILIKE $1)"
       : "";
 
+    const adminRolesLiteral = ADMIN_ROLES.map((role) => `'${role}'`).join(", ");
+
     const { rows: userRows } = await pool.query(
       `SELECT id, username, name, email, role, status, is_active
        FROM tbl_appusers
-       WHERE is_deleted = false AND role IN ('hradmin', 'empmanager')
+       WHERE is_deleted = false AND role IN (${adminRolesLiteral})
        ${searchFilter}
        ORDER BY created_at DESC
        LIMIT $1 OFFSET $2`,
@@ -85,7 +92,7 @@ const getUsers = async (req, res, next) => {
     const { rows: countRows } = await pool.query(
       `SELECT COUNT(*)::int AS total_count
        FROM tbl_appusers
-       WHERE is_deleted = false AND role IN ('hradmin', 'empmanager')
+       WHERE is_deleted = false AND role IN (${adminRolesLiteral})
        ${countPlaceholder}`,
       countParams,
     );
@@ -115,10 +122,12 @@ const createUser = async (req, res, next) => {
       );
     }
 
-    const allowedRoles = ["hradmin", "empmanager"];
-    if (!allowedRoles.includes(role)) {
+    if (!ADMIN_ROLES.includes(role)) {
       return next(
-        new AppError("Invalid role. Must be hradmin or empmanager", 400),
+        new AppError(
+          `Invalid role. Must be ${ROLES.HR_ADMIN} or ${ROLES.EMP_MANAGER}`,
+          400,
+        ),
       );
     }
 
@@ -186,10 +195,12 @@ const updateUser = async (req, res, next) => {
       );
     }
 
-    const allowedRoles = ["hradmin", "empmanager"];
-    if (!allowedRoles.includes(role)) {
+    if (!ADMIN_ROLES.includes(role)) {
       return next(
-        new AppError("Invalid role. Must be hradmin or empmanager", 400),
+        new AppError(
+          `Invalid role. Must be ${ROLES.HR_ADMIN} or ${ROLES.EMP_MANAGER}`,
+          400,
+        ),
       );
     }
 
@@ -816,10 +827,16 @@ const getRoleAccess = async (req, res, next) => {
       );
     }
     if (roleFilter) {
-      if (roleFilter === "supervisor") {
-        conditions.push("u.role IN ('supervisor', 'manager')");
-      } else if (roleFilter === "hradmin") {
-        conditions.push("u.role IN ('hradmin', 'empmanager')");
+      if (roleFilter === ROLES.SUPERVISOR) {
+        const supervisorRolesLiteral = BASIC_SUPERVISOR_ROLES.map(
+          (role) => `'${role}'`,
+        ).join(", ");
+        conditions.push(`u.role IN (${supervisorRolesLiteral})`);
+      } else if (roleFilter === ROLES.HR_ADMIN) {
+        const adminRolesLiteral = ADMIN_ROLES.map((role) => `'${role}'`).join(
+          ", ",
+        );
+        conditions.push(`u.role IN (${adminRolesLiteral})`);
       } else {
         params.push(roleFilter);
         conditions.push(`u.role = $${params.length}`);
@@ -887,11 +904,11 @@ const updateUserRole = async (req, res, next) => {
     const userId = parseInt(req.params.id, 10);
     const { role } = req.body;
 
-    const allowedRoles = ["employee", "supervisor", "hradmin"];
+    const allowedRoles = [ROLES.EMPLOYEE, ROLES.SUPERVISOR, ROLES.HR_ADMIN];
     if (!role || !allowedRoles.includes(role)) {
       return next(
         new AppError(
-          "Invalid role. Must be employee, supervisor, or hradmin",
+          `Invalid role. Must be ${allowedRoles.join(", ")}`,
           400,
         ),
       );

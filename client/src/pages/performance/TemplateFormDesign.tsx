@@ -33,6 +33,7 @@ import AddEditKpiModal from "./AddEditKpiModal";
 import KpiQuestionRow from "./KpiQuestionRow";
 import TemplatePreviewModal from "./TemplatePreviewModal";
 import { FieldShell, SoftInput } from "./performanceUi";
+import { PAGE_PATHS } from "../../config/roles";
 
 export default function TemplateFormDesign() {
   const { templateId } = useParams();
@@ -84,7 +85,7 @@ export default function TemplateFormDesign() {
   const tabs = [
     {
       label: topPill,
-      path: `/performance/configuration/appraisal/templates/${template.id}/design`,
+      path: PAGE_PATHS.performanceTemplateDesign(template.id),
     },
   ];
 
@@ -144,9 +145,7 @@ export default function TemplateFormDesign() {
   const cloneCurrentTemplate = async () => {
     const cloned = await clonePerformanceTemplate(template.id);
     setTemplates((current) => [...current, cloned]);
-    navigate(
-      `/performance/configuration/appraisal/templates/${cloned.id}/design`,
-    );
+    navigate(PAGE_PATHS.performanceTemplateDesign(cloned.id));
     setMessage("Template cloned.");
   };
 
@@ -178,7 +177,7 @@ export default function TemplateFormDesign() {
     const remaining = templates.filter((item) => item.id !== template.id);
     setTemplates(remaining);
     setIsDeletingTemplate(false);
-    navigate("/performance/configuration/appraisal");
+    navigate(PAGE_PATHS.performanceConfigAppraisal);
   };
 
   const saveTemplate = () => {

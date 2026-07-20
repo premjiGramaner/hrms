@@ -40,20 +40,18 @@ import LeaveList from "./components/LeaveList";
 import QuickAccess from "./components/QuickAccess";
 import TerminationModal from "./components/TerminationModal";
 import {
-  validatePersonalDetails,
-  validateContactDetails,
-  validateEmploymentDetails,
   validateEmailUniqueness,
   validateEmployeeIdUniqueness,
   ValidationErrors,
   hasErrors,
 } from "../../utils/profileValidation";
 import { getNumericValue } from "./components/inputHelpers";
+import { PAGE_PATHS, ROLES } from "../../config/roles";
 
 const TABS: TabItem[] = [
-  { label: "Employee List", path: "/employees" },
-  { label: "Superior Section", path: "/employees/superior-section" },
-  { label: "My Info", path: "/my-info" },
+  { label: "Employee List", path: PAGE_PATHS.employees },
+  { label: "Superior Section", path: PAGE_PATHS.employeesSuperior },
+  { label: "My Info", path: PAGE_PATHS.myInfo },
 ];
 
 const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
@@ -68,7 +66,7 @@ export default function EmployeeProfilePage() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState(0);
   const [actionMessage, setActionMessage] = useState("");
-  const [terminating, setTerminating] = useState(false);
+  const [terminating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EditableEmployeeProfileForm | null>(null);
   const [showTerminationModal, setShowTerminationModal] = useState(false);
@@ -211,7 +209,7 @@ export default function EmployeeProfilePage() {
           <div className="text-4xl mb-2">⚠️</div>
           <div className="text-sm text-[#757575]">{error}</div>
           <button
-            onClick={() => navigate("/employees")}
+            onClick={() => navigate(PAGE_PATHS.employees)}
             className="mt-4 px-4 py-2 bg-[#00897b] text-white rounded-lg hover:bg-[#00bfa5]"
           >
             Back to Employee List
@@ -354,7 +352,7 @@ export default function EmployeeProfilePage() {
         }
       });
 
-      formData.append("role", employee.role || "employee");
+      formData.append("role", employee.role || ROLES.EMPLOYEE);
       const supervisorsArray = form.supervisor_id ? [form.supervisor_id] : [];
       formData.append("supervisors", JSON.stringify(supervisorsArray));
       await updateEmployee(employee.id, formData);
@@ -828,7 +826,7 @@ export default function EmployeeProfilePage() {
           employeeId={employee!.id}
           onClose={() => setShowTerminationModal(false)}
           onSuccess={() => {
-            navigate("/employees", {
+            navigate(PAGE_PATHS.employees, {
               replace: true,
             });
           }}

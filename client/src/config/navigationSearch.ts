@@ -1,4 +1,4 @@
-import { ADMIN_ROLES, type UserRole } from "./roles";
+import { ADMIN_ROLES, PAGE_PATHS, type UserRole } from "./roles";
 
 export type { UserRole } from "./roles";
 
@@ -38,7 +38,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "hr-job-titles",
     label: "Job Titles",
-    path: "/hradmin/job-titles",
+    path: PAGE_PATHS.hradminJobTitles,
     module: "HR Administration",
     keywords: ["job", "titles", "position", "designation", "role"],
     category: "tab",
@@ -47,7 +47,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "hr-job-categories",
     label: "Job Categories",
-    path: "/hradmin/job-categories",
+    path: PAGE_PATHS.hradminJobCategories,
     module: "HR Administration",
     keywords: ["job", "categories", "category", "classification"],
     category: "tab",
@@ -56,7 +56,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "hr-sub-units",
     label: "Sub Units",
-    path: "/hradmin/sub-units",
+    path: PAGE_PATHS.hradminSubUnits,
     module: "HR Administration",
     keywords: ["sub", "units", "department", "division", "organization"],
     category: "tab",
@@ -65,7 +65,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "hr-role-access",
     label: "Role Access",
-    path: "/hradmin/role-access",
+    path: PAGE_PATHS.hradminRoleAccess,
     module: "HR Administration",
     keywords: ["role", "access", "permissions", "security", "authorization"],
     category: "tab",
@@ -74,7 +74,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "hr-audit-trail",
     label: "Audit Trail",
-    path: "/hradmin/audit-trail",
+    path: PAGE_PATHS.hradminAuditTrail,
     module: "HR Administration",
     keywords: ["audit", "trail", "logs", "history", "tracking"],
     category: "tab",
@@ -84,7 +84,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "emp-list",
     label: "Employee List",
-    path: "/employees",
+    path: PAGE_PATHS.employees,
     module: "Employee Management",
     keywords: ["employee", "list", "staff", "personnel", "people"],
     category: "tab",
@@ -93,7 +93,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "emp-superior",
     label: "Superior Section",
-    path: "/employees/superior-section",
+    path: PAGE_PATHS.employeesSuperior,
     module: "Employee Management",
     keywords: ["superior", "supervisor", "manager", "reporting", "hierarchy"],
     category: "tab",
@@ -102,7 +102,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "emp-myinfo",
     label: "My Info",
-    path: "/my-info",
+    path: PAGE_PATHS.myInfo,
     module: "Employee Management",
     keywords: ["my", "info", "profile", "personal", "details"],
     category: "tab",
@@ -111,7 +111,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "report-birthday",
     label: "Birthday Report",
-    path: "/reports/birthday",
+    path: PAGE_PATHS.reportsBirthday,
     module: "Reports and Analytics",
     keywords: ["birthday", "report", "celebration", "date", "birth"],
     category: "tab",
@@ -120,7 +120,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "report-anniversary",
     label: "Work Anniversary",
-    path: "/reports/work-anniversary",
+    path: PAGE_PATHS.reportsWorkAnniversary,
     module: "Reports and Analytics",
     keywords: ["work", "anniversary", "tenure", "service", "joining"],
     category: "tab",
@@ -129,7 +129,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "report-termination",
     label: "Termination Report",
-    path: "/reports/termination",
+    path: PAGE_PATHS.reportsTermination,
     module: "Reports and Analytics",
     keywords: ["termination", "exit", "resignation", "leaving", "offboarding"],
     category: "tab",
@@ -138,7 +138,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "report-notifications",
     label: "Notifications",
-    path: "/reports/notifications",
+    path: PAGE_PATHS.reportsNotifications,
     module: "Reports and Analytics",
     keywords: ["notifications", "alerts", "email", "settings", "config"],
     category: "tab",
@@ -148,7 +148,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "leave-apply",
     label: "Apply Leave",
-    path: "/leave/apply",
+    path: PAGE_PATHS.leaveApply,
     module: "Leave",
     keywords: ["apply", "leave", "request", "time off", "vacation"],
     category: "tab",
@@ -156,7 +156,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "leave-list",
     label: "Leave List",
-    path: "/leave/view_leave_list",
+    path: PAGE_PATHS.leaveList,
     module: "Leave",
     keywords: ["leave", "list", "requests", "history", "applications"],
     category: "tab",
@@ -164,7 +164,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "leave-entitlement-add",
     label: "Add Entitlement",
-    path: "/leave/entitlements/add",
+    path: PAGE_PATHS.leaveEntitlementsAdd,
     module: "Leave",
     keywords: ["add", "entitlement", "assign", "allocate", "grant", "leave"],
     category: "tab",
@@ -173,7 +173,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "leave-entitlement-my",
     label: "My Entitlements",
-    path: "/leave/entitlements/my",
+    path: PAGE_PATHS.leaveEntitlementsMy,
     module: "Leave",
     keywords: ["my", "entitlements", "balance", "quota", "allocation", "leave"],
     category: "tab",
@@ -181,7 +181,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "leave-entitlement-list",
     label: "Employee Entitlements",
-    path: "/leave/entitlements/list",
+    path: PAGE_PATHS.leaveEntitlementsList,
     module: "Leave",
     keywords: [
       "employee",
@@ -197,7 +197,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "leave-configure",
     label: "Configure Leave",
-    path: "/leave/configure",
+    path: PAGE_PATHS.leaveConfigure,
     module: "Leave",
     keywords: ["configure", "leave", "setup", "settings", "types"],
     category: "tab",
@@ -207,7 +207,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "perf-appraisal-list",
     label: "Appraisal List",
-    path: "/performance/appraisals_list",
+    path: PAGE_PATHS.performanceAppraisalsList,
     module: "Performance",
     keywords: ["appraisal", "list", "review", "evaluation", "assessment"],
     category: "tab",
@@ -215,7 +215,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "perf-my-appraisals",
     label: "My Appraisals",
-    path: "/performance/my_appraisals",
+    path: PAGE_PATHS.performanceMyAppraisals,
     module: "Performance",
     keywords: ["my", "appraisals", "review", "performance", "evaluation"],
     category: "tab",
@@ -223,7 +223,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "perf-team-appraisals",
     label: "Team Appraisals",
-    path: "/performance/team_appraisals",
+    path: PAGE_PATHS.performanceTeamAppraisals,
     module: "Performance",
     keywords: ["team", "appraisals", "subordinate", "review", "evaluation"],
     category: "tab",
@@ -231,7 +231,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "perf-cycles",
     label: "Appraisal Cycles",
-    path: "/performance/appraisal_cycles",
+    path: PAGE_PATHS.performanceAppraisalCycles,
     module: "Performance",
     keywords: ["appraisal", "cycles", "period", "timeline", "schedule"],
     category: "tab",
@@ -239,7 +239,7 @@ export const searchableNavigation: SearchableItem[] = [
   {
     id: "perf-templates",
     label: "Templates",
-    path: "/performance/configuration/appraisal",
+    path: PAGE_PATHS.performanceConfigAppraisal,
     module: "Performance",
     keywords: ["templates", "forms", "configuration", "setup", "appraisal"],
     category: "tab",

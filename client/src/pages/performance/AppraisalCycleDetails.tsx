@@ -17,6 +17,7 @@ import {
 } from "../../types/performance.types";
 import { DataTableColumn } from "../../types/table.types";
 import { IconButton, Stepper } from "./performanceUi";
+import { PAGE_PATHS } from "../../config/roles";
 
 export default function AppraisalCycleDetails() {
   const { id } = useParams();
@@ -110,7 +111,7 @@ export default function AppraisalCycleDetails() {
     await createCycleAppraisals(cycle.id);
     const next = await getAppraisalCycle(cycle.id);
     setCycle(next);
-    navigate("/performance/appraisals_list");
+    navigate(PAGE_PATHS.performanceAppraisalsList);
   };
 
   if (!cycle) {

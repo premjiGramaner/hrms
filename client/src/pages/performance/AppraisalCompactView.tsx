@@ -14,6 +14,7 @@ import {
   TemplateQuestion,
 } from "../../types/performance.types";
 import { getAvatarSrc } from "../../utils/avatar";
+import { isAdminRole } from "../../config/roles";
 
 type ReviewerType = "self" | "supervisor";
 type RatingDraft = Record<
@@ -288,8 +289,7 @@ export default function AppraisalCompactView() {
       .catch(() => setAppraisal(null));
   }, [id]);
 
-  const isPerformanceAdmin =
-    user?.role === "hradmin" || user?.role === "empmanager";
+  const isPerformanceAdmin = isAdminRole(user?.role);
   const pageTitle = isPerformanceAdmin
     ? "Performance / Appraisals / Appraisal List"
     : "Performance / Appraisals / My Appraisal List";
