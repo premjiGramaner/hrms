@@ -737,25 +737,26 @@ export default function LeaveListPage() {
               <div className="flex flex-wrap gap-2 justify-end">
                 <button
                   onClick={handleReset}
-                  className="px-5 py-2 rounded-lg bg-slate-600 text-white text-sm font-medium cursor-pointer hover:bg-slate-700 transition"
+                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md"
+                   
                 >
                   Reset
                 </button>
                 <button
                   onClick={() => handleExport("summary")}
-                  className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition"
+                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md"
                 >
                   Export Summary
                 </button>
                 <button
                   onClick={() => handleExport("detail")}
-                  className="px-5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium cursor-pointer hover:bg-teal-700 transition"
+                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md"
                 >
                   Export Detail
                 </button>
                 <button
                   onClick={handleSearch}
-                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-semibold cursor-pointer hover:opacity-90 transition"
+                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md"
                 >
                   Search
                 </button>
