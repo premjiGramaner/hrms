@@ -1,6 +1,5 @@
 import api from "./axios";
 import { LeaveType, PaginatedResponse } from "../types";
-
 export interface EmployeeOption {
   id: number;
   employee_id: string;
@@ -8,7 +7,6 @@ export interface EmployeeOption {
   job_title?: string;
   sub_unit?: string;
 }
-
 export interface EntitlementRecord {
   id: number;
   emp_code: string;
@@ -29,7 +27,6 @@ export interface EntitlementRecord {
   expired: boolean;
   last_added_days: number;
 }
-
 export interface MyEntitlementRecord {
   id: number;
   leave_type: string;
@@ -43,7 +40,6 @@ export interface MyEntitlementRecord {
   net_balance: number;
   year: number;
 }
-
 export interface CreateEntitlementPayload {
   employee_id?: number;
   employee_ids?: number[];
@@ -82,12 +78,13 @@ export const getEntitlementList = async (params: {
   page?: number;
   limit?: number;
 }) => {
-  const parts: string[] = [];
+  const queryParams: string[] = [];
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== 0)
-      parts.push(`${key}=${encodeURIComponent(String(value))}`);
+    if (value !== null && value !== 0)
+      queryParams.push(`${key}=${encodeURIComponent(String(value))}`);
   }
-  const qs = parts.length ? `?${parts.join("&")}` : "";
+
+  const qs = queryParams.length ? `?${queryParams.join("&")}` : "";
   const res = await api.get<{
     success: boolean;
     data: PaginatedResponse<EntitlementRecord>;

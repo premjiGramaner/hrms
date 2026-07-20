@@ -144,13 +144,12 @@ const LIMIT = 20;
 
 export default function EntitlementListPage() {
   const { toasts, addToast, removeToast } = useToast();
-
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
 
   const [selectedEmployee, setSelectedEmployee] =
     useState<EmployeeOption | null>(null);
-  const [leaveTypeId, setLeaveTypeId] = useState("");
 
+  const [leaveTypeId, setLeaveTypeId] = useState("");
   const [records, setRecords] = useState<EntitlementRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -349,56 +348,67 @@ export default function EntitlementListPage() {
                   </td>
                 </tr>
               )}
-
               {!loading &&
-                records.map((record, rowIndex) => (
-                  <tr
-                    key={record.id}
-                    className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors ${
-                      rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
-                    }`}
-                  >
-                    <td className="px-4 py-3 text-xs font-mono text-slate-600">
-                      {record.emp_code || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
-                      {record.employee_name}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-700">
-                      {record.leave_type_name}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 text-center">
-                      <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200">
-                        Added
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                      {formatDate(record.credited_on)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                      {formatDate(record.valid_from)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                      {formatDate(record.valid_to)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                      {record.expired ? (
-                        <span className="inline-block px-2 py-0.5 bg-red-50 text-red-700 rounded border border-red-200">
-                          {formatDate(record.valid_to)}
+                records.map((record, rowIndex) => {
+                  const addedDays = Number(
+                    record.last_added_days ?? record.total_days ?? 0,
+                  ).toFixed(1);
+
+                  return (
+                    <tr
+                      key={record.id}
+                      className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors ${
+                        rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
+                      }`}
+                    >
+                      <td className="px-4 py-3 text-xs font-mono text-slate-600">
+                        {record.emp_code || "—"}
+                      </td>
+
+                      <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
+                        {record.employee_name}
+                      </td>
+
+                      <td className="px-4 py-3 text-xs text-slate-700">
+                        {record.leave_type_name}
+                      </td>
+
+                      <td className="px-4 py-3 text-xs text-slate-600 text-center">
+                        <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200">
+                          Added
                         </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-center">
-                      <span className="inline-block font-bold px-2.5 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
-                        {Number(
-                          record.last_added_days || record.total_days,
-                        ).toFixed(1)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                        {formatDate(record.credited_on)}
+                      </td>
+
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                        {formatDate(record.valid_from)}
+                      </td>
+
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                        {formatDate(record.valid_to)}
+                      </td>
+
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                        {record.expired ? (
+                          <span className="inline-block px-2 py-0.5 bg-red-50 text-red-700 rounded border border-red-200">
+                            {formatDate(record.valid_to)}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3 text-xs text-center">
+                        <span className="inline-block font-bold px-2.5 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
+                          {addedDays}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>

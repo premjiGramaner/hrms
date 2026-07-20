@@ -46,13 +46,11 @@ const PREDEFINED_LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"];
 const WORK_EMAIL_FIELD = "work_email" as const;
 const OTHER_EMAIL_FIELD = "other_email" as const;
 type EmailFieldName = typeof WORK_EMAIL_FIELD | typeof OTHER_EMAIL_FIELD;
-
 interface Props {
   employee: Employee | null;
   onClose: () => void;
   onSaved: () => void;
 }
-
 interface Supervisor {
   id?: number | null;
   employee_id?: string | null;
@@ -212,7 +210,6 @@ export default function AddEmployeeModal({
       return false;
     }
 
-    // If already validated and unchanged, skip API call
     if (
       validatedWorkEmailRef.current === workEmail &&
       !errors[WORK_EMAIL_FIELD]
@@ -264,7 +261,6 @@ export default function AddEmployeeModal({
     if (step === 4) {
       const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim().toLowerCase();
 
-      // Only validate if email exists and hasn't been validated yet
       if (
         workEmail &&
         EMAIL_REGEX.test(workEmail) &&
@@ -314,8 +310,6 @@ export default function AddEmployeeModal({
       if (errors.employee_id && employeeId) {
         nextErrors.employee_id = errors.employee_id;
       }
-      // Don't preserve avatar error - it should not block navigation
-      // Avatar size error only prevents upload, not form progression
     }
 
     if (stepNumber === 4) {
@@ -380,7 +374,6 @@ export default function AddEmployeeModal({
         return;
       }
     }
-
     setStep((s) => s + 1);
   };
 
@@ -847,7 +840,6 @@ export default function AddEmployeeModal({
       </div>
     );
   };
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[100vh] flex flex-col shadow-2xl overflow-hidden">
@@ -972,34 +964,7 @@ export default function AddEmployeeModal({
                     type="file"
                     accept={SUPPORTED_IMAGE_EXTENSIONS.join(",")}
                     className="hidden"
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-
-                      // Validate file size (max 5MB)
-                      if (file.size > MAX_FILE_SIZE_BYTES) {
-                        Toast.error("Image size must be less than 5MB");
-                        setErrors((prev) => ({
-                          ...prev,
-                          avatar: "Image size must be less than 5MB",
-                        }));
-                        e.target.value = ""; // Reset file input
-                        return;
-                      }
-
-                      // Clear any previous avatar error
-                      setErrors((prev) => {
-                        const updatedErrors = { ...prev };
-                        delete updatedErrors.avatar;
-                        return updatedErrors;
-                      });
-
-                      setAvatarFile(file);
-                      const reader = new FileReader();
-                      reader.onload = (ev) =>
-                        setAvatarPreview(ev.target?.result as string);
-                      reader.readAsDataURL(file);
-                    }}
+                    onChange={handleAvatarChange}
                   />
                 </div>
                 <div className="flex-1 ">
