@@ -1,18 +1,16 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppSelector } from "../../app/hooks";
-import { ADMIN_ROLES, SUPERVISOR_ROLES } from "../../config/roles";
+import { ADMIN_ROLES, SUPERVISOR_ROLES, UserRole } from "../../config/roles";
 
 export default function LeaveNavBar() {
   const { pathname } = useLocation();
   const user = useAppSelector((s) => s.auth.user);
-  const role = user?.role || "";
+  const role = (user?.role || "") as UserRole;
   // Full admins: see Add Entitlements + Entitlement List + My Entitlements
   const isAdmin = ADMIN_ROLES.includes(role);
   // Supervisors: see Entitlement List + My Entitlements (no add)
   const isSupervisor = SUPERVISOR_ROLES.includes(role);
-  // Either gets the dropdown instead of the plain "My Entitlements" link
-  const showEntDropdown = isAdmin || isSupervisor;
 
   const [entOpen, setEntOpen] = useState(false);
   const entRef = useRef<HTMLDivElement>(null);
