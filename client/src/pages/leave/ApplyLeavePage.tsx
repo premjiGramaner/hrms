@@ -9,6 +9,7 @@ import {
 import { LeaveType, LeaveBalance, LeaveRequest } from "../../types";
 import { getApiErrorMessage } from "../../utils/errors";
 import { useAppSelector } from "../../app/hooks";
+import { getMyInfo } from "../../api/employee.api";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import UserAvatar from "../../components/UserAvatar";
@@ -66,6 +67,7 @@ export default function ApplyLeavePage() {
   const [latestLeave, setLatestLeave] = useState<LeaveRequest | null>(null);
   const [loadingTypes, setLoadingTypes] = useState(true);
   const [existingLeaves, setExistingLeaves] = useState<LeaveRequest[]>([]);
+  const [employeeGender, setEmployeeGender] = useState<string>("");
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -83,29 +85,31 @@ export default function ApplyLeavePage() {
   const fetchData = async () => {
     setLoadingTypes(true);
     try {
-      const [types, balances, leaveData, allLeavesData] = await Promise.all([
-        getLeaveTypes(),
-        isValidUser
-          ? getLeaveBalance(user!.id, financialYear)
-          : Promise.resolve([]),
+      const [types, balances, leaveData, allLeavesData, employeeData] =
+        await Promise.all([
+          getLeaveTypes(),
+          isValidUser
+            ? getLeaveBalance(user!.id, financialYear)
+            : Promise.resolve([]),
 
-        isValidUser
-          ? getLeaves({
-              page: 1,
-              limit: 1,
-              statuses: [],
-              own_employee_id: user!.id,
-            })
-          : Promise.resolve({ data: [] }),
-        isValidUser
-          ? getLeaves({
-              page: 1,
-              limit: 1000,
-              statuses: ["Pending Approval", "Approved", "Scheduled"],
-              own_employee_id: user!.id,
-            })
-          : Promise.resolve({ data: [] }),
-      ]);
+          isValidUser
+            ? getLeaves({
+                page: 1,
+                limit: 1,
+                statuses: [],
+                own_employee_id: user!.id,
+              })
+            : Promise.resolve({ data: [] }),
+          isValidUser
+            ? getLeaves({
+                page: 1,
+                limit: 1000,
+                statuses: ["Pending Approval", "Approved", "Scheduled"],
+                own_employee_id: user!.id,
+              })
+            : Promise.resolve({ data: [] }),
+          isValidUser ? getMyInfo() : Promise.resolve({ data: {} }),
+        ]);
       setLeaveTypes(types);
       setBalances(balances as LeaveBalance[]);
       const leavePage = leaveData as { data: LeaveRequest[] };
@@ -115,6 +119,8 @@ export default function ApplyLeavePage() {
       setLatestLeave(ownLeave);
       const existingLeavesData = allLeavesData as { data: LeaveRequest[] };
       setExistingLeaves(existingLeavesData.data || []);
+      const empData = employeeData as { data: { gender?: string } };
+      setEmployeeGender(empData.data?.gender || "");
     } catch (error) {
       console.error("Failed to load leave data:", error);
     } finally {
@@ -126,7 +132,7 @@ export default function ApplyLeavePage() {
     if (isValidUser) {
       fetchData();
     }
-  }, [user?.id, financialYear]); // Re-fetch when user ID changes or financial year changes
+  }, [user?.id, financialYear]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -142,6 +148,33 @@ export default function ApplyLeavePage() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [user?.id, financialYear]);
+
+  // Filter leave types based on gender
+  const getFilteredLeaveTypes = (): LeaveType[] => {
+    if (!employeeGender) return leaveTypes;
+
+    const genderLower = employeeGender.toLowerCase();
+
+    // For males: show all leaves except Maternity Leave
+    if (genderLower === "male") {
+      return leaveTypes.filter((leave) => {
+        const code = leave.code?.toUpperCase() || "";
+        return code !== "ML"; // Exclude Maternity Leave for males
+      });
+    }
+
+    // For females: show all leaves except Paternity Leave
+    if (genderLower === "female") {
+      return leaveTypes.filter((leave) => {
+        const code = leave.code?.toUpperCase() || "";
+        return code !== "PTL"; // Exclude Paternity Leave for females
+      });
+    }
+
+    return leaveTypes;
+  };
+
+  const filteredLeaveTypes = getFilteredLeaveTypes();
 
   const getBalance = (typeId: number): number => {
     const balance = balances.find((bal) => bal.leave_type_id === typeId);
@@ -294,6 +327,21 @@ export default function ApplyLeavePage() {
                 Loading leave types…
               </span>
             </div>
+          ) : filteredLeaveTypes.length === 0 ? (
+            <div className="flex items-center gap-2 text-slate-400 text-sm mb-5 px-1 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <svg
+                className="w-4 h-4 flex-shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              No leave types available.
+            </div>
           ) : (
             <div className="relative mb-6">
               <div
@@ -301,7 +349,7 @@ export default function ApplyLeavePage() {
                 className="flex gap-3 overflow-x-auto pb-1 scroll-smooth "
                 style={{ scrollbarWidth: "none" }}
               >
-                {leaveTypes.map((leaveType) => {
+                {filteredLeaveTypes.map((leaveType) => {
                   const balance = getBalance(leaveType.id);
                   const active = selectedTypeId === leaveType.id;
                   return (
@@ -336,7 +384,7 @@ export default function ApplyLeavePage() {
                 })}
               </div>
 
-              {leaveTypes.length > 4 && (
+              {filteredLeaveTypes.length > 4 && (
                 <button
                   type="button"
                   onClick={() => scrollCards("right")}
@@ -356,23 +404,25 @@ export default function ApplyLeavePage() {
             </div>
           )}
 
-          {!selectedTypeId && !loadingTypes && (
-            <div className="flex items-center gap-2 text-slate-400 text-sm mb-5 px-1">
-              <svg
-                className="w-4 h-4 flex-shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              Select a Leave Type to Proceed
-            </div>
-          )}
+          {!selectedTypeId &&
+            !loadingTypes &&
+            filteredLeaveTypes.length > 0 && (
+              <div className="flex items-center gap-2 text-slate-400 text-sm mb-5 px-1">
+                <svg
+                  className="w-4 h-4 flex-shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Select a Leave Type to Proceed
+              </div>
+            )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-4">

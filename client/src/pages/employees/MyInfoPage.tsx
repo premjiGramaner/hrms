@@ -56,16 +56,13 @@ const ADMIN_TABS: TabItem[] = [
 ];
 
 const EMPLOYEE_TABS: TabItem[] = [{ label: "My Info", path: "/my-info" }];
-
 const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
 
 export default function MyInfoPage() {
   const user = useAppSelector((state) => state.auth.user);
-
   const dispatch = useAppDispatch();
   const isAdmin = user?.role === "hradmin" || user?.role === "empmanager";
   const TABS = isAdmin ? ADMIN_TABS : EMPLOYEE_TABS;
-
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState<EditableEmployeeProfileForm | null>(null);
   const [activeTab, setActiveTab] = useState(0);
@@ -410,6 +407,7 @@ export default function MyInfoPage() {
             value={form.gender}
             onChange={handleFieldChange}
             options={GENDERS}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Date of Birth"
