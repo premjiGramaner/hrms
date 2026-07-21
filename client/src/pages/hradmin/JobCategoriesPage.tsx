@@ -10,12 +10,24 @@ import {
   UpdateJobCategoryPayload,
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
-import { EditIcon, DeleteIcon } from "../../components/Icons";
+import {
+  EditIcon,
+  DeleteIcon,
+  IconPlusCircle,
+  IconEdit,
+  IconGrid,
+  IconAlertCircle,
+  IconX,
+} from "../../components/Icons";
 import DataTable, { ColumnDef, ActionDef } from "../../components/DataTable";
-import { inputStyle, labelStyle } from "../../constants/styles";
 import Toast from "../../utils/toast";
 import Alert from "../../utils/alert";
 import Button from "../../components/common/Button";
+
+enum FormMode {
+  ADD = "add",
+  EDIT = "edit",
+}
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: "/hradmin/job-titles" },
@@ -100,30 +112,15 @@ export default function JobCategoriesPage() {
       key: "category",
       header: "Category Name",
       render: (row) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              flexShrink: 0,
-              background: "linear-gradient(135deg,#172554,#14b8a6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 13,
-              fontWeight: 700,
-              boxShadow: "0 2px 8px rgba(27,42,107,0.2)",
-            }}
-          >
+        <div className="flex items-center gap-[10px]">
+          <div className="w-9 h-9 rounded-[10px] flex-shrink-0 bg-gradient-to-br from-[#172554] to-[#14b8a6] flex items-center justify-center text-white text-[13px] font-bold shadow-[0_2px_8px_rgba(27,42,107,0.2)]">
             {row.category.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>
+            <div className="font-bold text-slate-800 text-[14px]">
               {row.category}
             </div>
-            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+            <div className="text-[11px] text-slate-400 mt-[1px]">
               ID #{row.id}
             </div>
           </div>
@@ -135,57 +132,14 @@ export default function JobCategoriesPage() {
       header: "Description",
       render: (row) =>
         row.description ? (
-          <span
-            style={{
-              color: "#475569",
-              fontSize: 13,
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical" as const,
-              overflow: "hidden",
-            }}
-          >
+          <span className="text-slate-600 text-[13px] line-clamp-2">
             {row.description}
           </span>
         ) : (
-          <span
-            style={{ color: "#cbd5e1", fontSize: 12.5, fontStyle: "italic" }}
-          >
+          <span className="text-slate-300 text-[12.5px] italic">
             No description
           </span>
         ),
-    },
-    {
-      key: "is_active",
-      header: "Status",
-      width: 120,
-      render: (row) => (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            fontSize: 12,
-            fontWeight: 600,
-            padding: "4px 12px",
-            borderRadius: 999,
-            background: row.is_active ? "#dcfce7" : "#f1f5f9",
-            color: row.is_active ? "#16a34a" : "#94a3b8",
-            border: `1px solid ${row.is_active ? "#bbf7d0" : "#e2e8f0"}`,
-          }}
-        >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              flexShrink: 0,
-              background: row.is_active ? "#22c55e" : "#cbd5e1",
-            }}
-          />
-          {row.is_active ? "Active" : "Inactive"}
-        </span>
-      ),
     },
   ];
 
@@ -217,38 +171,16 @@ export default function JobCategoriesPage() {
   return (
     <Layout title="HR Administration" tabs={TABS} activeTab="Job Categories">
       {pageError && (
-        <div
-          style={{
-            marginBottom: 16,
-            padding: "12px 18px",
-            background: "linear-gradient(135deg,#fff5f5,#fff)",
-            border: "1px solid #fecaca",
-            borderLeft: "4px solid #ef4444",
-            borderRadius: 12,
-            color: "#dc2626",
-            fontSize: 13.5,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            boxShadow: "0 2px 8px rgba(239,68,68,0.08)",
-          }}
-        >
-          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span>⚠</span>
+        <div className="mb-4 p-3 px-[18px] bg-gradient-to-br from-red-50 to-white border border-red-200 border-l-4 border-l-red-500 rounded-xl text-red-600 text-[13.5px] flex items-center justify-between shadow-[0_2px_8px_rgba(239,68,68,0.08)]">
+          <span className="flex items-center gap-2">
+            <IconAlertCircle size={16} />
             {pageError}
           </span>
           <button
             onClick={() => setPageError("")}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#dc2626",
-              fontSize: 18,
-              padding: 0,
-            }}
+            className="bg-transparent border-0 cursor-pointer text-red-600 text-lg p-0 hover:opacity-70 transition-opacity"
           >
-            ✕
+            <IconX size={18} />
           </button>
         </div>
       )}
@@ -256,7 +188,7 @@ export default function JobCategoriesPage() {
       <DataTable<JobCategory>
         title="Job Categories"
         subtitle="Manage your organisation's job categories"
-        icon=""
+        icon={<IconGrid />}
         rows={pagedList}
         isLoading={isLoading}
         columns={columns}
@@ -293,7 +225,7 @@ export default function JobCategoriesPage() {
 
       {showAddModal && (
         <JobCategoryFormModal
-          mode="add"
+          mode={FormMode.ADD}
           onClose={() => setShowAddModal(false)}
           onSaved={handleSaved}
           onError={(m) => setPageError(m)}
@@ -301,7 +233,7 @@ export default function JobCategoriesPage() {
       )}
       {categoryToEdit && (
         <JobCategoryFormModal
-          mode="edit"
+          mode={FormMode.EDIT}
           jobCategory={categoryToEdit}
           onClose={() => setCategoryToEdit(null)}
           onSaved={handleSaved}
@@ -313,7 +245,7 @@ export default function JobCategoriesPage() {
 }
 
 interface JobCategoryFormModalProps {
-  mode: "add" | "edit";
+  mode: FormMode;
   jobCategory?: JobCategory;
   onClose: () => void;
   onSaved: () => void;
@@ -331,7 +263,6 @@ function JobCategoryFormModal({
   const [description, setDescription] = useState(
     jobCategory?.description || "",
   );
-  const [isActive, setIsActive] = useState(jobCategory?.is_active !== false);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -342,17 +273,16 @@ function JobCategoryFormModal({
     }
     setIsSaving(true);
     try {
-      if (mode === "add") {
+      if (mode === FormMode.ADD) {
         await createJobCategory({
           category: categoryName.trim(),
           description: description.trim() || undefined,
         } as CreateJobCategoryPayload);
         Toast.created("Job Category");
-      } else if (mode === "edit" && jobCategory) {
+      } else if (mode === FormMode.EDIT && jobCategory) {
         await updateJobCategory(jobCategory.id, {
           category: categoryName.trim(),
           description: description.trim() || undefined,
-          is_active: isActive,
         } as UpdateJobCategoryPayload);
         Toast.updated("Job Category");
       }
@@ -360,7 +290,7 @@ function JobCategoryFormModal({
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
-        `Failed to ${mode === "add" ? "create" : "update"} job category.`;
+        `Failed to ${mode === FormMode.ADD ? "create" : "update"} job category.`;
       setFormError(msg);
       onError(msg);
     } finally {
@@ -368,76 +298,30 @@ function JobCategoryFormModal({
     }
   };
 
+  const isAddMode = mode === FormMode.ADD;
+
   return (
     <div
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.5)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-        padding: 16,
-      }}
+      onClick={(event) => event.target === event.currentTarget && onClose()}
+      className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
     >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 20,
-          width: "100%",
-          maxWidth: 500,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.22)",
-          overflow: "hidden",
-        }}
-      >
+      <div className="bg-white rounded-[20px] w-full max-w-[500px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] overflow-hidden">
         {/* Header */}
-        <div
-          style={{
-            padding: "22px 26px 18px",
-            background: "linear-gradient(135deg,#172554,#14b8a6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.18)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 18,
-              }}
-            >
-              {mode === "add" ? "➕" : "✏️"}
+        <div className="p-[22px_26px_18px] bg-gradient-to-br from-[#172554] to-[#14b8a6] flex items-center justify-between">
+          <div className="flex items-center gap-[10px]">
+            <div className="w-9 h-9 rounded-[10px] bg-white/18 flex items-center justify-center">
+              {isAddMode ? (
+                <IconPlusCircle size={18} color="#fff" />
+              ) : (
+                <IconEdit size={18} color="#fff" />
+              )}
             </div>
             <div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: 17,
-                  fontWeight: 700,
-                  color: "#fff",
-                }}
-              >
-                {mode === "add" ? "Add Job Category" : "Edit Job Category"}
+              <h2 className="m-0 text-[17px] font-bold text-white">
+                {isAddMode ? "Add Job Category" : "Edit Job Category"}
               </h2>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 12,
-                  color: "rgba(255,255,255,0.7)",
-                  marginTop: 2,
-                }}
-              >
-                {mode === "add"
+              <p className="m-0 text-xs text-white/70 mt-[2px]">
+                {isAddMode
                   ? "Create a new job category"
                   : "Update category details"}
               </p>
@@ -445,153 +329,55 @@ function JobCategoryFormModal({
           </div>
           <button
             onClick={onClose}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.18)",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 16,
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className="w-8 h-8 rounded-full bg-white/18 border-0 cursor-pointer text-base text-white flex items-center justify-center hover:bg-white/25 transition-colors"
           >
-            ✕
+            <IconX size={16} color="#fff" />
           </button>
         </div>
 
-        <div
-          style={{
-            padding: "22px 26px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
+        <div className="p-[22px_26px] flex flex-col gap-4">
           {formError && (
-            <div
-              style={{
-                padding: "10px 14px",
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
-                borderLeft: "4px solid #ef4444",
-                borderRadius: 10,
-                color: "#dc2626",
-                fontSize: 13,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              ⚠ {formError}
+            <div className="p-[10px_14px] bg-red-50 border border-red-200 border-l-4 border-l-red-500 rounded-[10px] text-red-600 text-[13px] flex items-center gap-2">
+              <IconAlertCircle size={14} color="#dc2626" />
+              {formError}
             </div>
           )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={labelStyle}>
-              Category Name <span style={{ color: "#ef4444" }}>*</span>
+          <div className="flex flex-col gap-[6px]">
+            <label className="text-[12.5px] font-semibold text-gray-600">
+              Category Name <span className="text-red-500">*</span>
             </label>
             <input
               value={categoryName}
-              onChange={(e) => {
-                setCategoryName(e.target.value);
+              onChange={(event) => {
+                setCategoryName(event.target.value);
                 setFormError("");
               }}
               placeholder="e.g. Delivery Team"
-              style={inputStyle}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
+              className="w-full p-[10px_12px] border-[1.5px] border-slate-200 rounded-[10px] text-[13.5px] outline-none bg-white box-border focus:border-[#172554] transition-colors"
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={labelStyle}>
+          <div className="flex flex-col gap-[6px]">
+            <label className="text-[12.5px] font-semibold text-gray-600">
               Description{" "}
-              <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>
+              <span className="text-[11px] font-normal text-slate-400">
                 (optional)
               </span>
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(event) => setDescription(event.target.value)}
               placeholder="Brief description of this category…"
               rows={3}
-              style={{
-                ...inputStyle,
-                resize: "vertical",
-                fontFamily: "inherit",
-              }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#172554")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
+              className="w-full p-[10px_12px] border-[1.5px] border-slate-200 rounded-[10px] text-[13.5px] outline-none bg-white box-border resize-y font-[inherit] focus:border-[#172554] transition-colors"
             />
           </div>
-          {mode === "edit" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={labelStyle}>Status</label>
-              <div style={{ display: "flex", gap: 10 }}>
-                {(["Active", "Inactive"] as const).map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => setIsActive(opt === "Active")}
-                    style={{
-                      flex: 1,
-                      padding: "9px",
-                      borderRadius: 10,
-                      cursor: "pointer",
-                      border: `2px solid ${isActive === (opt === "Active") ? (opt === "Active" ? "#22c55e" : "#94a3b8") : "#e2e8f0"}`,
-                      background:
-                        isActive === (opt === "Active")
-                          ? opt === "Active"
-                            ? "#f0fdf4"
-                            : "#f8fafc"
-                          : "#fff",
-                      color:
-                        isActive === (opt === "Active")
-                          ? opt === "Active"
-                            ? "#16a34a"
-                            : "#64748b"
-                          : "#94a3b8",
-                      fontWeight: 600,
-                      fontSize: 13.5,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: opt === "Active" ? "#22c55e" : "#94a3b8",
-                      }}
-                    />
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        <div
-          style={{
-            padding: "16px 26px 22px",
-            borderTop: "1px solid #f1f5f9",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            background: "#fafbff",
-          }}
-        >
-          <span style={{ fontSize: 12, color: "#94a3b8" }}>
-            <span style={{ color: "#ef4444" }}>*</span> Required fields
+        <div className="p-[16px_26px_22px] border-t border-slate-100 flex items-center justify-between bg-[#fafbff]">
+          <span className="text-xs text-slate-400">
+            <span className="text-red-500">*</span> Required fields
           </span>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="flex gap-[10px]">
             <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
@@ -601,7 +387,7 @@ function JobCategoryFormModal({
               disabled={isSaving}
               loading={isSaving}
             >
-              {mode === "add" ? "Add Category" : "Save Changes"}
+              {isAddMode ? "Add Category" : "Save Changes"}
             </Button>
           </div>
         </div>

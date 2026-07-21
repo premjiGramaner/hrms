@@ -1,0 +1,12 @@
+export const PAGINATION = {
+  DEFAULT_PAGE: 1,
+  DEFAULT_PAGE_SIZE: 10,
+  PAGE_SIZE_OPTIONS: [5, 10, 20, 50] as const,
+  PAGE_SIZE_OPTIONS_EXTENDED: [5, 10, 25, 50, 100] as const,
+} as const;
+
+export const TABLE_CONFIG = {
+  DEFAULT_DEBOUNCE_MS: 300,
+  SEARCH_DEBOUNCE_MS: 350,
+  SEARCH_DEBOUNCE_MS_FAST: 400,
+} as const;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import DataTable, { ColumnDef } from "../../components/DataTable";
 import type { BirthdayReportRecord } from "../../types";
@@ -6,13 +6,74 @@ import {
   fetchBirthdayReport,
   downloadBirthdayReportExcel,
 } from "../../api/report.api";
+import { IconGift } from "../../components/Icons";
+import { ERROR_MESSAGES } from "../../constants/messages";
+import { COLORS } from "../../styles/theme";
 
+// Report Configuration Constants
+const REPORT_CONFIG = {
+  TITLE: "Birthday Report",
+  SUBTITLE: "View all employee birthdays",
+  SEARCH_PLACEHOLDER: "Search by employee name...",
+  ITEM_LABEL: "employees",
+  EMPTY_ICON_TEXT: "🎂",
+  EMPTY_TITLE: "No Birthdays Found",
+  EMPTY_SUBTITLE: "No employee birthdays match your current filters",
+  EXPORT_BUTTON_LABEL: "Export Excel",
+  DEFAULT_SORT_COLUMN: "real_dob",
+  DEFAULT_SORT_DIRECTION: "asc" as const,
+} as const;
+
+// Filter Options Constants
+const FILTER_OPTIONS = {
+  MONTHS: [
+    { value: "01", label: "January" },
+    { value: "02", label: "February" },
+    { value: "03", label: "March" },
+    { value: "04", label: "April" },
+    { value: "05", label: "May" },
+    { value: "06", label: "June" },
+    { value: "07", label: "July" },
+    { value: "08", label: "August" },
+    { value: "09", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ],
+  GENDERS: [
+    { value: "", label: "All Genders" },
+    { value: "Male", label: "Male" },
+    { value: "Female", label: "Female" },
+    { value: "Other", label: "Other" },
+  ],
+  MARITAL_STATUS: [
+    { value: "", label: "All Marital Status" },
+    { value: "Single", label: "Single" },
+    { value: "Married", label: "Married" },
+    { value: "Divorced", label: "Divorced" },
+    { value: "Widowed", label: "Widowed" },
+  ],
+} as const;
+
+// Tab Configuration
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: "/reports/birthday" },
   { label: "Work Anniversary", path: "/reports/work-anniversary" },
   { label: "Termination Report", path: "/reports/termination" },
   { label: "Notifications", path: "/reports/notifications" },
 ];
+
+// Column Display Constants
+const COLUMN_LABELS = {
+  EMPLOYEE_ID: "Employee ID",
+  FIRST_NAME: "First Name",
+  LAST_NAME: "Last Name",
+  FULL_NAME: "Full Name",
+  BIRTHDAY_DATE: "Birthday Date",
+  GENDER: "Gender",
+  MARITAL_STATUS: "Marital Status",
+  NOT_AVAILABLE: "N/A",
+} as const;
 
 export default function BirthdayReportPage() {
   const [reportData, setReportData] = useState<BirthdayReportRecord[]>([]);
@@ -37,16 +98,16 @@ export default function BirthdayReportPage() {
         month: selectedMonth || undefined,
         gender: selectedGender || undefined,
         marital_status: selectedMaritalStatus || undefined,
-        sort_column: "real_dob",
-        sort_direction: "asc",
+        sort_column: REPORT_CONFIG.DEFAULT_SORT_COLUMN,
+        sort_direction: REPORT_CONFIG.DEFAULT_SORT_DIRECTION,
       };
 
       const result = await fetchBirthdayReport(queryParams);
       setReportData(result.reportData);
       setTotalRecords(result.totalRecords);
       setTotalPages(result.totalPages);
-    } catch (err) {
-      console.error("Failed to load birthday report:", err);
+    } catch (error) {
+      console.error("Failed to load birthday report:", error);
       setReportData([]);
     } finally {
       setIsLoading(false);
@@ -73,150 +134,109 @@ export default function BirthdayReportPage() {
     };
     try {
       await downloadBirthdayReportExcel(queryParams);
-    } catch (err) {
-      console.error("Export failed:", err);
-      alert("Failed to export report. Please try again.");
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert(ERROR_MESSAGES.EXPORT_FAILED);
     }
   };
 
   const columns: ColumnDef<BirthdayReportRecord>[] = [
     {
       key: "employee_id",
-      header: "Employee ID",
+      header: COLUMN_LABELS.EMPLOYEE_ID,
       width: 130,
       render: (row) => (
-        <span style={{ fontWeight: 600, color: "#1B2A6B" }}>
-          {row.employee_id || "N/A"}
+        <span className="font-semibold" style={{ color: COLORS.primary.navy }}>
+          {row.employee_id || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
     {
       key: "first_name",
-      header: "First Name",
+      header: COLUMN_LABELS.FIRST_NAME,
       width: 150,
     },
     {
       key: "last_name",
-      header: "Last Name",
+      header: COLUMN_LABELS.LAST_NAME,
       width: 150,
     },
     {
       key: "full_name",
-      header: "Full Name",
+      header: COLUMN_LABELS.FULL_NAME,
       width: 200,
-      render: (row) => <span style={{ fontWeight: 500 }}>{row.full_name}</span>,
+      render: (row) => <span className="font-medium">{row.full_name}</span>,
     },
     {
       key: "formatted_birthday",
-      header: "Birthday Date",
+      header: COLUMN_LABELS.BIRTHDAY_DATE,
       width: 150,
       render: (row) => (
-        <span style={{ fontWeight: 600, color: "#F97316" }}>
-          {row.formatted_birthday || "N/A"}
+        <span className="font-semibold text-orange-500">
+          {row.formatted_birthday || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
     {
       key: "gender",
-      header: "Gender",
+      header: COLUMN_LABELS.GENDER,
       width: 100,
     },
     {
       key: "marital_status",
-      header: "Marital Status",
+      header: COLUMN_LABELS.MARITAL_STATUS,
       width: 140,
     },
   ];
 
-  const months = [
-    { value: "01", label: "January" },
-    { value: "02", label: "February" },
-    { value: "03", label: "March" },
-    { value: "04", label: "April" },
-    { value: "05", label: "May" },
-    { value: "06", label: "June" },
-    { value: "07", label: "July" },
-    { value: "08", label: "August" },
-    { value: "09", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
-  ];
-
   const filterToolbar = (
-    <div
-      style={{
-        display: "flex",
-        gap: 12,
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
+    <div className="flex gap-3 flex-wrap items-center">
+      {/* Month Filter */}
       <select
         value={selectedMonth}
-        onChange={(e) => setSelectedMonth(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setSelectedMonth(event.target.value)}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       >
         <option value="">All Months</option>
-        {months.map((month) => (
+        {FILTER_OPTIONS.MONTHS.map((month) => (
           <option key={month.value} value={month.value}>
             {month.label}
           </option>
         ))}
       </select>
+
+      {/* Gender Filter */}
       <select
         value={selectedGender}
-        onChange={(e) => setSelectedGender(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setSelectedGender(event.target.value)}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       >
-        <option value="">All Genders</option>
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-        <option value="Other">Other</option>
+        {FILTER_OPTIONS.GENDERS.map((gender) => (
+          <option key={gender.value} value={gender.value}>
+            {gender.label}
+          </option>
+        ))}
       </select>
+
+      {/* Marital Status Filter */}
       <select
         value={selectedMaritalStatus}
-        onChange={(e) => setSelectedMaritalStatus(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setSelectedMaritalStatus(event.target.value)}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       >
-        <option value="">All Marital Status</option>
-        <option value="Single">Single</option>
-        <option value="Married">Married</option>
-        <option value="Divorced">Divorced</option>
-        <option value="Widowed">Widowed</option>
+        {FILTER_OPTIONS.MARITAL_STATUS.map((status) => (
+          <option key={status.value} value={status.value}>
+            {status.label}
+          </option>
+        ))}
       </select>
+
+      {/* Export Button */}
       <button
         onClick={handleExportExcel}
-        style={{
-          padding: "8px 16px",
-          background: "#16A085",
-          color: "#fff",
-          border: "none",
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
+        className="py-2 px-4 bg-[#16A085] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#138f72] transition-colors"
       >
-        Export Excel
+        {REPORT_CONFIG.EXPORT_BUTTON_LABEL}
       </button>
     </div>
   );
@@ -225,13 +245,13 @@ export default function BirthdayReportPage() {
     <Layout
       title="Reports and Analytics"
       tabs={TABS}
-      activeTab="Birthday Report"
+      activeTab={REPORT_CONFIG.TITLE}
     >
-      <div style={{ padding: "20px 40px" }}>
+      <div className="py-5 px-10">
         <DataTable
-          title="Birthday Report"
-          subtitle="View all employee birthdays"
-          icon=""
+          title={REPORT_CONFIG.TITLE}
+          subtitle={REPORT_CONFIG.SUBTITLE}
+          icon={<IconGift size={18} />}
           rows={reportData}
           columns={columns}
           isLoading={isLoading}
@@ -246,13 +266,13 @@ export default function BirthdayReportPage() {
             setCurrentPage(1);
           }}
           searchQuery={searchQuery}
-          searchPlaceholder="Search by employee name..."
+          searchPlaceholder={REPORT_CONFIG.SEARCH_PLACEHOLDER}
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
-          itemLabel="employees"
-          emptyIcon="🎂"
-          emptyTitle="No Birthdays Found"
-          emptySubtitle="No employee birthdays match your current filters"
+          itemLabel={REPORT_CONFIG.ITEM_LABEL}
+          emptyIcon={REPORT_CONFIG.EMPTY_ICON_TEXT}
+          emptyTitle={REPORT_CONFIG.EMPTY_TITLE}
+          emptySubtitle={REPORT_CONFIG.EMPTY_SUBTITLE}
         />
       </div>
     </Layout>

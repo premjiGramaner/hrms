@@ -33,11 +33,9 @@ interface Supervisor {
   id: number;
 }
 
-// Reusable CSS class constants
 const LABEL_CLASSES = "text-xs text-slate-600";
 const VALUE_CLASSES = "text-sm text-slate-800";
 
-// Reusable InfoField component
 interface InfoFieldProps {
   label: string;
   value: React.ReactNode;
@@ -193,7 +191,6 @@ export default function EmployeeProfileCard({
     }
   };
 
-  // Avatar is now a base64 data URL from database
   const avatarUrl = getAvatarSrc(employee.avatar);
 
   const getSupervisorNames = () => {
@@ -372,19 +369,6 @@ export default function EmployeeProfileCard({
                 label="Job Category"
                 value={employee.job_category || "N/A"}
               />
-              <div>
-                <p className={LABEL_CLASSES}>Status</p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      employee.is_active ? "bg-green-500" : "bg-red-500"
-                    }`}
-                  ></span>
-                  <span className={VALUE_CLASSES}>
-                    {employee.is_active ? "Active" : "Inactive"}
-                  </span>
-                </div>
-              </div>
               <InfoField label="Supervisor" value={getSupervisorNames()} />
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   fetchNotificationConfig,
@@ -22,6 +22,84 @@ import Alert from "../../utils/alert";
 import { getNumericValue } from "../employees/components/inputHelpers";
 import { validateEmail } from "../../validations/employee.validation";
 
+// Configuration Constants
+const NOTIFICATION_CONFIG = {
+  DEFAULT_DAYS_BEFORE: 2,
+  MAX_DAYS_BEFORE: 30,
+  MIN_DAYS_BEFORE: 0,
+  SAVE_MESSAGE_DURATION: 3000,
+  TEST_MESSAGE_DURATION: 12000,
+  ERROR_MESSAGE_DURATION: 10000,
+} as const;
+
+// UI Text Constants
+const UI_TEXT = {
+  PAGE_TITLE: "Email Notification Configuration",
+  PAGE_SUBTITLE:
+    "Configure automated email alerts for birthdays and work anniversaries",
+  LOADING_MESSAGE: "Loading notification configuration...",
+  TEST_BUTTON_LABEL: "Test Notifications Now",
+  TEST_BUTTON_LOADING: "Testing...",
+  BIRTHDAY_TITLE: "Birthday Notifications",
+  BIRTHDAY_SUBTITLE:
+    "Automated email reminders for upcoming employee birthdays",
+  ANNIVERSARY_TITLE: "Work Anniversary Notifications",
+  ANNIVERSARY_SUBTITLE:
+    "Automated email reminders for employee work anniversaries",
+  ENABLED_LABEL: "Notifications Enabled",
+  ENABLE_LABEL: "Enable Notifications",
+  DAYS_BEFORE_LABEL: "Days Before (0-30 days)",
+  DAYS_BEFORE_PLACEHOLDER: "Enter days (0-30)",
+  AUTO_RECIPIENTS_TITLE: "Auto Recipients: All Global Admins",
+  AUTO_RECIPIENTS_DESC:
+    "Notifications are automatically sent to all global admins (HR Admins and Employee Managers) in the system. You don't need to select recipients - the system handles this automatically!",
+  EXTERNAL_EMAIL_LABEL: "Add External Email Recipients",
+  EXTERNAL_EMAIL_OPTIONAL: "(optional)",
+  EXTERNAL_EMAIL_PLACEHOLDER: "Enter email address (e.g., manager@company.com)",
+  EXTERNAL_EMAIL_HELP:
+    "Add external email addresses to receive notifications outside of system users",
+  ADD_EMAIL_BUTTON: "+ Add Email",
+  REMOVE_BUTTON: "Remove",
+  SAVE_BUTTON: "Save Configuration",
+  SAVING_BUTTON: "Saving...",
+  EXTERNAL_RECIPIENTS_LABEL: "External Email Recipients",
+} as const;
+
+// Success/Error Messages
+const MESSAGES = {
+  BIRTHDAY_CONFIG_SAVED:
+    "Birthday notification configuration saved successfully!",
+  ANNIVERSARY_CONFIG_SAVED:
+    "Work anniversary notification configuration saved successfully!",
+  CONFIG_SAVE_FAILED: "Failed to save configuration. Please try again.",
+  EMAIL_REQUIRED: "Please enter an email address",
+  INVALID_EMAIL: "Please enter a valid email address",
+  DUPLICATE_EMAIL: "This email is already in the list",
+  TEST_NOTIFICATIONS_TITLE: "Test Notifications",
+  TEST_NOTIFICATIONS_CONFIRM:
+    "This will trigger notification emails immediately for any upcoming birthdays/anniversaries. Continue?",
+  TEST_CONFIRM_BUTTON: "Yes, Send Test",
+  TEST_CANCEL_BUTTON: "Cancel",
+  NOTIFICATIONS_TRIGGERED: "Notifications Triggered!",
+  CHECK_EMAIL: "Check your email inbox (and spam folder) now!",
+  TRIGGER_FAILED: "Failed to trigger notifications",
+  UNAUTHORIZED_ACCESS: "Unauthorized Access",
+  UNAUTHORIZED_MESSAGE:
+    "Please log out and log back in with admin credentials, then try again.\n\nThis feature requires Global Admin (hradmin) role.",
+  CHECK_SERVER_CONSOLE: "Check server console for details.",
+  UNKNOWN_ERROR: "Unknown error",
+} as const;
+
+// Help Text Constants
+const HELP_TEXT = {
+  DAYS_ZERO: "0 days: Send notification for TODAY only",
+  DAYS_RANGE: "1-30 days: Send notifications for TODAY + next N days",
+  DAYS_EXAMPLE:
+    "Example: Enter 2 to get reminders for today, tomorrow, and day after tomorrow",
+  DAYS_TIP: "You can type any number from 0 to 30",
+} as const;
+
+// Tab Configuration
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: "/reports/birthday" },
   { label: "Work Anniversary", path: "/reports/work-anniversary" },
@@ -58,21 +136,6 @@ export default function ReportNotificationConfigPage() {
   >([]);
   const [anniversaryEmailInput, setAnniversaryEmailInput] = useState("");
 
-  // Add CSS animation for loading spinner
-  React.useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-
   const loadConfig = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -81,7 +144,10 @@ export default function ReportNotificationConfigPage() {
       setAnniversaryConfig(config.work_anniversary);
 
       if (config.birthday) {
-        setBirthdayDaysBefore(config.birthday.days_before || 2);
+        setBirthdayDaysBefore(
+          config.birthday.days_before ||
+            NOTIFICATION_CONFIG.DEFAULT_DAYS_BEFORE,
+        );
         setBirthdayActive(config.birthday.is_active !== false);
 
         const externalEmailsArray = config.birthday.external_emails
@@ -95,7 +161,10 @@ export default function ReportNotificationConfigPage() {
       }
 
       if (config.work_anniversary) {
-        setAnniversaryDaysBefore(config.work_anniversary.days_before || 2);
+        setAnniversaryDaysBefore(
+          config.work_anniversary.days_before ||
+            NOTIFICATION_CONFIG.DEFAULT_DAYS_BEFORE,
+        );
         setAnniversaryActive(config.work_anniversary.is_active !== false);
 
         const externalEmailsArray = config.work_anniversary.external_emails
@@ -107,8 +176,8 @@ export default function ReportNotificationConfigPage() {
 
         setAnniversaryExternalEmails(externalEmailsArray);
       }
-    } catch (err) {
-      console.error("Failed to load notification config:", err);
+    } catch (error) {
+      console.error("Failed to load notification config:", error);
     } finally {
       setIsLoading(false);
     }
@@ -121,8 +190,8 @@ export default function ReportNotificationConfigPage() {
         (employee: Employee) => employee.email && employee.is_active !== false,
       );
       setHrAdminUsers(users);
-    } catch (err) {
-      console.error("Failed to load users:", err);
+    } catch (error) {
+      console.error("Failed to load users:", error);
     }
   }, []);
 
@@ -149,17 +218,21 @@ export default function ReportNotificationConfigPage() {
         external_emails: externalEmailsString,
       });
 
-      setSaveMessage(
-        "✅ Birthday notification configuration saved successfully!",
-      );
+      setSaveMessage(MESSAGES.BIRTHDAY_CONFIG_SAVED);
 
       await loadConfig();
 
-      setTimeout(() => setSaveMessage(""), 3000);
-    } catch (err) {
-      console.error("Failed to save birthday config:", err);
-      setSaveMessage("❌ Failed to save configuration. Please try again.");
-      setTimeout(() => setSaveMessage(""), 3000);
+      setTimeout(
+        () => setSaveMessage(""),
+        NOTIFICATION_CONFIG.SAVE_MESSAGE_DURATION,
+      );
+    } catch (error) {
+      console.error("Failed to save birthday config:", error);
+      setSaveMessage(MESSAGES.CONFIG_SAVE_FAILED);
+      setTimeout(
+        () => setSaveMessage(""),
+        NOTIFICATION_CONFIG.SAVE_MESSAGE_DURATION,
+      );
     } finally {
       setIsSaving(false);
     }
@@ -179,17 +252,21 @@ export default function ReportNotificationConfigPage() {
         external_emails: externalEmailsString,
       });
 
-      setSaveMessage(
-        "✅ Work anniversary notification configuration saved successfully!",
-      );
+      setSaveMessage(MESSAGES.ANNIVERSARY_CONFIG_SAVED);
 
       await loadConfig();
 
-      setTimeout(() => setSaveMessage(""), 3000);
-    } catch (err) {
-      console.error("Failed to save anniversary config:", err);
-      setSaveMessage("❌ Failed to save configuration. Please try again.");
-      setTimeout(() => setSaveMessage(""), 3000);
+      setTimeout(
+        () => setSaveMessage(""),
+        NOTIFICATION_CONFIG.SAVE_MESSAGE_DURATION,
+      );
+    } catch (error) {
+      console.error("Failed to save anniversary config:", error);
+      setSaveMessage(MESSAGES.CONFIG_SAVE_FAILED);
+      setTimeout(
+        () => setSaveMessage(""),
+        NOTIFICATION_CONFIG.SAVE_MESSAGE_DURATION,
+      );
     } finally {
       setIsSaving(false);
     }
@@ -215,15 +292,15 @@ export default function ReportNotificationConfigPage() {
   ) => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) {
-      await Alert.info("Email Required", "Please enter an email address");
+      await Alert.info("Email Required", MESSAGES.EMAIL_REQUIRED);
       return;
     }
     if (!validateEmail(trimmedEmail)) {
-      await Alert.info("Invalid Email", "Please enter a valid email address");
+      await Alert.info("Invalid Email", MESSAGES.INVALID_EMAIL);
       return;
     }
     if (currentList.includes(trimmedEmail)) {
-      await Alert.info("Duplicate Email", "This email is already in the list");
+      await Alert.info("Duplicate Email", MESSAGES.DUPLICATE_EMAIL);
       return;
     }
     setList([...currentList, trimmedEmail]);
@@ -240,11 +317,10 @@ export default function ReportNotificationConfigPage() {
 
   const handleTestNotifications = async () => {
     const confirmed = await Alert.confirm({
-      title: "Test Notifications",
-      message:
-        "This will trigger notification emails immediately for any upcoming birthdays/anniversaries. Continue?",
-      confirmText: "Yes, Send Test",
-      cancelText: "Cancel",
+      title: MESSAGES.TEST_NOTIFICATIONS_TITLE,
+      message: MESSAGES.TEST_NOTIFICATIONS_CONFIRM,
+      confirmText: MESSAGES.TEST_CONFIRM_BUTTON,
+      cancelText: MESSAGES.TEST_CANCEL_BUTTON,
       type: "warning",
     });
 
@@ -257,41 +333,47 @@ export default function ReportNotificationConfigPage() {
     try {
       const result = await triggerNotificationsManually();
 
-      const birthdayMsg = result.results.birthday.success
-        ? `✅ ${result.results.birthday.message}`
-        : `⚠️ ${result.results.birthday.message}`;
-      const anniversaryMsg = result.results.work_anniversary.success
-        ? `✅ ${result.results.work_anniversary.message}`
-        : `⚠️ ${result.results.work_anniversary.message}`;
+      const birthdayStatus = result.results.birthday.success
+        ? "Success"
+        : "Warning";
+      const anniversaryStatus = result.results.work_anniversary.success
+        ? "Success"
+        : "Warning";
 
       setSaveMessage(
-        `🎉 Notifications Triggered!\n\n` +
-          `Birthday: ${birthdayMsg}\n` +
-          `Anniversary: ${anniversaryMsg}\n\n` +
-          `📧 Check your email inbox (and spam folder) now!`,
+        `${MESSAGES.NOTIFICATIONS_TRIGGERED}\n\n` +
+          `Birthday: ${birthdayStatus} - ${result.results.birthday.message}\n` +
+          `Anniversary: ${anniversaryStatus} - ${result.results.work_anniversary.message}\n\n` +
+          `${MESSAGES.CHECK_EMAIL}`,
       );
 
-      setTimeout(() => setSaveMessage(""), 12000);
-    } catch (err: any) {
-      console.error("❌ Failed to trigger notifications:", err);
+      setTimeout(
+        () => setSaveMessage(""),
+        NOTIFICATION_CONFIG.TEST_MESSAGE_DURATION,
+      );
+    } catch (error: any) {
+      console.error("Failed to trigger notifications:", error);
 
-      if (err?.response?.status === 401 || err?.response?.status === 403) {
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
         setSaveMessage(
-          `❌ Unauthorized Access\n\n` +
-            `Please log out and log back in with admin credentials, then try again.\n\n` +
-            `This feature requires Global Admin (hradmin) role.`,
+          `${MESSAGES.UNAUTHORIZED_ACCESS}\n\n${MESSAGES.UNAUTHORIZED_MESSAGE}`,
         );
       } else {
         const errorMsg =
-          err?.response?.data?.message || err?.message || "Unknown error";
+          error?.response?.data?.message ||
+          error?.message ||
+          MESSAGES.UNKNOWN_ERROR;
         setSaveMessage(
-          `❌ Failed to trigger notifications\n\n` +
+          `${MESSAGES.TRIGGER_FAILED}\n\n` +
             `Error: ${errorMsg}\n\n` +
-            `Check server console for details.`,
+            `${MESSAGES.CHECK_SERVER_CONSOLE}`,
         );
       }
 
-      setTimeout(() => setSaveMessage(""), 10000);
+      setTimeout(
+        () => setSaveMessage(""),
+        NOTIFICATION_CONFIG.ERROR_MESSAGE_DURATION,
+      );
     } finally {
       setIsTesting(false);
     }
@@ -308,7 +390,7 @@ export default function ReportNotificationConfigPage() {
           <div className="inline-block p-8 px-12 bg-white rounded-xl shadow-md">
             <div className="w-10 h-10 border-4 border-slate-200 border-t-teal-500 rounded-full animate-spin mx-auto mb-4" />
             <p className="text-sm text-slate-500 font-medium">
-              Loading notification configuration...
+              {UI_TEXT.LOADING_MESSAGE}
             </p>
           </div>
         </div>
@@ -327,11 +409,10 @@ export default function ReportNotificationConfigPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold m-0 mb-2">
-                  Email Notification Configuration
+                  {UI_TEXT.PAGE_TITLE}
                 </h1>
                 <p className="text-sm m-0 opacity-90">
-                  Configure automated email alerts for birthdays and work
-                  anniversaries
+                  {UI_TEXT.PAGE_SUBTITLE}
                 </p>
               </div>
             </div>
@@ -349,7 +430,9 @@ export default function ReportNotificationConfigPage() {
                 size={16}
                 color={isTesting ? "rgba(255,255,255,0.7)" : "#172554"}
               />
-              {isTesting ? "Testing..." : "Test Notifications Now"}
+              {isTesting
+                ? UI_TEXT.TEST_BUTTON_LOADING
+                : UI_TEXT.TEST_BUTTON_LABEL}
             </button>
           </div>
         </div>
@@ -358,8 +441,8 @@ export default function ReportNotificationConfigPage() {
           <div
             className={`px-6 py-4 rounded-xl mb-6 text-sm font-medium whitespace-pre-line shadow-sm ${
               saveMessage.includes("success") ||
-              saveMessage.includes("✅") ||
-              saveMessage.includes("🎉")
+              saveMessage.includes("Success") ||
+              saveMessage.includes(MESSAGES.NOTIFICATIONS_TRIGGERED)
                 ? "bg-emerald-100 text-emerald-900 border-2 border-emerald-500"
                 : "bg-red-100 text-red-900 border-2 border-red-500"
             }`}
@@ -393,7 +476,7 @@ export default function ReportNotificationConfigPage() {
                 <input
                   type="checkbox"
                   checked={birthdayActive}
-                  onChange={(e) => setBirthdayActive(e.target.checked)}
+                  onChange={(event) => setBirthdayActive(event.target.checked)}
                   className="w-[18px] h-[18px] cursor-pointer accent-teal-500"
                 />
                 <span
@@ -419,17 +502,19 @@ export default function ReportNotificationConfigPage() {
                 pattern="[0-9]*"
                 placeholder="Enter days (0-30)"
                 value={birthdayDaysBefore}
-                onChange={(e) => {
-                  const value = getNumericValue(e);
+                onChange={(event) => {
+                  const value = getNumericValue(event);
                   const numValue = value === "" ? 0 : parseInt(value, 10);
-                  if (numValue <= 30) {
+                  if (numValue <= NOTIFICATION_CONFIG.MAX_DAYS_BEFORE) {
                     setBirthdayDaysBefore(numValue);
                   }
                 }}
-                onBlur={(e) => {
-                  const value = e.target.value.trim();
+                onBlur={(event) => {
+                  const value = event.target.value.trim();
                   if (value === "" || isNaN(parseInt(value, 10))) {
-                    setBirthdayDaysBefore(2);
+                    setBirthdayDaysBefore(
+                      NOTIFICATION_CONFIG.DEFAULT_DAYS_BEFORE,
+                    );
                   }
                 }}
                 className="py-[11px] px-3.5 border-[1.5px] border-slate-200 rounded-xl text-[13.5px] w-[220px] outline-none transition-colors focus:border-blue-950"
@@ -485,10 +570,12 @@ export default function ReportNotificationConfigPage() {
                   type="email"
                   placeholder="Enter email address (e.g., manager@company.com)"
                   value={birthdayEmailInput}
-                  onChange={(e) => setBirthdayEmailInput(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
+                  onChange={(event) =>
+                    setBirthdayEmailInput(event.target.value)
+                  }
+                  onKeyPress={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
                       addExternalEmail(
                         birthdayEmailInput,
                         birthdayExternalEmails,
@@ -596,7 +683,9 @@ export default function ReportNotificationConfigPage() {
                 <input
                   type="checkbox"
                   checked={anniversaryActive}
-                  onChange={(e) => setAnniversaryActive(e.target.checked)}
+                  onChange={(event) =>
+                    setAnniversaryActive(event.target.checked)
+                  }
                   className="w-[18px] h-[18px] cursor-pointer accent-teal-500"
                 />
                 <span
@@ -622,17 +711,19 @@ export default function ReportNotificationConfigPage() {
                 pattern="[0-9]*"
                 placeholder="Enter days (0-30)"
                 value={anniversaryDaysBefore}
-                onChange={(e) => {
-                  const value = getNumericValue(e);
+                onChange={(event) => {
+                  const value = getNumericValue(event);
                   const numValue = value === "" ? 0 : parseInt(value, 10);
-                  if (numValue <= 30) {
+                  if (numValue <= NOTIFICATION_CONFIG.MAX_DAYS_BEFORE) {
                     setAnniversaryDaysBefore(numValue);
                   }
                 }}
-                onBlur={(e) => {
-                  const value = e.target.value.trim();
+                onBlur={(event) => {
+                  const value = event.target.value.trim();
                   if (value === "" || isNaN(parseInt(value, 10))) {
-                    setAnniversaryDaysBefore(2);
+                    setAnniversaryDaysBefore(
+                      NOTIFICATION_CONFIG.DEFAULT_DAYS_BEFORE,
+                    );
                   }
                 }}
                 className="py-[11px] px-3.5 border-[1.5px] border-slate-200 rounded-xl text-[13.5px] w-[220px] outline-none transition-colors focus:border-blue-950"
@@ -689,10 +780,12 @@ export default function ReportNotificationConfigPage() {
                   type="email"
                   placeholder="Enter email address (e.g., manager@company.com)"
                   value={anniversaryEmailInput}
-                  onChange={(e) => setAnniversaryEmailInput(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
+                  onChange={(event) =>
+                    setAnniversaryEmailInput(event.target.value)
+                  }
+                  onKeyPress={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
                       addExternalEmail(
                         anniversaryEmailInput,
                         anniversaryExternalEmails,

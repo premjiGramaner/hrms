@@ -245,7 +245,6 @@ export default function MyInfoPage() {
         if (!isAdmin && (key === "employee_id" || key === "real_dob")) {
           return;
         }
-        // Exclude avatar from regular profile updates - avatar is updated separately via updateProfileImage
         if (key !== "avatar") {
           const stringValue = String(value || "");
           formData.append(key, stringValue.trim());

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import DataTable, { ColumnDef } from "../../components/DataTable";
 import type { TerminationReportRecord, ReportFilterOptions } from "../../types";
@@ -8,7 +8,85 @@ import {
   downloadTerminationReportPDF,
   fetchReportFilterOptions,
 } from "../../api/report.api";
+import { IconClipboardList } from "../../components/Icons";
+import { ERROR_MESSAGES } from "../../constants/messages";
+import { COLORS } from "../../styles/theme";
 
+// Report Configuration Constants
+const REPORT_CONFIG = {
+  TITLE: "Termination Report",
+  SUBTITLE:
+    "Comprehensive termination history with exit details and rehire eligibility",
+  SEARCH_PLACEHOLDER: "Search by employee name...",
+  ITEM_LABEL: "terminated employees",
+  EMPTY_ICON_TEXT: "📋",
+  EMPTY_TITLE: "No Terminated Employees",
+  EMPTY_SUBTITLE: "No records match your current filters",
+  EXPORT_EXCEL_LABEL: "Export Excel",
+  EXPORT_PDF_LABEL: "Export PDF",
+  DEFAULT_SORT_COLUMN: "updated_at",
+  DEFAULT_SORT_DIRECTION: "desc" as const,
+} as const;
+
+// Termination Type Styling
+const TERMINATION_TYPE_STYLES = {
+  Voluntary: {
+    bgColor: "#E8F5E9",
+    textColor: "#2E7D32",
+  },
+  Involuntary: {
+    bgColor: "#FFEBEE",
+    textColor: "#C62828",
+  },
+  Retirement: {
+    bgColor: "#FFF3E0",
+    textColor: "#E65100",
+  },
+} as const;
+
+// Rehire Status Styling
+const REHIRE_STATUS_STYLES = {
+  eligible: {
+    bgColor: "#E8F5E9",
+    textColor: "#2E7D32",
+    label: "Yes",
+  },
+  notEligible: {
+    bgColor: "#FFEBEE",
+    textColor: "#C62828",
+    label: "No",
+  },
+} as const;
+
+// Column Display Constants
+const COLUMN_LABELS = {
+  EMP_ID: "EMP ID",
+  NAME: "Name",
+  DESIGNATION: "Designation",
+  TERMINATION_TYPE: "Termination Type",
+  REASON: "Reason",
+  JOIN_DATE: "Join Date",
+  EXIT_DATE: "Exit Date",
+  LAST_WORKING_DAY: "Last Working Day",
+  NOTICE_PERIOD: "Notice Period",
+  REHIRE_ELIGIBLE: "Rehire Eligible",
+  NOTES: "Notes",
+  SUPERVISOR: "Supervisor",
+  TERMINATED_BY: "Terminated By",
+  NOT_AVAILABLE: "N/A",
+  NO_NOTES: "-",
+  DAYS_SUFFIX: "days",
+} as const;
+
+// Filter Labels
+const FILTER_LABELS = {
+  ALL_COMPANIES: "All Companies",
+  ALL_LOCATIONS: "All Locations",
+  FROM_DATE_PLACEHOLDER: "From Date",
+  TO_DATE_PLACEHOLDER: "To Date",
+} as const;
+
+// Tab Configuration
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: "/reports/birthday" },
   { label: "Work Anniversary", path: "/reports/work-anniversary" },
@@ -25,7 +103,6 @@ export default function TerminationReportPage() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Filters
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selectedGroupCompany, setSelectedGroupCompany] = useState("");
@@ -39,8 +116,8 @@ export default function TerminationReportPage() {
     try {
       const options = await fetchReportFilterOptions();
       setFilterOptions(options);
-    } catch (err) {
-      console.error("Failed to load filter options:", err);
+    } catch (error) {
+      console.error("Failed to load filter options:", error);
     }
   }, []);
 
@@ -55,16 +132,16 @@ export default function TerminationReportPage() {
         date_to: dateTo || undefined,
         group_company: selectedGroupCompany || undefined,
         location: selectedLocation || undefined,
-        sort_column: "updated_at",
-        sort_direction: "desc",
+        sort_column: REPORT_CONFIG.DEFAULT_SORT_COLUMN,
+        sort_direction: REPORT_CONFIG.DEFAULT_SORT_DIRECTION,
       };
 
       const result = await fetchTerminationReport(queryParams);
       setReportData(result.reportData);
       setTotalRecords(result.totalRecords);
       setTotalPages(result.totalPages);
-    } catch (err) {
-      console.error("Failed to load termination report:", err);
+    } catch (error) {
+      console.error("Failed to load termination report:", error);
       setReportData([]);
     } finally {
       setIsLoading(false);
@@ -97,9 +174,9 @@ export default function TerminationReportPage() {
     };
     try {
       await downloadTerminationReportExcel(queryParams);
-    } catch (err) {
-      console.error("Export failed:", err);
-      alert("Failed to export report. Please try again.");
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert(ERROR_MESSAGES.EXPORT_FAILED);
     }
   };
 
@@ -113,259 +190,223 @@ export default function TerminationReportPage() {
     };
     try {
       await downloadTerminationReportPDF(queryParams);
-    } catch (err) {
-      console.error("Export failed:", err);
-      alert("Failed to export report. Please try again.");
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert(ERROR_MESSAGES.EXPORT_FAILED);
     }
   };
 
   const columns: ColumnDef<TerminationReportRecord>[] = [
     {
       key: "emp_id",
-      header: "EMP ID",
+      header: COLUMN_LABELS.EMP_ID,
       width: 100,
       render: (row) => (
-        <span style={{ fontWeight: 600, color: "#1B2A6B" }}>
-          {row.emp_id || "N/A"}
+        <span className="font-semibold" style={{ color: COLORS.primary.navy }}>
+          {row.emp_id || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
     {
       key: "employee_name",
-      header: "Name",
+      header: COLUMN_LABELS.NAME,
       width: 180,
       render: (row) => (
-        <span style={{ fontWeight: 500 }}>{row.employee_name || "N/A"}</span>
-      ),
-    },
-    {
-      key: "designation",
-      header: "Designation",
-      width: 150,
-    },
-    {
-      key: "termination_type",
-      header: "Termination Type",
-      width: 140,
-      render: (row) => (
-        <span
-          style={{
-            display: "inline-block",
-            padding: "4px 10px",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            backgroundColor:
-              row.termination_type === "Voluntary"
-                ? "#E8F5E9"
-                : row.termination_type === "Involuntary"
-                  ? "#FFEBEE"
-                  : "#FFF3E0",
-            color:
-              row.termination_type === "Voluntary"
-                ? "#2E7D32"
-                : row.termination_type === "Involuntary"
-                  ? "#C62828"
-                  : "#E65100",
-          }}
-        >
-          {row.termination_type || "N/A"}
+        <span className="font-medium">
+          {row.employee_name || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
     {
+      key: "designation",
+      header: COLUMN_LABELS.DESIGNATION,
+      width: 150,
+    },
+    {
+      key: "termination_type",
+      header: COLUMN_LABELS.TERMINATION_TYPE,
+      width: 140,
+      render: (row) => {
+        const terminationType =
+          row.termination_type as keyof typeof TERMINATION_TYPE_STYLES;
+        const styleConfig =
+          TERMINATION_TYPE_STYLES[terminationType] ||
+          TERMINATION_TYPE_STYLES.Retirement;
+        return (
+          <span
+            className="inline-block py-1 px-2.5 rounded-md text-xs font-semibold"
+            style={{
+              backgroundColor: styleConfig.bgColor,
+              color: styleConfig.textColor,
+            }}
+          >
+            {row.termination_type || COLUMN_LABELS.NOT_AVAILABLE}
+          </span>
+        );
+      },
+    },
+    {
       key: "termination_reason",
-      header: "Reason",
+      header: COLUMN_LABELS.REASON,
       width: 200,
       render: (row) => (
-        <span style={{ fontSize: 13 }}>{row.termination_reason || "N/A"}</span>
+        <span className="text-[13px]">
+          {row.termination_reason || COLUMN_LABELS.NOT_AVAILABLE}
+        </span>
       ),
     },
     {
       key: "date_of_joining",
-      header: "Join Date",
+      header: COLUMN_LABELS.JOIN_DATE,
       width: 140,
     },
     {
       key: "date_of_exit",
-      header: "Exit Date",
+      header: COLUMN_LABELS.EXIT_DATE,
       width: 140,
       render: (row) => (
-        <span style={{ color: "#E53E3E", fontWeight: 600 }}>
-          {row.date_of_exit || "N/A"}
+        <span className="text-red-600 font-semibold">
+          {row.date_of_exit || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
     {
       key: "last_working_day",
-      header: "Last Working Day",
+      header: COLUMN_LABELS.LAST_WORKING_DAY,
       width: 140,
       render: (row) => (
-        <span style={{ fontWeight: 500 }}>{row.last_working_day || "N/A"}</span>
+        <span className="font-medium">
+          {row.last_working_day || COLUMN_LABELS.NOT_AVAILABLE}
+        </span>
       ),
     },
     {
       key: "notice_period_days",
-      header: "Notice Period",
+      header: COLUMN_LABELS.NOTICE_PERIOD,
       width: 120,
       render: (row) => (
         <span>
           {row.notice_period_days !== undefined
-            ? `${row.notice_period_days} days`
-            : "N/A"}
+            ? `${row.notice_period_days} ${COLUMN_LABELS.DAYS_SUFFIX}`
+            : COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
     {
       key: "rehire_eligible",
-      header: "Rehire Eligible",
+      header: COLUMN_LABELS.REHIRE_ELIGIBLE,
       width: 130,
-      render: (row) => (
-        <span
-          style={{
-            display: "inline-block",
-            padding: "4px 10px",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            backgroundColor: row.rehire_eligible ? "#E8F5E9" : "#FFEBEE",
-            color: row.rehire_eligible ? "#2E7D32" : "#C62828",
-          }}
-        >
-          {row.rehire_eligible ? "Yes" : "No"}
-        </span>
-      ),
+      render: (row) => {
+        const statusConfig = row.rehire_eligible
+          ? REHIRE_STATUS_STYLES.eligible
+          : REHIRE_STATUS_STYLES.notEligible;
+        return (
+          <span
+            className="inline-block py-1 px-2.5 rounded-md text-xs font-semibold"
+            style={{
+              backgroundColor: statusConfig.bgColor,
+              color: statusConfig.textColor,
+            }}
+          >
+            {statusConfig.label}
+          </span>
+        );
+      },
     },
     {
       key: "termination_notes",
-      header: "Notes",
+      header: COLUMN_LABELS.NOTES,
       width: 200,
       render: (row) => (
-        <span style={{ fontSize: 13, color: "#64748b" }}>
-          {row.termination_notes || "-"}
+        <span className="text-[13px] text-slate-500">
+          {row.termination_notes || COLUMN_LABELS.NO_NOTES}
         </span>
       ),
     },
     {
       key: "actual_supervisor",
-      header: "Supervisor",
+      header: COLUMN_LABELS.SUPERVISOR,
       width: 160,
       render: (row) => (
-        <span style={{ fontSize: 13 }}>{row.actual_supervisor || "N/A"}</span>
+        <span className="text-[13px]">
+          {row.actual_supervisor || COLUMN_LABELS.NOT_AVAILABLE}
+        </span>
       ),
     },
     {
       key: "terminated_by",
-      header: "Terminated By",
+      header: COLUMN_LABELS.TERMINATED_BY,
       width: 150,
       render: (row) => (
-        <span style={{ fontSize: 13, fontStyle: "italic" }}>
-          {row.terminated_by || "N/A"}
+        <span className="text-[13px] italic">
+          {row.terminated_by || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
   ];
 
   const filterToolbar = (
-    <div
-      style={{
-        display: "flex",
-        gap: 12,
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
+    <div className="flex gap-3 flex-wrap items-center">
+      {/* Date From Filter */}
       <input
         type="date"
         value={dateFrom}
-        onChange={(e) => setDateFrom(e.target.value)}
-        placeholder="From Date"
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setDateFrom(event.target.value)}
+        placeholder={FILTER_LABELS.FROM_DATE_PLACEHOLDER}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       />
+
+      {/* Date To Filter */}
       <input
         type="date"
         value={dateTo}
-        onChange={(e) => setDateTo(e.target.value)}
-        placeholder="To Date"
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setDateTo(event.target.value)}
+        placeholder={FILTER_LABELS.TO_DATE_PLACEHOLDER}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       />
+
+      {/* Group Company Filter */}
       <select
         value={selectedGroupCompany}
-        onChange={(e) => setSelectedGroupCompany(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setSelectedGroupCompany(event.target.value)}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       >
-        <option value="">All Companies</option>
+        <option value="">{FILTER_LABELS.ALL_COMPANIES}</option>
         {filterOptions.subUnits.map((unit) => (
           <option key={unit} value={unit}>
             {unit}
           </option>
         ))}
       </select>
+
+      {/* Location Filter */}
       <select
         value={selectedLocation}
-        onChange={(e) => setSelectedLocation(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setSelectedLocation(event.target.value)}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       >
-        <option value="">All Locations</option>
-        {filterOptions.locations.map((loc) => (
-          <option key={loc} value={loc}>
-            {loc}
+        <option value="">{FILTER_LABELS.ALL_LOCATIONS}</option>
+        {filterOptions.locations.map((location) => (
+          <option key={location} value={location}>
+            {location}
           </option>
         ))}
       </select>
+
+      {/* Export Excel Button */}
       <button
         onClick={handleExportExcel}
-        style={{
-          padding: "8px 16px",
-          background: "#16A085",
-          color: "#fff",
-          border: "none",
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
+        className="py-2 px-4 bg-[#16A085] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#138f72] transition-colors"
       >
-         Export Excel
+        {REPORT_CONFIG.EXPORT_EXCEL_LABEL}
       </button>
+
+      {/* Export PDF Button */}
       <button
         onClick={handleExportPDF}
-        style={{
-          padding: "8px 16px",
-          background: "#21088dff",
-          color: "#fff",
-          border: "none",
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
+        className="py-2 px-4 bg-[#21088dff] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#1a0670] transition-colors"
       >
-         Export PDF
+        {REPORT_CONFIG.EXPORT_PDF_LABEL}
       </button>
     </div>
   );
@@ -374,13 +415,13 @@ export default function TerminationReportPage() {
     <Layout
       title="Reports and Analytics"
       tabs={TABS}
-      activeTab="Termination Report"
+      activeTab={REPORT_CONFIG.TITLE}
     >
-      <div style={{ padding: "20px 40px" }}>
+      <div className="py-5 px-10">
         <DataTable
-          title="Termination Report"
-          subtitle="Comprehensive termination history with exit details and rehire eligibility"
-          icon=""
+          title={REPORT_CONFIG.TITLE}
+          subtitle={REPORT_CONFIG.SUBTITLE}
+          icon={<IconClipboardList size={18} />}
           rows={reportData}
           columns={columns}
           isLoading={isLoading}
@@ -395,13 +436,13 @@ export default function TerminationReportPage() {
             setCurrentPage(1);
           }}
           searchQuery={searchQuery}
-          searchPlaceholder="Search by employee name..."
+          searchPlaceholder={REPORT_CONFIG.SEARCH_PLACEHOLDER}
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
-          itemLabel="terminated employees"
-          emptyIcon="📋"
-          emptyTitle="No Terminated Employees"
-          emptySubtitle="No records match your current filters"
+          itemLabel={REPORT_CONFIG.ITEM_LABEL}
+          emptyIcon={REPORT_CONFIG.EMPTY_ICON_TEXT}
+          emptyTitle={REPORT_CONFIG.EMPTY_TITLE}
+          emptySubtitle={REPORT_CONFIG.EMPTY_SUBTITLE}
         />
       </div>
     </Layout>

@@ -37,7 +37,6 @@ type ReportRecord =
   | WorkAnniversaryReportRecord
   | TerminationReportRecord;
 
-// Helper function to get termination type badge background color
 const getTerminationTypeBgColor = (type: string): string => {
   const color = TERMINATION_TYPE_COLORS[type];
   return color || "#94A3B8";
@@ -86,7 +85,6 @@ export default function UnifiedReportsPage() {
   useEffect(() => {
     setCurrentPage(1);
     setSearchQuery("");
-    // Reset all filters when switching report types
     setSelectedMonth("");
     setSelectedYears("");
     setSelectedDepartment("");

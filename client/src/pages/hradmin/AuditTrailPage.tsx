@@ -5,7 +5,6 @@ import useDebounce from "../../hooks/useDebounce";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import { getAvatarSrc, getInitials } from "../../utils/avatar";
 import { ScrollText, FileText } from "lucide-react";
-
 import {
   IconActivity,
   IconPlusCircle,
@@ -22,7 +21,6 @@ const TABS: TabItem[] = [
   { label: "Role Access", path: "/hradmin/role-access" },
   { label: "Audit Trail", path: "/hradmin/audit-trail" },
 ];
-
 interface AuditRecord {
   id: number;
   employee_id?: number | null;
@@ -41,7 +39,6 @@ interface AuditRecord {
   event_time: string;
   created_at: string;
 }
-
 function formatDateTime(iso: string): string {
   if (!iso) return "—";
   try {
@@ -57,7 +54,6 @@ function formatDateTime(iso: string): string {
     return iso;
   }
 }
-
 function FilterSelect({
   value,
   onChange,
@@ -77,7 +73,7 @@ function FilterSelect({
     <div className="relative">
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         className={`py-[9px] pl-3 pr-8 border-[1.5px] border-slate-200 rounded-[10px] text-[13px] outline-none appearance-none bg-white cursor-pointer shadow-sm ${widthClass}`}
       >
         <option value="all">{placeholder}</option>
@@ -93,7 +89,6 @@ function FilterSelect({
     </div>
   );
 }
-
 export default function AuditTrailPage() {
   const [allRecords, setAllRecords] = useState<AuditRecord[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<AuditRecord[]>([]);
@@ -116,7 +111,6 @@ export default function AuditTrailPage() {
       .catch(() => setPageError("Failed to load audit trail. Please refresh."))
       .finally(() => setIsLoading(false));
   }, []);
-
   const uniqueActions = [
     ...new Set(allRecords.map((allRecord) => allRecord.action).filter(Boolean)),
   ];
@@ -125,7 +119,6 @@ export default function AuditTrailPage() {
       allRecords.map((allRecord) => allRecord.section).filter(Boolean),
     ),
   ];
-
   const applyFilters = (search: string, action: string, section: string) => {
     const term = search.toLowerCase();
     setFilteredRecords(
@@ -151,9 +144,8 @@ export default function AuditTrailPage() {
     );
     setCurrentPage(1);
   };
-
   const debouncedSearch = useDebounce(
-    (v: string) => applyFilters(v, actionFilter, sectionFilter),
+    (value: string) => applyFilters(value, actionFilter, sectionFilter),
     300,
   );
   const handleSearch = (value: string) => {
@@ -186,9 +178,7 @@ export default function AuditTrailPage() {
     });
     return sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   }, [filteredRecords, currentPage, pageSize, dateSort]);
-
   const totalPages = Math.ceil(filteredRecords.length / pageSize);
-
   const createCount = allRecords.filter(
     (Record) => Record.action === "CREATE",
   ).length;
@@ -233,7 +223,6 @@ export default function AuditTrailPage() {
       border: "#fbcfe8",
     },
   ];
-
   const columns: ColumnDef<AuditRecord>[] = [
     {
       key: "event_time",
@@ -398,7 +387,6 @@ export default function AuditTrailPage() {
       ),
     },
   ];
-
   const extraToolbar = (
     <>
       <FilterSelect

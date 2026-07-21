@@ -64,8 +64,8 @@ function RoleDropdown({
   const [saving, setSaving] = useState(false);
   const rs = getRoleStyle(user.role);
 
-  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRole = e.target.value;
+  const handleChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newRole = event.target.value;
     if (newRole === user.role) return;
 
     const newRoleLabel =
@@ -83,7 +83,7 @@ function RoleDropdown({
     });
 
     if (!confirmed) {
-      e.target.value = roleValue(user.role);
+      event.target.value = roleValue(user.role);
       return;
     }
 
@@ -94,13 +94,12 @@ function RoleDropdown({
       Toast.success(`Role updated to ${newRoleLabel}`);
     } catch {
       Toast.error("Failed to update user role");
-      e.target.value = roleValue(user.role);
+      event.target.value = roleValue(user.role);
     } finally {
       setSaving(false);
     }
   };
 
-  // Get border color class based on role
   const getBorderClass = (role: string) => {
     const val = roleValue(role);
     if (val === "employee") return "border-[#bbf7d0]";
@@ -109,7 +108,6 @@ function RoleDropdown({
     return "border-slate-200";
   };
 
-  // Get background color class based on role
   const getBgClass = (role: string) => {
     const val = roleValue(role);
     if (val === "employee") return "bg-[#dcfce7]";
@@ -118,7 +116,6 @@ function RoleDropdown({
     return "bg-slate-100";
   };
 
-  // Get text color class based on role
   const getTextClass = (role: string) => {
     const val = roleValue(role);
     if (val === "employee") return "text-[#16a34a]";
@@ -176,7 +173,7 @@ function FilterSelect({
     <div className="relative">
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         className={`py-2.5 pr-8 pl-3 border-[1.5px] border-slate-200 rounded-[10px] text-[13px] outline-none appearance-none bg-white cursor-pointer shadow-sm ${widthClass}`}
       >
         <option value="">{placeholder}</option>
@@ -205,7 +202,6 @@ export default function RoleAccessPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [genderFilter, setGenderFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
 
   const fetchData = useCallback(
     async (
@@ -214,7 +210,6 @@ export default function RoleAccessPage() {
       search: string,
       role: string,
       gender: string,
-      status: string,
     ) => {
       setIsLoading(true);
       try {
@@ -224,7 +219,6 @@ export default function RoleAccessPage() {
           search,
           role,
           gender,
-          status,
         });
         setUsers(res.data.users);
         setTotalRecords(res.data.total);
@@ -240,15 +234,15 @@ export default function RoleAccessPage() {
   );
 
   useEffect(() => {
-    fetchData(1, pageSize, "", "", "", "");
+    fetchData(1, pageSize, "", "", "");
   }, []);
 
   useEffect(() => {
-    fetchData(1, pageSize, searchQuery, roleFilter, genderFilter, statusFilter);
-  }, [roleFilter, genderFilter, statusFilter]);
+    fetchData(1, pageSize, searchQuery, roleFilter, genderFilter);
+  }, [roleFilter, genderFilter]);
 
   const debouncedFetch = useDebounce((query: string) => {
-    fetchData(1, pageSize, query, roleFilter, genderFilter, statusFilter);
+    fetchData(1, pageSize, query, roleFilter, genderFilter);
   }, 350);
 
   const handleSearch = (value: string) => {
@@ -257,19 +251,12 @@ export default function RoleAccessPage() {
   };
 
   const handlePageChange = (page: number) => {
-    fetchData(
-      page,
-      pageSize,
-      searchQuery,
-      roleFilter,
-      genderFilter,
-      statusFilter,
-    );
+    fetchData(page, pageSize, searchQuery, roleFilter, genderFilter);
   };
 
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
-    fetchData(1, size, searchQuery, roleFilter, genderFilter, statusFilter);
+    fetchData(1, size, searchQuery, roleFilter, genderFilter);
   };
 
   const handleRoleChange = (userId: number, newRole: string) => {
@@ -284,15 +271,11 @@ export default function RoleAccessPage() {
     setSearchQuery("");
     setRoleFilter("");
     setGenderFilter("");
-    setStatusFilter("");
-    fetchData(1, pageSize, "", "", "", "");
+    fetchData(1, pageSize, "", "", "");
   };
 
   const hasFilters =
-    searchQuery !== "" ||
-    roleFilter !== "" ||
-    genderFilter !== "" ||
-    statusFilter !== "";
+    searchQuery !== "" || roleFilter !== "" || genderFilter !== "";
 
   const employeeCount = users.filter((u) => u.role === "employee").length;
   const supervisorCount = users.filter((u) =>
@@ -392,27 +375,6 @@ export default function RoleAccessPage() {
       ),
     },
     {
-      key: "is_active",
-      header: "Status",
-      width: 110,
-      render: (row) => (
-        <span
-          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-            row.is_active
-              ? "bg-green-100 text-green-600 border-green-200"
-              : "bg-slate-100 text-slate-400 border-slate-200"
-          }`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-              row.is_active ? "bg-green-500" : "bg-slate-300"
-            }`}
-          />
-          {row.is_active ? "Active" : "Inactive"}
-        </span>
-      ),
-    },
-    {
       key: "role",
       header: "Role",
       width: 160,
@@ -446,16 +408,6 @@ export default function RoleAccessPage() {
         placeholder="All Genders"
         minWidth={130}
       />
-      <FilterSelect
-        value={statusFilter}
-        onChange={setStatusFilter}
-        options={[
-          { value: "active", label: "Active" },
-          { value: "inactive", label: "Inactive" },
-        ]}
-        placeholder="All Status"
-        minWidth={120}
-      />
       {hasFilters && (
         <button
           onClick={clearFilters}
@@ -488,7 +440,7 @@ export default function RoleAccessPage() {
       <DataTable<RoleAccessUser>
         title="Role Access Management"
         subtitle="View and manage user roles across the system"
-        icon="🛡️"
+        icon={<IconShield />}
         rows={users}
         isLoading={isLoading}
         columns={columns}
