@@ -7,11 +7,7 @@ export default function LeaveNavBar() {
   const { pathname } = useLocation();
   const user = useAppSelector((s) => s.auth.user);
   const role = (user?.role || "") as UserRole;
-  // Full admins: see Add Entitlements + Entitlement List + My Entitlements
   const isAdmin = ADMIN_ROLES.includes(role);
-  // Supervisors: see Entitlement List + My Entitlements (no add)
-  const isSupervisor = SUPERVISOR_ROLES.includes(role);
-
   const [entOpen, setEntOpen] = useState(false);
   const entRef = useRef<HTMLDivElement>(null);
 
@@ -63,12 +59,8 @@ export default function LeaveNavBar() {
         </Link>
       )}
 
-      {/* Admins see the full Entitlements dropdown */}
       {isAdmin && (
-        <div
-          ref={entRef}
-          className="relative flex flex-shrink-0 items-stretch"
-        >
+        <div ref={entRef} className="relative flex flex-shrink-0 items-stretch">
           <button
             type="button"
             onClick={() => setEntOpen((o) => !o)}
