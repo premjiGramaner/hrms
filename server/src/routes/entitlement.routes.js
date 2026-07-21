@@ -1,5 +1,6 @@
 ﻿import { Router } from "express";
 import { authenticate, requireRole } from "../middleware/auth.middleware.js";
+import { ROLES } from "../constants/roles.js";
 import {
   getEmployees,
   getLeaveTypes,
@@ -18,6 +19,10 @@ router.get("/my", myEntitlements);
 
 router.get("/", listEntitlements);
 
-router.post("/", requireRole("empmanager", "hradmin"), createEntitlements);
+router.post(
+  "/",
+  requireRole(ROLES.EMP_MANAGER, ROLES.HR_ADMIN),
+  createEntitlements,
+);
 
 export default router;

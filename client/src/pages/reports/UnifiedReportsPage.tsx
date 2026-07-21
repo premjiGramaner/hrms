@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import DataTable, { ColumnDef } from "../../components/DataTable";
-import { useAppSelector } from "../../app/hooks";
 import type {
   BirthdayReportRecord,
   WorkAnniversaryReportRecord,
@@ -23,12 +22,13 @@ import {
   YEARS_OF_SERVICE_OPTIONS,
   TERMINATION_TYPE_COLORS,
 } from "../../config/uiConstants";
+import { PAGE_PATHS } from "../../config/roles";
 
 const TABS: TabItem[] = [
-  { label: "Birthday Report", path: "/reports/birthday" },
-  { label: "Work Anniversary", path: "/reports/work-anniversary" },
-  { label: "Termination Report", path: "/reports/termination" },
-  { label: "Notifications", path: "/reports/notifications" },
+  { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
+  { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },
+  { label: "Termination Report", path: PAGE_PATHS.reportsTermination },
+  { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
 ];
 
 type ReportType = "birthday" | "anniversary" | "termination";
@@ -37,15 +37,7 @@ type ReportRecord =
   | WorkAnniversaryReportRecord
   | TerminationReportRecord;
 
-// Helper function to get termination type badge background color
-const getTerminationTypeBgColor = (type: string): string => {
-  const color = TERMINATION_TYPE_COLORS[type];
-  return color || "#94A3B8";
-};
-
 export default function UnifiedReportsPage() {
-  const user = useAppSelector((state) => state.auth.user);
-
   const [reportType, setReportType] = useState<ReportType>("birthday");
 
   const [reportData, setReportData] = useState<ReportRecord[]>([]);

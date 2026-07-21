@@ -1,5 +1,6 @@
 import api from "./axios";
 import { AuthUser } from "../types";
+import { AUTH_PATHS } from "../constants/apiPaths";
 
 export const login = async (
   username: string,
@@ -22,7 +23,7 @@ export const login = async (
     requiresPasswordChange?: boolean;
     userId?: number;
     isFirstLogin?: boolean;
-  }>("/auth/login", { username, password, rememberMe });
+  }>(AUTH_PATHS.LOGIN, { username, password, rememberMe });
   return response.data;
 };
 
@@ -30,17 +31,17 @@ export const logout = async () => {
   const response = await api.post<{
     success: boolean;
     data: { message: string };
-  }>("/auth/logout");
+  }>(AUTH_PATHS.LOGOUT);
   return response.data;
 };
 
-export const self = () => api.get<AuthUser>("/auth/profile");
+export const self = () => api.get<AuthUser>(AUTH_PATHS.PROFILE);
 
 export const forgotPassword = async (email: string) => {
   const response = await api.post<{
     success: boolean;
     data: { message: string };
-  }>("/auth/forgot-password", { email });
+  }>(AUTH_PATHS.FORGOT_PASSWORD, { email });
   return { data: response.data.data };
 };
 
@@ -52,7 +53,23 @@ export const resetPassword = async (
   const response = await api.post<{
     success: boolean;
     data: { message: string };
-  }>("/auth/reset-password", { token, password, confirmPassword });
+  }>(AUTH_PATHS.RESET_PASSWORD, { token, password, confirmPassword });
+  return { data: response.data.data };
+};
+
+export const setPassword = async (
+  token: string,
+  password: string,
+  confirmPassword: string,
+) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { message: string };
+  }>(
+    AUTH_PATHS.SET_PASSWORD,
+    { password, confirmPassword },
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
   return { data: response.data.data };
 };
 
@@ -64,6 +81,10 @@ export const createFirstTimePassword = async (
   const response = await api.post<{
     success: boolean;
     data: { message: string };
-  }>("/auth/create-first-time-password", { userId, password, confirmPassword });
+  }>(AUTH_PATHS.CREATE_FIRST_TIME_PASSWORD, {
+    userId,
+    password,
+    confirmPassword,
+  });
   return { data: response.data.data };
 };

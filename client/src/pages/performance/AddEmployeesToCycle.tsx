@@ -17,6 +17,7 @@ import {
 } from "../../types/performance.types";
 import { DataTableColumn } from "../../types/table.types";
 import { IconButton, SoftInput } from "./performanceUi";
+import { PAGE_PATHS } from "../../config/roles";
 
 export default function AddEmployeesToCycle() {
   const { id } = useParams();
@@ -102,7 +103,7 @@ export default function AddEmployeesToCycle() {
   const submit = async () => {
     if (!cycle) return;
     await addEmployeesToCycle(cycle.id, selectedIds);
-    navigate(`/performance/appraisal_cycles/${cycle.id}`);
+    navigate(PAGE_PATHS.performanceAppraisalCycle(cycle.id));
   };
 
   if (!cycle) {
@@ -192,7 +193,7 @@ export default function AddEmployeesToCycle() {
             <Button
               variant="secondary"
               onClick={() =>
-                navigate(`/performance/appraisal_cycles/${cycle.id}`)
+                navigate(PAGE_PATHS.performanceAppraisalCycle(cycle.id))
               }
             >
               Cancel

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { PAGE_PATHS } from "../../../config/roles";
 
 export default function QuickAccess() {
   const navigate = useNavigate();
@@ -6,7 +7,7 @@ export default function QuickAccess() {
   const items = [
     {
       label: "My Appraisals",
-      path: "/performance/my_appraisals",
+      path: PAGE_PATHS.performanceMyAppraisals,
       icon: (
         <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />

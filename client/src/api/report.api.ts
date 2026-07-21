@@ -7,12 +7,13 @@ import type {
   NotificationConfig,
   ReportFilterOptions,
 } from "../types";
+import { REPORT_PATHS } from "../constants/apiPaths";
 
 export async function fetchTerminationReport(queryParams: Record<string, any>) {
   const response = await api.get<{
     success: boolean;
     data: ReportPaginatedResponse<TerminationReportRecord>;
-  }>("/reports/termination", { params: queryParams });
+  }>(REPORT_PATHS.TERMINATION, { params: queryParams });
   return response.data.data;
 }
 
@@ -20,7 +21,7 @@ export async function downloadTerminationReportExcel(
   queryParams: Record<string, any>,
   filename?: string,
 ) {
-  const response = await api.get("/reports/termination/export/excel", {
+  const response = await api.get(REPORT_PATHS.TERMINATION_EXPORT_EXCEL, {
     params: queryParams,
     responseType: "blob",
   });
@@ -42,7 +43,7 @@ export async function downloadTerminationReportPDF(
   queryParams: Record<string, any>,
   filename?: string,
 ) {
-  const response = await api.get("/reports/termination/export/pdf", {
+  const response = await api.get(REPORT_PATHS.TERMINATION_EXPORT_PDF, {
     params: queryParams,
     responseType: "blob",
   });
@@ -62,7 +63,7 @@ export async function fetchBirthdayReport(queryParams: Record<string, any>) {
   const response = await api.get<{
     success: boolean;
     data: ReportPaginatedResponse<BirthdayReportRecord>;
-  }>("/reports/birthday", { params: queryParams });
+  }>(REPORT_PATHS.BIRTHDAY, { params: queryParams });
   return response.data.data;
 }
 
@@ -70,7 +71,7 @@ export async function downloadBirthdayReportExcel(
   queryParams: Record<string, any>,
   filename?: string,
 ) {
-  const response = await api.get("/reports/birthday/export/excel", {
+  const response = await api.get(REPORT_PATHS.BIRTHDAY_EXPORT_EXCEL, {
     params: queryParams,
     responseType: "blob",
   });
@@ -94,7 +95,7 @@ export async function fetchWorkAnniversaryReport(
   const response = await api.get<{
     success: boolean;
     data: ReportPaginatedResponse<WorkAnniversaryReportRecord>;
-  }>("/reports/work-anniversary", { params: queryParams });
+  }>(REPORT_PATHS.WORK_ANNIVERSARY, { params: queryParams });
   return response.data.data;
 }
 
@@ -102,7 +103,7 @@ export async function downloadWorkAnniversaryReportExcel(
   queryParams: Record<string, any>,
   filename?: string,
 ) {
-  const response = await api.get("/reports/work-anniversary/export/excel", {
+  const response = await api.get(REPORT_PATHS.WORK_ANNIVERSARY_EXPORT_EXCEL, {
     params: queryParams,
     responseType: "blob",
   });
@@ -127,7 +128,7 @@ export async function fetchNotificationConfig() {
       birthday: NotificationConfig;
       work_anniversary: NotificationConfig;
     };
-  }>("/reports/notification-config");
+  }>(REPORT_PATHS.NOTIFICATION_CONFIG);
   return response.data.data;
 }
 
@@ -137,7 +138,7 @@ export async function updateNotificationConfig(
   const response = await api.put<{
     success: boolean;
     data: { config: NotificationConfig; message: string };
-  }>("/reports/notification-config", configData);
+  }>(REPORT_PATHS.NOTIFICATION_CONFIG, configData);
   return response.data.data;
 }
 
@@ -145,7 +146,7 @@ export async function fetchReportFilterOptions() {
   const response = await api.get<{
     success: boolean;
     data: ReportFilterOptions;
-  }>("/reports/filter-options");
+  }>(REPORT_PATHS.FILTER_OPTIONS);
   return response.data.data;
 }
 
@@ -159,6 +160,6 @@ export async function triggerNotificationsManually() {
         work_anniversary: { success: boolean; message: string };
       };
     };
-  }>("/reports/trigger-notifications");
+  }>(REPORT_PATHS.TRIGGER_NOTIFICATIONS);
   return response.data.data;
 }

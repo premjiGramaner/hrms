@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getJobTitles,
@@ -11,20 +11,17 @@ import {
 } from "../../api/hradmin.api";
 import { EditIcon, DeleteIcon } from "../../components/Icons";
 import useDebounce from "../../hooks/useDebounce";
-import DataTable, {
-  ColumnDef,
-  ActionDef,
-  StatCard,
-} from "../../components/DataTable";
+import DataTable, { ColumnDef, ActionDef } from "../../components/DataTable";
 import Toast from "../../utils/toast";
 import Alert from "../../utils/alert";
+import { PAGE_PATHS } from "../../config/roles";
 
 const TABS: TabItem[] = [
-  { label: "Job Titles", path: "/hradmin/job-titles" },
-  { label: "Job Categories", path: "/hradmin/job-categories" },
-  { label: "Sub Units", path: "/hradmin/sub-units" },
-  { label: "Role Access", path: "/hradmin/role-access" },
-  { label: "Audit Trail", path: "/hradmin/audit-trail" },
+  { label: "Job Titles", path: PAGE_PATHS.hradminJobTitles },
+  { label: "Job Categories", path: PAGE_PATHS.hradminJobCategories },
+  { label: "Sub Units", path: PAGE_PATHS.hradminSubUnits },
+  { label: "Role Access", path: PAGE_PATHS.hradminRoleAccess },
+  { label: "Audit Trail", path: PAGE_PATHS.hradminAuditTrail },
 ];
 
 export default function JobTitlesPage() {

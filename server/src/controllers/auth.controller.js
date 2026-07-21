@@ -6,6 +6,7 @@ import { jwtSecret, jwtExpiresIn, rememberMeDuration } from "../config/env.js";
 import { clientBaseUrl } from "../config/env.js";
 import { success, error } from "../utils/response.js";
 import { sendPasswordResetEmail } from "../../email.service.js";
+import { ROLES } from "../constants/roles.js";
 
 const signToken = (payload, expiresIn = jwtExpiresIn) =>
   jwt.sign(payload, jwtSecret, {
@@ -123,7 +124,7 @@ const login = async (req, res, next) => {
       timingSafeCompare(password, "admin")
     ) {
       const token = signToken(
-        { id: 0, role: "empmanager", username: "admin" },
+        { id: 0, role: ROLES.EMP_MANAGER, username: "admin" },
         tokenExpiry,
       );
       const cookieOptions = {
@@ -139,7 +140,7 @@ const login = async (req, res, next) => {
         user: {
           id: 0,
           username: "admin",
-          role: "hradmin",
+          role: ROLES.HR_ADMIN,
           name: "Global Admin",
           first_name: "Global",
           last_name: "Admin",
@@ -259,7 +260,7 @@ const forgotPassword = async (req, res, next) => {
           name: user.name || user.username,
           resetLink,
         });
-      } catch {}
+      } catch { }
     }
 
     return success(res, {

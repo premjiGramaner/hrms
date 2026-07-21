@@ -9,6 +9,7 @@ import {
   PerformanceTracker,
   TemplateQuestion,
 } from "../types/performance.types";
+import { PERFORMANCE_PATHS } from "../constants/apiPaths";
 
 type ApiResponse<T> = { success: boolean; data: T };
 type Paginated<T> = {
@@ -20,14 +21,14 @@ type Paginated<T> = {
 
 export const getPerformanceTemplates = async () => {
   const response = await api.get<ApiResponse<AppraisalTemplate[]>>(
-    "/performance/templates",
+    PERFORMANCE_PATHS.TEMPLATES,
   );
   return response.data.data;
 };
 
 export const getPerformanceTemplate = async (id: string) => {
   const response = await api.get<ApiResponse<AppraisalTemplate>>(
-    `/performance/templates/${id}`,
+    PERFORMANCE_PATHS.templateById(id),
   );
   return response.data.data;
 };
@@ -40,7 +41,7 @@ export const createPerformanceTemplate = async (payload: {
   header?: string;
 }) => {
   const response = await api.post<ApiResponse<AppraisalTemplate>>(
-    "/performance/templates",
+    PERFORMANCE_PATHS.TEMPLATES,
     payload,
   );
   return response.data.data;
@@ -53,7 +54,7 @@ export const updatePerformanceTemplate = async (
   > & { description?: string },
 ) => {
   const response = await api.put<ApiResponse<AppraisalTemplate>>(
-    `/performance/templates/${id}`,
+    PERFORMANCE_PATHS.templateById(id),
     payload,
   );
   return response.data.data;
@@ -61,14 +62,14 @@ export const updatePerformanceTemplate = async (
 
 export const clonePerformanceTemplate = async (id: string) => {
   const response = await api.post<ApiResponse<AppraisalTemplate>>(
-    `/performance/templates/${id}/clone`,
+    PERFORMANCE_PATHS.cloneTemplate(id),
   );
   return response.data.data;
 };
 
 export const deletePerformanceTemplate = async (id: string) => {
   const response = await api.delete<ApiResponse<{ message: string }>>(
-    `/performance/templates/${id}`,
+    PERFORMANCE_PATHS.templateById(id),
   );
   return response.data.data;
 };
@@ -78,7 +79,7 @@ export const createTemplateKpi = async (
   payload: Omit<TemplateQuestion, "id" | "displayText" | "order">,
 ) => {
   const response = await api.post<ApiResponse<AppraisalTemplate>>(
-    `/performance/templates/${templateId}/kpis`,
+    PERFORMANCE_PATHS.templateKpis(templateId),
     payload,
   );
   return response.data.data;
@@ -90,7 +91,7 @@ export const updateTemplateKpi = async (
   payload: Partial<TemplateQuestion>,
 ) => {
   const response = await api.put<ApiResponse<AppraisalTemplate>>(
-    `/performance/templates/${templateId}/kpis/${questionId}`,
+    PERFORMANCE_PATHS.templateKpiById(templateId, questionId),
     payload,
   );
   return response.data.data;
@@ -101,7 +102,7 @@ export const deleteTemplateKpi = async (
   questionId: string,
 ) => {
   const response = await api.delete<ApiResponse<AppraisalTemplate>>(
-    `/performance/templates/${templateId}/kpis/${questionId}`,
+    PERFORMANCE_PATHS.templateKpiById(templateId, questionId),
   );
   return response.data.data;
 };
@@ -110,7 +111,7 @@ export const getPerformanceEmployees = async (
   params: Record<string, string | number | undefined> = {},
 ) => {
   const response = await api.get<ApiResponse<Paginated<PerformanceEmployee>>>(
-    "/performance/employees",
+    PERFORMANCE_PATHS.EMPLOYEES,
     { params },
   );
   return response.data.data;
@@ -118,7 +119,7 @@ export const getPerformanceEmployees = async (
 
 export const getAppraisalCycles = async () => {
   const response = await api.get<ApiResponse<AppraisalCycle[]>>(
-    "/performance/cycles",
+    PERFORMANCE_PATHS.CYCLES,
   );
   return response.data.data;
 };
@@ -132,7 +133,7 @@ export const createAppraisalCycle = async (payload: {
   templateId: string;
 }) => {
   const response = await api.post<ApiResponse<AppraisalCycle>>(
-    "/performance/cycles",
+    PERFORMANCE_PATHS.CYCLES,
     payload,
   );
   return response.data.data;
@@ -140,7 +141,7 @@ export const createAppraisalCycle = async (payload: {
 
 export const getAppraisalCycle = async (id: string) => {
   const response = await api.get<ApiResponse<AppraisalCycle>>(
-    `/performance/cycles/${id}`,
+    PERFORMANCE_PATHS.cycleById(id),
   );
   return response.data.data;
 };
@@ -150,7 +151,7 @@ export const updateAppraisalCycleStatus = async (
   status: string,
 ) => {
   const response = await api.patch<ApiResponse<AppraisalCycle>>(
-    `/performance/cycles/${id}/status`,
+    PERFORMANCE_PATHS.cycleStatus(id),
     { status },
   );
   return response.data.data;
@@ -158,7 +159,7 @@ export const updateAppraisalCycleStatus = async (
 
 export const deleteAppraisalCycle = async (id: string) => {
   const response = await api.delete<ApiResponse<{ message: string }>>(
-    `/performance/cycles/${id}`,
+    PERFORMANCE_PATHS.cycleById(id),
   );
   return response.data.data;
 };
@@ -167,7 +168,7 @@ export const downloadAppraisalCycleZip = async (
   id: string,
   cycleName: string,
 ) => {
-  const response = await api.get<Blob>(`/performance/cycles/${id}/download`, {
+  const response = await api.get<Blob>(PERFORMANCE_PATHS.cycleDownload(id), {
     responseType: "blob",
   });
   const disposition = response.headers["content-disposition"] || "";
@@ -188,7 +189,7 @@ export const addEmployeesToCycle = async (
   employeeIds: string[],
 ) => {
   const response = await api.post<ApiResponse<AppraisalCycle>>(
-    `/performance/cycles/${cycleId}/employees`,
+    PERFORMANCE_PATHS.cycleEmployees(cycleId),
     { employeeIds },
   );
   return response.data.data;
@@ -199,14 +200,14 @@ export const removeEmployeeFromCycle = async (
   employeeId: string,
 ) => {
   const response = await api.delete<ApiResponse<AppraisalCycle>>(
-    `/performance/cycles/${cycleId}/employees/${employeeId}`,
+    PERFORMANCE_PATHS.cycleEmployeeById(cycleId, employeeId),
   );
   return response.data.data;
 };
 
 export const createCycleAppraisals = async (cycleId: string) => {
   const response = await api.post<ApiResponse<Appraisal[]>>(
-    `/performance/cycles/${cycleId}/appraisals`,
+    PERFORMANCE_PATHS.cycleAppraisals(cycleId),
   );
   return response.data.data;
 };
@@ -218,7 +219,7 @@ export const getAppraisals = async (params?: {
   status?: string;
 }) => {
   const response = await api.get<ApiResponse<Appraisal[]>>(
-    "/performance/appraisals",
+    PERFORMANCE_PATHS.APPRAISALS,
     { params },
   );
   return response.data.data;
@@ -231,7 +232,7 @@ export const getMyAppraisals = async (params?: {
   status?: string;
 }) => {
   const response = await api.get<ApiResponse<Appraisal[]>>(
-    "/performance/appraisals/my",
+    PERFORMANCE_PATHS.MY_APPRAISALS,
     { params },
   );
   return response.data.data;
@@ -239,7 +240,7 @@ export const getMyAppraisals = async (params?: {
 
 export const getAppraisalDetail = async (id: string) => {
   const response = await api.get<ApiResponse<AppraisalDetail>>(
-    `/performance/appraisals/${id}`,
+    PERFORMANCE_PATHS.appraisalById(id),
   );
   return response.data.data;
 };
@@ -249,7 +250,7 @@ export const downloadAppraisalPdf = async (
   employeeName: string,
 ) => {
   const response = await api.get<Blob>(
-    `/performance/appraisals/${id}/download`,
+    PERFORMANCE_PATHS.appraisalDownload(id),
     { responseType: "blob" },
   );
   const disposition = response.headers["content-disposition"] || "";
@@ -273,7 +274,7 @@ export const saveAppraisalRatings = async (
   },
 ) => {
   const response = await api.put<ApiResponse<AppraisalDetail>>(
-    `/performance/appraisals/${id}/ratings`,
+    PERFORMANCE_PATHS.appraisalRatings(id),
     payload,
   );
   return response.data.data;
@@ -287,7 +288,7 @@ export const submitAppraisalReview = async (
   },
 ) => {
   const response = await api.post<ApiResponse<AppraisalDetail>>(
-    `/performance/appraisals/${id}/submit`,
+    PERFORMANCE_PATHS.appraisalSubmit(id),
     payload,
   );
   return response.data.data;
@@ -295,14 +296,14 @@ export const submitAppraisalReview = async (
 
 export const getPerformanceTrackers = async () => {
   const response = await api.get<ApiResponse<PerformanceTracker[]>>(
-    "/performance/trackers",
+    PERFORMANCE_PATHS.TRACKERS,
   );
   return response.data.data;
 };
 
 export const getCompetencyProfiles = async () => {
   const response = await api.get<ApiResponse<CompetencyProfile[]>>(
-    "/performance/competency-profiles",
+    PERFORMANCE_PATHS.COMPETENCY_PROFILES,
   );
   return response.data.data;
 };

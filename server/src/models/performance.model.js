@@ -59,13 +59,13 @@ function getSupervisorKey(item) {
   }
   return String(
     item.name ||
-      item.employeeName ||
-      item.username ||
-      item.email ||
-      item.employee_id ||
-      item.employeeId ||
-      item.id ||
-      "",
+    item.employeeName ||
+    item.username ||
+    item.email ||
+    item.employee_id ||
+    item.employeeId ||
+    item.id ||
+    "",
   ).trim();
 }
 
@@ -476,26 +476,11 @@ async function findTemplateById(id) {
   const sectionIds = sections.rows.map((section) => section.id);
   const questions = sectionIds.length
     ? await pool.query(
-        "SELECT * FROM appraisal_template_kpis WHERE section_id = ANY($1::text[]) AND is_active = true ORDER BY display_order ASC",
-        [sectionIds],
-      )
+      "SELECT * FROM appraisal_template_kpis WHERE section_id = ANY($1::text[]) AND is_active = true ORDER BY display_order ASC",
+      [sectionIds],
+    )
     : { rows: [] };
   return mapTemplateRows(templates.rows, sections.rows, questions.rows)[0];
-}
-
-async function findTemplateByJobTitle(jobTitle) {
-  const templates = await listTemplates();
-  const normalized = String(jobTitle || "").toLowerCase();
-  return (
-    templates.find(
-      (template) => template.jobTitle.toLowerCase() === normalized,
-    ) ||
-    templates.find((template) =>
-      normalized.includes(template.jobTitle.toLowerCase()),
-    ) ||
-    templates[0] ||
-    null
-  );
 }
 
 async function createTemplate(data) {
@@ -770,11 +755,11 @@ async function mapCycle(row, includeEmployees = true) {
   cycle.employees = employees.filter(Boolean).map((employee, index) => {
     const storedEvaluator = evaluators[index]
       ? {
-          id: evaluators[index].id,
-          name: evaluators[index].name,
-          role: evaluators[index].jobTitle || "Supervisor",
-          avatar: evaluators[index].avatar,
-        }
+        id: evaluators[index].id,
+        name: evaluators[index].name,
+        role: evaluators[index].jobTitle || "Supervisor",
+        avatar: evaluators[index].avatar,
+      }
       : null;
     const evaluator = resolveMainEvaluator(employee, storedEvaluator);
     return {
@@ -939,7 +924,7 @@ async function createAppraisalsForCycle(cycleId) {
         cycle.templateId,
         Number(employee.id),
         employee.mainEvaluator?.id &&
-        /^\d+$/.test(String(employee.mainEvaluator.id))
+          /^\d+$/.test(String(employee.mainEvaluator.id))
           ? Number(employee.mainEvaluator.id)
           : null,
         cycle.fromDate,
@@ -1223,11 +1208,11 @@ async function findAppraisal(id) {
 
   const mainEvaluator = evaluator
     ? {
-        id: evaluator.id,
-        name: evaluator.name,
-        role: evaluator.jobTitle || "Supervisor",
-        avatar: evaluator.avatar,
-      }
+      id: evaluator.id,
+      name: evaluator.name,
+      role: evaluator.jobTitle || "Supervisor",
+      avatar: evaluator.avatar,
+    }
     : null;
 
   return {

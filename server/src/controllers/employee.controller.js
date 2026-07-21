@@ -4,6 +4,7 @@ import { writeAuditLog } from "../services/audit.service.js";
 import { sendWelcomeEmail } from "../../email.service.js";
 import { clientBaseUrl } from "../config/env.js";
 import { logInfo, logError } from "../utils/logger.js";
+import { ROLES } from "../constants/roles.js";
 
 function getClientUrl(req) {
   if (clientBaseUrl) return clientBaseUrl.replace(/\/$/, "");
@@ -53,7 +54,7 @@ const getMyInfo = async (req, res, next) => {
         first_name: "Admin",
         last_name: "",
         email: "admin@hrms.local",
-        role: "empmanager",
+        role: ROLES.EMP_MANAGER,
         status: "Active",
         is_active: true,
         job_title: "System Administrator",
@@ -125,7 +126,6 @@ const getLocations = async (_req, res, next) => {
 const createEmployee = async (req, res, next) => {
   try {
     const workEmail = (req.body.work_email || req.body.email || "").trim();
-    const otherEmail = (req.body.other_email || "").trim();
     const employeeId = (req.body.employee_id || "").trim();
 
     if (!workEmail) return error(res, "Work email is required", 422);

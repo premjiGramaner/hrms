@@ -5,6 +5,7 @@ import {
 } from "../services/appraisalPdf.service.js";
 import { buildZip, safeZipName } from "../services/zip.service.js";
 import { created, error, success } from "../utils/response.js";
+import { isAdminRole } from "../constants/roles.js";
 
 const listTemplates = async (_req, res, next) => {
   try {
@@ -255,17 +256,16 @@ const createAppraisalsForCycle = async (req, res, next) => {
 
 const listAppraisals = async (req, res, next) => {
   try {
-    const isPerformanceAdmin =
-      req.user?.role === "hradmin" || req.user?.role === "empmanager";
+    const isPerformanceAdmin = isAdminRole(req.user?.role);
     const { from, to, cycleId, status } = req.query;
     const filters = { from, to, cycleId, status };
 
     const rows = isPerformanceAdmin
       ? await PerformanceModel.listAppraisals(filters)
       : await PerformanceModel.listSupervisorAppraisals({
-          userId: req.user?.id,
-          ...filters,
-        });
+        userId: req.user?.id,
+        ...filters,
+      });
 
     return success(res, rows);
   } catch (err) {

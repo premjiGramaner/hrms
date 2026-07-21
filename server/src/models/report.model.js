@@ -350,7 +350,6 @@ async function getWorkAnniversaryReportData(filterCriteria, userContext) {
   }
 
   if (yearFilter) {
-    const currentYear = new Date().getFullYear();
     conditions.push(
       `EXTRACT(YEAR FROM AGE(NOW(), u.joined_date)) = $${valueIndex}::int`,
     );

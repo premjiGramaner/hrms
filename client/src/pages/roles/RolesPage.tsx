@@ -4,10 +4,11 @@ import { getRoles, createRole, deleteRole } from "../../api/role.api";
 import { UserRole } from "../../types";
 import { getApiErrorMessage } from "../../utils/errors";
 import { validateRole } from "../../validations/role.validation";
+import { PAGE_PATHS } from "../../config/roles";
 
 const TABS: TabItem[] = [
-  { label: "Users", path: "/hradmin/users" },
-  { label: "Manage User Roles", path: "/roles" },
+  { label: "Users", path: PAGE_PATHS.hradminUsers },
+  { label: "Manage User Roles", path: PAGE_PATHS.roles },
   { label: "Job", path: "#" },
   { label: "Organization", path: "#" },
   { label: "More", path: "#" },

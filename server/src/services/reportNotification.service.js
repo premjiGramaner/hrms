@@ -12,6 +12,9 @@ import {
   notificationMessages,
   successMessage,
 } from "../utils/responseMessages.js";
+import { ADMIN_ROLES } from "../constants/roles.js";
+
+const ADMIN_ROLES_SQL = ADMIN_ROLES.map((role) => `'${role}'`).join(", ");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -211,7 +214,7 @@ async function processBirthdayNotifications() {
 
     const { rows: globalAdmins } = await pool.query(
       `SELECT email FROM tbl_appusers 
-       WHERE (role = 'hradmin' OR role = 'empmanager') 
+       WHERE (role IN (${ADMIN_ROLES_SQL})) 
        AND is_deleted = FALSE 
        AND is_active = TRUE 
        AND email IS NOT NULL`,
@@ -306,7 +309,7 @@ async function processWorkAnniversaryNotifications() {
 
     const { rows: globalAdmins } = await pool.query(
       `SELECT email FROM tbl_appusers 
-       WHERE (role = 'hradmin' OR role = 'empmanager') 
+       WHERE (role IN (${ADMIN_ROLES_SQL})) 
        AND is_deleted = FALSE 
        AND is_active = TRUE 
        AND email IS NOT NULL`,
@@ -396,10 +399,10 @@ async function checkAndSendImmediateNotifications(employeeId) {
           AND u.is_active = TRUE 
           AND u.real_dob IS NOT NULL
           AND (${Array.from(
-            { length: daysBefore + 1 },
-            (_, i) =>
-              `TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '${i} days', 'MM-DD')`,
-          ).join(" OR ")})`,
+          { length: daysBefore + 1 },
+          (_, i) =>
+            `TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '${i} days', 'MM-DD')`,
+        ).join(" OR ")})`,
         [employeeId],
       );
 
@@ -412,7 +415,7 @@ async function checkAndSendImmediateNotifications(employeeId) {
         // Get global admins
         const { rows: globalAdmins } = await pool.query(
           `SELECT email FROM tbl_appusers 
-           WHERE (role = 'hradmin' OR role = 'empmanager') 
+           WHERE (role IN (${ADMIN_ROLES_SQL})) 
            AND is_deleted = FALSE 
            AND is_active = TRUE 
            AND email IS NOT NULL`,
@@ -471,10 +474,10 @@ async function checkAndSendImmediateNotifications(employeeId) {
           AND u.is_active = TRUE 
           AND u.joined_date IS NOT NULL
           AND (${Array.from(
-            { length: daysBefore + 1 },
-            (_, i) =>
-              `TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '${i} days', 'MM-DD')`,
-          ).join(" OR ")})
+          { length: daysBefore + 1 },
+          (_, i) =>
+            `TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '${i} days', 'MM-DD')`,
+        ).join(" OR ")})
           AND EXTRACT(YEAR FROM AGE(CURRENT_DATE, u.joined_date)) >= 1`,
         [employeeId],
       );
@@ -482,7 +485,7 @@ async function checkAndSendImmediateNotifications(employeeId) {
       if (anniversaryCheck.length > 0) {
         const { rows: globalAdmins } = await pool.query(
           `SELECT email FROM tbl_appusers 
-           WHERE (role = 'hradmin' OR role = 'empmanager') 
+           WHERE (role IN (${ADMIN_ROLES_SQL})) 
            AND is_deleted = FALSE 
            AND is_active = TRUE 
            AND email IS NOT NULL`,

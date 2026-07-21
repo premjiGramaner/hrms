@@ -1,4 +1,5 @@
 import api from "./axios";
+import { HRADMIN_PATHS } from "../constants/apiPaths";
 
 export interface HRUser {
   id: number;
@@ -51,7 +52,7 @@ export const getHRUsers = async (
   const response = await api.get<{
     success: boolean;
     data: HRUsersPaginatedResponse;
-  }>(`/hradmin/users?${queryString}`);
+  }>(`${HRADMIN_PATHS.USERS}?${queryString}`);
 
   return { data: response.data.data };
 };
@@ -60,7 +61,7 @@ export const createHRUser = async (
   payload: CreateHRUserPayload,
 ): Promise<{ data: HRUser }> => {
   const response = await api.post<{ success: boolean; data: HRUser }>(
-    "/hradmin/users",
+    HRADMIN_PATHS.USERS,
     payload,
   );
   return { data: response.data.data };
@@ -71,14 +72,14 @@ export const updateHRUser = async (
   payload: UpdateHRUserPayload,
 ): Promise<{ data: HRUser }> => {
   const response = await api.put<{ success: boolean; data: HRUser }>(
-    `/hradmin/users/${userId}`,
+    HRADMIN_PATHS.userById(userId),
     payload,
   );
   return { data: response.data.data };
 };
 
 export const deleteHRUser = async (userId: number): Promise<void> => {
-  await api.delete(`/hradmin/users/${userId}`);
+  await api.delete(HRADMIN_PATHS.userById(userId));
 };
 
 export const toggleHRUserStatus = async (
@@ -87,7 +88,7 @@ export const toggleHRUserStatus = async (
   const response = await api.post<{
     success: boolean;
     data: { id: number; is_active: boolean };
-  }>(`/hradmin/users/${userId}/toggle-status`);
+  }>(HRADMIN_PATHS.userToggleStatus(userId));
   return { data: response.data.data };
 };
 
@@ -111,7 +112,7 @@ export interface UpdateJobTitlePayload {
 
 export const getJobTitles = async (): Promise<{ data: JobTitle[] }> => {
   const response = await api.get<{ success: boolean; data: JobTitle[] }>(
-    "/hradmin/job-titles",
+    HRADMIN_PATHS.JOB_TITLES,
   );
   return { data: response.data.data };
 };
@@ -120,7 +121,7 @@ export const createJobTitle = async (
   payload: CreateJobTitlePayload,
 ): Promise<{ data: JobTitle }> => {
   const response = await api.post<{ success: boolean; data: JobTitle }>(
-    "/hradmin/job-titles",
+    HRADMIN_PATHS.JOB_TITLES,
     payload,
   );
   return { data: response.data.data };
@@ -131,14 +132,14 @@ export const updateJobTitle = async (
   payload: UpdateJobTitlePayload,
 ): Promise<{ data: JobTitle }> => {
   const response = await api.put<{ success: boolean; data: JobTitle }>(
-    `/hradmin/job-titles/${jobTitleId}`,
+    HRADMIN_PATHS.jobTitleById(jobTitleId),
     payload,
   );
   return { data: response.data.data };
 };
 
 export const deleteJobTitle = async (jobTitleId: number): Promise<void> => {
-  await api.delete(`/hradmin/job-titles/${jobTitleId}`);
+  await api.delete(HRADMIN_PATHS.jobTitleById(jobTitleId));
 };
 
 export interface JobCategory {
@@ -161,7 +162,7 @@ export interface UpdateJobCategoryPayload {
 
 export const getJobCategories = async (): Promise<{ data: JobCategory[] }> => {
   const response = await api.get<{ success: boolean; data: JobCategory[] }>(
-    "/hradmin/job-categories",
+    HRADMIN_PATHS.JOB_CATEGORIES,
   );
   return { data: response.data.data };
 };
@@ -170,7 +171,7 @@ export const createJobCategory = async (
   payload: CreateJobCategoryPayload,
 ): Promise<{ data: JobCategory }> => {
   const response = await api.post<{ success: boolean; data: JobCategory }>(
-    "/hradmin/job-categories",
+    HRADMIN_PATHS.JOB_CATEGORIES,
     payload,
   );
   return { data: response.data.data };
@@ -181,7 +182,7 @@ export const updateJobCategory = async (
   payload: UpdateJobCategoryPayload,
 ): Promise<{ data: JobCategory }> => {
   const response = await api.put<{ success: boolean; data: JobCategory }>(
-    `/hradmin/job-categories/${jobCategoryId}`,
+    HRADMIN_PATHS.jobCategoryById(jobCategoryId),
     payload,
   );
   return { data: response.data.data };
@@ -190,7 +191,7 @@ export const updateJobCategory = async (
 export const deleteJobCategory = async (
   jobCategoryId: number,
 ): Promise<void> => {
-  await api.delete(`/hradmin/job-categories/${jobCategoryId}`);
+  await api.delete(HRADMIN_PATHS.jobCategoryById(jobCategoryId));
 };
 
 export interface SubUnit {
@@ -216,7 +217,7 @@ export interface UpdateSubUnitPayload {
 
 export const getSubUnits = async (): Promise<{ data: SubUnit[] }> => {
   const response = await api.get<{ success: boolean; data: SubUnit[] }>(
-    "/hradmin/sub-units",
+    HRADMIN_PATHS.SUB_UNITS,
   );
   return { data: response.data.data };
 };
@@ -225,7 +226,7 @@ export const createSubUnit = async (
   payload: CreateSubUnitPayload,
 ): Promise<{ data: SubUnit }> => {
   const response = await api.post<{ success: boolean; data: SubUnit }>(
-    "/hradmin/sub-units",
+    HRADMIN_PATHS.SUB_UNITS,
     payload,
   );
   return { data: response.data.data };
@@ -236,14 +237,14 @@ export const updateSubUnit = async (
   payload: UpdateSubUnitPayload,
 ): Promise<{ data: SubUnit }> => {
   const response = await api.put<{ success: boolean; data: SubUnit }>(
-    `/hradmin/sub-units/${subUnitId}`,
+    HRADMIN_PATHS.subUnitById(subUnitId),
     payload,
   );
   return { data: response.data.data };
 };
 
 export const deleteSubUnit = async (subUnitId: number): Promise<void> => {
-  await api.delete(`/hradmin/sub-units/${subUnitId}`);
+  await api.delete(HRADMIN_PATHS.subUnitById(subUnitId));
 };
 
 export interface AuditTrailRecord {
@@ -284,7 +285,7 @@ export const getAuditTrail = async (
   const response = await api.get<{
     success: boolean;
     data: AuditTrailResponse;
-  }>(`/hradmin/audit-trail?page=${page}&limit=${limit}`);
+  }>(`${HRADMIN_PATHS.AUDIT_TRAIL}?page=${page}&limit=${limit}`);
   return response.data.data;
 };
 
@@ -340,7 +341,7 @@ export const getRoleAccess = async (
   const response = await api.get<{
     success: boolean;
     data: RoleAccessPaginatedResponse;
-  }>(`/hradmin/role-access?${qs}`);
+  }>(`${HRADMIN_PATHS.ROLE_ACCESS}?${qs}`);
   return { data: response.data.data };
 };
 
@@ -349,7 +350,7 @@ export const updateUserRole = async (
   role: string,
 ): Promise<{ data: RoleAccessUser }> => {
   const response = await api.put<{ success: boolean; data: RoleAccessUser }>(
-    `/hradmin/role-access/${userId}`,
+    HRADMIN_PATHS.roleAccessById(userId),
     { role },
   );
   return { data: response.data.data };
