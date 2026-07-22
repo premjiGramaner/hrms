@@ -7,6 +7,7 @@ import { useAppDispatch } from "../app/hooks";
 import { loginSuccess } from "../store/authSlice";
 import { getApiErrorMessage } from "../utils/errors";
 import { validateLogin } from "../validations/auth.validation";
+import { PAGE_PATHS } from "../config/roles";
 import cannyforeLogo from "../assets/logo.png";
 import rightPanelImage from "../assets/login_intelligent.png";
 
@@ -66,7 +67,7 @@ export default function LoginPage() {
       }
 
       dispatch(loginSuccess({ token, user }));
-      navigate("/employees");
+      navigate(PAGE_PATHS.employees);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Invalid username or password."));
     } finally {
@@ -164,7 +165,7 @@ export default function LoginPage() {
               Forgot Your{" "}
               <button
                 type="button"
-                onClick={() => navigate("/forgot-password")}
+                onClick={() => navigate(PAGE_PATHS.forgotPassword)}
                 className="font-bold text-blue-950 hover:text-teal-600"
               >
                 Password?

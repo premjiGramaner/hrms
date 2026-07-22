@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireRole } from "../middleware/auth.middleware.js";
+import { ROLES } from "../constants/roles.js";
 import {
   getUsers,
   createUser,
@@ -25,7 +26,7 @@ import {
 
 const router = Router();
 router.use(authenticate);
-router.use(requireRole("hradmin", "empmanager"));
+router.use(requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER));
 
 router.get("/users", getUsers);
 router.post("/users", createUser);

@@ -1,5 +1,6 @@
 import api from "./axios";
-import { Employee, PaginatedResponse, Supervisor } from "../types";
+import { Employee, PaginatedResponse } from "../types";
+import { EMPLOYEE_PATHS } from "../constants/apiPaths";
 
 export const getEmployees = async (page = 1, limit = 10, search?: string) => {
   const params = new URLSearchParams({
@@ -12,7 +13,7 @@ export const getEmployees = async (page = 1, limit = 10, search?: string) => {
   const response = await api.get<{
     success: boolean;
     data: PaginatedResponse<Employee>;
-  }>(`/employees?${params.toString()}&_=${Date.now()}`);
+  }>(`${EMPLOYEE_PATHS.BASE}?${params.toString()}&_=${Date.now()}`);
   return { data: response.data.data };
 };
 
@@ -39,27 +40,27 @@ export const getSuperiorEmployees = async ({
   const response = await api.get<{
     success: boolean;
     data: PaginatedResponse<Employee> & { limit?: number };
-  }>(`/employees/superiors?${queryString}`);
+  }>(`${EMPLOYEE_PATHS.SUPERIORS}?${queryString}`);
   return { data: response.data.data };
 };
 export const fetchAllEmployees = async (page = 1, limit = 1000) => {
   const response = await api.get<{
     success: boolean;
     data: PaginatedResponse<Employee>;
-  }>(`/employees?page=${page}&limit=${limit}`);
+  }>(`${EMPLOYEE_PATHS.BASE}?page=${page}&limit=${limit}`);
   return response.data.data;
 };
 
 export const getEmployee = async (id: number) => {
   const response = await api.get<{ success: boolean; data: Employee }>(
-    `/employees/${id}`,
+    EMPLOYEE_PATHS.byId(id),
   );
   return { data: response.data.data };
 };
 
 export const getMyInfo = async () => {
   const response = await api.get<{ success: boolean; data: Employee }>(
-    "/employees/my-info",
+    EMPLOYEE_PATHS.MY_INFO,
   );
   return { data: response.data.data };
 };
@@ -77,7 +78,7 @@ export const getSupervisors = async () => {
       job_title?: string | null;
       sub_unit?: string | null;
     }[];
-  }>("/employees/supervisors");
+  }>(EMPLOYEE_PATHS.SUPERVISORS);
   return { data: response.data.data };
 };
 
@@ -87,7 +88,7 @@ export const getSupervisorsByIds = async (
   const response = await api.post<{
     success: boolean;
     data: { id: number; name: string }[];
-  }>("/employees/supervisors-by-ids", { supervisorIds });
+  }>(EMPLOYEE_PATHS.SUPERVISORS_BY_IDS, { supervisorIds });
   return { data: response.data.data };
 };
 
@@ -95,7 +96,7 @@ export const getLocations = async () => {
   const response = await api.get<{
     success: boolean;
     data: string[];
-  }>("/employees/locations");
+  }>(EMPLOYEE_PATHS.LOCATIONS);
   return { data: response.data.data };
 };
 
@@ -103,7 +104,7 @@ export const createEmployee = async (formData: FormData) => {
   const response = await api.post<{
     success: boolean;
     data: { message: string; id: number };
-  }>("/employees", formData, {
+  }>(EMPLOYEE_PATHS.BASE, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return { data: response.data.data };
@@ -113,7 +114,7 @@ export const updateEmployee = async (id: number, formData: FormData) => {
   const response = await api.put<{
     success: boolean;
     data: { message: string };
-  }>(`/employees/${id}`, formData, {
+  }>(EMPLOYEE_PATHS.byId(id), formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return { data: response.data.data };
@@ -123,7 +124,7 @@ export const deleteEmployee = async (id: number) => {
   const response = await api.delete<{
     success: boolean;
     data: { message: string };
-  }>(`/employees/${id}`);
+  }>(EMPLOYEE_PATHS.byId(id));
   return { data: response.data.data };
 };
 
@@ -131,7 +132,7 @@ export const checkEmailExists = async (email: string, employeeId?: number) => {
   const response = await api.post<{
     success: boolean;
     data: { exists: boolean };
-  }>("/employees/check-email", { email, employeeId });
+  }>(EMPLOYEE_PATHS.CHECK_EMAIL, { email, employeeId });
   return { data: response.data.data };
 };
 
@@ -151,7 +152,7 @@ export const terminateEmployee = async (
   const response = await api.post<{
     success: boolean;
     data: { message: string };
-  }>(`/employees/${id}/terminate`, terminationData);
+  }>(EMPLOYEE_PATHS.terminate(id), terminationData);
 
   return { data: response.data.data };
 };
@@ -160,7 +161,7 @@ export const updateProfileImage = async (id: number, formData: FormData) => {
   const response = await api.patch<{
     success: boolean;
     data: Employee;
-  }>(`/employees/${id}/profile-image`, formData, {
+  }>(EMPLOYEE_PATHS.profileImage(id), formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return { data: response.data.data };
@@ -173,7 +174,10 @@ export const checkEmployeeIdExists = async (
   const response = await api.post<{
     success: boolean;
     data: { exists: boolean };
-  }>("/employees/check-employee-id", { employee_id: employeeId, excludeId });
+  }>(EMPLOYEE_PATHS.CHECK_EMPLOYEE_ID, {
+    employee_id: employeeId,
+    excludeId,
+  });
   return { data: response.data.data };
 };
 
@@ -181,6 +185,6 @@ export const getLastEmployeeId = async () => {
   const response = await api.get<{
     success: boolean;
     data: { employee_id: string | null };
-  }>("/employees/last-employee-id");
+  }>(EMPLOYEE_PATHS.LAST_EMPLOYEE_ID);
   return { data: response.data.data };
 };

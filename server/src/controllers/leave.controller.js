@@ -2,6 +2,10 @@ import ExcelJS from "exceljs";
 import * as LeaveModel from "../models/leave.model.js";
 import { resetExpiredEntitlements } from "../models/entitlement.model.js";
 import { success, created, error } from "../utils/response.js";
+import { ADMIN_ROLES, SUPERVISOR_ROLES } from "../constants/roles.js";
+
+// Roles that can approve, reject, and manage leave requests on behalf of employees.
+const PRIVILEGED_LEAVE_ROLES = [...ADMIN_ROLES, ...SUPERVISOR_ROLES];
 
 const getLeaveTypes = async (req, res, next) => {
   try {
@@ -76,9 +80,9 @@ const listLeaves = async (req, res, next) => {
       filters.statuses = Array.isArray(rawStatuses)
         ? rawStatuses
         : String(rawStatuses)
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
     }
 
     if (role === "employee") {
@@ -271,15 +275,7 @@ const rejectLeave = async (req, res, next) => {
     const actorId = req.user.id;
     const actorRole = req.user.role;
 
-    const PRIVILEGED_ROLES = [
-      "empmanager",
-      "hradmin",
-      "supervisor",
-      "manager",
-      "line_manager",
-      "reporting_manager",
-    ];
-    if (!PRIVILEGED_ROLES.includes(actorRole))
+    if (!PRIVILEGED_LEAVE_ROLES.includes(actorRole))
       return error(
         res,
         "You do not have permission to approve leave requests",
@@ -312,15 +308,7 @@ const cancelLeave = async (req, res, next) => {
     const actorRole = req.user.role;
     const leaveEmployeeId = parseInt(leave.employee_id);
     const isOwner = leaveEmployeeId === actorId;
-    const isPrivileged = [
-      "empmanager",
-      "hradmin",
-      "supervisor",
-      "manager",
-      "line_manager",
-      "reporting_manager",
-    ].includes(actorRole);
-
+    const isPrivileged = PRIVILEGED_LEAVE_ROLES.includes(actorRole);
     if (!isOwner && !isPrivileged) {
       return error(res, "Forbidden", 403);
     }
@@ -375,9 +363,9 @@ function buildExportFilters(query, userId, role) {
     filters.statuses = Array.isArray(query.statuses)
       ? query.statuses
       : String(query.statuses)
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
   }
   if (role === "employee") filters.own_employee_id = userId;
   return filters;

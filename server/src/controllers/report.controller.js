@@ -2,7 +2,6 @@ import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
 import ReportModel from "../models/report.model.js";
 import { success, error } from "../utils/response.js";
-import AppError from "../utils/AppError.js";
 
 const getTerminationReport = async (req, res, next) => {
   try {

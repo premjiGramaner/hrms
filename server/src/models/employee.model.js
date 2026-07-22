@@ -1,7 +1,20 @@
 import pool from "../config/db.js";
 import bcrypt from "bcryptjs";
-import { logError, logDatabase } from "../utils/logger.js";
+import { logError } from "../utils/logger.js";
 import crypto from "crypto";
+import {
+  ROLES,
+  ADMIN_ROLES,
+  BASIC_SUPERVISOR_ROLES,
+} from "../constants/roles.js";
+
+const toSqlList = (roles) => roles.map((role) => `'${role}'`).join(", ");
+const ADMIN_ROLES_SQL = toSqlList(ADMIN_ROLES);
+const BASIC_SUPERVISOR_ROLES_SQL = toSqlList(BASIC_SUPERVISOR_ROLES);
+const SUPERIOR_ROLES_SQL = toSqlList([
+  ...BASIC_SUPERVISOR_ROLES,
+  ...ADMIN_ROLES,
+]);
 
 const SPACE_REGEX = /\s+/g;
 const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
@@ -10,9 +23,9 @@ const TRIM_UNDERSCORE_REGEX = /^_+|_+$/g;
 async function createUniqueUsername(email, name) {
   let base = name
     ? name
-        .toLowerCase()
-        .replace(SPACE_REGEX, "_")
-        .replace(INVALID_CHAR_REGEX, "")
+      .toLowerCase()
+      .replace(SPACE_REGEX, "_")
+      .replace(INVALID_CHAR_REGEX, "")
     : email.split("@")[0];
   base = base.replace(TRIM_UNDERSCORE_REGEX, "") || email.split("@")[0];
 
@@ -33,8 +46,7 @@ async function findAllEmployees(page, limit = 10, search = "") {
   const offset = (page - 1) * limit;
   const searchTerm = search.trim();
 
-  const baseWhere =
-    "u.is_deleted = false AND (u.employment_status IS NULL OR u.employment_status != 'Terminated') AND u.role NOT IN ('hradmin', 'empmanager')";
+  const baseWhere = `u.is_deleted = false AND (u.employment_status IS NULL OR u.employment_status != 'Terminated') AND u.role NOT IN (${ADMIN_ROLES_SQL})`;
 
   const values = [];
   let whereClause = baseWhere;
@@ -122,14 +134,12 @@ async function findSuperiorUsers({
     "(u.employment_status IS NULL OR u.employment_status != 'Terminated')",
   ];
 
-  if (role === "supervisor") {
-    conditions.push("u.role IN ('supervisor', 'manager')");
-  } else if (role === "hradmin") {
-    conditions.push("u.role IN ('hradmin', 'empmanager')");
+  if (role === ROLES.SUPERVISOR) {
+    conditions.push(`u.role IN (${BASIC_SUPERVISOR_ROLES_SQL})`);
+  } else if (role === ROLES.HR_ADMIN) {
+    conditions.push(`u.role IN (${ADMIN_ROLES_SQL})`);
   } else {
-    conditions.push(
-      "u.role IN ('supervisor', 'manager', 'hradmin', 'empmanager')",
-    );
+    conditions.push(`u.role IN (${SUPERIOR_ROLES_SQL})`);
   }
 
   if (search) {
@@ -163,7 +173,7 @@ async function findSuperiorUsers({
      FROM tbl_appusers u
      WHERE ${where}
      ORDER BY
-       CASE WHEN u.role IN ('hradmin', 'empmanager') THEN 0 ELSE 1 END,
+       CASE WHEN u.role IN (${ADMIN_ROLES_SQL}) THEN 0 ELSE 1 END,
        u.name ASC
      LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
     [...params, pageSize, offset],

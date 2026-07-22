@@ -6,41 +6,34 @@ import {
   triggerNotificationsManually,
 } from "../../api/report.api";
 import { fetchAllEmployees } from "../../api/employee.api";
-import type { NotificationConfig, Employee } from "../../types";
+
 import {
   IconBell,
   IconMail,
   IconGift,
   IconAward,
-  IconSend,
   IconFlask,
   IconSave,
   IconCheck,
-  IconAlertCircle,
 } from "../../components/Icons";
 import Alert from "../../utils/alert";
 import { getNumericValue } from "../employees/components/inputHelpers";
 import { validateEmail } from "../../validations/employee.validation";
+import { PAGE_PATHS } from "../../config/roles";
 
 const TABS: TabItem[] = [
-  { label: "Birthday Report", path: "/reports/birthday" },
-  { label: "Work Anniversary", path: "/reports/work-anniversary" },
-  { label: "Termination Report", path: "/reports/termination" },
-  { label: "Notifications", path: "/reports/notifications" },
+  { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
+  { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },
+  { label: "Termination Report", path: PAGE_PATHS.reportsTermination },
+  { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
 ];
 
 export default function ReportNotificationConfigPage() {
-  const [birthdayConfig, setBirthdayConfig] =
-    useState<NotificationConfig | null>(null);
-  const [anniversaryConfig, setAnniversaryConfig] =
-    useState<NotificationConfig | null>(null);
-  const [hrAdminUsers, setHrAdminUsers] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
-  const [birthdayRecipients, setBirthdayRecipients] = useState<number[]>([]);
   const [birthdayDaysBefore, setBirthdayDaysBefore] = useState(2);
   const [birthdayActive, setBirthdayActive] = useState(true);
   const [birthdayExternalEmails, setBirthdayExternalEmails] = useState<
@@ -48,9 +41,6 @@ export default function ReportNotificationConfigPage() {
   >([]);
   const [birthdayEmailInput, setBirthdayEmailInput] = useState("");
 
-  const [anniversaryRecipients, setAnniversaryRecipients] = useState<number[]>(
-    [],
-  );
   const [anniversaryDaysBefore, setAnniversaryDaysBefore] = useState(2);
   const [anniversaryActive, setAnniversaryActive] = useState(true);
   const [anniversaryExternalEmails, setAnniversaryExternalEmails] = useState<
@@ -77,8 +67,6 @@ export default function ReportNotificationConfigPage() {
     setIsLoading(true);
     try {
       const config = await fetchNotificationConfig();
-      setBirthdayConfig(config.birthday);
-      setAnniversaryConfig(config.work_anniversary);
 
       if (config.birthday) {
         setBirthdayDaysBefore(config.birthday.days_before || 2);
@@ -116,11 +104,7 @@ export default function ReportNotificationConfigPage() {
 
   const loadHRAdmins = useCallback(async () => {
     try {
-      const result = await fetchAllEmployees(1, 1000);
-      const users = result.data.filter(
-        (employee: Employee) => employee.email && employee.is_active !== false,
-      );
-      setHrAdminUsers(users);
+      await fetchAllEmployees(1, 1000);
     } catch (err) {
       console.error("Failed to load users:", err);
     }
@@ -192,18 +176,6 @@ export default function ReportNotificationConfigPage() {
       setTimeout(() => setSaveMessage(""), 3000);
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const toggleRecipient = (
-    userId: number,
-    currentList: number[],
-    setList: (list: number[]) => void,
-  ) => {
-    if (currentList.includes(userId)) {
-      setList(currentList.filter((id) => id !== userId));
-    } else {
-      setList([...currentList, userId]);
     }
   };
 

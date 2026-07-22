@@ -9,7 +9,7 @@ import cannyforeLogo from "../assets/logo.png";
 import orangeHrmLogo from "../assets/orangehrm-logo.png";
 import rightPanelImage from "../assets/login_intelligent.png";
 import { getApiErrorMessage } from "../utils/errors";
-import { IconEye, IconEyeOff } from "../components/Icons";
+import { PAGE_PATHS } from "../config/roles";
 
 function validatePassword(password: string, confirmPassword: string) {
   if (!password || !confirmPassword)
@@ -163,12 +163,12 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
           confirmPassword,
         );
         setSuccess(data.message || "Password created successfully.");
-        setTimeout(() => navigate("/login", { replace: true }), 2000);
+        setTimeout(() => navigate(PAGE_PATHS.login, { replace: true }), 2000);
       } else if (token) {
         // Password reset: use token-based endpoint (both create and reset use same backend)
         const { data } = await resetPassword(token, password, confirmPassword);
         setSuccess(data.message || "Password updated successfully.");
-        setTimeout(() => navigate("/login", { replace: true }), 1200);
+        setTimeout(() => navigate(PAGE_PATHS.login, { replace: true }), 1200);
       } else {
         setError("This password link is missing or invalid.");
       }
@@ -217,7 +217,7 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
         </button>
       </form>
       <Link
-        to="/login"
+        to={PAGE_PATHS.login}
         className="mt-5 block text-center text-sm font-bold text-blue-950 hover:text-teal-600"
       >
         Back to Login
@@ -296,7 +296,7 @@ export function ForgotPasswordPage() {
         </button>
       </form>
       <Link
-        to="/login"
+        to={PAGE_PATHS.login}
         className="mt-5 block text-center text-sm font-bold text-blue-950 hover:text-teal-600"
       >
         Back to Login

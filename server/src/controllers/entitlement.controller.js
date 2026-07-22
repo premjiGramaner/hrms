@@ -62,13 +62,22 @@ const createEntitlements = async (req, res, next) => {
       comments || null,
       req.user?.id || null,
     );
-    await EntitlementModel.resetExpiredEntitlements();
-    const createdCount = results.created.length;
-    const updatedCount = results.updated.length;
-    const skippedCount = results.skipped.length;
-    const message =
-      `${createdCount} entitlement(s) created and ` +
-      `${updatedCount} entitlement(s) updated successfully.`;
+
+    const created_count = results.created.length;
+    const skipped = results.skipped.length;
+
+    if (created_count === 0) {
+      return error(
+        res,
+        `All ${skipped} entitlement(s) already exist for the selected period.`,
+        409,
+      );
+    }
+
+    const msg =
+      skipped > 0
+        ? `${created_count} entitlement(s) created. ${skipped} skipped (already exist).`
+        : `${created_count} entitlement(s) created successfully.`;
 
     return created(res, {
       message,

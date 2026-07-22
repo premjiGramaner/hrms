@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getLeaveBalance } from "../../../api/leave.api";
 import { Employee, LeaveBalance as LeaveBalanceType } from "../../../types";
-import LoaderCard from "../../../components/LoaderCard";
+import { PAGE_PATHS } from "../../../config/roles";
 interface LeaveBalanceProps {
   employee: Employee;
 }
@@ -10,7 +10,7 @@ interface LeaveBalanceProps {
 export default function LeaveBalance({ employee }: LeaveBalanceProps) {
   const navigate = useNavigate();
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalanceType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const currentYear = new Date().getFullYear();
   const financialYear =
@@ -35,7 +35,7 @@ export default function LeaveBalance({ employee }: LeaveBalanceProps) {
   }, [employee?.id]);
 
   const handleWidgetClick = () => {
-    navigate("/leave/apply");
+    navigate(PAGE_PATHS.leaveApply);
   };
 
   useEffect(() => {

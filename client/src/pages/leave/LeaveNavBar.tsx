@@ -1,16 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppSelector } from "../../app/hooks";
-import { ADMIN_ROLES, SUPERVISOR_ROLES, UserRole } from "../../config/roles";
+import { PAGE_PATHS, isAdminRole } from "../../config/roles";
 
 export default function LeaveNavBar() {
   const { pathname } = useLocation();
   const user = useAppSelector((s) => s.auth.user);
-  const role = (user?.role || "") as UserRole;
-  // Full admins: see Add Entitlements + Entitlement List + My Entitlements
-  const isAdmin = ADMIN_ROLES.includes(role);
-  // Supervisors: see Entitlement List + My Entitlements (no add)
-  const isSupervisor = SUPERVISOR_ROLES.includes(role);
+  const isAdmin = isAdminRole(user?.role);
 
   const [entOpen, setEntOpen] = useState(false);
   const entRef = useRef<HTMLDivElement>(null);
@@ -35,29 +31,32 @@ export default function LeaveNavBar() {
     }`;
 
   const entSubPaths = [
-    "/leave/entitlements/add",
-    "/leave/entitlements/list",
-    "/leave/entitlements/my",
+    PAGE_PATHS.leaveEntitlementsAdd,
+    PAGE_PATHS.leaveEntitlementsList,
+    PAGE_PATHS.leaveEntitlementsMy,
   ];
   const entActive = entSubPaths.some((p) => pathname === p);
 
   return (
     <nav className="flex h-full flex-shrink-0 items-stretch gap-0.5 overflow-visible">
-      <Link to="/leave/apply" className={tabCls(isActive("/leave/apply"))}>
+      <Link
+        to={PAGE_PATHS.leaveApply}
+        className={tabCls(isActive(PAGE_PATHS.leaveApply))}
+      >
         Apply
       </Link>
 
       <Link
-        to="/leave/view_leave_list"
-        className={tabCls(isActive("/leave/view_leave_list"))}
+        to={PAGE_PATHS.leaveList}
+        className={tabCls(isActive(PAGE_PATHS.leaveList))}
       >
         Leave List
       </Link>
 
       {!isAdmin && (
         <Link
-          to="/leave/entitlements/my"
-          className={tabCls(isActive("/leave/entitlements/my"))}
+          to={PAGE_PATHS.leaveEntitlementsMy}
+          className={tabCls(isActive(PAGE_PATHS.leaveEntitlementsMy))}
         >
           My Entitlements
         </Link>
@@ -65,10 +64,7 @@ export default function LeaveNavBar() {
 
       {/* Admins see the full Entitlements dropdown */}
       {isAdmin && (
-        <div
-          ref={entRef}
-          className="relative flex flex-shrink-0 items-stretch"
-        >
+        <div ref={entRef} className="relative flex flex-shrink-0 items-stretch">
           <button
             type="button"
             onClick={() => setEntOpen((o) => !o)}
@@ -96,9 +92,18 @@ export default function LeaveNavBar() {
               style={{ zIndex: 9999, minWidth: "11rem" }}
             >
               {[
-                { label: "Add Entitlements", path: "/leave/entitlements/add" },
-                { label: "Entitlement List", path: "/leave/entitlements/list" },
-                { label: "My Entitlements", path: "/leave/entitlements/my" },
+                {
+                  label: "Add Entitlements",
+                  path: PAGE_PATHS.leaveEntitlementsAdd,
+                },
+                {
+                  label: "Entitlement List",
+                  path: PAGE_PATHS.leaveEntitlementsList,
+                },
+                {
+                  label: "My Entitlements",
+                  path: PAGE_PATHS.leaveEntitlementsMy,
+                },
               ].map((item) => (
                 <Link
                   key={item.path}

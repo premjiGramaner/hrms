@@ -18,7 +18,12 @@ import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
 import Pagination from "../../components/Pagination";
-import { ADMIN_ROLES, SUPERVISOR_ROLES, UserRole } from "../../config/roles";
+import {
+  ADMIN_ROLES,
+  PAGE_PATHS,
+  SUPERVISOR_ROLES,
+  type UserRole,
+} from "../../config/roles";
 
 const ATTACH_STATUSES = ["Available", "Pending"];
 const STATUS_OPTIONS = [
@@ -840,7 +845,7 @@ export default function LeaveListPage() {
                           )
                         )
                           return;
-                        navigate(`/leave/view_leave_list/details/${row.id}`);
+                        navigate(PAGE_PATHS.leaveDetails(row.id));
                       }}
                       className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
                     >

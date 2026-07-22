@@ -15,17 +15,12 @@ import StatusBadge from "../../components/common/StatusBadge";
 import PerformanceLayout from "../../components/layout/PerformanceLayout";
 import {
   downloadAppraisalPdf,
-  getAppraisalCycles,
   getAppraisals,
   getMyAppraisals,
 } from "../../api/performance.api";
 import { useAppSelector } from "../../app/hooks";
-import { isAdminRole } from "../../config/roles";
-import {
-  Appraisal,
-  AppraisalCycle,
-  AppraisalStatus,
-} from "../../types/performance.types";
+import { PAGE_PATHS, isAdminRole } from "../../config/roles";
+import { Appraisal, AppraisalStatus } from "../../types/performance.types";
 import { DataTableColumn } from "../../types/table.types";
 import { IconButton } from "./performanceUi";
 
@@ -93,115 +88,6 @@ function DateField({
         </button>
       </div>
     </div>
-  );
-}
-
-function CycleDropdown({
-  cycles,
-  value,
-  onChange,
-}: {
-  cycles: AppraisalCycle[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  // close on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const label =
-    value === ""
-      ? "All Appraisal Cycles"
-      : value === "open"
-        ? "All Open Appraisal Cycles"
-        : (cycles.find((c) => c.id === value)?.name ?? "Select…");
-
-  const select = (v: string) => {
-    onChange(v);
-    setOpen(false);
-  };
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-slate-500">
-        Appraisal Cycle
-      </label>
-      <div ref={ref} className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex h-12 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-600 outline-none"
-        >
-          <span className="truncate">{label}</span>
-          <span className="ml-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-[#f4f1f8] text-slate-500">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </span>
-        </button>
-
-        {open && (
-          <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-            <DropOption
-              label="All Open Appraisal Cycles"
-              selected={value === "open"}
-              onClick={() => select("open")}
-            />
-            <DropOption
-              label="All Appraisal Cycles"
-              selected={value === ""}
-              onClick={() => select("")}
-            />
-            {cycles.map((c) => (
-              <DropOption
-                key={c.id}
-                label={c.name}
-                selected={value === c.id}
-                onClick={() => select(c.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function DropOption({
-  label,
-  selected,
-  onClick,
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`block w-full px-4 py-3 text-left text-sm transition hover:bg-slate-50 ${selected ? "font-semibold text-teal-600" : "text-slate-700"}`}
-    >
-      {label}
-    </button>
   );
 }
 
@@ -277,13 +163,11 @@ function StatusTagInput({
 // ─── Filter Modal ─────────────────────────────────────────────────────────────
 
 function FilterModal({
-  cycles,
   initialFilter,
   showCycleFilter,
   onSearch,
   onClose,
 }: {
-  cycles: AppraisalCycle[];
   initialFilter: FilterState;
   showCycleFilter: boolean;
   onSearch: (f: FilterState) => void;
@@ -371,7 +255,6 @@ function FilterModal({
 export default function AppraisalList() {
   const [query, setQuery] = useState("");
   const [appraisals, setAppraisals] = useState<Appraisal[]>([]);
-  const [cycles, setCycles] = useState<AppraisalCycle[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showFilter, setShowFilter] = useState(false);
@@ -404,14 +287,6 @@ export default function AppraisalList() {
     fetchAppraisals(appliedFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMyAppraisals]);
-
-  // Fetch cycles for admin filter dropdown
-  useEffect(() => {
-    if (!isAdmin) return;
-    getAppraisalCycles()
-      .then(setCycles)
-      .catch(() => setCycles([]));
-  }, [isAdmin]);
 
   // Client-side search only (admin, by name — no round-trip needed)
   const rows = useMemo(() => {
@@ -459,9 +334,9 @@ export default function AppraisalList() {
       curr.includes(id) ? curr.filter((x) => x !== id) : [...curr, id],
     );
   const openAppraisal = (id: string) =>
-    navigate(`/performance/appraisals/${id}/view`);
+    navigate(PAGE_PATHS.performanceAppraisalView(id));
   const openReview = (id: string) =>
-    navigate(`/performance/appraisals/${id}/review`);
+    navigate(PAGE_PATHS.performanceAppraisalReview(id));
 
   const activeTab = isMyAppraisals
     ? "My Appraisals"
@@ -523,7 +398,6 @@ export default function AppraisalList() {
 
       {showFilter && (
         <FilterModal
-          cycles={cycles}
           initialFilter={appliedFilter}
           showCycleFilter={isAdmin}
           onSearch={(f) => {

@@ -23,23 +23,25 @@ export const ACTION_COLORS = {
 
 export type AuditAction = keyof typeof ACTION_COLORS;
 
+import { ROLES } from "./roles";
+
 export const ROLE_OPTIONS = [
   {
-    value: "employee",
+    value: ROLES.EMPLOYEE,
     label: "Employee",
     color: "#16a34a",
     bg: "#dcfce7",
     border: "#bbf7d0",
   },
   {
-    value: "supervisor",
+    value: ROLES.SUPERVISOR,
     label: "Supervisor",
     color: "#075985",
     bg: "#e0f2fe",
     border: "#bae6fd",
   },
   {
-    value: "hradmin",
+    value: ROLES.HR_ADMIN,
     label: "Global Admin",
     color: "#7c3aed",
     bg: "#ede9fe",

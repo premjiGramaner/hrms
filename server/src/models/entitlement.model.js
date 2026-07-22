@@ -34,15 +34,6 @@ async function findActiveLeaveTypes() {
   return rows;
 }
 
-async function entitlementExists(employeeId, leaveTypeId, year) {
-  const { rows } = await pool.query(
-    `SELECT id FROM tbl_leave_entitlements
-     WHERE employee_id = $1 AND leave_type_id = $2 AND year = $3 AND is_deleted = FALSE`,
-    [employeeId, leaveTypeId, year],
-  );
-  return rows.length > 0;
-}
-
 async function createEntitlement({
   employee_id,
   leave_type_id,
