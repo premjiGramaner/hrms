@@ -5,18 +5,19 @@ import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import useDebounce from "../../hooks/useDebounce";
 import { getSuperiorEmployees } from "../../api/employee.api";
 import { Employee, PaginatedResponse } from "../../types";
-import { BASIC_SUPERVISOR_ROLES, type UserRole } from "../../config/roles";
 import {
-  IconUsers,
-  IconShield,
-  IconSettings,
-  IconX,
-} from "../../components/Icons";
+  BASIC_SUPERVISOR_ROLES,
+  PAGE_PATHS,
+  ROLES,
+  isAdminRole,
+  type UserRole,
+} from "../../config/roles";
+import { IconSettings, IconShield, IconUsers, IconX } from "../../components/Icons";
 
 const TABS: TabItem[] = [
-  { label: "Employee List", path: "/employees" },
-  { label: "Superior Section", path: "/employees/superior-section" },
-  { label: "My Info", path: "/my-info" },
+  { label: "Employee List", path: PAGE_PATHS.employees },
+  { label: "Superior Section", path: PAGE_PATHS.employeesSuperior },
+  { label: "My Info", path: PAGE_PATHS.myInfo },
 ];
 
 function displayName(employee: Employee) {
@@ -43,8 +44,8 @@ function avatarSrc(employee: Employee) {
 }
 
 function displayRole(role: string) {
-  if (role === "supervisor" || role === "manager") return "Supervisor";
-  if (role === "hradmin" || role === "empmanager") return "Global Admin";
+  if (role === ROLES.SUPERVISOR || role === ROLES.MANAGER) return "Supervisor";
+  if (isAdminRole(role)) return "Global Admin";
   return "Employee";
 }
 
@@ -157,9 +158,7 @@ export default function SuperiorSectionPage() {
   const supervisorCount = rows.filter((row) =>
     BASIC_SUPERVISOR_ROLES.includes(row.role as UserRole),
   ).length;
-  const globalAdminCount = rows.filter((row) =>
-    ["hradmin", "empmanager"].includes(row.role),
-  ).length;
+  const globalAdminCount = rows.filter((row) => isAdminRole(row.role)).length;
 
   const stats: StatCard[] = [
     {
@@ -230,8 +229,7 @@ export default function SuperiorSectionPage() {
       header: "Role",
       width: 140,
       render: (employee) => {
-        const isGlobalAdmin =
-          employee.role === "hradmin" || employee.role === "empmanager";
+        const isGlobalAdmin = isAdminRole(employee.role);
         return (
           <span
             className={`inline-flex text-xs font-bold px-[10px] py-1 rounded-full ${
@@ -282,8 +280,8 @@ export default function SuperiorSectionPage() {
         onChange={handleRoleFilter}
         placeholder="All Roles"
         options={[
-          { value: "supervisor", label: "Supervisor" },
-          { value: "hradmin", label: "Global Admin" },
+          { value: ROLES.SUPERVISOR, label: "Supervisor" },
+          { value: ROLES.HR_ADMIN, label: "Global Admin" },
         ]}
       />
       {hasFilters && (
@@ -326,7 +324,7 @@ export default function SuperiorSectionPage() {
             borderColor: "#bfdbfe",
             borderColorHover: "#93c5fd",
             onClick: (employee) =>
-              employee.id && navigate(`/employees/${employee.id}/profile`),
+              employee.id && navigate(PAGE_PATHS.employeeProfile(employee.id)),
             title: "View profile",
           },
         ]}

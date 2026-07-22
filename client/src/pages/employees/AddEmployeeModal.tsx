@@ -33,6 +33,7 @@ import { ISO_DATE_PATTERN } from "../../constants/employeeOptions";
 import { EMAIL_REGEX } from "./validation";
 import { handleMobileInput } from "./components/inputHelpers";
 import Toast from "../../utils/toast";
+import { ROLES } from "../../config/roles";
 import {
   SUPPORTED_IMAGE_TYPES,
   SUPPORTED_IMAGE_EXTENSIONS,
@@ -154,7 +155,7 @@ export default function AddEmployeeModal({
       employee_id: employee?.employee_id || "",
       joined_date: toDateStr(employee?.joined_date) || today,
       location: employee?.location || "",
-      role: "employee",
+      role: ROLES.EMPLOYEE,
       gender: employee?.gender || "",
       dob: toDateStr(employee?.dob) || "",
       nationality: employee?.nationality || "",

@@ -61,7 +61,6 @@ const createEntitlements = async (req, res, next) => {
       req.user?.id || null,
     );
 
-    const total = ids.length;
     const created_count = results.created.length;
     const skipped = results.skipped.length;
 

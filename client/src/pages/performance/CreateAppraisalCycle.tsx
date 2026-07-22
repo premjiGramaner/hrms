@@ -10,6 +10,7 @@ import SelectInput from "../../components/common/SelectInput";
 import PerformanceLayout from "../../components/layout/PerformanceLayout";
 import { AppraisalTemplate } from "../../types/performance.types";
 import { FieldShell, PanelTitle, SoftInput } from "./performanceUi";
+import { PAGE_PATHS } from "../../config/roles";
 
 export default function CreateAppraisalCycle() {
   const navigate = useNavigate();
@@ -18,10 +19,6 @@ export default function CreateAppraisalCycle() {
   const [fromDate, setFromDate] = useState("2026-04-01");
   const [toDate, setToDate] = useState("2027-03-31");
   const [dueDate, setDueDate] = useState("2027-03-31");
-  const [mainEvaluatorBy, setMainEvaluatorBy] = useState(
-    "Supervisor with Reporting Method",
-  );
-  const [reportingMethod, setReportingMethod] = useState("Direct");
   const [template, setTemplate] = useState("");
   const [templates, setTemplates] = useState<AppraisalTemplate[]>([]);
 
@@ -43,7 +40,7 @@ export default function CreateAppraisalCycle() {
       dueDate,
       templateId: template,
     });
-    navigate(`/performance/appraisal_cycles/${cycle.id}/add-employees`);
+    navigate(PAGE_PATHS.performanceAppraisalCycleAddEmployees(cycle.id));
   };
 
   return (
@@ -107,7 +104,7 @@ export default function CreateAppraisalCycle() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => navigate("/performance/appraisal_cycles")}
+            onClick={() => navigate(PAGE_PATHS.performanceAppraisalCycles)}
           >
             Cancel
           </Button>

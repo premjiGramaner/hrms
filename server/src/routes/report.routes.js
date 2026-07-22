@@ -1,5 +1,6 @@
 import express from "express";
 import { authenticate, requireRole } from "../middleware/auth.middleware.js";
+import { ROLES } from "../constants/roles.js";
 import {
   getTerminationReport,
   getBirthdayReport,
@@ -22,17 +23,17 @@ router.use(authenticate);
 // Termination Report (Admin access only)
 router.get(
   "/termination",
-  requireRole("hradmin", "empmanager"),
+  requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER),
   getTerminationReport,
 );
 router.get(
   "/termination/export/excel",
-  requireRole("hradmin", "empmanager"),
+  requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER),
   exportTerminationReportExcel,
 );
 router.get(
   "/termination/export/pdf",
-  requireRole("hradmin", "empmanager"),
+  requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER),
   exportTerminationReportPDF,
 );
 
@@ -47,12 +48,12 @@ router.get("/work-anniversary/export/excel", exportWorkAnniversaryReportExcel);
 // Notification Configuration (Admin only)
 router.get(
   "/notification-config",
-  requireRole("hradmin"),
+  requireRole(ROLES.HR_ADMIN),
   getNotificationConfig,
 );
 router.put(
   "/notification-config",
-  requireRole("hradmin"),
+  requireRole(ROLES.HR_ADMIN),
   updateNotificationConfig,
 );
 
@@ -62,7 +63,7 @@ router.get("/filter-options", getReportFilterOptions);
 // Manual trigger for testing notifications (Admin only)
 router.post(
   "/trigger-notifications",
-  requireRole("hradmin"),
+  requireRole(ROLES.HR_ADMIN),
   triggerNotificationsManually,
 );
 

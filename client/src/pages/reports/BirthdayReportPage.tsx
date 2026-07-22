@@ -52,12 +52,13 @@ const FILTER_OPTIONS = {
     { value: "Widowed", label: "Widowed" },
   ],
 } as const;
+import { PAGE_PATHS } from "../../config/roles";
 
 const TABS: TabItem[] = [
-  { label: "Birthday Report", path: "/reports/birthday" },
-  { label: "Work Anniversary", path: "/reports/work-anniversary" },
-  { label: "Termination Report", path: "/reports/termination" },
-  { label: "Notifications", path: "/reports/notifications" },
+  { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
+  { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },
+  { label: "Termination Report", path: PAGE_PATHS.reportsTermination },
+  { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
 ];
 
 const COLUMN_LABELS = {

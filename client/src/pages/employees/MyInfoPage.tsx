@@ -48,14 +48,17 @@ import {
 import { updateUserAvatar, updateUserName } from "../../store/authSlice";
 import { getNumericValue } from "./components/inputHelpers";
 import Toast from "../../utils/toast";
+import { PAGE_PATHS, ROLES, isAdminRole } from "../../config/roles";
 
 const ADMIN_TABS: TabItem[] = [
-  { label: "Employee List", path: "/employees" },
-  { label: "Superior Section", path: "/employees/superior-section" },
-  { label: "My Info", path: "/my-info" },
+  { label: "Employee List", path: PAGE_PATHS.employees },
+  { label: "Superior Section", path: PAGE_PATHS.employeesSuperior },
+  { label: "My Info", path: PAGE_PATHS.myInfo },
 ];
 
-const EMPLOYEE_TABS: TabItem[] = [{ label: "My Info", path: "/my-info" }];
+const EMPLOYEE_TABS: TabItem[] = [
+  { label: "My Info", path: PAGE_PATHS.myInfo },
+];
 
 const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
 
@@ -63,7 +66,7 @@ export default function MyInfoPage() {
   const user = useAppSelector((state) => state.auth.user);
 
   const dispatch = useAppDispatch();
-  const isAdmin = user?.role === "hradmin" || user?.role === "empmanager";
+  const isAdmin = isAdminRole(user?.role);
   const TABS = isAdmin ? ADMIN_TABS : EMPLOYEE_TABS;
 
   const [employee, setEmployee] = useState<Employee | null>(null);
@@ -251,7 +254,7 @@ export default function MyInfoPage() {
         }
       });
 
-      formData.append("role", employee.role || "employee");
+      formData.append("role", employee.role || ROLES.EMPLOYEE);
 
       const supervisorsArray = form.supervisor_id ? [form.supervisor_id] : [];
       formData.append("supervisors", JSON.stringify(supervisorsArray));

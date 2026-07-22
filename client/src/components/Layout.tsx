@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { logout as logoutAction } from "../store/authSlice";
 import { logout as logoutApi } from "../api/auth.api";
-import { getRoleLabel, isAdminRole } from "../config/roles";
+import { ROLES, PAGE_PATHS, getRoleLabel, isAdminRole } from "../config/roles";
 import cannyforeLogo from "../assets/cannyfore_title_logo.png";
 import UserAvatar from "./UserAvatar";
 
@@ -54,40 +54,54 @@ export default function Layout({
   const [collapsed, setCollapsed] = useState(false);
   const [userNames, setUserName] = useState("");
 
-  const role = user?.role || "employee";
+  const role = user?.role || ROLES.EMPLOYEE;
   const isAdmin = isAdminRole(role);
   const roleLabel = getRoleLabel(role);
 
   const isActive = (path: string) => location.pathname.startsWith(path);
   const pageTitle =
     title ||
-    (isActive("/employees") || isActive("/my-info")
+    (isActive(PAGE_PATHS.employees) || isActive(PAGE_PATHS.myInfo)
       ? "Employee Management"
-      : isActive("/hradmin") || isActive("/roles")
+      : isActive(PAGE_PATHS.hradmin) || isActive(PAGE_PATHS.roles)
         ? "HR Administration"
-        : isActive("/leave")
+        : isActive(PAGE_PATHS.leave)
           ? "Leave"
-          : isActive("/performance")
+          : isActive(PAGE_PATHS.performance)
             ? "Performance"
-            : isActive("/reports")
+            : isActive(PAGE_PATHS.reports)
               ? "Reports and Analytics"
               : "HRMS");
 
   const navItems = [
-    ...(role === "hradmin" || role === "empmanager"
-      ? [{ to: "/hradmin", label: "HR Administration", icon: <IconBuilding /> }]
+    ...(isAdmin
+      ? [
+          {
+            to: PAGE_PATHS.hradmin,
+            label: "HR Administration",
+            icon: <IconBuilding />,
+          },
+        ]
       : []),
-    { to: "/employees", label: "Employee Management", icon: <IconPeople /> },
     {
-      to: isAdmin ? "/leave/view_leave_list" : "/leave/apply",
+      to: PAGE_PATHS.employees,
+      label: "Employee Management",
+      icon: <IconPeople />,
+    },
+    {
+      to: isAdmin ? PAGE_PATHS.leaveList : PAGE_PATHS.leaveApply,
       label: "Leave",
       icon: <IconCalendar />,
     },
-    { to: "/performance", label: "Performance", icon: <IconBriefcase /> },
-    ...(role === "hradmin" || user?.id === 0 || user?.username === "admin"
+    {
+      to: PAGE_PATHS.performance,
+      label: "Performance",
+      icon: <IconBriefcase />,
+    },
+    ...(role === ROLES.HR_ADMIN || user?.id === 0 || user?.username === "admin"
       ? [
           {
-            to: "/reports",
+            to: PAGE_PATHS.reports,
             label: "Reports and Analytics",
             icon: <IconChart />,
           },
@@ -95,7 +109,7 @@ export default function Layout({
       : []),
   ];
 
-  const homeRoute = isAdmin ? "/employees" : "/my-info";
+  const homeRoute = isAdmin ? PAGE_PATHS.employees : PAGE_PATHS.myInfo;
   useEffect(() => {
     if (user?.name) {
       setUserName(user.name);
@@ -106,20 +120,20 @@ export default function Layout({
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
       <div
         className={`relative flex-shrink-0 transition-[width] duration-[250ms] ease-in-out ${
-          collapsed ? "w-0 min-w-0" : "w-[230px]"
+          collapsed ? "w-[60px]" : "w-[230px]"
         }`}
       >
         <aside
           className={`flex flex-col bg-white shadow-lg z-10 h-screen select-none overflow-hidden transition-[width] duration-[250ms] ease-in-out ${
-            collapsed ? "w-0" : "w-[230px]"
+            collapsed ? "w-[60px]" : "w-[230px]"
           }`}
         >
-          <div className="flex items-center justify-center border-b border-slate-100 flex-shrink-0 h-16 px-6">
+          <div className="flex items-center justify-center border-b border-slate-100 flex-shrink-0 h-16 px-2">
             <img
               src={cannyforeLogo}
               alt="Cannyfore"
-              className={`h-[38px] max-w-[140px] object-contain transition-opacity duration-200 ease-in-out ${
-                collapsed ? "opacity-0" : "opacity-100"
+              className={`object-contain transition-all duration-200 ease-in-out ${
+                collapsed ? "h-[32px] w-[40px]" : "h-[38px] max-w-[140px]"
               }`}
             />
           </div>
@@ -137,7 +151,7 @@ export default function Layout({
               />
 
               <div className="absolute flex items-center justify-center bg-white rounded-full w-6 h-6 bottom-0.5 right-0.5 shadow-[0_1px_3px_rgba(0,0,0,0.15)]">
-                <Link to="/my-info">
+                <Link to={PAGE_PATHS.myInfo}>
                   <IconGear size={12} color="#888" />
                 </Link>
               </div>
@@ -160,14 +174,13 @@ export default function Layout({
           <nav className="flex-1 overflow-y-auto pt-1 px-2 pb-6">
             {navItems.map((item) => {
               let active = false;
-              if (item.to !== "#") {
-                if (item.to === "/leave/view_leave_list") {
-                  active = isActive("/leave");
-                } else if (item.label === "Employee Management") {
-                  active = isActive("/employees") || isActive("/my-info");
-                } else {
-                  active = isActive(item.to);
-                }
+              if (item.to === PAGE_PATHS.leaveList) {
+                active = isActive(PAGE_PATHS.leave);
+              } else if (item.label === "Employee Management") {
+                active =
+                  isActive(PAGE_PATHS.employees) || isActive(PAGE_PATHS.myInfo);
+              } else {
+                active = isActive(item.to);
               }
               return (
                 <SidebarNavItem
@@ -211,7 +224,7 @@ export default function Layout({
                 console.error("Logout error:", error);
               } finally {
                 dispatch(logoutAction());
-                navigate("/login");
+                navigate(PAGE_PATHS.login);
               }
             }}
             className="flex items-center gap-2 bg-white/20 border border-white/35 text-white rounded-full px-4 py-1.5 text-sm font-medium cursor-pointer hover:bg-white/30 transition"
@@ -258,7 +271,6 @@ export default function Layout({
         <div className="flex-1 overflow-y-auto p-6">
           {children}
 
-          {/* Footer Copyright */}
           <footer className="mt-8 pt-4 border-t border-slate-200 text-center">
             <p className="text-xs text-slate-400">
               Cannyfore © {new Date().getFullYear()} All rights reserved.
@@ -318,8 +330,8 @@ function SidebarNavItem({
     </>
   );
 
-  const linkClasses = `flex items-center rounded-[28px] mb-1 no-underline cursor-pointer select-none transition-all duration-[180ms] ease ${
-    collapsed ? "gap-0 p-2.5 justify-center" : "gap-3 py-2.5 px-3 justify-start"
+  const linkClasses = `flex items-center mb-1 no-underline cursor-pointer select-none transition-all duration-[180ms] ease ${
+    collapsed ? "gap-0 p-2.5 justify-center rounded-full" : "gap-3 py-2.5 px-3 justify-start rounded-[28px]"
   } ${
     active
       ? "bg-gradient-to-r from-[#233B86] to-[#12C7A5] shadow-[0_2px_10px_rgba(35,59,134,0.20)]"

@@ -80,12 +80,13 @@ const FILTER_LABELS = {
   FROM_DATE_PLACEHOLDER: "From Date",
   TO_DATE_PLACEHOLDER: "To Date",
 } as const;
+import { PAGE_PATHS } from "../../config/roles";
 
 const TABS: TabItem[] = [
-  { label: "Birthday Report", path: "/reports/birthday" },
-  { label: "Work Anniversary", path: "/reports/work-anniversary" },
-  { label: "Termination Report", path: "/reports/termination" },
-  { label: "Notifications", path: "/reports/notifications" },
+  { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
+  { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },
+  { label: "Termination Report", path: PAGE_PATHS.reportsTermination },
+  { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
 ];
 
 export default function TerminationReportPage() {
@@ -392,7 +393,7 @@ export default function TerminationReportPage() {
         onClick={handleExportExcel}
         className="py-2 px-4 bg-[#16A085] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#138f72] transition-colors"
       >
-        {REPORT_CONFIG.EXPORT_EXCEL_LABEL}
+        Export Excel
       </button>
 
       {/* Export PDF Button */}
@@ -400,7 +401,7 @@ export default function TerminationReportPage() {
         onClick={handleExportPDF}
         className="py-2 px-4 bg-[#21088dff] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#1a0670] transition-colors"
       >
-        {REPORT_CONFIG.EXPORT_PDF_LABEL}
+        Export PDF
       </button>
     </div>
   );

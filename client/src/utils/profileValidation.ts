@@ -11,7 +11,6 @@ const isEmpty = (value?: string | null): boolean =>
 
 export const validatePersonalDetails = (
   form: EditableEmployeeProfileForm,
-  isAdmin: boolean,
 ): ValidationErrors => {
   const errors: ValidationErrors = {};
 
@@ -109,17 +108,6 @@ export const validateEmploymentDetails = (
   }
 
   return errors;
-};
-
-export const validateAllSections = (
-  form: EditableEmployeeProfileForm,
-  isAdmin: boolean,
-): ValidationErrors => {
-  return {
-    ...validatePersonalDetails(form, isAdmin),
-    ...validateContactDetails(form),
-    ...validateEmploymentDetails(form),
-  };
 };
 
 export const hasErrors = (errors: ValidationErrors): boolean => {

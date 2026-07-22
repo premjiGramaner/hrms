@@ -25,14 +25,14 @@ async function verifyTerminationHistory() {
       return;
     }
 
-    const triggerCheck = await pool.query(`
+    await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.triggers 
         WHERE trigger_name = 'trigger_create_termination_record'
       ) as trigger_exists;
     `);
 
-    const stats = await pool.query(`
+    await pool.query(`
       SELECT 
         COUNT(*) as total_records,
         COUNT(DISTINCT employee_id) as unique_employees,
@@ -46,9 +46,7 @@ async function verifyTerminationHistory() {
       WHERE is_deleted = FALSE
     `);
 
-    const s = stats.rows[0];
-
-    const sample = await pool.query(`
+    await pool.query(`
       SELECT 
         employee_code,
         employee_name,

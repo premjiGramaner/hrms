@@ -13,15 +13,11 @@ async function convertSupervisorIdsToNames() {
       AND is_deleted = false
     `);
 
-    let converted = 0;
-    let skipped = 0;
-
     for (const employee of employees) {
       try {
         let supervisorIds = JSON.parse(employee.supervisors);
 
         if (supervisorIds.length > 0 && typeof supervisorIds[0] === "string") {
-          skipped++;
           continue;
         }
 
@@ -58,7 +54,6 @@ async function convertSupervisorIdsToNames() {
         `,
           [JSON.stringify(supervisorNames), employee.id],
         );
-        converted++;
       } catch (err) {
         console.error(
           `❌ Error processing employee ${employee.id}:`,

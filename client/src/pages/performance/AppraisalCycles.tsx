@@ -1,4 +1,4 @@
-import { Download, Edit, Plus, Search, Trash2 } from "lucide-react";
+import { Download, Edit, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ import StatusBadge from "../../components/common/StatusBadge";
 import PerformanceLayout from "../../components/layout/PerformanceLayout";
 import { AppraisalCycle } from "../../types/performance.types";
 import { IconButton } from "./performanceUi";
+import { PAGE_PATHS } from "../../config/roles";
 
 const statusItems = [
   { label: "All", color: "bg-blue-100 text-blue-600" },
@@ -132,7 +133,9 @@ export default function AppraisalCycles() {
         <aside className="border-r border-slate-100 pr-7">
           <Button
             className="mb-7 w-full justify-center text-base"
-            onClick={() => navigate("/performance/appraisal_cycles/create")}
+            onClick={() =>
+              navigate(PAGE_PATHS.performanceAppraisalCyclesCreate)
+            }
           >
             <Plus size={20} />
             Create Appraisal Cycle

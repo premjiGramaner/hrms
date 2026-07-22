@@ -55,34 +55,6 @@ function extractHeaderImage(value) {
   return Buffer.from(base64, "base64");
 }
 
-function tableRows(doc, rows, startX, startY, widths) {
-  let y = startY;
-  rows.forEach(([label, value]) => {
-    const rowHeight =
-      Math.max(
-        doc.heightOfString(clean(label), { width: widths[0] - 12 }),
-        doc.heightOfString(clean(value), { width: widths[1] - 12 }),
-        20,
-      ) + 12;
-    doc.rect(startX, y, widths[0], rowHeight).stroke("#d9dde7");
-    doc.rect(startX + widths[0], y, widths[1], rowHeight).stroke("#d9dde7");
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(9)
-      .fillColor("#52637a")
-      .text(clean(label), startX + 6, y + 7, { width: widths[0] - 12 });
-    doc
-      .font("Helvetica")
-      .fontSize(9)
-      .fillColor("#111827")
-      .text(clean(value), startX + widths[0] + 6, y + 7, {
-        width: widths[1] - 12,
-      });
-    y += rowHeight;
-  });
-  return y;
-}
-
 function ensurePageSpace(doc, y, needed = 80) {
   if (y + needed < doc.page.height - 48) return y;
   doc.addPage();
@@ -257,7 +229,7 @@ function drawPageOne(doc, appraisal) {
     42,
     y,
   );
-  y = infoRow(
+  infoRow(
     doc,
     "Sub Unit",
     appraisal.employee?.subUnit,

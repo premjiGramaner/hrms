@@ -41,23 +41,24 @@ import CompetencyProfiles from "./pages/performance/CompetencyProfiles";
 import CreateAppraisalCycle from "./pages/performance/CreateAppraisalCycle";
 import PerformanceTrackers from "./pages/performance/PerformanceTrackers";
 import TemplateFormDesign from "./pages/performance/TemplateFormDesign";
-import { ADMIN_ROLES, type UserRole } from "./config/roles";
+import { ADMIN_ROLES, PAGE_PATHS, ROLES, type UserRole } from "./config/roles";
 import {
   TerminationReportPage,
   BirthdayReportPage,
   WorkAnniversaryReportPage,
   ReportNotificationConfigPage,
-  UnifiedReportsPage,
 } from "./pages/reports";
 
 function PerformanceHomeRedirect() {
-  const role = useAppSelector((state) => state.auth.user?.role || "employee");
+  const role = useAppSelector(
+    (state) => state.auth.user?.role || ROLES.EMPLOYEE,
+  );
   return (
     <Navigate
       to={
         ADMIN_ROLES.includes(role as UserRole)
-          ? "/performance/appraisal_cycles"
-          : "/performance/my_appraisals"
+          ? PAGE_PATHS.performanceAppraisalCycles
+          : PAGE_PATHS.performanceMyAppraisals
       }
       replace
     />
@@ -65,9 +66,11 @@ function PerformanceHomeRedirect() {
 }
 
 function PerformanceAdminOnly({ children }: { children: React.ReactNode }) {
-  const role = useAppSelector((state) => state.auth.user?.role || "employee");
+  const role = useAppSelector(
+    (state) => state.auth.user?.role || ROLES.EMPLOYEE,
+  );
   if (!ADMIN_ROLES.includes(role as UserRole))
-    return <Navigate to="/performance/my_appraisals" replace />;
+    return <Navigate to={PAGE_PATHS.performanceMyAppraisals} replace />;
   return <>{children}</>;
 }
 
@@ -78,10 +81,10 @@ export default function App() {
 
   React.useEffect(() => {
     const checkCookieAuth = async () => {
-      const isPlaceholderToken =
+      const isCookieExist =
         token === "cookie_auth" || token === "cookie_authenticated";
 
-      if (token && !isPlaceholderToken) {
+      if (token && !isCookieExist) {
         setIsCheckingAuth(false);
         return;
       }
@@ -98,7 +101,7 @@ export default function App() {
           }),
         );
       } catch (error) {
-        if (isPlaceholderToken) {
+        if (isCookieExist) {
           dispatch(logout());
         }
       } finally {
@@ -124,22 +127,31 @@ export default function App() {
     <BrowserRouter>
       <ToastContainer />
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/create-password" element={<CreatePasswordPage />} />
+        <Route path={PAGE_PATHS.login} element={<LoginPage />} />
+        <Route
+          path={PAGE_PATHS.forgotPassword}
+          element={<ForgotPasswordPage />}
+        />
+        <Route
+          path={PAGE_PATHS.resetPassword}
+          element={<ResetPasswordPage />}
+        />
+        <Route
+          path={PAGE_PATHS.createPassword}
+          element={<CreatePasswordPage />}
+        />
 
         <Route
-          path="/"
+          path={PAGE_PATHS.home}
           element={
             <ProtectedRoute>
-              <Navigate to="/my-info" replace />
+              <Navigate to={PAGE_PATHS.myInfo} replace />
             </ProtectedRoute>
           }
         />
 
         <Route
-          path="/employees"
+          path={PAGE_PATHS.employees}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <EmployeeListPage />
@@ -147,7 +159,7 @@ export default function App() {
           }
         />
         <Route
-          path="/employees/superior-section"
+          path={PAGE_PATHS.employeesSuperior}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <SuperiorSectionPage />
@@ -155,7 +167,7 @@ export default function App() {
           }
         />
         <Route
-          path="/employees/:id/profile"
+          path={PAGE_PATHS.employeeProfile()}
           element={
             <ProtectedRoute>
               <EmployeeProfilePage />
@@ -163,7 +175,7 @@ export default function App() {
           }
         />
         <Route
-          path="/my-info"
+          path={PAGE_PATHS.myInfo}
           element={
             <ProtectedRoute>
               <MyInfoPage />
@@ -172,7 +184,7 @@ export default function App() {
         />
 
         <Route
-          path="/roles"
+          path={PAGE_PATHS.roles}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <RolesPage />
@@ -181,15 +193,15 @@ export default function App() {
         />
 
         <Route
-          path="/hradmin"
+          path={PAGE_PATHS.hradmin}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
-              <Navigate to="/hradmin/job-titles" replace />
+              <Navigate to={PAGE_PATHS.hradminJobTitles} replace />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/hradmin/users"
+          path={PAGE_PATHS.hradminUsers}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <HRUsersPage />
@@ -197,7 +209,7 @@ export default function App() {
           }
         />
         <Route
-          path="/hradmin/audit-trail"
+          path={PAGE_PATHS.hradminAuditTrail}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <AuditTrailPage />
@@ -205,7 +217,7 @@ export default function App() {
           }
         />
         <Route
-          path="/hradmin/job-titles"
+          path={PAGE_PATHS.hradminJobTitles}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <JobTitlesPage />
@@ -213,7 +225,7 @@ export default function App() {
           }
         />
         <Route
-          path="/hradmin/job-categories"
+          path={PAGE_PATHS.hradminJobCategories}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <JobCategoriesPage />
@@ -221,7 +233,7 @@ export default function App() {
           }
         />
         <Route
-          path="/hradmin/sub-units"
+          path={PAGE_PATHS.hradminSubUnits}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <SubUnitsPage />
@@ -229,7 +241,7 @@ export default function App() {
           }
         />
         <Route
-          path="/hradmin/role-access"
+          path={PAGE_PATHS.hradminRoleAccess}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <RoleAccessPage />
@@ -238,15 +250,15 @@ export default function App() {
         />
 
         <Route
-          path="/leave"
+          path={PAGE_PATHS.leave}
           element={
             <ProtectedRoute>
-              <Navigate to="/leave/view_leave_list" replace />
+              <Navigate to={PAGE_PATHS.leaveList} replace />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/leave/view_leave_list"
+          path={PAGE_PATHS.leaveList}
           element={
             <ProtectedRoute>
               <LeaveListPage />
@@ -254,7 +266,7 @@ export default function App() {
           }
         />
         <Route
-          path="/leave/view_leave_list/details/:id"
+          path={PAGE_PATHS.leaveDetails()}
           element={
             <ProtectedRoute>
               <LeaveDetailsPage />
@@ -262,7 +274,7 @@ export default function App() {
           }
         />
         <Route
-          path="/view_my_leave_list/detail/:id/my"
+          path={PAGE_PATHS.myLeaveDetail()}
           element={
             <ProtectedRoute>
               <LeaveDetailsPage />
@@ -270,7 +282,7 @@ export default function App() {
           }
         />
         <Route
-          path="/leave/apply"
+          path={PAGE_PATHS.leaveApply}
           element={
             <ProtectedRoute>
               <ApplyLeavePage />
@@ -279,15 +291,15 @@ export default function App() {
         />
 
         <Route
-          path="/leave/entitlements"
+          path={PAGE_PATHS.leaveEntitlements}
           element={
             <ProtectedRoute>
-              <Navigate to="/leave/entitlements/my" replace />
+              <Navigate to={PAGE_PATHS.leaveEntitlementsMy} replace />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/leave/entitlements/add"
+          path={PAGE_PATHS.leaveEntitlementsAdd}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <AddEntitlementsPage />
@@ -295,7 +307,7 @@ export default function App() {
           }
         />
         <Route
-          path="/leave/entitlements/list"
+          path={PAGE_PATHS.leaveEntitlementsList}
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <EntitlementListPage />
@@ -303,7 +315,7 @@ export default function App() {
           }
         />
         <Route
-          path="/leave/entitlements/my"
+          path={PAGE_PATHS.leaveEntitlementsMy}
           element={
             <ProtectedRoute>
               <MyEntitlementsPage />
@@ -311,7 +323,7 @@ export default function App() {
           }
         />
         <Route
-          path="/leave/view_my_leave_entitlement"
+          path={PAGE_PATHS.leaveMyEntitlement}
           element={
             <ProtectedRoute>
               <MyEntitlementsPage />
@@ -320,7 +332,7 @@ export default function App() {
         />
 
         <Route
-          path="/performance"
+          path={PAGE_PATHS.performance}
           element={
             <ProtectedRoute>
               <PerformanceHomeRedirect />
@@ -329,16 +341,16 @@ export default function App() {
         />
 
         <Route
-          path="/reports"
+          path={PAGE_PATHS.reports}
           element={
-            <ProtectedRoute roles={["hradmin"]}>
-              <Navigate to="/reports/birthday" replace />
+            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
+              <Navigate to={PAGE_PATHS.reportsBirthday} replace />
             </ProtectedRoute>
           }
         />
 
         <Route
-          path="/performance/appraisals_list"
+          path={PAGE_PATHS.performanceAppraisalsList}
           element={
             <ProtectedRoute>
               <PerformanceAdminOnly>
@@ -349,16 +361,16 @@ export default function App() {
         />
 
         <Route
-          path="/reports/termination"
+          path={PAGE_PATHS.reportsTermination}
           element={
-            <ProtectedRoute roles={["hradmin"]}>
+            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
               <TerminationReportPage />
             </ProtectedRoute>
           }
         />
 
         <Route
-          path="/performance/appraisal_cycles"
+          path={PAGE_PATHS.performanceAppraisalCycles}
           element={
             <ProtectedRoute>
               <PerformanceAdminOnly>
@@ -369,16 +381,16 @@ export default function App() {
         />
 
         <Route
-          path="/reports/birthday"
+          path={PAGE_PATHS.reportsBirthday}
           element={
-            <ProtectedRoute roles={["hradmin"]}>
+            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
               <BirthdayReportPage />
             </ProtectedRoute>
           }
         />
 
         <Route
-          path="/performance/appraisal_cycles/create"
+          path={PAGE_PATHS.performanceAppraisalCyclesCreate}
           element={
             <ProtectedRoute>
               <PerformanceAdminOnly>
@@ -389,15 +401,15 @@ export default function App() {
         />
 
         <Route
-          path="/reports/work-anniversary"
+          path={PAGE_PATHS.reportsWorkAnniversary}
           element={
-            <ProtectedRoute roles={["hradmin"]}>
+            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
               <WorkAnniversaryReportPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/performance/appraisal_cycles/:id"
+          path={PAGE_PATHS.performanceAppraisalCycle()}
           element={
             <ProtectedRoute>
               <PerformanceAdminOnly>
@@ -407,7 +419,7 @@ export default function App() {
           }
         />
         <Route
-          path="/performance/appraisal_cycles/:id/add-employees"
+          path={PAGE_PATHS.performanceAppraisalCycleAddEmployees()}
           element={
             <ProtectedRoute>
               <PerformanceAdminOnly>
@@ -417,7 +429,7 @@ export default function App() {
           }
         />
         <Route
-          path="/performance/appraisals/:id/view"
+          path={PAGE_PATHS.performanceAppraisalView()}
           element={
             <ProtectedRoute>
               <AppraisalCompactView />
@@ -425,7 +437,7 @@ export default function App() {
           }
         />
         <Route
-          path="/performance/appraisals/:id/review"
+          path={PAGE_PATHS.performanceAppraisalReview()}
           element={
             <ProtectedRoute>
               <AppraisalMultipleView />
@@ -433,7 +445,7 @@ export default function App() {
           }
         />
         <Route
-          path="/performance/my_appraisals"
+          path={PAGE_PATHS.performanceMyAppraisals}
           element={
             <ProtectedRoute>
               <AppraisalList />
@@ -441,7 +453,7 @@ export default function App() {
           }
         />
         <Route
-          path="/performance/team_appraisals"
+          path={PAGE_PATHS.performanceTeamAppraisals}
           element={
             <ProtectedRoute>
               <AppraisalList />
@@ -449,7 +461,7 @@ export default function App() {
           }
         />
         <Route
-          path="/performance/trackers"
+          path={PAGE_PATHS.performanceTrackers}
           element={
             <ProtectedRoute>
               <PerformanceAdminOnly>
@@ -459,7 +471,7 @@ export default function App() {
           }
         />
         <Route
-          path="/performance/competency_profiles"
+          path={PAGE_PATHS.performanceCompetencyProfiles}
           element={
             <ProtectedRoute>
               <PerformanceAdminOnly>
@@ -469,7 +481,7 @@ export default function App() {
           }
         />
         <Route
-          path="/performance/configuration/appraisal"
+          path={PAGE_PATHS.performanceConfigAppraisal}
           element={
             <ProtectedRoute>
               <PerformanceAdminOnly>
@@ -479,7 +491,7 @@ export default function App() {
           }
         />
         <Route
-          path="/performance/configuration/appraisal/templates/:templateId/design"
+          path={PAGE_PATHS.performanceTemplateDesign()}
           element={
             <ProtectedRoute>
               <PerformanceAdminOnly>
@@ -490,15 +502,18 @@ export default function App() {
         />
 
         <Route
-          path="/reports/notifications"
+          path={PAGE_PATHS.reportsNotifications}
           element={
-            <ProtectedRoute roles={["hradmin"]}>
+            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
               <ReportNotificationConfigPage />
             </ProtectedRoute>
           }
         />
 
-        <Route path="*" element={<Navigate to="/employees" replace />} />
+        <Route
+          path="*"
+          element={<Navigate to={PAGE_PATHS.employees} replace />}
+        />
       </Routes>
     </BrowserRouter>
   );

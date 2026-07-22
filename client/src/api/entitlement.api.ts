@@ -1,5 +1,6 @@
 import api from "./axios";
 import { LeaveType, PaginatedResponse } from "../types";
+import { ENTITLEMENT_PATHS } from "../constants/apiPaths";
 
 export interface EmployeeOption {
   id: number;
@@ -50,14 +51,14 @@ export interface CreateEntitlementPayload {
 
 export const getEntitlementEmployees = async (q = "") => {
   const res = await api.get<{ success: boolean; data: EmployeeOption[] }>(
-    `/leave/entitlements/employees?q=${encodeURIComponent(q)}`
+    `${ENTITLEMENT_PATHS.EMPLOYEES}?q=${encodeURIComponent(q)}`
   );
   return res.data.data;
 };
 
 export const getEntitlementLeaveTypes = async () => {
   const res = await api.get<{ success: boolean; data: LeaveType[] }>(
-    "/leave/entitlements/leave-types"
+    ENTITLEMENT_PATHS.LEAVE_TYPES
   );
   return res.data.data;
 };
@@ -66,7 +67,7 @@ export const createEntitlements = async (payload: CreateEntitlementPayload) => {
   const res = await api.post<{
     success: boolean;
     data: { message: string; created: number; skipped: number };
-  }>("/leave/entitlements", payload);
+  }>(ENTITLEMENT_PATHS.BASE, payload);
   return res.data.data;
 };
 
@@ -85,7 +86,7 @@ export const getEntitlementList = async (params: {
   const res = await api.get<{
     success: boolean;
     data: PaginatedResponse<EntitlementRecord>;
-  }>(`/leave/entitlements${qs}&_=${Date.now()}`);
+  }>(`${ENTITLEMENT_PATHS.BASE}${qs}&_=${Date.now()}`);
   return res.data.data;
 };
 
@@ -93,6 +94,6 @@ export const getMyEntitlements = async () => {
   const res = await api.get<{
     success: boolean;
     data: MyEntitlementRecord[];
-  }>(`/leave/entitlements/my?_=${Date.now()}`);
+  }>(`${ENTITLEMENT_PATHS.MY}?_=${Date.now()}`);
   return res.data.data;
 };

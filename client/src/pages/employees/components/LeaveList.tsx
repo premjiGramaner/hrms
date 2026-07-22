@@ -7,6 +7,7 @@ import {
   LEAVE_STATUS_COLORS,
   LEAVE_STATUS_BADGE_COLORS,
 } from "../../../config/uiConstants";
+import { PAGE_PATHS } from "../../../config/roles";
 
 interface LeaveListProps {
   employee: Employee;
@@ -68,7 +69,7 @@ export default function LeaveList({ employee }: LeaveListProps) {
   }, [employee?.id]);
 
   const handleWidgetClick = () => {
-    navigate("/leave/view_leave_list");
+    navigate(PAGE_PATHS.leaveList);
   };
 
   // Group leaves by month

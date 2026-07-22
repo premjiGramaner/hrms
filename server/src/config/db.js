@@ -2,7 +2,7 @@ import pg from "pg";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
-import { logError, logDatabase } from "../utils/logger.js";
+import { logError } from "../utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,18 +29,18 @@ const hasDiscreteConfig =
 
 const poolConfig = hasDiscreteConfig
   ? {
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT || "5432"),
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    }
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT || "5432"),
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+  }
   : {
-      connectionString: process.env.DATABASE_URL.replace(
-        "{PASSWORD}",
-        process.env.DB_PASSWORD,
-      ),
-    };
+    connectionString: process.env.DATABASE_URL.replace(
+      "{PASSWORD}",
+      process.env.DB_PASSWORD,
+    ),
+  };
 
 const pool = new Pool({
   ...poolConfig,

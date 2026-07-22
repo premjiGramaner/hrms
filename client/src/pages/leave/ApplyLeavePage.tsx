@@ -12,6 +12,7 @@ import { useAppSelector } from "../../app/hooks";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import UserAvatar from "../../components/UserAvatar";
+import { PAGE_PATHS } from "../../config/roles";
 
 function daysBetween(start: string, end: string): number {
   if (!start || !end) return 0;
@@ -49,8 +50,8 @@ export default function ApplyLeavePage() {
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [latestLeave, setLatestLeave] = useState<LeaveRequest | null>(null);
-  const [loadingTypes, setLoadingTypes] = useState(true);
-  const [existingLeaves, setExistingLeaves] = useState<LeaveRequest[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(false);
+  const [existingLeaves] = useState<LeaveRequest[]>([]);
 
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState("");
@@ -67,11 +68,10 @@ export default function ApplyLeavePage() {
 
   // Check if user has a valid ID
   const isValidUser = (user?.id ?? 0) > 0;
-
   const fetchData = async () => {
     setLoadingTypes(true);
     try {
-      const [types, balances, leaveData, allLeavesData] = await Promise.all([
+      const [types, balances, leaveData] = await Promise.all([
         getLeaveTypes(),
         isValidUser
           ? getLeaveBalance(user!.id, financialYear)
@@ -215,10 +215,7 @@ export default function ApplyLeavePage() {
         comments: comments || undefined,
       });
       addToast("Leave application submitted successfully.", "success");
-      setTimeout(
-        () => navigate(`/view_my_leave_list/detail/${result.id}/my`),
-        1500,
-      );
+      setTimeout(() => navigate(PAGE_PATHS.myLeaveDetail(result.id)), 1500);
     } catch (err) {
       addToast(getApiErrorMessage(err, "Failed to submit leave."), "error");
     } finally {
@@ -442,7 +439,7 @@ export default function ApplyLeavePage() {
                 <button
                   type="button"
                   onClick={() =>
-                    navigate(`/view_my_leave_list/detail/${latestLeave.id}/my`)
+                    navigate(PAGE_PATHS.myLeaveDetail(latestLeave.id))
                   }
                   className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-left hover:bg-slate-100 transition cursor-pointer"
                 >

@@ -1,9 +1,11 @@
-import React, { FormEvent, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getApiErrorMessage } from "../utils/errors";
 import { useAppDispatch } from "../app/hooks";
 import { logout } from "../store/authSlice";
-import api from "../api/axios";
+import { setPassword as setPasswordApi } from "../api/auth.api";
+import { PAGE_PATHS } from "../config/roles";
+import { IconEye, IconEyeOff, IconLock } from "../components/Icons";
 import cannyforeLogo from "../assets/logo.png";
 import rightPanelImage from "../assets/login_intelligent.png";
 import orangeHrmLogo from "../assets/orangehrm-logo.png";
@@ -38,11 +40,7 @@ export default function SetPasswordPage() {
 
     setLoading(true);
     try {
-      await api.post(
-        "/auth/set-password",
-        { password, confirmPassword },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await setPasswordApi(token, password, confirmPassword);
       setDone(true);
     } catch (err: unknown) {
       setError(
@@ -55,7 +53,7 @@ export default function SetPasswordPage() {
 
   const handleGoToLogin = () => {
     dispatch(logout());
-    navigate("/login");
+    navigate(PAGE_PATHS.login);
   };
 
   if (!token) {
@@ -64,7 +62,7 @@ export default function SetPasswordPage() {
         <div>
           <p className="text-red-600">Session expired. Please log in again.</p>
           <button
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(PAGE_PATHS.login)}
             className="mt-4 rounded-full bg-blue-950 px-6 py-2 text-sm font-bold text-white"
           >
             Back to Login
@@ -100,7 +98,7 @@ export default function SetPasswordPage() {
             </div>
 
             <div className="mb-2 flex items-center gap-2 text-slate-800">
-              <LockIcon />
+              <IconLock size={22} />
               <h1 className="text-2xl font-bold">Set Your Password</h1>
             </div>
             <p className="mb-5 text-sm text-slate-500">
@@ -133,7 +131,7 @@ export default function SetPasswordPage() {
                 <form onSubmit={handleSubmit} noValidate>
                   <div className="relative mb-3">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                      <LockSmallIcon />
+                      <IconLock size={18} />
                     </span>
                     <input
                       type={showPass ? "text" : "password"}
@@ -150,13 +148,17 @@ export default function SetPasswordPage() {
                       className="absolute right-2 top-1/2 flex h-9 w-10 -translate-y-1/2 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200"
                       aria-label={showPass ? "Hide password" : "Show password"}
                     >
-                      <EyeIcon hidden={showPass} />
+                      {showPass ? (
+                        <IconEyeOff size={17} />
+                      ) : (
+                        <IconEye size={17} />
+                      )}
                     </button>
                   </div>
 
                   <div className="relative mb-5">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                      <LockSmallIcon />
+                      <IconLock size={18} />
                     </span>
                     <input
                       type={showConfirm ? "text" : "password"}
@@ -174,7 +176,11 @@ export default function SetPasswordPage() {
                         showConfirm ? "Hide password" : "Show password"
                       }
                     >
-                      <EyeIcon hidden={showConfirm} />
+                      {showConfirm ? (
+                        <IconEyeOff size={17} />
+                      ) : (
+                        <IconEye size={17} />
+                      )}
                     </button>
                   </div>
 
@@ -220,74 +226,5 @@ export default function SetPasswordPage() {
         />
       </section>
     </main>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-function LockSmallIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-function EyeIcon({ hidden }: { hidden: boolean }) {
-  return hidden ? (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  ) : (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
   );
 }

@@ -1,10 +1,11 @@
-import React, { FormEvent, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { forgotPassword } from "../api/auth.api";
 import { getApiErrorMessage } from "../utils/errors";
+import { PAGE_PATHS } from "../config/roles";
+import { IconLock } from "../components/Icons";
 import cannyforeLogo from "../assets/logo.png";
 import rightPanelImage from "../assets/login_intelligent.png";
-import orangeHrmLogo from "../assets/orangehrm-logo.png";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -62,7 +63,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <div className="mb-4 flex items-center gap-2 text-slate-800">
-              <LockIcon />
+              <IconLock size={22} />
               <h1 className="text-2xl font-bold">Forgot Password</h1>
             </div>
 
@@ -74,7 +75,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate(PAGE_PATHS.login)}
                   className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-950 to-teal-500 text-base font-bold text-white shadow-lg transition hover:shadow-xl"
                 >
                   Back to Login
@@ -122,7 +123,7 @@ export default function ForgotPasswordPage() {
                   Remember your password?{" "}
                   <button
                     type="button"
-                    onClick={() => navigate("/login")}
+                    onClick={() => navigate(PAGE_PATHS.login)}
                     className="font-bold text-blue-950 hover:text-teal-600"
                   >
                     Login
@@ -148,24 +149,6 @@ export default function ForgotPasswordPage() {
         />
       </section>
     </main>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
   );
 }
 
