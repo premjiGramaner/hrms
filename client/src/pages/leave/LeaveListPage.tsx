@@ -2,6 +2,8 @@
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchLeaves, setFilters } from "../../store/leaveSlice";
+import { ChevronDown } from "lucide-react";
+import LeaveActionDropdown from "./components/LeaveActionDropdown";
 import {
   getLeaveTypes,
   getLeaveFilterOptions,
@@ -34,10 +36,22 @@ const STATUS_OPTIONS = [
   "Approved",
 ];
 
+enum LeaveStatus {
+  All = "All",
+  Taken = "Taken",
+  Approved = "Approved",
+  PendingApproval = "Pending Approval",
+}
+
+enum ExportType {
+  Summary = "summary",
+  Detail = "detail",
+}
+
+const ButtonStyles =
+  "px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md";
 const today = new Date();
-
 const fromDate = new Date(today.getFullYear(), today.getMonth(), 21);
-
 const toDate = new Date(today.getFullYear(), today.getMonth() + 1, 20);
 
 const formatDate = (date: Date): string => {
@@ -95,7 +109,7 @@ function RejectModal({
   onCancel,
 }: {
   leaveId: number;
-  onConfirm: (r: string) => void;
+  onConfirm: (reason: string) => void;
   onCancel: () => void;
 }) {
   const [reason, setReason] = useState("");
@@ -118,14 +132,14 @@ function RejectModal({
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 cursor-pointer transition"
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 cursor-pointer transition"
           >
             Cancel
           </button>
           <button
             disabled={!reason.trim()}
             onClick={() => reason.trim() && onConfirm(reason.trim())}
-            className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer transition disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer transition disabled:opacity-50"
           >
             Reject
           </button>
@@ -145,7 +159,7 @@ function EmployeeAutocomplete({
   onSelect,
 }: {
   value: string;
-  onChange: (v: string) => void;
+  onChange: (employeeName: string) => void;
   onSelect: (emp: EmployeeSuggestion) => void;
 }) {
   const [suggestions, setSuggestions] = useState<EmployeeSuggestion[]>([]);
@@ -168,15 +182,15 @@ function EmployeeAutocomplete({
   }, [value]);
 
   useEffect(() => {
-    const h = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
         containerRef.current &&
         !containerRef.current.contains(event.target as Node)
       )
         setOpen(false);
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
@@ -213,18 +227,96 @@ function EmployeeAutocomplete({
     </div>
   );
 }
+const isCurrentUserSupervisor = (
+  supervisors: LeaveRequest["supervisors"],
+  currentUserId?: number,
+): boolean => {
+  if (!supervisors || !currentUserId) return false;
 
+  try {
+    const parsedSupervisors: unknown =
+      typeof supervisors === "string" ? JSON.parse(supervisors) : supervisors;
+
+    if (!Array.isArray(parsedSupervisors)) return false;
+
+    return parsedSupervisors.some(
+      (supervisorId) => String(supervisorId) === String(currentUserId),
+    );
+  } catch {
+    return false;
+  }
+};
+
+interface LeaveRowActionsProps {
+  leaveRequest: LeaveRequest;
+  currentUserId?: number;
+  isAdmin: boolean;
+  loading: boolean;
+  onApprove: (leaveId: number) => void;
+  onReject: (leaveId: number) => void;
+  onCancel: (leaveId: number) => void;
+}
+
+function LeaveRowActions({
+  leaveRequest,
+  currentUserId,
+  isAdmin,
+  loading,
+  onApprove,
+  onReject,
+  onCancel,
+}: LeaveRowActionsProps) {
+  const isRequester = Boolean(
+    leaveRequest.user_id &&
+    currentUserId &&
+    String(leaveRequest.user_id) === String(currentUserId),
+  );
+
+  const isSupervisor = isCurrentUserSupervisor(
+    leaveRequest.supervisors,
+    currentUserId,
+  );
+
+  const isPending = leaveRequest.status === LeaveStatus.PendingApproval;
+
+  const canApproveReject =
+    (isAdmin || isSupervisor) && !isRequester && isPending;
+
+  const canCancel = isPending && (isRequester || isAdmin || isSupervisor);
+
+  const handleApproveClick = () => {
+    onApprove(leaveRequest.id);
+  };
+
+  const handleRejectClick = () => {
+    onReject(leaveRequest.id);
+  };
+
+  const handleCancelClick = () => {
+    onCancel(leaveRequest.id);
+  };
+
+  return (
+    <LeaveActionDropdown
+      canApproveReject={canApproveReject}
+      canCancel={canCancel}
+      loading={loading}
+      onApprove={handleApproveClick}
+      onReject={handleRejectClick}
+      onCancel={handleCancelClick}
+    />
+  );
+}
 export default function LeaveListPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { data, loading, filters } = useAppSelector((s) => s.leaves);
-  const user = useAppSelector((s) => s.auth.user);
+  const { data, loading, filters } = useAppSelector((state) => state.leaves);
+  const user = useAppSelector((state) => state.auth.user);
   const isAdmin = Boolean(
     (user?.role && ADMIN_ROLES.includes(user.role as UserRole)) ||
     (user?.role && SUPERVISOR_ROLES.includes(user.role as UserRole)),
   );
   const { toasts, addToast, removeToast } = useToast();
-
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [filterOpts, setFilterOpts] = useState<FilterOptions>({
     sub_units: [],
@@ -238,6 +330,10 @@ export default function LeaveListPage() {
   const [rejectTarget, setRejectTarget] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [searchTriggered, setSearchTriggered] = useState(false);
+
+  const handleOpenRejectModal = (leaveId: number) => {
+    setRejectTarget(leaveId);
+  };
 
   useEffect(() => {
     if (isAdmin) {
@@ -269,10 +365,10 @@ export default function LeaveListPage() {
   const handleSearch = () => {
     const forms = { ...form, page: 1 };
     if (
-      forms.statuses?.includes("Taken") &&
-      !forms.statuses.includes("Approved")
+      forms.statuses?.includes(LeaveStatus.Taken) &&
+      !forms.statuses.includes(LeaveStatus.Approved)
     ) {
-      forms.statuses = [...forms.statuses, "Approved"];
+      forms.statuses = [...forms.statuses, LeaveStatus.Approved];
     }
     dispatch(setFilters(forms));
     dispatch(fetchLeaves(forms));
@@ -299,18 +395,20 @@ export default function LeaveListPage() {
 
   const toggleStatus = (status: string) => {
     setForm((prev) => {
-      const s = prev.statuses || [];
-      if (status === "All")
+      const currentStatuses = prev.statuses || [];
+      if (status === LeaveStatus.All)
         return {
           ...prev,
           statuses:
-            s.length === STATUS_OPTIONS.length ? [] : [...STATUS_OPTIONS],
+            currentStatuses.length === STATUS_OPTIONS.length
+              ? []
+              : [...STATUS_OPTIONS],
         };
       return {
         ...prev,
-        statuses: s.includes(status)
-          ? s.filter((x) => x !== status)
-          : [...s, status],
+        statuses: currentStatuses.includes(status)
+          ? currentStatuses.filter((statusItem) => statusItem !== status)
+          : [...currentStatuses, status],
       };
     });
   };
@@ -369,9 +467,9 @@ export default function LeaveListPage() {
     [filters],
   );
 
-  const handleExport = async (type: "summary" | "detail") => {
+  const handleExport = async (type: ExportType.Summary | ExportType.Detail) => {
     try {
-      type === "summary"
+      type === ExportType.Summary
         ? await exportSummaryExcel(filters)
         : await exportDetailExcel(filters);
     } catch (event) {
@@ -383,6 +481,215 @@ export default function LeaveListPage() {
     "w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition";
   const selectCls =
     "w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition appearance-none cursor-pointer";
+
+  const handleFromDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newFromDate = event.target.value;
+
+    setForm((previousForm) => {
+      if (
+        previousForm.to_date &&
+        newFromDate &&
+        previousForm.to_date < newFromDate
+      ) {
+        return {
+          ...previousForm,
+          from_date: newFromDate,
+          to_date: newFromDate,
+        };
+      }
+
+      return {
+        ...previousForm,
+        from_date: newFromDate,
+      };
+    });
+  };
+
+  const handleToDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newToDate = event.target.value;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      to_date: newToDate,
+    }));
+  };
+
+  const handleEmployeeNameChange = (employeeName: string) => {
+    setForm((previousForm) => ({
+      ...previousForm,
+      employee_name: employeeName,
+    }));
+  };
+
+  const handleEmployeeSelect = (employee: EmployeeSuggestion) => {
+    setForm((previousForm) => ({
+      ...previousForm,
+      employee_name: employee.name,
+    }));
+  };
+
+  const handleSubUnitChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedSubUnit = event.target.value;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      sub_unit: selectedSubUnit,
+    }));
+  };
+
+  const handleLocationChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const selectedLocation = event.target.value;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      location: selectedLocation,
+    }));
+  };
+
+  const handleLeaveTypeChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const selectedLeaveTypeId = event.target.value;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      leave_type_id: selectedLeaveTypeId,
+    }));
+  };
+
+  const handleJobTitleChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const selectedJobTitle = event.target.value;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      job_title: selectedJobTitle,
+    }));
+  };
+
+  const handleEmploymentStatusChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const selectedEmploymentStatus = event.target.value;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      employment_status: selectedEmploymentStatus,
+    }));
+  };
+
+  const handleJobCategoryChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const selectedJobCategory = event.target.value;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      job_category: selectedJobCategory,
+    }));
+  };
+
+  const handleAttachmentStatusChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const selectedAttachmentStatus = event.target.value;
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      attachment_status: selectedAttachmentStatus,
+    }));
+  };
+
+  //check box logic
+  const allStatusesCheckboxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (allStatusesCheckboxRef.current) {
+      allStatusesCheckboxRef.current.indeterminate = isSomeChecked;
+    }
+  }, [isSomeChecked]);
+
+  const handleIncludePastChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setForm((previousForm) => ({
+      ...previousForm,
+      include_past: event.target.checked,
+    }));
+  };
+
+  const handleOnlySubordinatesChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setForm((previousForm) => ({
+      ...previousForm,
+      only_subordinates: event.target.checked,
+    }));
+  };
+
+  const handleStatusOptionChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    toggleStatus(event.target.value);
+  };
+
+  //buttons
+  const handleExportSummary = () => {
+    handleExport(ExportType.Summary);
+  };
+
+  const handleExportDetail = () => {
+    handleExport(ExportType.Detail);
+  };
+
+  const handleRejectModalCancel = () => {
+    setRejectTarget(null);
+  };
+
+  const handleEmployeeFromDateChange = (value: string) => {
+    setForm((previousForm) => ({
+      ...previousForm,
+      from_date: value,
+    }));
+  };
+
+  const handleEmployeeToDateChange = (value: string) => {
+    setForm((previousForm) => ({
+      ...previousForm,
+      to_date: value,
+    }));
+  };
+
+  const handleEmployeeStatusesChange = (statuses: string[]) => {
+    setForm((previousForm) => ({
+      ...previousForm,
+      statuses,
+    }));
+  };
+
+  const handleToggleSearchPanel = () => {
+    setPanelOpen((previousOpenState) => !previousOpenState);
+  };
+
+  const handlePageSizeChange = (pageSize: number) => {
+    const updatedFilters = {
+      ...filters,
+      limit: pageSize,
+      page: 1,
+    };
+
+    dispatch(setFilters(updatedFilters));
+    dispatch(fetchLeaves(updatedFilters));
+
+    setForm((previousForm) => ({
+      ...previousForm,
+      limit: pageSize,
+      page: 1,
+    }));
+  };
   return (
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
@@ -390,7 +697,7 @@ export default function LeaveListPage() {
         <RejectModal
           leaveId={rejectTarget}
           onConfirm={handleRejectConfirm}
-          onCancel={() => setRejectTarget(null)}
+          onCancel={handleRejectModalCancel}
         />
       )}
 
@@ -399,11 +706,9 @@ export default function LeaveListPage() {
           from_date={form.from_date || ""}
           to_date={form.to_date || ""}
           statuses={form.statuses || []}
-          onFromDateChange={(value) =>
-            setForm((p) => ({ ...p, from_date: value }))
-          }
-          onToDateChange={(value) => setForm((p) => ({ ...p, to_date: value }))}
-          onStatusesChange={(statuses) => setForm((p) => ({ ...p, statuses }))}
+          onFromDateChange={handleEmployeeFromDateChange}
+          onToDateChange={handleEmployeeToDateChange}
+          onStatusesChange={handleEmployeeStatusesChange}
           onSearch={handleSearch}
           onReset={handleReset}
         />
@@ -419,7 +724,7 @@ export default function LeaveListPage() {
               </span>
             </span>
             <button
-              onClick={() => setPanelOpen((o) => !o)}
+              onClick={handleToggleSearchPanel}
               className="text-slate-400 hover:text-slate-600 text-base leading-none cursor-pointer bg-transparent border-none select-none"
             >
               {panelOpen ? "▲" : "▼"}
@@ -435,23 +740,7 @@ export default function LeaveListPage() {
                   <input
                     type="date"
                     value={form.from_date || ""}
-                    onChange={(event) => {
-                      const newFromDate = event.target.value;
-                      setForm((p) => {
-                        if (
-                          p.to_date &&
-                          newFromDate &&
-                          p.to_date < newFromDate
-                        ) {
-                          return {
-                            ...p,
-                            from_date: newFromDate,
-                            to_date: newFromDate,
-                          };
-                        }
-                        return { ...p, from_date: newFromDate };
-                      });
-                    }}
+                    onChange={handleFromDateChange}
                     className={inputCls}
                   />
                 </div>
@@ -463,9 +752,7 @@ export default function LeaveListPage() {
                     type="date"
                     value={form.to_date || ""}
                     min={form.from_date || undefined}
-                    onChange={(event) =>
-                      setForm((p) => ({ ...p, to_date: event.target.value }))
-                    }
+                    onChange={handleToDateChange}
                     className={inputCls}
                   />
                 </div>
@@ -475,12 +762,8 @@ export default function LeaveListPage() {
                   </label>
                   <EmployeeAutocomplete
                     value={form.employee_name || ""}
-                    onChange={(v) =>
-                      setForm((p) => ({ ...p, employee_name: v }))
-                    }
-                    onSelect={(emp) =>
-                      setForm((p) => ({ ...p, employee_name: emp.name }))
-                    }
+                    onChange={handleEmployeeNameChange}
+                    onSelect={handleEmployeeSelect}
                   />
                 </div>
               </div>
@@ -492,21 +775,21 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.sub_unit || ""}
-                      onChange={(event) =>
-                        setForm((p) => ({ ...p, sub_unit: event.target.value }))
-                      }
+                      onChange={handleSubUnitChange}
                       className={selectCls}
                     >
                       <option value="">All</option>
-                      {filterOpts.sub_units.map((units) => (
-                        <option key={units.id} value={units.name}>
-                          {units.name}
+                      {filterOpts.sub_units.map((subUnit) => (
+                        <option key={subUnit.id} value={subUnit.name}>
+                          {subUnit.name}
                         </option>
                       ))}
                     </select>
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                      ▾
-                    </span>
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                    />
                   </div>
                 </div>
                 <div>
@@ -516,12 +799,7 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.location || ""}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          location: event.target.value,
-                        }))
-                      }
+                      onChange={handleLocationChange}
                       className={selectCls}
                     >
                       <option value="">All</option>
@@ -531,9 +809,11 @@ export default function LeaveListPage() {
                         </option>
                       ))}
                     </select>
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                      ▾
-                    </span>
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                    />
                   </div>
                 </div>
                 <div>
@@ -543,12 +823,7 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.leave_type_id || ""}
-                      onChange={(event) =>
-                        setForm((p) => ({
-                          ...p,
-                          leave_type_id: event.target.value,
-                        }))
-                      }
+                      onChange={handleLeaveTypeChange}
                       className={selectCls}
                     >
                       <option value="">All</option>
@@ -558,9 +833,11 @@ export default function LeaveListPage() {
                         </option>
                       ))}
                     </select>
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                      ▾
-                    </span>
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                    />
                   </div>
                 </div>
               </div>
@@ -572,12 +849,7 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.job_title || ""}
-                      onChange={(event) =>
-                        setForm((p) => ({
-                          ...p,
-                          job_title: event.target.value,
-                        }))
-                      }
+                      onChange={handleJobTitleChange}
                       className={selectCls}
                     >
                       <option value="">All</option>
@@ -587,9 +859,11 @@ export default function LeaveListPage() {
                         </option>
                       ))}
                     </select>
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                      ▾
-                    </span>
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                    />
                   </div>
                 </div>
                 <div>
@@ -599,24 +873,26 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.employment_status || ""}
-                      onChange={(event) =>
-                        setForm((p) => ({
-                          ...p,
-                          employment_status: event.target.value,
-                        }))
-                      }
+                      onChange={handleEmploymentStatusChange}
                       className={selectCls}
                     >
                       <option value="">All</option>
-                      {filterOpts.employment_statuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
+                      {filterOpts.employment_statuses.map(
+                        (employmentStatus) => (
+                          <option
+                            key={employmentStatus}
+                            value={employmentStatus}
+                          >
+                            {employmentStatus}
+                          </option>
+                        ),
+                      )}
                     </select>
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                      ▾
-                    </span>
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                    />
                   </div>
                 </div>
                 <div>
@@ -626,12 +902,7 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.job_category || ""}
-                      onChange={(event) =>
-                        setForm((p) => ({
-                          ...p,
-                          job_category: event.target.value,
-                        }))
-                      }
+                      onChange={handleJobCategoryChange}
                       className={selectCls}
                     >
                       <option value="">All</option>
@@ -641,9 +912,11 @@ export default function LeaveListPage() {
                         </option>
                       ))}
                     </select>
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                      ▾
-                    </span>
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                    />
                   </div>
                 </div>
               </div>
@@ -655,12 +928,7 @@ export default function LeaveListPage() {
                   <div className="relative">
                     <select
                       value={form.attachment_status || ""}
-                      onChange={(event) =>
-                        setForm((p) => ({
-                          ...p,
-                          attachment_status: event.target.value,
-                        }))
-                      }
+                      onChange={handleAttachmentStatusChange}
                       className={selectCls}
                     >
                       <option value="">All</option>
@@ -670,9 +938,11 @@ export default function LeaveListPage() {
                         </option>
                       ))}
                     </select>
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                      ▾
-                    </span>
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                    />
                   </div>
                 </div>
               </div>
@@ -681,12 +951,7 @@ export default function LeaveListPage() {
                   <input
                     type="checkbox"
                     checked={form.include_past || false}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        include_past: event.target.checked,
-                      }))
-                    }
+                    onChange={handleIncludePastChange}
                     className="w-4 h-4 accent-blue-900"
                   />
                   Include Past Employees
@@ -695,12 +960,7 @@ export default function LeaveListPage() {
                   <input
                     type="checkbox"
                     checked={form.only_subordinates || false}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        only_subordinates: event.target.checked,
-                      }))
-                    }
+                    onChange={handleOnlySubordinatesChange}
                     className="w-4 h-4 accent-blue-900"
                   />
                   Only Show My Subordinate's Leave
@@ -715,54 +975,41 @@ export default function LeaveListPage() {
                     <input
                       type="checkbox"
                       checked={isAllChecked}
-                      ref={(el) => {
-                        if (el) el.indeterminate = isSomeChecked;
-                      }}
-                      onChange={() => toggleStatus("All")}
+                      value={LeaveStatus.All}
+                      ref={allStatusesCheckboxRef}
+                      onChange={handleStatusOptionChange}
                       className="w-4 h-4 accent-blue-900"
                     />
                     All
                   </label>
-                  {STATUS_OPTIONS.map((s) => (
+                  {STATUS_OPTIONS.map((statusOption) => (
                     <label
-                      key={s}
+                      key={statusOption}
                       className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer"
                     >
                       <input
                         type="checkbox"
-                        checked={(form.statuses || []).includes(s)}
-                        onChange={() => toggleStatus(s)}
+                        value={statusOption}
+                        checked={(form.statuses || []).includes(statusOption)}
+                        onChange={handleStatusOptionChange}
                         className="w-4 h-4 accent-blue-900"
                       />
-                      {s}
+                      {statusOption}
                     </label>
                   ))}
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 justify-end">
-                <button
-                  onClick={handleReset}
-                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md"
-                   
-                >
+                <button onClick={handleReset} className={ButtonStyles}>
                   Reset
                 </button>
-                <button
-                  onClick={() => handleExport("summary")}
-                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md"
-                >
+                <button onClick={handleExportSummary} className={ButtonStyles}>
                   Export Summary
                 </button>
-                <button
-                  onClick={() => handleExport("detail")}
-                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md"
-                >
+                <button onClick={handleExportDetail} className={ButtonStyles}>
                   Export Detail
                 </button>
-                <button
-                  onClick={handleSearch}
-                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md"
-                >
+                <button onClick={handleSearch} className={ButtonStyles}>
                   Search
                 </button>
               </div>
@@ -794,12 +1041,12 @@ export default function LeaveListPage() {
                   "Requested Duration",
                   "Status",
                   "Actions",
-                ].map((h) => (
+                ].map((header) => (
                   <th
-                    key={h}
+                    key={header}
                     className="px-3 py-2.5 text-left text-xs font-bold text-slate-600 whitespace-nowrap"
                   >
-                    {h}
+                    {header}
                   </th>
                 ))}
               </tr>
@@ -823,18 +1070,12 @@ export default function LeaveListPage() {
                       colSpan={9}
                       className="text-center py-16 text-slate-400"
                     >
-                      <div className="text-3xl mb-2">📋</div>
                       <div className="text-sm">No leave records found</div>
                     </td>
                   </tr>
                 )}
               {!loading &&
-                data?.data.map((row: LeaveRequest, i: number) => {
-                  const isRequester = !!(
-                    row.user_id &&
-                    user?.id &&
-                    String(row.user_id) === String(user.id)
-                  );
+                data?.data.map((row: LeaveRequest, rowIndex: number) => {
                   return (
                     <tr
                       key={row.id}
@@ -847,7 +1088,7 @@ export default function LeaveListPage() {
                           return;
                         navigate(PAGE_PATHS.leaveDetails(row.id));
                       }}
-                      className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
+                      className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors cursor-pointer ${rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
                     >
                       <td className="px-3 py-2.5 text-xs font-mono text-slate-700">
                         {row.employee_id || "—"}
@@ -884,15 +1125,14 @@ export default function LeaveListPage() {
                         </div>
                       </td>
                       <td className="px-3 py-2.5" data-action-cell="true">
-                        <ActionDropdown
-                          row={row}
-                          isAdmin={isAdmin}
-                          isRequester={isRequester}
-                          loading={actionLoading === row.id}
-                          onApprove={() => handleApprove(row.id)}
-                          onReject={() => setRejectTarget(row.id)}
-                          onCancel={() => handleCancel(row.id)}
+                        <LeaveRowActions
+                          leaveRequest={row}
                           currentUserId={user?.id}
+                          isAdmin={isAdmin}
+                          loading={actionLoading === row.id}
+                          onApprove={handleApprove}
+                          onReject={handleOpenRejectModal}
+                          onCancel={handleCancel}
                         />
                       </td>
                     </tr>
@@ -910,168 +1150,11 @@ export default function LeaveListPage() {
             onPageChange={(page) => {
               handlePageChange(page);
             }}
-            onPageSizeChange={(size) => {
-              const filter = { ...filters, limit: size, page: 1 };
-              dispatch(setFilters(filter));
-              dispatch(fetchLeaves(filter));
-              setForm((prev) => ({ ...prev, limit: size, page: 1 }));
-            }}
+            onPageSizeChange={handlePageSizeChange}
             itemLabel="leave records"
           />
         )}
       </div>
     </LeaveLayout>
-  );
-}
-function ActionDropdown({
-  row,
-  isAdmin,
-  isRequester,
-  loading,
-  onApprove,
-  onReject,
-  onCancel,
-  currentUserId,
-}: {
-  row: LeaveRequest;
-  isAdmin: boolean;
-  isRequester: boolean;
-  loading: boolean;
-  onApprove: () => void;
-  onReject: () => void;
-  onCancel: () => void;
-  currentUserId?: number;
-}) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const openMenu = () => {
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setPos({
-        top: r.bottom + window.scrollY + 4,
-        left: r.right + window.scrollX,
-      });
-    }
-    setOpen(true);
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        btnRef.current &&
-        !btnRef.current.contains(event.target as Node)
-      )
-        setOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const h = () => setOpen(false);
-    window.addEventListener("scroll", h, true);
-    return () => window.removeEventListener("scroll", h, true);
-  }, [open]);
-
-  if (loading)
-    return (
-      <div className="w-4 h-4 border-2 border-blue-900 border-t-transparent rounded-full animate-spin mx-2" />
-    );
-
-  const isPending = row.status === "Pending Approval";
-
-  let isSupervisor = false;
-  if (currentUserId && row.supervisors) {
-    try {
-      const supervisorArray =
-        typeof row.supervisors === "string"
-          ? JSON.parse(row.supervisors)
-          : row.supervisors;
-      isSupervisor =
-        Array.isArray(supervisorArray) &&
-        supervisorArray.includes(String(currentUserId));
-    } catch (_) {
-      isSupervisor = false;
-    }
-  }
-
-  const canApproveReject =
-    (isAdmin || isSupervisor) && !isRequester && isPending;
-  const canCancel = isPending && (isRequester || isAdmin || isSupervisor);
-
-  if (!canApproveReject && !canCancel) {
-    return <span className="text-xs text-slate-400">—</span>;
-  }
-
-  return (
-    <>
-      <button
-        ref={btnRef}
-        onClick={() => (open ? setOpen(false) : openMenu())}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-300 rounded-lg bg-white hover:bg-slate-50 cursor-pointer transition whitespace-nowrap"
-      >
-        Select Action
-        <svg
-          className="w-3 h-3"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-      {open && (
-        <div
-          ref={menuRef}
-          style={{
-            top: pos.top,
-            left: pos.left,
-          }}
-          className="fixed -translate-x-full z-[9999] bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-36"
-        >
-          {canApproveReject && (
-            <>
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  onApprove();
-                }}
-                className="w-full text-left px-4 py-2 text-xs text-green-700 hover:bg-green-50 transition cursor-pointer"
-              >
-                ✓ Approve
-              </button>
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  onReject();
-                }}
-                className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition cursor-pointer"
-              >
-                ✕ Reject
-              </button>
-            </>
-          )}
-          {canCancel && (
-            <button
-              onClick={() => {
-                setOpen(false);
-                onCancel();
-              }}
-              className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-            >
-              ⊘ Cancel
-            </button>
-          )}
-        </div>
-      )}
-    </>
   );
 }

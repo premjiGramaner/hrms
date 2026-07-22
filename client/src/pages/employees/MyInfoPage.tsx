@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState, useMemo } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getMyInfo,
@@ -64,11 +64,9 @@ const PROFILE_TABS = ["Profile", "Personal Details", "Job", "Contact Details"];
 
 export default function MyInfoPage() {
   const user = useAppSelector((state) => state.auth.user);
-
   const dispatch = useAppDispatch();
   const isAdmin = isAdminRole(user?.role);
-  const TABS = isAdmin ? ADMIN_TABS : EMPLOYEE_TABS;
-
+  const navigationTabs = isAdmin ? ADMIN_TABS : EMPLOYEE_TABS;
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState<EditableEmployeeProfileForm | null>(null);
   const [activeTab, setActiveTab] = useState(0);
@@ -92,63 +90,65 @@ export default function MyInfoPage() {
   useEffect(() => {
     if (isAdmin) {
       getJobTitles()
-        .then((res) =>
-          setJobTitleOptions(res.data.map((jobtitle) => jobtitle.title)),
+        .then((response) =>
+          setJobTitleOptions(response.data.map((jobtitle) => jobtitle.title)),
         )
-        .catch((err) =>
-          setError(getApiErrorMessage(err, "Failed to load job titles.")),
+        .catch((error) =>
+          setError(getApiErrorMessage(error, "Failed to load job titles.")),
         );
 
       getJobCategories()
-        .then((res) =>
+        .then((response) =>
           setJobCategoryOptions(
-            res.data.map((Category) => ({
+            response.data.map((Category) => ({
               id: Category.id,
               category: Category.category,
             })),
           ),
         )
-        .catch((err) =>
-          setError(getApiErrorMessage(err, "Failed to load job categories.")),
+        .catch((error) =>
+          setError(getApiErrorMessage(error, "Failed to load job categories.")),
         );
 
       getSubUnits()
-        .then((res) =>
-          setSubUnitOptions(res.data.map((SubUnit) => SubUnit.sub_unit_name)),
+        .then((response) =>
+          setSubUnitOptions(
+            response.data.map((SubUnit) => SubUnit.sub_unit_name),
+          ),
         )
-        .catch((err) =>
-          setError(getApiErrorMessage(err, "Failed to load sub units.")),
+        .catch((error) =>
+          setError(getApiErrorMessage(error, "Failed to load sub units.")),
         );
 
       getLocations()
-        .then((res) => {
+        .then((response) => {
           const seenMap = new Map<string, string>();
-          const deduped = res.data.filter((loc: string) => {
-            const lowerLoc = loc.toLowerCase();
+          const deduped = response.data.filter((location: string) => {
+            const lowerLoc = location.toLowerCase();
             if (seenMap.has(lowerLoc)) {
               return false;
             }
-            seenMap.set(lowerLoc, loc);
+            seenMap.set(lowerLoc, location);
             return true;
           });
           setLocationOptions(deduped);
         })
-        .catch((err) =>
-          setError(getApiErrorMessage(err, "Failed to load locations.")),
+        .catch((error) =>
+          setError(getApiErrorMessage(error, "Failed to load locations.")),
         );
     }
 
     getSupervisors()
-      .then((res) =>
+      .then((response) =>
         setSupervisorOptions(
-          (res.data || []).map((Supervisor: any, index: number) => ({
+          (response.data || []).map((Supervisor: any, index: number) => ({
             id: Supervisor.id ?? index + 1,
             name: Supervisor.name,
           })),
         ),
       )
-      .catch((err) =>
-        setError(getApiErrorMessage(err, "Failed to load supervisors.")),
+      .catch((error) =>
+        setError(getApiErrorMessage(error, "Failed to load supervisors.")),
       );
   }, [isAdmin]);
 
@@ -159,8 +159,8 @@ export default function MyInfoPage() {
       const { data } = await getMyInfo();
       setEmployee(data);
       setForm(employeeToEditableProfileForm(data));
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, "Could not load your profile."));
+    } catch (error: unknown) {
+      setError(getApiErrorMessage(error, "Could not load your profile."));
     } finally {
       setLoading(false);
     }
@@ -204,7 +204,7 @@ export default function MyInfoPage() {
       const activeLabel = PROFILE_TABS[activeTab];
 
       if (activeLabel === "Personal Details") {
-        errors = validatePersonalDetails(form, isAdmin);
+        errors = validatePersonalDetails(form);
         if (
           !hasErrors(errors) &&
           modifiedFields.has("employee_id") &&
@@ -248,7 +248,6 @@ export default function MyInfoPage() {
         if (!isAdmin && (key === "employee_id" || key === "real_dob")) {
           return;
         }
-        // Exclude avatar from regular profile updates - avatar is updated separately via updateProfileImage
         if (key !== "avatar") {
           const stringValue = String(value || "");
           formData.append(key, stringValue.trim());
@@ -281,8 +280,8 @@ export default function MyInfoPage() {
       );
 
       Toast.success("Profile updated successfully");
-    } catch (err: unknown) {
-      Toast.error(getApiErrorMessage(err, "Failed to update profile"));
+    } catch (error: unknown) {
+      Toast.error(getApiErrorMessage(error, "Failed to update profile"));
     } finally {
       setSaving(false);
     }
@@ -368,6 +367,39 @@ export default function MyInfoPage() {
     </div>
   );
 
+  const handleEmployeeUpdate = (updatedEmployee: Employee) => {
+    const updatedForm = employeeToEditableProfileForm(updatedEmployee);
+
+    setEmployee(updatedEmployee);
+    setForm(updatedForm);
+    setOriginalForm({ ...updatedForm });
+  };
+
+  const handleTabChange = (tabIndex: number) => {
+    setActiveTab(tabIndex);
+  };
+
+  const jobCategoryNames = useMemo(
+    () => jobCategoryOptions.map((jobCategory) => jobCategory.category),
+    [jobCategoryOptions],
+  );
+
+  const supervisorIds = useMemo(
+    () => supervisorOptions.map((supervisor) => supervisor.id.toString()),
+    [supervisorOptions],
+  );
+
+  const supervisorLabels = useMemo(
+    () =>
+      new Map(
+        supervisorOptions.map((supervisor) => [
+          supervisor.id.toString(),
+          supervisor.name,
+        ]),
+      ),
+    [supervisorOptions],
+  );
+
   const renderTabContent = () => {
     const activeLabel = PROFILE_TABS[activeTab];
 
@@ -413,6 +445,7 @@ export default function MyInfoPage() {
             value={form.gender}
             onChange={handleFieldChange}
             options={GENDERS}
+            disabled={!isAdmin}
           />
           <EditableProfileField
             label="Date of Birth"
@@ -509,11 +542,7 @@ export default function MyInfoPage() {
             name="job_category"
             value={form.job_category}
             onChange={handleFieldChange}
-            options={
-              isAdmin
-                ? jobCategoryOptions.map((jobCategory) => jobCategory.category)
-                : undefined
-            }
+            options={isAdmin ? jobCategoryNames : undefined}
             readOnly={!isAdmin}
           />
           <EditableProfileField
@@ -539,17 +568,8 @@ export default function MyInfoPage() {
             name="supervisor_id"
             value={form.supervisor_id}
             onChange={handleFieldChange}
-            options={supervisorOptions.map((supervisor) =>
-              supervisor.id.toString(),
-            )}
-            optionLabels={
-              new Map(
-                supervisorOptions.map((supervisor) => [
-                  supervisor.id.toString(),
-                  supervisor.name,
-                ]),
-              )
-            }
+            options={supervisorIds}
+            optionLabels={supervisorLabels}
             readOnly={!isAdmin}
           />
           <EditableProfileField
@@ -720,12 +740,7 @@ export default function MyInfoPage() {
         <div className="lg:col-span-2 space-y-6">
           <EmployeeProfileCard
             employee={employee}
-            onEmployeeUpdate={(updatedEmployee) => {
-              setEmployee(updatedEmployee);
-              const newForm = employeeToEditableProfileForm(updatedEmployee);
-              setForm(newForm);
-              setOriginalForm({ ...newForm });
-            }}
+            onEmployeeUpdate={handleEmployeeUpdate}
           />
           <LeaveList employee={employee} />
         </div>
@@ -735,7 +750,11 @@ export default function MyInfoPage() {
 
   if (loading) {
     return (
-      <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
+      <Layout
+        title="Employee Profile"
+        tabs={navigationTabs}
+        activeTab="My Info"
+      >
         <div className="text-center py-14 text-slate-400">
           <div className="text-sm">Loading your profile...</div>
         </div>
@@ -745,7 +764,11 @@ export default function MyInfoPage() {
 
   if (error || !employee) {
     return (
-      <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
+      <Layout
+        title="Employee Profile"
+        tabs={navigationTabs}
+        activeTab="My Info"
+      >
         <div className="rounded-xl border-l-4 border-red-400 bg-red-50 p-4 text-sm text-red-800">
           <div className="font-semibold">Could not load profile</div>
           <div className="mt-1">{error || "No profile data found."}</div>
@@ -762,7 +785,7 @@ export default function MyInfoPage() {
   }
 
   return (
-    <Layout title="Employee Profile" tabs={TABS} activeTab="My Info">
+    <Layout title="Employee Profile" tabs={navigationTabs} activeTab="My Info">
       {error && (
         <div className="mb-3.5 p-2.5 border-l-4 rounded text-sm bg-red-50 border-red-400 text-red-800">
           {error}
@@ -770,12 +793,13 @@ export default function MyInfoPage() {
       )}
 
       <div className="mb-6 bg-white rounded-lg shadow-sm p-2 flex overflow-x-auto gap-2">
-        {PROFILE_TABS.map((tab, idx) => (
+        {PROFILE_TABS.map((tab, tabIndex) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(idx)}
+            type="button"
+            onClick={() => handleTabChange(tabIndex)}
             className={`px-6 py-2 text-sm font-medium whitespace-nowrap rounded-full transition ${
-              activeTab === idx
+              activeTab === tabIndex
                 ? "bg-[#fff3e0] text-[#c6410c]"
                 : "text-[#757575] hover:bg-gray-50"
             }`}
@@ -784,7 +808,6 @@ export default function MyInfoPage() {
           </button>
         ))}
       </div>
-
       {renderTabContent()}
     </Layout>
   );
