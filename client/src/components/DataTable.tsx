@@ -209,7 +209,6 @@ export default function DataTable<T>({
         </div>
       )}
 
-      {/* Table Container */}
       <div className="bg-white rounded-2xl shadow-[0_2px_16px_rgba(0,0,0,0.07)] overflow-hidden border border-slate-100">
         {/* Header */}
         <div className="py-3.5 px-5 bg-gradient-to-r from-green-50 to-green-50/60 border-b border-slate-200 flex items-center justify-between">
@@ -230,7 +229,7 @@ export default function DataTable<T>({
           <table
             className="w-full text-[13.5px]"
             style={{ borderCollapse: "separate", borderSpacing: "0 8px" }}
-          > 
+          >
             <thead>
               <tr className="bg-gradient-to-br from-[#1b2a6b] to-[#16a085]">
                 <th className="py-3 px-5 text-left text-xs font-bold text-white tracking-wider whitespace-nowrap w-14">
@@ -305,7 +304,6 @@ export default function DataTable<T>({
                 </tr>
               )}
 
-              {/* Empty State */}
               {!isLoading && rows.length === 0 && (
                 <tr>
                   <td
