@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout, { TabItem } from "../../components/Layout";
 import DataTable, { ColumnDef } from "../../components/DataTable";
-import { useAppSelector } from "../../app/hooks";
 import type {
   BirthdayReportRecord,
   WorkAnniversaryReportRecord,
@@ -23,6 +22,15 @@ import {
   YEARS_OF_SERVICE_OPTIONS,
   TERMINATION_TYPE_COLORS,
 } from "../../config/uiConstants";
+import {
+  IconGift,
+  IconAward,
+  IconClipboardList,
+  IconCheck,
+  IconXCircle,
+  IconAlertCircle,
+  IconUpload,
+} from "../../components/Icons";
 
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: "/reports/birthday" },
@@ -37,14 +45,7 @@ type ReportRecord =
   | WorkAnniversaryReportRecord
   | TerminationReportRecord;
 
-const getTerminationTypeBgColor = (type: string): string => {
-  const color = TERMINATION_TYPE_COLORS[type];
-  return color || "#94A3B8";
-};
-
 export default function UnifiedReportsPage() {
-  const user = useAppSelector((state) => state.auth.user);
-
   const [reportType, setReportType] = useState<ReportType>("birthday");
 
   const [reportData, setReportData] = useState<ReportRecord[]>([]);
@@ -244,8 +245,9 @@ export default function UnifiedReportsPage() {
       header: "Birthday Date",
       width: 150,
       render: (row) => (
-        <span className="font-semibold text-orange-500">
-          🎂 {row.formatted_birthday || "N/A"}
+        <span className="font-semibold text-orange-500 flex items-center gap-1.5">
+          <IconGift size={14} />
+          {row.formatted_birthday || "N/A"}
         </span>
       ),
     },
@@ -429,13 +431,21 @@ export default function UnifiedReportsPage() {
       width: 130,
       render: (row) => (
         <span
-          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-block whitespace-nowrap ${
+          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-flex items-center gap-1 whitespace-nowrap ${
             row.exit_interview_completed
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}
         >
-          {row.exit_interview_completed ? "✓ Done" : "✗ Pending"}
+          {row.exit_interview_completed ? (
+            <>
+              <IconCheck size={12} /> Done
+            </>
+          ) : (
+            <>
+              <IconXCircle size={12} /> Pending
+            </>
+          )}
         </span>
       ),
     },
@@ -445,13 +455,21 @@ export default function UnifiedReportsPage() {
       width: 130,
       render: (row) => (
         <span
-          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-block whitespace-nowrap ${
+          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-flex items-center gap-1 whitespace-nowrap ${
             row.rehire_eligible
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}
         >
-          {row.rehire_eligible ? "✓ Yes" : "✗ No"}
+          {row.rehire_eligible ? (
+            <>
+              <IconCheck size={12} /> Yes
+            </>
+          ) : (
+            <>
+              <IconXCircle size={12} /> No
+            </>
+          )}
         </span>
       ),
     },
@@ -463,14 +481,14 @@ export default function UnifiedReportsPage() {
         const isDeleted = row.is_user_deleted === true;
         return (
           <span
-            className={`text-sm font-semibold text-slate-800 block py-2.5 px-3.5 rounded-lg whitespace-nowrap overflow-hidden text-ellipsis ${
+            className={`text-sm font-semibold text-slate-800 flex items-center gap-1.5 py-2.5 px-3.5 rounded-lg whitespace-nowrap overflow-hidden text-ellipsis ${
               isDeleted
                 ? "bg-red-300 border border-red-400"
                 : "bg-amber-200 border border-amber-300"
             }`}
           >
             {row.actual_supervisor || "N/A"}
-            {isDeleted && " 🔴"}
+            {isDeleted && <IconAlertCircle size={14} color="#dc2626" />}
           </span>
         );
       },
@@ -483,14 +501,14 @@ export default function UnifiedReportsPage() {
         const isDeleted = row.is_user_deleted === true;
         return (
           <span
-            className={`text-sm font-semibold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis block py-2.5 px-3.5 rounded-lg ${
+            className={`text-sm font-semibold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1.5 py-2.5 px-3.5 rounded-lg ${
               isDeleted
                 ? "bg-orange-200 border border-orange-300"
                 : "bg-indigo-100 border border-indigo-200"
             }`}
           >
             {row.terminated_by || "N/A"}
-            {isDeleted && " 🔴"}
+            {isDeleted && <IconAlertCircle size={14} color="#ea580c" />}
           </span>
         );
       },
@@ -622,9 +640,10 @@ export default function UnifiedReportsPage() {
       {reportType === "termination" && (
         <button
           onClick={handleExportPDF}
-          className="py-2 px-4 bg-gradient-to-br from-[#172554] to-[#14b8a6] text-white border-0 rounded-md text-[13px] font-semibold cursor-pointer shadow-sm"
+          className="py-2 px-4 bg-gradient-to-br from-[#172554] to-[#14b8a6] text-white border-0 rounded-md text-[13px] font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
         >
-          📄 Export PDF
+          <IconUpload size={14} />
+          Export PDF
         </button>
       )}
     </div>
@@ -643,9 +662,9 @@ export default function UnifiedReportsPage() {
   };
 
   const reportIcons = {
-    birthday: "🎂",
-    anniversary: "🎊",
-    termination: "📋",
+    birthday: <IconGift size={18} />,
+    anniversary: <IconAward size={18} />,
+    termination: <IconClipboardList size={18} />,
   };
 
   const emptyMessages = {

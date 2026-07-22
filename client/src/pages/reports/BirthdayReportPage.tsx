@@ -10,7 +10,6 @@ import { IconGift } from "../../components/Icons";
 import { ERROR_MESSAGES } from "../../constants/messages";
 import { COLORS } from "../../styles/theme";
 
-// Report Configuration Constants
 const REPORT_CONFIG = {
   TITLE: "Birthday Report",
   SUBTITLE: "View all employee birthdays",
@@ -24,7 +23,6 @@ const REPORT_CONFIG = {
   DEFAULT_SORT_DIRECTION: "asc" as const,
 } as const;
 
-// Filter Options Constants
 const FILTER_OPTIONS = {
   MONTHS: [
     { value: "01", label: "January" },
@@ -55,7 +53,6 @@ const FILTER_OPTIONS = {
   ],
 } as const;
 
-// Tab Configuration
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: "/reports/birthday" },
   { label: "Work Anniversary", path: "/reports/work-anniversary" },
@@ -63,7 +60,6 @@ const TABS: TabItem[] = [
   { label: "Notifications", path: "/reports/notifications" },
 ];
 
-// Column Display Constants
 const COLUMN_LABELS = {
   EMPLOYEE_ID: "Employee ID",
   FIRST_NAME: "First Name",
@@ -191,7 +187,6 @@ export default function BirthdayReportPage() {
 
   const filterToolbar = (
     <div className="flex gap-3 flex-wrap items-center">
-      {/* Month Filter */}
       <select
         value={selectedMonth}
         onChange={(event) => setSelectedMonth(event.target.value)}
@@ -205,7 +200,6 @@ export default function BirthdayReportPage() {
         ))}
       </select>
 
-      {/* Gender Filter */}
       <select
         value={selectedGender}
         onChange={(event) => setSelectedGender(event.target.value)}
@@ -218,7 +212,6 @@ export default function BirthdayReportPage() {
         ))}
       </select>
 
-      {/* Marital Status Filter */}
       <select
         value={selectedMaritalStatus}
         onChange={(event) => setSelectedMaritalStatus(event.target.value)}
@@ -231,7 +224,6 @@ export default function BirthdayReportPage() {
         ))}
       </select>
 
-      {/* Export Button */}
       <button
         onClick={handleExportExcel}
         className="py-2 px-4 bg-[#16A085] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#138f72] transition-colors"

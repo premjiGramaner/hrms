@@ -1,4 +1,5 @@
 import pg from "pg";
+import { logError } from "./src/utils/logger";
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -60,7 +61,7 @@ async function verifyTerminationData() {
 
     await pool.end();
   } catch (error) {
-    console.error("\n❌ Error:", error.message);
+    logError("Error:", error.message);
     await pool.end();
     process.exit(1);
   }

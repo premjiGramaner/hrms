@@ -12,7 +12,6 @@ import { IconClipboardList } from "../../components/Icons";
 import { ERROR_MESSAGES } from "../../constants/messages";
 import { COLORS } from "../../styles/theme";
 
-// Report Configuration Constants
 const REPORT_CONFIG = {
   TITLE: "Termination Report",
   SUBTITLE:
@@ -28,7 +27,6 @@ const REPORT_CONFIG = {
   DEFAULT_SORT_DIRECTION: "desc" as const,
 } as const;
 
-// Termination Type Styling
 const TERMINATION_TYPE_STYLES = {
   Voluntary: {
     bgColor: "#E8F5E9",
@@ -44,7 +42,6 @@ const TERMINATION_TYPE_STYLES = {
   },
 } as const;
 
-// Rehire Status Styling
 const REHIRE_STATUS_STYLES = {
   eligible: {
     bgColor: "#E8F5E9",
@@ -58,7 +55,6 @@ const REHIRE_STATUS_STYLES = {
   },
 } as const;
 
-// Column Display Constants
 const COLUMN_LABELS = {
   EMP_ID: "EMP ID",
   NAME: "Name",
@@ -78,7 +74,6 @@ const COLUMN_LABELS = {
   DAYS_SUFFIX: "days",
 } as const;
 
-// Filter Labels
 const FILTER_LABELS = {
   ALL_COMPANIES: "All Companies",
   ALL_LOCATIONS: "All Locations",
@@ -86,7 +81,6 @@ const FILTER_LABELS = {
   TO_DATE_PLACEHOLDER: "To Date",
 } as const;
 
-// Tab Configuration
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: "/reports/birthday" },
   { label: "Work Anniversary", path: "/reports/work-anniversary" },

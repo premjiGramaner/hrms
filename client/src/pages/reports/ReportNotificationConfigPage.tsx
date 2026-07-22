@@ -22,7 +22,6 @@ import Alert from "../../utils/alert";
 import { getNumericValue } from "../employees/components/inputHelpers";
 import { validateEmail } from "../../validations/employee.validation";
 
-// Configuration Constants
 const NOTIFICATION_CONFIG = {
   DEFAULT_DAYS_BEFORE: 2,
   MAX_DAYS_BEFORE: 30,
@@ -32,7 +31,6 @@ const NOTIFICATION_CONFIG = {
   ERROR_MESSAGE_DURATION: 10000,
 } as const;
 
-// UI Text Constants
 const UI_TEXT = {
   PAGE_TITLE: "Email Notification Configuration",
   PAGE_SUBTITLE:

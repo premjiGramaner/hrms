@@ -1,4 +1,5 @@
 import pg from "pg";
+import { logError } from "./src/utils/logger";
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -19,7 +20,7 @@ async function verifyTerminationHistory() {
     `);
 
     if (!tableCheck.rows[0].table_exists) {
-      console.log("\n❌ Table does not exist. Please run the migration first.");
+      logError("Table does not exist. Please run the migration first")
       await pool.end();
       return;
     }

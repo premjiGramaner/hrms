@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import pool from "./src/config/db.js";
+import { logError } from "./src/utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -117,7 +118,7 @@ export async function runMigrations(options = {}) {
       log(`✓ applied ${fileName}`);
     } catch (error) {
       await client.query("ROLLBACK").catch(() => {});
-      console.error(`✗ failed  ${fileName}: ${error.message}`);
+      logError(`failed  ${fileName}: ${error.message}`);
       throw error;
     } finally {
       client.release();
