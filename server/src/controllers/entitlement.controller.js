@@ -64,26 +64,26 @@ const createEntitlements = async (req, res, next) => {
     );
 
     const created_count = results.created.length;
-    const skipped = results.skipped.length;
+    const updated_count = results.updated.length;
+    const total = created_count + updated_count;
 
-    if (created_count === 0) {
+    if (total === 0) {
       return error(
         res,
-        `All ${skipped} entitlement(s) already exist for the selected period.`,
+        "Failed to process entitlements.",
         409,
       );
     }
 
     const msg =
-      skipped > 0
-        ? `${created_count} entitlement(s) created. ${skipped} skipped (already exist).`
+      updated_count > 0
+        ? `${created_count} created, ${updated_count} updated successfully.`
         : `${created_count} entitlement(s) created successfully.`;
 
     return created(res, {
-      message,
-      created: createdCount,
-      updated: updatedCount,
-      skipped: skippedCount,
+      message: msg,
+      created: created_count,
+      updated: updated_count,
     });
   } catch (err) {
     next(err);
