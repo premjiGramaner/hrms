@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchLeaves, setFilters } from "../../store/leaveSlice";
 import { ChevronDown } from "lucide-react";
 import LeaveActionDropdown from "./components/LeaveActionDropdown";
+import LeaveConfirmationModal from "./components/LeaveConfirmationModal";
 import {
   getLeaveTypes,
   getLeaveFilterOptions,
@@ -46,6 +47,16 @@ enum LeaveStatus {
 enum ExportType {
   Summary = "summary",
   Detail = "detail",
+}
+
+enum ConfirmationAction {
+  Approve = "approve",
+  Cancel = "cancel",
+}
+
+interface ConfirmationTarget {
+  leaveId: number;
+  action: ConfirmationAction;
 }
 
 const ButtonStyles =
@@ -328,8 +339,29 @@ export default function LeaveListPage() {
   const [form, setForm] = useState<LeaveFilters>({ ...EMPTY_FORM });
   const [panelOpen, setPanelOpen] = useState(true);
   const [rejectTarget, setRejectTarget] = useState<number | null>(null);
+  const [confirmationTarget, setConfirmationTarget] =
+    useState<ConfirmationTarget | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [searchTriggered, setSearchTriggered] = useState(false);
+
+  const handleOpenApproveConfirmation = (leaveId: number) => {
+    setConfirmationTarget({
+      leaveId,
+      action: ConfirmationAction.Approve,
+    });
+  };
+
+  const handleOpenCancelConfirmation = (leaveId: number) => {
+    setConfirmationTarget({
+      leaveId,
+      action: ConfirmationAction.Cancel,
+    });
+  };
+
+  const handleCloseConfirmation = () => {
+    if (actionLoading !== null) return;
+    setConfirmationTarget(null);
+  };
 
   const handleOpenRejectModal = (leaveId: number) => {
     setRejectTarget(leaveId);
@@ -416,21 +448,34 @@ export default function LeaveListPage() {
   const isAllChecked = (form.statuses || []).length === STATUS_OPTIONS.length;
   const isSomeChecked = (form.statuses || []).length > 0 && !isAllChecked;
 
-  const handleApprove = useCallback(
-    async (id: number) => {
-      setActionLoading(id);
-      try {
-        await approveLeave(id);
+  const handleConfirmAction = useCallback(async () => {
+    if (!confirmationTarget) return;
+
+    const { leaveId, action } = confirmationTarget;
+    setActionLoading(leaveId);
+
+    try {
+      if (action === ConfirmationAction.Approve) {
+        await approveLeave(leaveId);
         addToast("Leave approved.", "success");
-        dispatch(fetchLeaves({ ...filters }));
-      } catch (event) {
-        addToast(getApiErrorMessage(event, "Failed to approve."), "error");
-      } finally {
-        setActionLoading(null);
+      } else {
+        await cancelLeave(leaveId);
+        addToast("Leave cancelled.", "success");
       }
-    },
-    [filters],
-  );
+
+      setConfirmationTarget(null);
+      dispatch(fetchLeaves({ ...filters }));
+    } catch (error: unknown) {
+      const fallbackMessage =
+        action === ConfirmationAction.Approve
+          ? "Failed to approve."
+          : "Failed to cancel.";
+
+      addToast(getApiErrorMessage(error, fallbackMessage), "error");
+    } finally {
+      setActionLoading(null);
+    }
+  }, [confirmationTarget, filters, dispatch, addToast]);
 
   const handleRejectConfirm = useCallback(
     async (reason: string) => {
@@ -448,23 +493,6 @@ export default function LeaveListPage() {
       }
     },
     [rejectTarget, filters],
-  );
-
-  const handleCancel = useCallback(
-    async (leaveId: number) => {
-      // if (!window.confirm("Cancel this leave request?")) return;
-      setActionLoading(leaveId);
-      try {
-        await cancelLeave(leaveId);
-        addToast("Leave cancelled.", "success");
-        dispatch(fetchLeaves({ ...filters }));
-      } catch (event) {
-        addToast(getApiErrorMessage(event, "Failed to cancel."), "error");
-      } finally {
-        setActionLoading(null);
-      }
-    },
-    [filters],
   );
 
   const handleExport = async (type: ExportType.Summary | ExportType.Detail) => {
@@ -693,6 +721,38 @@ export default function LeaveListPage() {
   return (
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
+      {confirmationTarget && (
+        <LeaveConfirmationModal
+          title={
+            confirmationTarget.action === ConfirmationAction.Approve
+              ? "Approve Leave Request"
+              : "Cancel Leave Request"
+          }
+          message={
+            confirmationTarget.action === ConfirmationAction.Approve
+              ? "Are you sure you want to approve this leave request?"
+              : "Are you sure you want to cancel this leave request?"
+          }
+          confirmLabel={
+            confirmationTarget.action === ConfirmationAction.Approve
+              ? "Yes, Approve"
+              : "Yes, Cancel"
+          }
+          cancelLabel={
+            confirmationTarget.action === ConfirmationAction.Approve
+              ? "No, Keep Pending"
+              : "No, Keep It"
+          }
+          confirmButtonClassName={
+            confirmationTarget.action === ConfirmationAction.Approve
+              ? "bg-green-600 hover:bg-green-700"
+              : "bg-red-600 hover:bg-red-700"
+          }
+          loading={actionLoading === confirmationTarget.leaveId}
+          onConfirm={handleConfirmAction}
+          onClose={handleCloseConfirmation}
+        />
+      )}
       {rejectTarget && (
         <RejectModal
           leaveId={rejectTarget}
@@ -1130,9 +1190,9 @@ export default function LeaveListPage() {
                           currentUserId={user?.id}
                           isAdmin={isAdmin}
                           loading={actionLoading === row.id}
-                          onApprove={handleApprove}
+                          onApprove={handleOpenApproveConfirmation}
                           onReject={handleOpenRejectModal}
-                          onCancel={handleCancel}
+                          onCancel={handleOpenCancelConfirmation}
                         />
                       </td>
                     </tr>

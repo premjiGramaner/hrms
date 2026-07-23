@@ -137,7 +137,10 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition pr-8"
           />
           {loading && (
-            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            // <div className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+              <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+            </div>
           )}
         </div>
       )}

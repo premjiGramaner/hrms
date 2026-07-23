@@ -148,7 +148,9 @@ const createEmployee = async (req, res, next) => {
         return error(res, "Employee ID already exists", 409);
     }
 
-    const avatarPath = req.file ? `/uploads/profile/${req.file.filename}` : null;
+    const avatarPath = req.file
+      ? `/uploads/profile/${req.file.filename}`
+      : null;
 
     const emp = await EmployeeModel.createEmployee(
       { ...req.body, email: workEmail, created_by: req.user?.id },
@@ -216,9 +218,13 @@ const createEmployee = async (req, res, next) => {
 };
 
 const updateEmployee = async (req, res, next) => {
-  const id = parseInt(req.params.id);
+  const employeeId = Number.parseInt(req.params.id, 10);
   try {
-    const existing = await EmployeeModel.findEmployeeById(id);
+    if (!Number.isInteger(employeeId) || employeeId <= 0) {
+      return error(res, "Invalid employee ID", 400);
+    }
+
+    const existing = await EmployeeModel.findEmployeeById(employeeId);
     if (!existing) return error(res, "Employee not found", 404);
 
     const workEmail = (req.body.work_email || req.body.email || "")
@@ -228,7 +234,7 @@ const updateEmployee = async (req, res, next) => {
 
     if (workEmail && workEmail !== existing.email?.toLowerCase()) {
       const existingWork = await EmployeeModel.findByEmail(workEmail);
-      if (existingWork && Number(existingWork.id) !== id)
+      if (existingWork && Number(existingWork.id) !== employeeId)
         return error(
           res,
           "An employee with this work email already exists",
@@ -238,7 +244,7 @@ const updateEmployee = async (req, res, next) => {
 
     if (otherEmail && otherEmail !== existing.other_email?.toLowerCase()) {
       const existingOther = await EmployeeModel.findByEmail(otherEmail);
-      if (existingOther && Number(existingOther.id) !== id)
+      if (existingOther && Number(existingOther.id) !== employeeId)
         return error(
           res,
           "An employee with this other email already exists",
@@ -246,11 +252,18 @@ const updateEmployee = async (req, res, next) => {
         );
     }
 
-    const avatarPath = req.file ? `/uploads/profile/${req.file.filename}` : null;
+    const avatarPath = req.file
+      ? `/uploads/profile/${req.file.filename}`
+      : null;
 
     const body = { ...req.body, email: workEmail };
 
-    await EmployeeModel.updateEmployee(id, body, avatarPath, req.user?.id);
+    await EmployeeModel.updateEmployee(
+      employeeId,
+      body,
+      avatarPath,
+      req.user?.id,
+    );
 
     if (avatarPath && existing.avatar) {
       await deleteExistingProfileImage(existing.avatar);
@@ -266,9 +279,11 @@ const updateEmployee = async (req, res, next) => {
       performedScreen: "Employee Management",
       actionDescription: `Employee updated: ${existing.name}`,
     });
-    return success(res, { message: "Employee updated successfully" });
+
+    const updatedEmployee = await EmployeeModel.findEmployeeById(employeeId);
+    return success(res, updatedEmployee);
   } catch (err) {
-    logError("Update employee failed", err, { employeeId: id });
+    logError("Update employee failed", err, { employeeId });
     next(err);
   }
 };
