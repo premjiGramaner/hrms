@@ -87,7 +87,6 @@ const MESSAGES = {
   UNKNOWN_ERROR: "Unknown error",
 } as const;
 
-// Help Text Constants
 const HELP_TEXT = {
   DAYS_ZERO: "0 days: Send notification for TODAY only",
   DAYS_RANGE: "1-30 days: Send notifications for TODAY + next N days",
@@ -96,7 +95,6 @@ const HELP_TEXT = {
   DAYS_TIP: "You can type any number from 0 to 30",
 } as const;
 
-// Tab Configuration
 const TABS: TabItem[] = [
   { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
   { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },

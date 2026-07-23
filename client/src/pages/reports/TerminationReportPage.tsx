@@ -342,7 +342,6 @@ export default function TerminationReportPage() {
 
   const filterToolbar = (
     <div className="flex gap-3 flex-wrap items-center">
-      {/* Date From Filter */}
       <input
         type="date"
         value={dateFrom}
@@ -351,7 +350,6 @@ export default function TerminationReportPage() {
         className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       />
 
-      {/* Date To Filter */}
       <input
         type="date"
         value={dateTo}
@@ -360,7 +358,6 @@ export default function TerminationReportPage() {
         className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       />
 
-      {/* Group Company Filter */}
       <select
         value={selectedGroupCompany}
         onChange={(event) => setSelectedGroupCompany(event.target.value)}
@@ -374,7 +371,6 @@ export default function TerminationReportPage() {
         ))}
       </select>
 
-      {/* Location Filter */}
       <select
         value={selectedLocation}
         onChange={(event) => setSelectedLocation(event.target.value)}
@@ -388,7 +384,6 @@ export default function TerminationReportPage() {
         ))}
       </select>
 
-      {/* Export Excel Button */}
       <button
         onClick={handleExportExcel}
         className="py-2 px-4 bg-[#16A085] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#138f72] transition-colors"
@@ -396,7 +391,6 @@ export default function TerminationReportPage() {
         Export Excel
       </button>
 
-      {/* Export PDF Button */}
       <button
         onClick={handleExportPDF}
         className="py-2 px-4 bg-[#21088dff] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#1a0670] transition-colors"

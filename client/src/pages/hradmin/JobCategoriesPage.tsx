@@ -135,12 +135,14 @@ function getFirstCharUppercase(text: string): string {
 // Check if category matches search term
 function categoryMatchesSearch(category: JobCategory, term: string): boolean {
   if (!term) return true;
-  
+
   const lowerTerm = term.toLowerCase();
   const categoryName = category.category.toLowerCase();
   const categoryDescription = (category.description || "").toLowerCase();
-  
-  return categoryName.includes(lowerTerm) || categoryDescription.includes(lowerTerm);
+
+  return (
+    categoryName.includes(lowerTerm) || categoryDescription.includes(lowerTerm)
+  );
 }
 
 // Filter categories by search term
@@ -180,7 +182,9 @@ export default function JobCategoriesPage() {
   );
   const [pageError, setPageError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(PAGE_CONFIG.INITIAL_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState<number>(
+    PAGE_CONFIG.INITIAL_PAGE_SIZE,
+  );
 
   // Handle successful categories fetch
   const handleFetchSuccess = (response: { data: JobCategory[] }) => {
@@ -228,7 +232,7 @@ export default function JobCategoriesPage() {
   };
 
   const totalPages = calculateTotalPages(filteredList.length, pageSize);
-  
+
   const pagedList = useMemo(() => {
     return paginateCategories(filteredList, currentPage, pageSize);
   }, [filteredList, currentPage, pageSize]);
@@ -534,7 +538,6 @@ function JobCategoryFormModal({
     handleAddSuccess();
   };
 
-  // Update existing category
   const updateCategory = async (
     categoryId: number,
     payload: UpdateJobCategoryPayload,
@@ -565,14 +568,12 @@ function JobCategoryFormModal({
     }
   };
 
-  // Handle backdrop click
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
       onClose();
     }
   };
 
-  // Handle category name change
   const handleCategoryNameChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -580,29 +581,24 @@ function JobCategoryFormModal({
     setFormError("");
   };
 
-  // Handle description change
   const handleDescriptionChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
     setDescription(event.target.value);
   };
 
-  // Get modal title
   const getModalTitle = (): string => {
     return isAddMode ? MODAL_CONFIG.ADD_TITLE : MODAL_CONFIG.EDIT_TITLE;
   };
 
-  // Get modal subtitle
   const getModalSubtitle = (): string => {
     return isAddMode ? MODAL_CONFIG.ADD_SUBTITLE : MODAL_CONFIG.EDIT_SUBTITLE;
   };
 
-  // Get submit button label
   const getSubmitButtonLabel = (): string => {
     return isAddMode ? MODAL_CONFIG.ADD_BUTTON : MODAL_CONFIG.SAVE_BUTTON;
   };
 
-  // Render modal icon
   const renderModalIcon = () => {
     if (isAddMode) {
       return <IconPlusCircle size={18} color="#fff" />;

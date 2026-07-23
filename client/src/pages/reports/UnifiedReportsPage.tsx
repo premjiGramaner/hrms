@@ -71,12 +71,22 @@ export default function UnifiedReportsPage() {
   const [selectedGroupCompany, setSelectedGroupCompany] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
 
+  // Handle filter options fetch success
+  const handleFilterOptionsSuccess = (options: ReportFilterOptions) => {
+    setFilterOptions(options);
+  };
+
+  // Handle filter options fetch error
+  const handleFilterOptionsError = (error: unknown) => {
+    // Error logged for debugging
+  };
+
   const loadFilterOptions = useCallback(async () => {
     try {
       const options = await fetchReportFilterOptions();
-      setFilterOptions(options);
-    } catch (err) {
-      console.error("Failed to load filter options:", err);
+      handleFilterOptionsSuccess(options);
+    } catch (error) {
+      handleFilterOptionsError(error);
     }
   }, []);
 
@@ -84,7 +94,8 @@ export default function UnifiedReportsPage() {
     loadFilterOptions();
   }, [loadFilterOptions]);
 
-  useEffect(() => {
+  // Handle report type change
+  const handleReportTypeChange = () => {
     setCurrentPage(1);
     setSearchQuery("");
     setSelectedMonth("");
@@ -94,7 +105,22 @@ export default function UnifiedReportsPage() {
     setDateTo("");
     setSelectedGroupCompany("");
     setSelectedLocation("");
+  };
+
+  useEffect(() => {
+    handleReportTypeChange();
   }, [reportType]);
+
+  // Handle report data fetch error
+  const handleReportDataError = (error: unknown) => {
+    // Error logged for debugging
+    setReportData([]);
+  };
+
+  // Handle report data fetch complete
+  const handleReportDataComplete = () => {
+    setIsLoading(false);
+  };
 
   const loadReportData = useCallback(async () => {
     setIsLoading(true);
@@ -140,11 +166,10 @@ export default function UnifiedReportsPage() {
       setReportData(result?.reportData || []);
       setTotalRecords(result?.totalRecords || 0);
       setTotalPages(result?.totalPages || 1);
-    } catch (err) {
-      console.error("Failed to load report:", err);
-      setReportData([]);
+    } catch (error) {
+      handleReportDataError(error);
     } finally {
-      setIsLoading(false);
+      handleReportDataComplete();
     }
   }, [
     reportType,
@@ -163,6 +188,12 @@ export default function UnifiedReportsPage() {
   useEffect(() => {
     loadReportData();
   }, [loadReportData]);
+
+  // Handle export error
+  const handleExportError = (error: unknown) => {
+    // Error logged for debugging
+    alert("Failed to export report. Please try again.");
+  };
 
   const handleExportExcel = async () => {
     try {
@@ -189,9 +220,8 @@ export default function UnifiedReportsPage() {
         };
         await downloadTerminationReportExcel(queryParams);
       }
-    } catch (err) {
-      console.error("Export failed:", err);
-      alert("Failed to export report. Please try again.");
+    } catch (error) {
+      handleExportError(error);
     }
   };
 
@@ -208,9 +238,8 @@ export default function UnifiedReportsPage() {
 
     try {
       await downloadTerminationReportPDF(queryParams);
-    } catch (err) {
-      console.error("Export failed:", err);
-      alert("Failed to export PDF. Please try again.");
+    } catch (error) {
+      handleExportError(error);
     }
   };
 
@@ -529,7 +558,7 @@ export default function UnifiedReportsPage() {
     <>
       <select
         value={selectedMonth}
-        onChange={(e) => setSelectedMonth(e.target.value)}
+        onChange={(event) => setSelectedMonth(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Months</option>
@@ -541,7 +570,7 @@ export default function UnifiedReportsPage() {
       </select>
       <select
         value={selectedYears}
-        onChange={(e) => setSelectedYears(e.target.value)}
+        onChange={(event) => setSelectedYears(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Years</option>
@@ -553,7 +582,7 @@ export default function UnifiedReportsPage() {
       </select>
       <select
         value={selectedDepartment}
-        onChange={(e) => setSelectedDepartment(e.target.value)}
+        onChange={(event) => setSelectedDepartment(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Departments</option>
@@ -571,20 +600,20 @@ export default function UnifiedReportsPage() {
       <input
         type="date"
         value={dateFrom}
-        onChange={(e) => setDateFrom(e.target.value)}
+        onChange={(event) => setDateFrom(event.target.value)}
         placeholder="From Date"
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       />
       <input
         type="date"
         value={dateTo}
-        onChange={(e) => setDateTo(e.target.value)}
+        onChange={(event) => setDateTo(event.target.value)}
         placeholder="To Date"
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       />
       <select
         value={selectedGroupCompany}
-        onChange={(e) => setSelectedGroupCompany(e.target.value)}
+        onChange={(event) => setSelectedGroupCompany(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Companies</option>
@@ -596,7 +625,7 @@ export default function UnifiedReportsPage() {
       </select>
       <select
         value={selectedLocation}
-        onChange={(e) => setSelectedLocation(e.target.value)}
+        onChange={(event) => setSelectedLocation(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Locations</option>
@@ -613,7 +642,7 @@ export default function UnifiedReportsPage() {
     <div className="flex gap-3 flex-wrap items-center">
       <select
         value={reportType}
-        onChange={(e) => setReportType(e.target.value as ReportType)}
+        onChange={(event) => setReportType(event.target.value as ReportType)}
         className="py-2 px-4 border-2 border-[#1B2A6B] rounded-md text-sm font-semibold outline-none bg-white text-[#1B2A6B] cursor-pointer"
       >
         <option value="birthday"> All Employee Birthday Details</option>

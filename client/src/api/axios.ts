@@ -5,7 +5,7 @@ import { STORAGE_KEYS } from "../constants/storage";
 const api = axios.create({
   baseURL: env.apiBaseUrl,
   timeout: 15000,
-  withCredentials: true, // Send cookies with requests
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
@@ -14,6 +14,7 @@ api.interceptors.request.use((config) => {
   if (token && token !== "cookie_auth" && token !== "cookie_authenticated") {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log("Token from axios bearer", token);
   // If placeholder token, rely on cookie only (sent automatically via withCredentials)
   return config;
 });
