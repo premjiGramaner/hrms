@@ -1,6 +1,5 @@
 ﻿import * as EntitlementModel from "../models/entitlement.model.js";
 import { success, created, error } from "../utils/response.js";
-
 const getEmployees = async (req, res, next) => {
   try {
     const searchQuery = String(req.query.q || "").trim();
@@ -10,7 +9,6 @@ const getEmployees = async (req, res, next) => {
     next(err);
   }
 };
-
 const getLeaveTypes = async (req, res, next) => {
   try {
     const types = await EntitlementModel.findActiveLeaveTypes();
@@ -19,7 +17,6 @@ const getLeaveTypes = async (req, res, next) => {
     next(err);
   }
 };
-
 const createEntitlements = async (req, res, next) => {
   try {
     const {
@@ -30,20 +27,25 @@ const createEntitlements = async (req, res, next) => {
       entitlement_days,
       comments,
     } = req.body;
-
     const periodStart = new Date(leave_period_start);
-    if (isNaN(periodStart.getTime())) {
+
+    if (Number.isNaN(periodStart.getTime())) {
       return error(res, "Invalid leave period start date", 422);
     }
+
     const year =
       periodStart.getMonth() >= 3
         ? periodStart.getFullYear() + 1
         : periodStart.getFullYear();
-
     const days = parseFloat(entitlement_days);
-    if (!days || days <= 0)
+
+    if (!days || days <= 0) {
       return error(res, "Entitlement days must be greater than 0", 422);
-    if (!leave_type_id) return error(res, "Leave type is required", 422);
+    }
+
+    if (!leave_type_id) {
+      return error(res, "Leave type is required", 422);
+    }
 
     const isMultiple = Array.isArray(employee_ids) && employee_ids.length > 0;
     const ids = isMultiple ? employee_ids.map(Number) : [Number(employee_id)];
@@ -54,7 +56,7 @@ const createEntitlements = async (req, res, next) => {
 
     const results = await EntitlementModel.bulkCreateEntitlements(
       ids,
-      parseInt(leave_type_id),
+      parseInt(leave_type_id, 10),
       year,
       days,
       comments || null,
@@ -77,7 +79,12 @@ const createEntitlements = async (req, res, next) => {
         ? `${created_count} entitlement(s) created. ${skipped} skipped (already exist).`
         : `${created_count} entitlement(s) created successfully.`;
 
-    return created(res, { message: msg, created: created_count, skipped });
+    return created(res, {
+      message,
+      created: createdCount,
+      updated: updatedCount,
+      skipped: skippedCount,
+    });
   } catch (err) {
     next(err);
   }
@@ -85,23 +92,20 @@ const createEntitlements = async (req, res, next) => {
 
 const listEntitlements = async (req, res, next) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, parseInt(req.query.limit) || 20);
-
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, parseInt(req.query.limit, 10) || 20);
     const filters = {
       employee_id: req.query.employee_id
-        ? parseInt(req.query.employee_id)
+        ? parseInt(req.query.employee_id, 10)
         : null,
       leave_type_id: req.query.leave_type_id
-        ? parseInt(req.query.leave_type_id)
+        ? parseInt(req.query.leave_type_id, 10)
         : null,
-      year: req.query.year ? parseInt(req.query.year) : null,
+      year: req.query.year ? parseInt(req.query.year, 10) : null,
     };
-
     if (req.user.role === "employee") {
       filters.employee_id = req.user.id;
     }
-
     const result = await EntitlementModel.findEntitlements({
       ...filters,
       page,

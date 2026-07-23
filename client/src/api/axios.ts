@@ -19,14 +19,23 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const AUTH_PATHS = [
+  "/login",
+  "/reset-password",
+  "/create-password",
+  "/forgot-password",
+];
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem(STORAGE_KEYS.token);
       localStorage.removeItem(STORAGE_KEYS.user);
-      if (window.location.pathname !== "/login")
+      const pathname = window.location.pathname;
+      if (!AUTH_PATHS.includes(pathname)) {
         window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   },

@@ -22,3 +22,5 @@ export const VALIDATION_MESSAGES = {
   FIELD_REQUIRED: "This field is required",
   PASSWORD_MIN_LENGTH: `Password must be at least ${FIELD_LENGTHS.PASSWORD_MIN} characters`,
 } as const;
+
+export const EMAIL_REGEX  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
