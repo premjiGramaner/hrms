@@ -44,8 +44,9 @@ const migrations = [
   "011_fix_termination_trigger_ambiguous_column.sql",
   "012_backfill_real_dob_from_dob.sql",
   "013_add_external_emails_to_notification_config.sql",
-  // Leave management module
   "leave_management.sql",
+  "014_create_entitlement_history_table.sql",
+  // Leave management module
   "add_password_reset_columns.sql",
   "add_net_leave_balance_column.sql",
 ];

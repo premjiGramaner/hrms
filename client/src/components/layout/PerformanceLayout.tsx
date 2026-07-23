@@ -33,7 +33,7 @@ export default function PerformanceLayout({
       activeTab={activeTab}
       onFab={isPerformanceAdmin ? onFab : undefined}
     >
-      <div className="min-h-full bg-[#fbf6ff]">{children}</div>
+      <div className="min-h-full bg-gray-100">{children}</div>
     </Layout>
   );
 }

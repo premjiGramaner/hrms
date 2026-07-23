@@ -259,8 +259,11 @@ export default function AppraisalList() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const role = useAppSelector((state) => state.auth.user?.role);
-  const isAdmin = isAdminRole(role);
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const isAdmin =
+    isAdminRole(currentUser?.role) ||
+    currentUser?.id === 0 ||
+    currentUser?.username === "admin";
 
   const isMyAppraisals = location.pathname.includes("my_appraisals");
   const isTeamAppraisals = location.pathname.includes("team_appraisals");
@@ -401,9 +404,14 @@ export default function AppraisalList() {
             onRowClick={(row) => openAppraisal(row.id)}
             actions={(row) => (
               <div className="flex justify-end gap-2">
-                <IconButton title="Review" onClick={() => openReview(row.id)}>
-                  <ClipboardCheck size={17} />
-                </IconButton>
+                {!isAdmin ? (
+                  <IconButton
+                    title="Review"
+                    onClick={() => openReview(row.id)}
+                  >
+                    <ClipboardCheck size={17} />
+                  </IconButton>
+                ) : null}
                 <IconButton
                   title="Download"
                   onClick={() => downloadAppraisal(row)}

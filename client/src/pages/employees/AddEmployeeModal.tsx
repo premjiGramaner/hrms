@@ -1029,6 +1029,7 @@ export default function AddEmployeeModal({
                         PREDEFINED_LOCATIONS,
                         "-- Select Location --",
                       ),
+                      true
                     )}
                   </TwoColumnGrid>
                 </div>
