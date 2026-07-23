@@ -451,11 +451,11 @@ export default function LeaveListPage() {
   );
 
   const handleCancel = useCallback(
-    async (id: number) => {
-      if (!window.confirm("Cancel this leave request?")) return;
-      setActionLoading(id);
+    async (leaveId: number) => {
+      // if (!window.confirm("Cancel this leave request?")) return;
+      setActionLoading(leaveId);
       try {
-        await cancelLeave(id);
+        await cancelLeave(leaveId);
         addToast("Leave cancelled.", "success");
         dispatch(fetchLeaves({ ...filters }));
       } catch (event) {
