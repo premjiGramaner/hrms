@@ -1,10 +1,18 @@
 import * as EmployeeModel from "../models/employee.model.js";
 import { success, created, error } from "../utils/response.js";
 import { writeAuditLog } from "../services/audit.service.js";
+import { deleteExistingProfileImage } from "../services/fileDelete.service.js";
 import { sendWelcomeEmail } from "../../email.service.js";
 import { clientBaseUrl } from "../config/env.js";
 import { logInfo, logError } from "../utils/logger.js";
 import { ROLES } from "../constants/roles.js";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROFILE_UPLOAD_DIR = path.join(__dirname, "../../uploads/profile");
 
 function getClientUrl(req) {
   if (clientBaseUrl) return clientBaseUrl.replace(/\/$/, "");
@@ -98,7 +106,6 @@ const getSupervisorsByIds = async (req, res, next) => {
     if (!Array.isArray(supervisorIds) || supervisorIds.length === 0) {
       return success(res, []);
     }
-    // Convert all IDs to integers and filter out invalid ones
     const validIds = supervisorIds
       .map((id) => parseInt(id, 10))
       .filter((id) => !isNaN(id) && id > 0);
@@ -141,13 +148,11 @@ const createEmployee = async (req, res, next) => {
         return error(res, "Employee ID already exists", 409);
     }
 
-    const avatarBase64 = req.file
-      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
-      : undefined;
+    const avatarPath = req.file ? `/uploads/profile/${req.file.filename}` : undefined;
 
     const emp = await EmployeeModel.createEmployee(
       { ...req.body, email: workEmail, created_by: req.user?.id },
-      avatarBase64,
+      avatarPath,
     );
 
     await writeAuditLog({
@@ -241,13 +246,15 @@ const updateEmployee = async (req, res, next) => {
         );
     }
 
-    const avatarBase64 = req.file
-      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
-      : undefined;
+    const avatarPath = req.file ? `/uploads/profile/${req.file.filename}` : undefined;
 
     const body = { ...req.body, email: workEmail };
 
-    await EmployeeModel.updateEmployee(id, body, avatarBase64, req.user?.id);
+    await EmployeeModel.updateEmployee(id, body, avatarPath, req.user?.id);
+
+    if (avatarPath && existing.avatar) {
+      await deleteExistingProfileImage(existing.avatar);
+    }
 
     await writeAuditLog({
       employeeId: existing.id,
@@ -267,6 +274,8 @@ const updateEmployee = async (req, res, next) => {
 };
 
 const updateProfileImage = async (req, res, next) => {
+  let newImagePath = null;
+
   try {
     const id = parseInt(req.params.id);
     if (!req.file) {
@@ -276,26 +285,54 @@ const updateProfileImage = async (req, res, next) => {
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
 
-    const avatarBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    newImagePath = `/uploads/profile/${req.file.filename}`;
+    const oldAvatarPath = existing.avatar;
 
-    const updatedEmployee = await EmployeeModel.updateProfileImage(
-      id,
-      avatarBase64,
-      req.user?.id,
-    );
+    try {
+      const updatedEmployee = await EmployeeModel.updateProfileImage(
+        id,
+        newImagePath,
+        req.user?.id,
+      );
 
-    await writeAuditLog({
-      employeeId: existing.id,
-      employeeName: existing.name,
-      employeeUsername: existing.username,
-      section: existing.role || "employee",
-      action: "UPDATE",
-      actor: req.user,
-      performedScreen: "My Info",
-      actionDescription: `Profile picture updated: ${existing.name}`,
-    });
+      await writeAuditLog({
+        employeeId: existing.id,
+        employeeName: existing.name,
+        employeeUsername: existing.username,
+        section: existing.role || "employee",
+        action: "UPDATE",
+        actor: req.user,
+        performedScreen: "My Info",
+        actionDescription: `Profile picture updated: ${existing.name}`,
+      });
 
-    return success(res, updatedEmployee);
+      if (oldAvatarPath) {
+        await deleteExistingProfileImage(oldAvatarPath);
+      }
+
+      return success(res, updatedEmployee);
+    } catch (dbErr) {
+      logError("Database update failed, cleaning up uploaded image", dbErr, {
+        employeeId: id,
+        newImagePath,
+      });
+
+      try {
+        const filename = path.basename(newImagePath);
+        const fullPath = path.join(PROFILE_UPLOAD_DIR, filename);
+        await fs.unlink(fullPath);
+        logInfo("Newly uploaded image deleted due to database failure", {
+          newImagePath,
+          fullPath,
+        });
+      } catch (cleanupErr) {
+        logError("Failed to cleanup newly uploaded image", cleanupErr, {
+          newImagePath,
+        });
+      }
+
+      throw dbErr;
+    }
   } catch (err) {
     next(err);
   }

@@ -246,7 +246,7 @@ async function convertSupervisorIdsToNames(supervisors) {
   }
 }
 
-async function createEmployee(data, avatarBase64) {
+async function createEmployee(data, avatarPath) {
   const name = `${data.first_name} ${data.last_name}`.trim();
   const username = await createUniqueUsername(data.email, name);
   const plainPassword = generateTemporaryPassword();
@@ -305,7 +305,7 @@ async function createEmployee(data, avatarBase64) {
       data.home_tel || null,
       data.work_tel || null,
       data.other_email || null,
-      avatarBase64 || null,
+      avatarPath || null,
       data.address1 || null,
       data.address2 || null,
       data.city || null,
@@ -352,7 +352,7 @@ function generateTemporaryPassword() {
   return required.join("");
 }
 
-async function updateEmployee(id, data, avatarBase64, updatedBy) {
+async function updateEmployee(id, data, avatarPath, updatedBy) {
   const name =
     data.first_name && data.last_name
       ? `${data.first_name} ${data.last_name}`.trim()
@@ -389,7 +389,7 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
       home_tel          = $16,
       work_tel          = $17,
       other_email       = $18,
-      avatar            = COALESCE($19, avatar),
+      avatar            = CASE WHEN $19 IS NOT NULL THEN $19 ELSE avatar END,
       address1          = $20,
       address2          = $21,
       city              = $22,
@@ -421,7 +421,7 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
       normalizeNullableText(data.email) || "",
       normalizeNullableText(data.employee_id),
       normalizeNullableDate(data.dob),
-      realDob, // Use realDob which falls back to dob
+      realDob,
       normalizeNullableText(data.nationality),
       normalizeNullableText(data.marital_status),
       normalizeNullableText(data.gender),
@@ -432,7 +432,7 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
       normalizeNullableText(data.home_tel),
       normalizeNullableText(data.work_tel),
       normalizeNullableText(data.other_email),
-      avatarBase64 || null,
+      avatarPath || null,
       normalizeNullableText(data.address1),
       normalizeNullableText(data.address2),
       normalizeNullableText(data.city),
@@ -583,14 +583,14 @@ async function getSupervisorsByIds(supervisorIds) {
   return rows;
 }
 
-async function updateProfileImage(id, avatarBase64, updatedBy) {
+async function updateProfileImage(id, avatarPath, updatedBy) {
   const result = await pool.query(
     `UPDATE tbl_appusers SET
       avatar = $1,
       updated_by = $2,
       updated_at = NOW()
      WHERE id = $3::bigint AND is_deleted = false`,
-    [avatarBase64, updatedBy || null, id],
+    [avatarPath, updatedBy || null, id],
   );
 
   if (result.rowCount === 0) throw new Error(`No employee found with ID ${id}`);
