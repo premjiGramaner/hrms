@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { IconCheck, IconX, IconAlertCircle } from "./Icons";
 
 export type ToastType = "success" | "error" | "info";
 
@@ -40,25 +41,25 @@ function ToastItem({
     error: "bg-red-600 text-white",
     info: "bg-blue-900 text-white",
   };
-  const icons: Record<ToastType, string> = {
-    success: "✓",
-    error: "✕",
-    info: "ℹ",
+  const icons: Record<ToastType, React.ReactNode> = {
+    success: <IconCheck size={16} color="#fff" />,
+    error: <IconX size={16} color="#fff" />,
+    info: <IconAlertCircle size={16} color="#fff" />,
   };
 
   return (
     <div
       className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl min-w-64 max-w-sm ${styles[toast.type]}`}
     >
-      <span className="text-base font-bold flex-shrink-0">
+      <span className="flex-shrink-0 flex items-center justify-center">
         {icons[toast.type]}
       </span>
       <span className="text-sm flex-1">{toast.message}</span>
       <button
         onClick={() => onRemove(toast.id)}
-        className="text-white/80 hover:text-white text-lg leading-none cursor-pointer flex-shrink-0 bg-transparent border-none"
+        className="text-white/80 hover:text-white leading-none cursor-pointer flex-shrink-0 bg-transparent border-none flex items-center justify-center p-0"
       >
-        ×
+        <IconX size={18} color="rgba(255,255,255,0.9)" />
       </button>
     </div>
   );

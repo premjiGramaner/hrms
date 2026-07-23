@@ -6,6 +6,11 @@ import SkeletonTable from "./SkeletonTable";
 
 type SortDirection = "asc" | "desc";
 
+// Regular expression patterns for data normalization
+const REGEX_PATTERNS = {
+  ISO_DATE_FORMAT: /^\d{4}-\d{2}-\d{2}/,
+} as const;
+
 export default function DataTable<T>({
   columns,
   data,
@@ -196,7 +201,7 @@ function normalize(value: unknown) {
 
   const text = String(value).trim();
   const dateValue = Date.parse(text);
-  if (/^\d{4}-\d{2}-\d{2}/.test(text) && Number.isFinite(dateValue))
+  if (REGEX_PATTERNS.ISO_DATE_FORMAT.test(text) && Number.isFinite(dateValue))
     return dateValue;
 
   const numberValue = Number(text);

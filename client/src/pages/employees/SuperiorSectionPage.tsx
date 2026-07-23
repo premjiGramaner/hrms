@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, ShieldCheck, Crown } from "lucide-react";
 import Layout, { TabItem } from "../../components/Layout";
 import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import useDebounce from "../../hooks/useDebounce";
@@ -13,6 +12,7 @@ import {
   isAdminRole,
   type UserRole,
 } from "../../config/roles";
+import { IconSettings, IconShield, IconUsers, IconX } from "../../components/Icons";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: PAGE_PATHS.employees },
@@ -164,7 +164,7 @@ export default function SuperiorSectionPage() {
     {
       label: "Total",
       value: pageData?.total ?? 0,
-      icon: <Users size={26} />,
+      icon: <IconUsers size={20} />,
       color: "#1b2a6b",
       bg: "#eff6ff",
       border: "#bfdbfe",
@@ -172,7 +172,7 @@ export default function SuperiorSectionPage() {
     {
       label: "Supervisors",
       value: supervisorCount,
-      icon: <ShieldCheck size={26} />,
+      icon: <IconShield size={20} />,
       color: "#075985",
       bg: "#e0f2fe",
       border: "#bae6fd",
@@ -180,7 +180,7 @@ export default function SuperiorSectionPage() {
     {
       label: "Global Admins",
       value: globalAdminCount,
-      icon: <Crown size={26} />,
+      icon: <IconSettings size={20} />,
       color: "#7c3aed",
       bg: "#ede9fe",
       border: "#c4b5fd",
@@ -287,8 +287,9 @@ export default function SuperiorSectionPage() {
       {hasFilters && (
         <button
           onClick={clearFilters}
-          className="py-[9px] px-[14px] border-[1.5px] border-slate-200 rounded-[10px] text-[13px] bg-white cursor-pointer text-slate-500 shadow-sm hover:bg-slate-50 transition-colors"
+          className="py-[9px] px-[14px] border-[1.5px] border-slate-200 rounded-[10px] text-[13px] bg-white cursor-pointer text-slate-500 shadow-sm hover:bg-slate-50 transition-colors flex items-center gap-1.5"
         >
+          <IconX size={14} />
           Clear
         </button>
       )}
@@ -310,7 +311,7 @@ export default function SuperiorSectionPage() {
       <DataTable<Employee>
         title="Superior Section"
         subtitle="Supervisors and global admins available for reporting relationships"
-        icon=""
+        icon={<IconShield />}
         rows={rows}
         isLoading={isLoading}
         columns={columns}

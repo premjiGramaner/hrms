@@ -54,7 +54,9 @@ export const resetPassword = async (
     success: boolean;
     data: { message: string };
   }>(AUTH_PATHS.RESET_PASSWORD, { token, password, confirmPassword });
-  return { data: response.data.data };
+  return {
+    data: response.data.data,
+  };
 };
 
 export const setPassword = async (

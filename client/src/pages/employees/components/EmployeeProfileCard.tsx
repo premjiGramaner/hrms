@@ -347,19 +347,6 @@ export default function EmployeeProfileCard({
                 label="Job Category"
                 value={employee.job_category || "N/A"}
               />
-              <div>
-                <p className={LABEL_CLASSES}>Status</p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      employee.is_active ? "bg-green-500" : "bg-red-500"
-                    }`}
-                  ></span>
-                  <span className={VALUE_CLASSES}>
-                    {employee.is_active ? "Active" : "Inactive"}
-                  </span>
-                </div>
-              </div>
               <InfoField label="Supervisor" value={getSupervisorNames()} />
             </div>
           </div>

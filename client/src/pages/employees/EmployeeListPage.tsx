@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { IconUsers, IconUser, IconEye } from "../../components/Icons";
-import { ShieldCheck } from "lucide-react";
+import {
+  IconUsers,
+  IconUser,
+  IconEye,
+  IconShield,
+} from "../../components/Icons";
 import Layout, { TabItem } from "../../components/Layout";
 import { Employee } from "../../types";
 import AddEmployeeModal from "./AddEmployeeModal";
@@ -155,7 +159,7 @@ export default function EmployeeListPage() {
     {
       label: "Supervisors",
       value: supervisorCount,
-      icon: <ShieldCheck size={20} />,
+      icon: <IconShield size={20} />,
       color: THEME_COLORS.blue[600],
       bg: THEME_COLORS.blue.bg,
       border: THEME_COLORS.blue.border,
@@ -276,7 +280,7 @@ export default function EmployeeListPage() {
       <DataTable<Employee>
         title="Employee List"
         subtitle="View and manage employee profile information"
-        icon="👥"
+        icon={<IconUsers />}
         rows={allRows}
         isLoading={loading}
         columns={columns}
@@ -295,7 +299,7 @@ export default function EmployeeListPage() {
           },
         ]}
         getKey={(employee) => employee.id}
-        emptyIcon="👤"
+        emptyIcon={<IconUser size={36} />}
         emptyTitle={
           search ? `No results for "${search}"` : "No employees found"
         }

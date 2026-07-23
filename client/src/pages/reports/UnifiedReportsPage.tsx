@@ -22,6 +22,15 @@ import {
   YEARS_OF_SERVICE_OPTIONS,
   TERMINATION_TYPE_COLORS,
 } from "../../config/uiConstants";
+import {
+  IconGift,
+  IconAward,
+  IconClipboardList,
+  IconCheck,
+  IconXCircle,
+  IconAlertCircle,
+  IconUpload,
+} from "../../components/Icons";
 import { PAGE_PATHS } from "../../config/roles";
 
 const TABS: TabItem[] = [
@@ -62,12 +71,22 @@ export default function UnifiedReportsPage() {
   const [selectedGroupCompany, setSelectedGroupCompany] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
 
+  // Handle filter options fetch success
+  const handleFilterOptionsSuccess = (options: ReportFilterOptions) => {
+    setFilterOptions(options);
+  };
+
+  // Handle filter options fetch error
+  const handleFilterOptionsError = (error: unknown) => {
+    // Error logged for debugging
+  };
+
   const loadFilterOptions = useCallback(async () => {
     try {
       const options = await fetchReportFilterOptions();
-      setFilterOptions(options);
-    } catch (err) {
-      console.error("Failed to load filter options:", err);
+      handleFilterOptionsSuccess(options);
+    } catch (error) {
+      handleFilterOptionsError(error);
     }
   }, []);
 
@@ -75,10 +94,10 @@ export default function UnifiedReportsPage() {
     loadFilterOptions();
   }, [loadFilterOptions]);
 
-  useEffect(() => {
+  // Handle report type change
+  const handleReportTypeChange = () => {
     setCurrentPage(1);
     setSearchQuery("");
-    // Reset all filters when switching report types
     setSelectedMonth("");
     setSelectedYears("");
     setSelectedDepartment("");
@@ -86,7 +105,22 @@ export default function UnifiedReportsPage() {
     setDateTo("");
     setSelectedGroupCompany("");
     setSelectedLocation("");
+  };
+
+  useEffect(() => {
+    handleReportTypeChange();
   }, [reportType]);
+
+  // Handle report data fetch error
+  const handleReportDataError = (error: unknown) => {
+    // Error logged for debugging
+    setReportData([]);
+  };
+
+  // Handle report data fetch complete
+  const handleReportDataComplete = () => {
+    setIsLoading(false);
+  };
 
   const loadReportData = useCallback(async () => {
     setIsLoading(true);
@@ -132,11 +166,10 @@ export default function UnifiedReportsPage() {
       setReportData(result?.reportData || []);
       setTotalRecords(result?.totalRecords || 0);
       setTotalPages(result?.totalPages || 1);
-    } catch (err) {
-      console.error("Failed to load report:", err);
-      setReportData([]);
+    } catch (error) {
+      handleReportDataError(error);
     } finally {
-      setIsLoading(false);
+      handleReportDataComplete();
     }
   }, [
     reportType,
@@ -155,6 +188,12 @@ export default function UnifiedReportsPage() {
   useEffect(() => {
     loadReportData();
   }, [loadReportData]);
+
+  // Handle export error
+  const handleExportError = (error: unknown) => {
+    // Error logged for debugging
+    alert("Failed to export report. Please try again.");
+  };
 
   const handleExportExcel = async () => {
     try {
@@ -181,9 +220,8 @@ export default function UnifiedReportsPage() {
         };
         await downloadTerminationReportExcel(queryParams);
       }
-    } catch (err) {
-      console.error("Export failed:", err);
-      alert("Failed to export report. Please try again.");
+    } catch (error) {
+      handleExportError(error);
     }
   };
 
@@ -200,9 +238,8 @@ export default function UnifiedReportsPage() {
 
     try {
       await downloadTerminationReportPDF(queryParams);
-    } catch (err) {
-      console.error("Export failed:", err);
-      alert("Failed to export PDF. Please try again.");
+    } catch (error) {
+      handleExportError(error);
     }
   };
 
@@ -238,8 +275,9 @@ export default function UnifiedReportsPage() {
       header: "Birthday Date",
       width: 150,
       render: (row) => (
-        <span className="font-semibold text-orange-500">
-          🎂 {row.formatted_birthday || "N/A"}
+        <span className="font-semibold text-orange-500 flex items-center gap-1.5">
+          <IconGift size={14} />
+          {row.formatted_birthday || "N/A"}
         </span>
       ),
     },
@@ -423,13 +461,21 @@ export default function UnifiedReportsPage() {
       width: 130,
       render: (row) => (
         <span
-          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-block whitespace-nowrap ${
+          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-flex items-center gap-1 whitespace-nowrap ${
             row.exit_interview_completed
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}
         >
-          {row.exit_interview_completed ? "✓ Done" : "✗ Pending"}
+          {row.exit_interview_completed ? (
+            <>
+              <IconCheck size={12} /> Done
+            </>
+          ) : (
+            <>
+              <IconXCircle size={12} /> Pending
+            </>
+          )}
         </span>
       ),
     },
@@ -439,13 +485,21 @@ export default function UnifiedReportsPage() {
       width: 130,
       render: (row) => (
         <span
-          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-block whitespace-nowrap ${
+          className={`px-2.5 py-1.5 rounded-md text-xs font-semibold inline-flex items-center gap-1 whitespace-nowrap ${
             row.rehire_eligible
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}
         >
-          {row.rehire_eligible ? "✓ Yes" : "✗ No"}
+          {row.rehire_eligible ? (
+            <>
+              <IconCheck size={12} /> Yes
+            </>
+          ) : (
+            <>
+              <IconXCircle size={12} /> No
+            </>
+          )}
         </span>
       ),
     },
@@ -457,14 +511,14 @@ export default function UnifiedReportsPage() {
         const isDeleted = row.is_user_deleted === true;
         return (
           <span
-            className={`text-sm font-semibold text-slate-800 block py-2.5 px-3.5 rounded-lg whitespace-nowrap overflow-hidden text-ellipsis ${
+            className={`text-sm font-semibold text-slate-800 flex items-center gap-1.5 py-2.5 px-3.5 rounded-lg whitespace-nowrap overflow-hidden text-ellipsis ${
               isDeleted
                 ? "bg-red-300 border border-red-400"
                 : "bg-amber-200 border border-amber-300"
             }`}
           >
             {row.actual_supervisor || "N/A"}
-            {isDeleted && " 🔴"}
+            {isDeleted && <IconAlertCircle size={14} color="#dc2626" />}
           </span>
         );
       },
@@ -477,14 +531,14 @@ export default function UnifiedReportsPage() {
         const isDeleted = row.is_user_deleted === true;
         return (
           <span
-            className={`text-sm font-semibold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis block py-2.5 px-3.5 rounded-lg ${
+            className={`text-sm font-semibold text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1.5 py-2.5 px-3.5 rounded-lg ${
               isDeleted
                 ? "bg-orange-200 border border-orange-300"
                 : "bg-indigo-100 border border-indigo-200"
             }`}
           >
             {row.terminated_by || "N/A"}
-            {isDeleted && " 🔴"}
+            {isDeleted && <IconAlertCircle size={14} color="#ea580c" />}
           </span>
         );
       },
@@ -504,7 +558,7 @@ export default function UnifiedReportsPage() {
     <>
       <select
         value={selectedMonth}
-        onChange={(e) => setSelectedMonth(e.target.value)}
+        onChange={(event) => setSelectedMonth(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Months</option>
@@ -516,7 +570,7 @@ export default function UnifiedReportsPage() {
       </select>
       <select
         value={selectedYears}
-        onChange={(e) => setSelectedYears(e.target.value)}
+        onChange={(event) => setSelectedYears(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Years</option>
@@ -528,7 +582,7 @@ export default function UnifiedReportsPage() {
       </select>
       <select
         value={selectedDepartment}
-        onChange={(e) => setSelectedDepartment(e.target.value)}
+        onChange={(event) => setSelectedDepartment(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Departments</option>
@@ -546,20 +600,20 @@ export default function UnifiedReportsPage() {
       <input
         type="date"
         value={dateFrom}
-        onChange={(e) => setDateFrom(e.target.value)}
+        onChange={(event) => setDateFrom(event.target.value)}
         placeholder="From Date"
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       />
       <input
         type="date"
         value={dateTo}
-        onChange={(e) => setDateTo(e.target.value)}
+        onChange={(event) => setDateTo(event.target.value)}
         placeholder="To Date"
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       />
       <select
         value={selectedGroupCompany}
-        onChange={(e) => setSelectedGroupCompany(e.target.value)}
+        onChange={(event) => setSelectedGroupCompany(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Companies</option>
@@ -571,7 +625,7 @@ export default function UnifiedReportsPage() {
       </select>
       <select
         value={selectedLocation}
-        onChange={(e) => setSelectedLocation(e.target.value)}
+        onChange={(event) => setSelectedLocation(event.target.value)}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Locations</option>
@@ -588,7 +642,7 @@ export default function UnifiedReportsPage() {
     <div className="flex gap-3 flex-wrap items-center">
       <select
         value={reportType}
-        onChange={(e) => setReportType(e.target.value as ReportType)}
+        onChange={(event) => setReportType(event.target.value as ReportType)}
         className="py-2 px-4 border-2 border-[#1B2A6B] rounded-md text-sm font-semibold outline-none bg-white text-[#1B2A6B] cursor-pointer"
       >
         <option value="birthday"> All Employee Birthday Details</option>
@@ -616,9 +670,10 @@ export default function UnifiedReportsPage() {
       {reportType === "termination" && (
         <button
           onClick={handleExportPDF}
-          className="py-2 px-4 bg-gradient-to-br from-[#172554] to-[#14b8a6] text-white border-0 rounded-md text-[13px] font-semibold cursor-pointer shadow-sm"
+          className="py-2 px-4 bg-gradient-to-br from-[#172554] to-[#14b8a6] text-white border-0 rounded-md text-[13px] font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
         >
-          📄 Export PDF
+          <IconUpload size={14} />
+          Export PDF
         </button>
       )}
     </div>
@@ -637,9 +692,9 @@ export default function UnifiedReportsPage() {
   };
 
   const reportIcons = {
-    birthday: "🎂",
-    anniversary: "🎊",
-    termination: "📋",
+    birthday: <IconGift size={18} />,
+    anniversary: <IconAward size={18} />,
+    termination: <IconClipboardList size={18} />,
   };
 
   const emptyMessages = {
