@@ -60,7 +60,7 @@ export default function UserAvatar({
     };
 
     fetchLatestUserData();
-  }, [user?.id]); 
+  }, [user?.id]);
 
   if (!user) {
     return null;
@@ -81,13 +81,14 @@ export default function UserAvatar({
 
   return (
     <div
-      className={`relative rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 ${className}`}
+      className={`relative flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full ${
+        avatarSrc
+          ? "bg-transparent"
+          : "bg-gradient-to-br from-blue-950 to-slate-500"
+      } ${className}`}
       style={{
         width: size,
         height: size,
-        background: avatarSrc
-          ? "transparent"
-          : "linear-gradient(135deg, #fcd34d, #f97316)",
       }}
     >
       {avatarSrc ? (
