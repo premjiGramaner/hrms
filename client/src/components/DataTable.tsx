@@ -1,9 +1,6 @@
 import React from "react";
 import { IconChevronDown, IconPlusCircle, IconSearch, IconX } from "./Icons";
 import Pagination from "./Pagination";
-import { IconX } from "./Icons";
-import { COLORS } from "../styles/theme";
-
 export interface ColumnDef<RowType> {
   key: string;
   header: string;
@@ -14,7 +11,6 @@ export interface ColumnDef<RowType> {
     relativeIndex: number,
   ) => React.ReactNode;
 }
-
 export interface ActionDef<RowType> {
   label: string;
   icon?: React.ReactNode;
