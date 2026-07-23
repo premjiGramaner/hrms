@@ -14,7 +14,6 @@ api.interceptors.request.use((config) => {
   if (token && token !== "cookie_auth" && token !== "cookie_authenticated") {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  // If placeholder token, rely on cookie only (sent automatically via withCredentials)
   return config;
 });
 
