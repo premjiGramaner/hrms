@@ -20,6 +20,7 @@ import {
 } from "../../config/roles";
 
 import LeaveActionDropdown from "./components/LeaveActionDropdown";
+import LeaveConfirmationModal from "./components/LeaveConfirmationModal";
 import { Paperclip, ArrowLeft } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -85,41 +86,6 @@ function RejectModal({
   );
 }
 
-function CancelModal({
-  onConfirm,
-  onClose,
-}: {
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
-        <h3 className="text-base font-bold text-slate-800 mb-3">
-          Cancel Leave Request
-        </h3>
-        <p className="text-sm text-slate-600 mb-5">
-          Are you sure you want to cancel this leave request?
-        </p>
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 cursor-pointer transition"
-          >
-            No, Keep It
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 text-sm rounded-lg bg-slate-700 text-white hover:bg-slate-800 cursor-pointer transition"
-          >
-            Yes, Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function initials(name = "") {
   return (
     name
@@ -140,6 +106,7 @@ export default function LeaveDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showReject, setShowReject] = useState(false);
+  const [showApprove, setShowApprove] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -178,7 +145,8 @@ export default function LeaveDetailsPage() {
   const canApproveReject = Boolean(isAdminOrHR && !isRequester && isPending);
   const canCancel = Boolean(isPending && (isRequester || isAdminOrHR));
 
-  const handleApprove = async () => {
+  const handleApproveConfirm = async () => {
+    setShowApprove(false);
     setActionLoading(true);
     try {
       await approveLeave(leaveId);
@@ -241,6 +209,14 @@ export default function LeaveDetailsPage() {
     }
   };
 
+  const handleOpenApproveModal = () => {
+    setShowApprove(true);
+  };
+
+  const handleCloseApproveModal = () => {
+    setShowApprove(false);
+  };
+
   const handleOpenRejectModal = () => {
     setShowReject(true);
   };
@@ -268,6 +244,18 @@ export default function LeaveDetailsPage() {
   return (
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
+      {showApprove && (
+        <LeaveConfirmationModal
+          title="Approve Leave Request"
+          message="Are you sure you want to approve this leave request?"
+          confirmLabel="Yes, Approve"
+          cancelLabel="No, Keep Pending"
+          confirmButtonClassName="bg-green-600 hover:bg-green-700"
+          loading={actionLoading}
+          onConfirm={handleApproveConfirm}
+          onClose={handleCloseApproveModal}
+        />
+      )}
       {showReject && (
         <RejectModal
           onConfirm={handleRejectConfirm}
@@ -275,7 +263,13 @@ export default function LeaveDetailsPage() {
         />
       )}
       {showCancel && (
-        <CancelModal
+        <LeaveConfirmationModal
+          title="Cancel Leave Request"
+          message="Are you sure you want to cancel this leave request?"
+          confirmLabel="Yes, Cancel"
+          cancelLabel="No, Keep It"
+          confirmButtonClassName="bg-red-600 hover:bg-red-700"
+          loading={actionLoading}
           onConfirm={handleCancelConfirm}
           onClose={handleCloseCancelModal}
         />
@@ -426,7 +420,7 @@ export default function LeaveDetailsPage() {
                         canApproveReject={canApproveReject}
                         canCancel={canCancel}
                         loading={actionLoading}
-                        onApprove={handleApprove}
+                        onApprove={handleOpenApproveModal}
                         onReject={handleOpenRejectModal}
                         onCancel={handleOpenCancelModal}
                       />
