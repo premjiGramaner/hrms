@@ -153,6 +153,12 @@ const listCycles = async (_req, res, next) => {
   }
 };
 
+const isClosedCycle = (cycle) =>
+  cycle?.status === "Closed" || cycle?.status === "Completed";
+
+const closedCycleMessage =
+  "This appraisal cycle is closed. Reopen it before making changes.";
+
 const createCycle = async (req, res, next) => {
   const { name, fromDate, toDate, dueDate, templateId } = req.body;
   if (!name || !fromDate || !toDate || !dueDate || !templateId) {
@@ -178,6 +184,10 @@ const getCycle = async (req, res, next) => {
 
 const addEmployeesToCycle = async (req, res, next) => {
   try {
+    const existingCycle = await PerformanceModel.findCycle(req.params.id);
+    if (!existingCycle) return error(res, "Cycle not found", 404);
+    if (isClosedCycle(existingCycle))
+      return error(res, closedCycleMessage, 409);
     const cycle = await PerformanceModel.addEmployeesToCycle(
       req.params.id,
       req.body.employeeIds || [],
@@ -191,6 +201,10 @@ const addEmployeesToCycle = async (req, res, next) => {
 
 const removeEmployeeFromCycle = async (req, res, next) => {
   try {
+    const existingCycle = await PerformanceModel.findCycle(req.params.id);
+    if (!existingCycle) return error(res, "Cycle not found", 404);
+    if (isClosedCycle(existingCycle))
+      return error(res, closedCycleMessage, 409);
     const cycle = await PerformanceModel.removeEmployeeFromCycle(
       req.params.id,
       req.params.employeeId,
@@ -244,6 +258,9 @@ const updateCycleStatus = async (req, res, next) => {
 
 const createAppraisalsForCycle = async (req, res, next) => {
   try {
+    const cycle = await PerformanceModel.findCycle(req.params.id);
+    if (!cycle) return error(res, "Cycle not found", 404);
+    if (isClosedCycle(cycle)) return error(res, closedCycleMessage, 409);
     const result = await PerformanceModel.createAppraisalsForCycle(
       req.params.id,
     );
@@ -375,6 +392,10 @@ const downloadCycleAppraisalsZip = async (req, res, next) => {
 
 const saveAppraisalRatings = async (req, res, next) => {
   try {
+    const appraisal = await PerformanceModel.findAppraisal(req.params.id);
+    if (!appraisal) return error(res, "Appraisal not found", 404);
+    if (isClosedCycle({ status: appraisal.cycleStatus }))
+      return error(res, closedCycleMessage, 409);
     const result = await PerformanceModel.updateAppraisalRatings({
       appraisalId: req.params.id,
       reviewerType: req.body.reviewerType,
@@ -389,6 +410,10 @@ const saveAppraisalRatings = async (req, res, next) => {
 
 const submitAppraisalReview = async (req, res, next) => {
   try {
+    const appraisal = await PerformanceModel.findAppraisal(req.params.id);
+    if (!appraisal) return error(res, "Appraisal not found", 404);
+    if (isClosedCycle({ status: appraisal.cycleStatus }))
+      return error(res, closedCycleMessage, 409);
     const result = await PerformanceModel.submitAppraisalReview({
       appraisalId: req.params.id,
       reviewerType: req.body.reviewerType,

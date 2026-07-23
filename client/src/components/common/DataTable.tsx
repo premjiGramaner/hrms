@@ -67,7 +67,6 @@ export default function DataTable<T>({
                 <th
                   key={key}
                   className="px-4 py-4 text-xs font-bold text-slate-500"
-                  style={{ width: column.width }}
                 >
                   <button
                     type="button"

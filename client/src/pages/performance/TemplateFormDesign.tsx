@@ -29,10 +29,12 @@ import {
   AppraisalTemplate,
   TemplateQuestion,
 } from "../../types/performance.types";
+import Toast from "../../utils/toast";
 import AddEditKpiModal from "./AddEditKpiModal";
 import KpiQuestionRow from "./KpiQuestionRow";
 import TemplatePreviewModal from "./TemplatePreviewModal";
 import { FieldShell, SoftInput } from "./performanceUi";
+import { showPerformanceError } from "./performanceNotifications";
 import { PAGE_PATHS } from "../../config/roles";
 
 export default function TemplateFormDesign() {
@@ -49,7 +51,6 @@ export default function TemplateFormDesign() {
   const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
   const [previewTemplate, setPreviewTemplate] =
     useState<AppraisalTemplate | null>(null);
-  const [message, setMessage] = useState("");
   const [templateDraft, setTemplateDraft] = useState({
     jobTitle: "",
     templateName: "",
@@ -81,6 +82,10 @@ export default function TemplateFormDesign() {
   }
   const section = template.sections[0];
   const questions = section ? sortTemplateQuestions(section) : [];
+  const totalQuestionWeight = questions.reduce(
+    (total, question) => total + Number(question.weight || 0),
+    0,
+  );
   const topPill = `${template.jobTitle} - Annual Appraisal Template - Cannyfore - Form Design`;
   const tabs = [
     {
@@ -97,6 +102,7 @@ export default function TemplateFormDesign() {
     question: TemplateQuestion,
     direction: "up" | "down",
   ) => {
+    const previousTemplate = template;
     const nextTemplate = moveTemplateQuestion(
       template,
       section.id,
@@ -104,12 +110,17 @@ export default function TemplateFormDesign() {
       direction,
     );
     updateCurrentTemplate(nextTemplate);
-    await Promise.all(
-      nextTemplate.sections[0].questions.map((item) =>
-        updateTemplateKpi(nextTemplate.id, item.id, { order: item.order }),
-      ),
-    );
-    setMessage("Updated order saved.");
+    try {
+      await Promise.all(
+        nextTemplate.sections[0].questions.map((item) =>
+          updateTemplateKpi(nextTemplate.id, item.id, { order: item.order }),
+        ),
+      );
+      Toast.success("KPI order updated successfully.");
+    } catch (error) {
+      updateCurrentTemplate(previousTemplate);
+      showPerformanceError(error, "Unable to update KPI order.");
+    }
   };
 
   const saveQuestion = async (
@@ -117,36 +128,46 @@ export default function TemplateFormDesign() {
       | Omit<TemplateQuestion, "id" | "displayText" | "order">
       | TemplateQuestion,
   ) => {
-    let nextTemplate: AppraisalTemplate;
-    if ("id" in question) {
-      nextTemplate = await updateTemplateKpi(
-        template.id,
-        question.id,
-        question,
+    const isUpdate = "id" in question;
+    try {
+      const nextTemplate = isUpdate
+        ? await updateTemplateKpi(template.id, question.id, question)
+        : await createTemplateKpi(template.id, question);
+      updateCurrentTemplate(nextTemplate);
+      setEditingQuestion(null);
+      setIsAdding(false);
+      if (isUpdate) Toast.updated("KPI");
+      else Toast.created("KPI");
+    } catch (error) {
+      showPerformanceError(
+        error,
+        isUpdate ? "Unable to update KPI." : "Unable to create KPI.",
       );
-    } else {
-      nextTemplate = await createTemplateKpi(template.id, question);
     }
-    updateCurrentTemplate(nextTemplate);
-    setEditingQuestion(null);
-    setIsAdding(false);
-    setMessage("KPI saved.");
   };
 
   const confirmDeleteQuestion = async () => {
     if (!deleteQuestion) return;
-    updateCurrentTemplate(
-      await deleteTemplateKpi(template.id, deleteQuestion.id),
-    );
-    setDeleteQuestion(null);
-    setMessage("KPI deleted.");
+    try {
+      updateCurrentTemplate(
+        await deleteTemplateKpi(template.id, deleteQuestion.id),
+      );
+      setDeleteQuestion(null);
+      Toast.deleted("KPI");
+    } catch (error) {
+      showPerformanceError(error, "Unable to delete KPI.");
+    }
   };
 
   const cloneCurrentTemplate = async () => {
-    const cloned = await clonePerformanceTemplate(template.id);
-    setTemplates((current) => [...current, cloned]);
-    navigate(PAGE_PATHS.performanceTemplateDesign(cloned.id));
-    setMessage("Template cloned.");
+    try {
+      const cloned = await clonePerformanceTemplate(template.id);
+      setTemplates((current) => [...current, cloned]);
+      Toast.success("Appraisal template cloned successfully.");
+      navigate(PAGE_PATHS.performanceTemplateDesign(cloned.id));
+    } catch (error) {
+      showPerformanceError(error, "Unable to clone appraisal template.");
+    }
   };
 
   const openTemplateEditor = () => {
@@ -160,29 +181,39 @@ export default function TemplateFormDesign() {
   };
 
   const saveTemplateSettings = async () => {
-    updateCurrentTemplate(
-      await updatePerformanceTemplate(template.id, {
-        jobTitle: templateDraft.jobTitle,
-        templateName: templateDraft.templateName,
-        weight: Number(templateDraft.weight) || 100,
-        header: templateDraft.header,
-      }),
-    );
-    setIsEditingTemplate(false);
-    setMessage("Template details saved.");
+    try {
+      updateCurrentTemplate(
+        await updatePerformanceTemplate(template.id, {
+          jobTitle: templateDraft.jobTitle,
+          templateName: templateDraft.templateName,
+          weight: Number(templateDraft.weight) || 100,
+          header: templateDraft.header,
+        }),
+      );
+      setIsEditingTemplate(false);
+      Toast.updated("Appraisal template");
+    } catch (error) {
+      showPerformanceError(error, "Unable to update appraisal template.");
+    }
   };
 
   const deleteCurrentTemplate = async () => {
-    await deletePerformanceTemplate(template.id);
-    const remaining = templates.filter((item) => item.id !== template.id);
-    setTemplates(remaining);
-    setIsDeletingTemplate(false);
-    navigate(PAGE_PATHS.performanceConfigAppraisal);
+    try {
+      await deletePerformanceTemplate(template.id);
+      const remaining = templates.filter((item) => item.id !== template.id);
+      setTemplates(remaining);
+      setIsDeletingTemplate(false);
+      Toast.deleted("Appraisal template");
+      navigate(PAGE_PATHS.performanceConfigAppraisal);
+    } catch (error) {
+      showPerformanceError(error, "Unable to delete appraisal template.");
+    }
   };
 
   const saveTemplate = () => {
     const errors = validateTemplate(template);
-    setMessage(errors.length ? errors.join(" ") : "Template saved.");
+    if (errors.length) Toast.warning(errors.join(" "));
+    else Toast.saved("KPI order");
   };
 
   return (
@@ -280,17 +311,13 @@ export default function TemplateFormDesign() {
                   </Button>
                 </div>
               )}
-              {message ? (
-                <p className="mt-5 text-sm font-semibold text-emerald-600">
-                  {message}
-                </p>
-              ) : null}
             </div>
           </div>
         </Card>
 
         {isAdding ? (
           <AddEditKpiModal
+            existingWeight={totalQuestionWeight}
             onClose={() => setIsAdding(false)}
             onSave={saveQuestion}
           />
@@ -298,6 +325,9 @@ export default function TemplateFormDesign() {
         {editingQuestion ? (
           <AddEditKpiModal
             question={editingQuestion}
+            existingWeight={
+              totalQuestionWeight - Number(editingQuestion.weight || 0)
+            }
             onClose={() => setEditingQuestion(null)}
             onSave={saveQuestion}
           />

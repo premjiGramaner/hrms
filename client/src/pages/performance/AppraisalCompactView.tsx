@@ -15,6 +15,12 @@ import {
 } from "../../types/performance.types";
 import { getAvatarSrc } from "../../utils/avatar";
 import { isAdminRole } from "../../config/roles";
+import Toast from "../../utils/toast";
+import {
+  CLOSED_CYCLE_MESSAGE,
+  isClosedCycleStatus,
+  showPerformanceError,
+} from "./performanceNotifications";
 
 type ReviewerType = "self" | "supervisor";
 type RatingDraft = Record<
@@ -28,30 +34,40 @@ type RatingDraft = Record<
 >;
 
 function calcAverage(scores: number[]): number {
-  const valid = scores.filter((s) => Number.isFinite(s) && s > 0);
-  if (!valid.length) return 0;
-  return Number((valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(2));
+  const validScores = scores.filter(
+    (score) => Number.isFinite(score) && score > 0,
+  );
+  if (!validScores.length) return 0;
+  const totalScore = validScores.reduce(
+    (runningTotal, score) => runningTotal + score,
+    0,
+  );
+  return Number((totalScore / validScores.length).toFixed(2));
 }
 
 function formatScore(score?: number | null, empty = "--") {
-  const v = Number(score);
-  return Number.isFinite(v) && v > 0 ? v.toFixed(2) : empty;
+  const numericScore = Number(score);
+  return Number.isFinite(numericScore) && numericScore > 0
+    ? numericScore.toFixed(2)
+    : empty;
 }
 
 function scoreForReviewer(
-  r: RatingDraft[string] | undefined,
-  reviewer: ReviewerType,
-) {
-  return reviewer === "supervisor" ? r?.supervisor || 0 : r?.self || 0;
-}
-
-function commentForReviewer(
-  r: RatingDraft[string] | undefined,
+  rating: RatingDraft[string] | undefined,
   reviewer: ReviewerType,
 ) {
   return reviewer === "supervisor"
-    ? r?.supervisorComment || ""
-    : r?.selfComment || "";
+    ? rating?.supervisor || 0
+    : rating?.self || 0;
+}
+
+function commentForReviewer(
+  rating: RatingDraft[string] | undefined,
+  reviewer: ReviewerType,
+) {
+  return reviewer === "supervisor"
+    ? rating?.supervisorComment || ""
+    : rating?.selfComment || "";
 }
 
 function Avatar({ name, avatar }: { name: string; avatar?: string | null }) {
@@ -213,7 +229,7 @@ function CommentModal({
     >
       <div
         className="relative w-full max-w-[900px] rounded-[20px] bg-white px-6 py-6 shadow-2xl"
-        onMouseDown={(e) => e.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
       >
         <button
           type="button"
@@ -239,7 +255,7 @@ function CommentModal({
           <textarea
             value={comment}
             readOnly={!editable}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(event) => onChange(event.target.value)}
             className="min-h-[140px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600 outline-none focus:border-navy-700"
           />
         </div>
@@ -265,7 +281,6 @@ export default function AppraisalCompactView() {
     question: TemplateQuestion;
     reviewer: ReviewerType;
   } | null>(null);
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -274,13 +289,13 @@ export default function AppraisalCompactView() {
         setAppraisal(detail);
         setRatings(
           Object.fromEntries(
-            detail.questions.map((q) => [
-              q.id,
+            detail.questions.map((question) => [
+              question.id,
               {
-                self: q.selfScore || 0,
-                supervisor: q.supervisorScore || 0,
-                selfComment: q.selfComment || "",
-                supervisorComment: q.supervisorComment || "",
+                self: question.selfScore || 0,
+                supervisor: question.supervisorScore || 0,
+                selfComment: question.selfComment || "",
+                supervisorComment: question.supervisorComment || "",
               },
             ]),
           ),
@@ -313,11 +328,14 @@ export default function AppraisalCompactView() {
   }, [isAssignedEvaluator]);
 
   const liveSupervisorRating = useMemo(
-    () => calcAverage(Object.values(ratings).map((r) => r.supervisor)),
+    () =>
+      calcAverage(
+        Object.values(ratings).map((rating) => rating.supervisor),
+      ),
     [ratings],
   );
   const liveSelfRating = useMemo(
-    () => calcAverage(Object.values(ratings).map((r) => r.self)),
+    () => calcAverage(Object.values(ratings).map((rating) => rating.self)),
     [ratings],
   );
 
@@ -334,12 +352,15 @@ export default function AppraisalCompactView() {
   const supervisor = appraisal.mainEvaluator;
   const employee = appraisal.employee;
   const showMultipleView = isPerformanceAdmin || isAssignedEvaluator;
+  const cycleClosed = isClosedCycleStatus(appraisal.cycleStatus);
 
   const canEditSupervisor =
     isAssignedEvaluator &&
     Boolean(supervisor) &&
-    !appraisal.supervisorSubmitted;
-  const canEditSelf = isSelfReviewer && !appraisal.selfSubmitted;
+    !appraisal.supervisorSubmitted &&
+    !cycleClosed;
+  const canEditSelf =
+    isSelfReviewer && !appraisal.selfSubmitted && !cycleClosed;
   const canEditActiveReviewer =
     activeReviewer === "supervisor" ? canEditSupervisor : canEditSelf;
 
@@ -349,10 +370,10 @@ export default function AppraisalCompactView() {
     ? appraisal.finalRating || appraisal.supervisorRating || 0
     : 0;
 
-  const ratingPayload = appraisal.questions.map((q) => ({
-    questionId: q.id,
-    score: scoreForReviewer(ratings[q.id], activeReviewer),
-    comment: commentForReviewer(ratings[q.id], activeReviewer),
+  const ratingPayload = appraisal.questions.map((question) => ({
+    questionId: question.id,
+    score: scoreForReviewer(ratings[question.id], activeReviewer),
+    comment: commentForReviewer(ratings[question.id], activeReviewer),
   }));
 
   const setQuestionRating = (
@@ -360,13 +381,14 @@ export default function AppraisalCompactView() {
     reviewer: ReviewerType,
     score: number,
   ) => {
-    setRatings((cur) => ({
-      ...cur,
+    setRatings((currentRatings) => ({
+      ...currentRatings,
       [questionId]: {
-        self: cur[questionId]?.self || 0,
-        supervisor: cur[questionId]?.supervisor || 0,
-        selfComment: cur[questionId]?.selfComment || "",
-        supervisorComment: cur[questionId]?.supervisorComment || "",
+        self: currentRatings[questionId]?.self || 0,
+        supervisor: currentRatings[questionId]?.supervisor || 0,
+        selfComment: currentRatings[questionId]?.selfComment || "",
+        supervisorComment:
+          currentRatings[questionId]?.supervisorComment || "",
         [reviewer]: score,
       },
     }));
@@ -377,13 +399,14 @@ export default function AppraisalCompactView() {
     reviewer: ReviewerType,
     comment: string,
   ) => {
-    setRatings((cur) => ({
-      ...cur,
+    setRatings((currentRatings) => ({
+      ...currentRatings,
       [questionId]: {
-        self: cur[questionId]?.self || 0,
-        supervisor: cur[questionId]?.supervisor || 0,
-        selfComment: cur[questionId]?.selfComment || "",
-        supervisorComment: cur[questionId]?.supervisorComment || "",
+        self: currentRatings[questionId]?.self || 0,
+        supervisor: currentRatings[questionId]?.supervisor || 0,
+        selfComment: currentRatings[questionId]?.selfComment || "",
+        supervisorComment:
+          currentRatings[questionId]?.supervisorComment || "",
         [reviewer === "supervisor" ? "supervisorComment" : "selfComment"]:
           comment,
       },
@@ -392,35 +415,72 @@ export default function AppraisalCompactView() {
 
   const saveDraft = async () => {
     if (!id) return;
-    const detail = await saveAppraisalRatings(id, {
-      reviewerType: activeReviewer,
-      ratings: ratingPayload,
-    });
-    setAppraisal(detail);
-    setMessage("Draft saved.");
+    if (cycleClosed) {
+      Toast.warning(CLOSED_CYCLE_MESSAGE);
+      return;
+    }
+    try {
+      const detail = await saveAppraisalRatings(id, {
+        reviewerType: activeReviewer,
+        ratings: ratingPayload,
+      });
+      setAppraisal(detail);
+      Toast.success(
+        activeReviewer === "supervisor"
+          ? "Supervisor ratings saved successfully."
+          : "Self-review draft saved successfully.",
+      );
+    } catch (error) {
+      showPerformanceError(error, "Unable to save appraisal ratings.");
+    }
+  };
+
+  const closeCommentModal = () => setCommentTarget(null);
+
+  const saveComment = async () => {
+    if (!commentTarget) return;
+    if (
+      commentTarget.reviewer === activeReviewer &&
+      canEditActiveReviewer
+    ) {
+      await saveDraft();
+    }
+    closeCommentModal();
   };
 
   const submit = async () => {
     if (!id) return;
-    const detail = await submitAppraisalReview(id, {
-      reviewerType: activeReviewer,
-      ratings: ratingPayload,
-    });
-    setAppraisal(detail);
-    setMessage(
-      activeReviewer === "supervisor"
-        ? "Final review submitted."
-        : "Self review submitted.",
-    );
+    if (cycleClosed) {
+      Toast.warning(CLOSED_CYCLE_MESSAGE);
+      return;
+    }
+    try {
+      const detail = await submitAppraisalReview(id, {
+        reviewerType: activeReviewer,
+        ratings: ratingPayload,
+      });
+      setAppraisal(detail);
+      Toast.success(
+        activeReviewer === "supervisor"
+          ? "Supervisor review submitted successfully."
+          : "Self review submitted successfully.",
+      );
+    } catch (error) {
+      showPerformanceError(error, "Unable to submit appraisal review.");
+    }
   };
 
   return (
     <PerformanceLayout title={pageTitle} activeTab={activeTab}>
       <div className="mx-auto min-h-[760px] max-w-[1420px] rounded-[8px] bg-white px-8 py-5">
-        {/* Top bar */}
+        {cycleClosed ? (
+          <p className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+            {CLOSED_CYCLE_MESSAGE}
+          </p>
+        ) : null}
         <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="rounded-full bg-[#fff1ec] px-7 py-2 text-sm font-semibold text-navy-700 shadow-sm">
-            {appraisal.description} - {employee.name}
+            {appraisal.description || employee.name}
           </div>
         </div>
 
@@ -461,7 +521,6 @@ export default function AppraisalCompactView() {
             ) : null}
           </div>
 
-          {/* Weight row */}
           <div
             className={`grid ${showMultipleView ? "grid-cols-[300px_1fr_1fr]" : "grid-cols-[320px_1fr]"} items-center border-b border-slate-100 py-4`}
           >
@@ -476,7 +535,6 @@ export default function AppraisalCompactView() {
             ) : null}
           </div>
 
-          {/* Key Performance Indicator table */}
           <h3 className="border-b border-slate-100 py-2 text-xl font-bold text-slate-500">
             Key Performance Indicator
           </h3>
@@ -550,13 +608,7 @@ export default function AppraisalCompactView() {
             ))}
           </div>
 
-          {/* Actions */}
           <div className="mt-7 flex items-center justify-end gap-3">
-            {message ? (
-              <span className="mr-auto text-sm font-semibold text-emerald-600">
-                {message}
-              </span>
-            ) : null}
             <Button
               variant="ghost"
               disabled={!canEditActiveReviewer}
@@ -584,22 +636,15 @@ export default function AppraisalCompactView() {
               ? canEditSupervisor
               : canEditSelf
           }
-          onChange={(c) =>
+          onChange={(comment) =>
             setQuestionComment(
               commentTarget.question.id,
               commentTarget.reviewer,
-              c,
+              comment,
             )
           }
-          onClose={() => setCommentTarget(null)}
-          onSave={async () => {
-            if (
-              commentTarget.reviewer === activeReviewer &&
-              canEditActiveReviewer
-            )
-              await saveDraft();
-            setCommentTarget(null);
-          }}
+          onClose={closeCommentModal}
+          onSave={saveComment}
         />
       ) : null}
     </PerformanceLayout>

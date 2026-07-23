@@ -1,15 +1,19 @@
 import React from "react";
+import { IconChevronDown, IconPlusCircle, IconSearch, IconX } from "./Icons";
 import Pagination from "./Pagination";
 
-export interface ColumnDef<T> {
+export interface ColumnDef<RowType> {
   key: string;
   header: string;
   width?: number | string;
-
-  render?: (row: T, absIndex: number, relIndex: number) => React.ReactNode;
+  render?: (
+    row: RowType,
+    absoluteIndex: number,
+    relativeIndex: number,
+  ) => React.ReactNode;
 }
 
-export interface ActionDef<T> {
+export interface ActionDef<RowType> {
   label: string;
   icon?: React.ReactNode;
   color?: string;
@@ -17,7 +21,7 @@ export interface ActionDef<T> {
   bgHover?: string;
   borderColor?: string;
   borderColorHover?: string;
-  onClick: (row: T) => void;
+  onClick: (row: RowType) => void;
   title?: string;
 }
 
@@ -30,22 +34,17 @@ export interface StatCard {
   border: string;
 }
 
-export interface DataTableProps<T> {
+export interface DataTableProps<RowType> {
   title: string;
   subtitle?: string;
   icon?: React.ReactNode;
-
-  rows: T[];
+  rows: RowType[];
   isLoading?: boolean;
-
-  columns: ColumnDef<T>[];
-
-  actions?: ActionDef<T>[];
-
+  columns: ColumnDef<RowType>[];
+  actions?: ActionDef<RowType>[];
   emptyIcon?: React.ReactNode;
   emptyTitle?: string;
   emptySubtitle?: string;
-
   currentPage: number;
   totalPages: number;
   totalRecords: number;
@@ -54,45 +53,24 @@ export interface DataTableProps<T> {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   itemLabel?: string;
-
   stats?: StatCard[];
-
   searchQuery?: string;
   searchPlaceholder?: string;
   onSearchChange?: (value: string) => void;
   addLabel?: string;
   onAdd?: () => void;
   extraToolbar?: React.ReactNode;
-
   sortableColumns?: Record<
     string,
     { dir: "asc" | "desc"; onToggle: () => void }
   >;
-
-  getKey?: (row: T, relIndex: number) => string | number;
+  getKey?: (row: RowType, relativeIndex: number) => string | number;
 }
 
-const tdBase: React.CSSProperties = {
-  background: "#fff",
-  borderTop: "1px solid #e2e8f0",
-  borderBottom: "1px solid #e2e8f0",
-  padding: "14px 20px",
-  transition: "background 0.15s",
-};
+const CELL_CLASSES =
+  "border-y border-slate-200 bg-white px-5 py-3.5 transition-colors group-hover:bg-[#f8faff]";
 
-const tdFirst: React.CSSProperties = {
-  ...tdBase,
-  borderLeft: "1px solid #e2e8f0",
-  borderRadius: "10px 0 0 10px",
-};
-
-const tdLast: React.CSSProperties = {
-  ...tdBase,
-  borderRight: "1px solid #e2e8f0",
-  borderRadius: "0 10px 10px 0",
-};
-
-export default function DataTable<T>({
+export default function DataTable<RowType>({
   title,
   subtitle,
   icon = null,
@@ -113,561 +91,228 @@ export default function DataTable<T>({
   itemLabel = "records",
   stats,
   searchQuery = "",
-  searchPlaceholder = "Search…",
+  searchPlaceholder = "Search...",
   onSearchChange,
   addLabel = "Add",
   onAdd,
   extraToolbar,
   sortableColumns = {},
   getKey,
-}: DataTableProps<T>) {
+}: DataTableProps<RowType>) {
   const hasActions = actions.length > 0;
-  const allColumns = hasActions
+  const displayedColumns = hasActions
     ? [
         ...columns,
-        { key: "__actions__", header: "Actions", width: 160 } as ColumnDef<T>,
+        { key: "__actions__", header: "Actions" } as ColumnDef<RowType>,
       ]
     : columns;
 
-  const rowKey = (row: T, relIdx: number) =>
-    getKey
-      ? getKey(row, relIdx)
-      : String((row as Record<string, unknown>).id ?? Math.random());
-
-  const hoverRow = (e: React.MouseEvent<HTMLTableRowElement>, bg: string) => {
-    Array.from((e.currentTarget as HTMLTableRowElement).cells).forEach((td) => {
-      (td as HTMLElement).style.background = bg;
-    });
+  const getRowKey = (row: RowType, relativeIndex: number) => {
+    if (getKey) return getKey(row, relativeIndex);
+    const recordId = (row as Record<string, unknown>).id;
+    return String(recordId ?? (currentPage - 1) * pageSize + relativeIndex);
   };
 
   return (
     <>
-      {stats && stats.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            gap: 14,
-            marginBottom: 20,
-            flexWrap: "wrap",
-          }}
-        >
+      {stats?.length ? (
+        <div className="mb-5 flex flex-wrap gap-3.5">
           {stats.map((stat) => (
             <div
               key={stat.label}
-              style={{
-                flex: "1 1 140px",
-                background: stat.bg,
-                border: `1.5px solid ${stat.border}`,
-                borderRadius: 14,
-                padding: "14px 18px",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
+              className="flex min-w-[140px] flex-1 items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-[18px] py-3.5 shadow-sm"
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  color: stat.color,
-                }}
-              >
-                <span style={{ display: "flex" }}>{stat.icon}</span>
-              </div>
+              <span className="flex shrink-0 text-navy-700">{stat.icon}</span>
               <div>
-                <div
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 800,
-                    color: stat.color,
-                    lineHeight: 1.1,
-                  }}
-                >
+                <div className="text-[22px] font-extrabold leading-none text-navy-700">
                   {stat.value}
                 </div>
-                <div
-                  style={{
-                    fontSize: 11.5,
-                    color: "#64748b",
-                    fontWeight: 500,
-                    marginTop: 2,
-                  }}
-                >
+                <div className="mt-0.5 text-xs font-medium text-slate-500">
                   {stat.label}
                 </div>
               </div>
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
-      {(onSearchChange || onAdd || extraToolbar) && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 16,
-            flexWrap: "wrap",
-            gap: 10,
-          }}
-        >
-          {onSearchChange && (
-            <div style={{ position: "relative", width: 300 }}>
-              <span
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                }}
-              >
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#94a3b8"
-                  strokeWidth="2"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
+      {onSearchChange || onAdd || extraToolbar ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2.5">
+          {onSearchChange ? (
+            <div className="relative w-[300px] max-w-full">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <IconSearch size={15} />
               </span>
               <input
-                type="text"
+                type="search"
+                aria-label={searchPlaceholder}
                 placeholder={searchPlaceholder}
                 value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "9px 32px 9px 36px",
-                  border: "1.5px solid #e2e8f0",
-                  borderRadius: 10,
-                  fontSize: 13.5,
-                  outline: "none",
-                  background: "#fff",
-                  boxSizing: "border-box",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                  transition: "border-color 0.2s",
-                }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "#1b2a6b")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "#e2e8f0")}
+                onChange={(event) => onSearchChange(event.target.value)}
+                className="w-full rounded-[10px] border border-slate-200 bg-white py-2 pl-9 pr-8 text-sm shadow-sm outline-none focus:border-navy-700"
               />
-              {searchQuery && (
+              {searchQuery ? (
                 <button
+                  type="button"
+                  aria-label="Clear search"
                   onClick={() => onSearchChange("")}
-                  style={{
-                    position: "absolute",
-                    right: 10,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "#94a3b8",
-                    fontSize: 14,
-                    padding: 0,
-                    lineHeight: 1,
-                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
                 >
-                  ✕
+                  <IconX size={14} />
                 </button>
-              )}
+              ) : null}
             </div>
-          )}
-
+          ) : null}
           {extraToolbar}
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginLeft: "auto",
-            }}
-          >
-            {searchQuery && (
-              <span
-                style={{
-                  fontSize: 12.5,
-                  color: "#64748b",
-                  background: "#f1f5f9",
-                  padding: "4px 10px",
-                  borderRadius: 20,
-                  fontWeight: 500,
-                }}
-              >
-                {totalRecords} result{totalRecords !== 1 ? "s" : ""}
+          <div className="ml-auto flex items-center gap-2.5">
+            {searchQuery ? (
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-500">
+                {totalRecords} result{totalRecords === 1 ? "" : "s"}
               </span>
-            )}
-            {onAdd && (
+            ) : null}
+            {onAdd ? (
               <button
+                type="button"
                 onClick={onAdd}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "9px 18px",
-                  background: "linear-gradient(135deg,#1b2a6b,#16a085)",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 10,
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  boxShadow: "0 2px 10px rgba(27,42,107,0.25)",
-                }}
+                className="flex items-center gap-1.5 rounded-[10px] bg-gradient-to-br from-navy-700 to-teal-600 px-[18px] py-2 text-sm font-bold text-white shadow-md hover:opacity-90"
               >
-                <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
+                <IconPlusCircle size={18} />
                 {addLabel}
               </button>
-            )}
+            ) : null}
           </div>
         </div>
-      )}
+      ) : null}
 
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
-          overflow: "hidden",
-          border: "1px solid #f1f5f9",
-        }}
-      >
-        <div
-          style={{
-            padding: "14px 20px",
-            background: "linear-gradient(70deg,#f0fdf4,#f0fdf1)",
-            borderBottom: "1px solid #e2e8f0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 16 }}>{icon}</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>
-              {title}
-            </span>
-            <span
-              style={{
-                background: "#1b2a6b",
-                color: "#fff",
-                borderRadius: 999,
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "1px 8px",
-                marginLeft: 2,
-              }}
-            >
+      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-green-50 to-emerald-50 px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <span>{icon}</span>
+            <span className="text-sm font-bold text-slate-800">{title}</span>
+            <span className="rounded-full bg-navy-700 px-2 py-0.5 text-[11px] font-bold text-white">
               {totalRecords}
             </span>
           </div>
-          {subtitle && (
-            <span style={{ fontSize: 12, color: "#94a3b8" }}>{subtitle}</span>
-          )}
+          {subtitle ? (
+            <span className="text-xs text-slate-400">{subtitle}</span>
+          ) : null}
         </div>
-
-        <div
-          style={{
-            overflowX: "auto",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            background: "#fff",
-            padding: 8,
-          }}
-        >
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "separate",
-              borderSpacing: "0 8px",
-              fontSize: 13.5,
-            }}
-          >
+        <div className="overflow-x-auto rounded-[14px] border border-slate-200 p-2">
+          <table className="w-full border-separate border-spacing-y-2 text-sm">
             <thead>
-              <tr
-                style={{
-                  background: "linear-gradient(135deg,#1b2a6b 0%,#16a085 100%)",
-                }}
-              >
-                <th
-                  style={{
-                    padding: "13px 20px",
-                    textAlign: "left",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "#fff",
-                    letterSpacing: "0.6px",
-                    whiteSpace: "nowrap",
-                    width: 56,
-                  }}
-                >
+              <tr className="bg-gradient-to-br from-navy-700 to-teal-600">
+                <th className="w-14 px-5 py-3 text-left text-xs font-bold text-white">
                   #
                 </th>
-
-                {allColumns.map((col) => {
-                  const sortable = sortableColumns[col.key];
+                {displayedColumns.map((column) => {
+                  const sortControl = sortableColumns[column.key];
                   return (
                     <th
-                      key={col.key}
-                      onClick={sortable ? sortable.onToggle : undefined}
-                      style={{
-                        padding: "13px 20px",
-                        textAlign: "left",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: "#fff",
-                        letterSpacing: "0.6px",
-                        whiteSpace: "nowrap",
-                        width: col.width,
-                        cursor: sortable ? "pointer" : undefined,
-                        userSelect: sortable ? "none" : undefined,
-                      }}
+                      key={column.key}
+                      onClick={sortControl?.onToggle}
+                      className={`whitespace-nowrap px-5 py-3 text-left text-xs font-bold text-white ${sortControl ? "cursor-pointer select-none" : ""}`}
                     >
-                      {sortable ? (
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          {col.header}
+                      <span className="inline-flex items-center gap-1">
+                        {column.header}
+                        {sortControl ? (
                           <span
-                            style={{
-                              display: "inline-flex",
-                              flexDirection: "column",
-                              gap: 1,
-                              lineHeight: 1,
-                            }}
+                            className={
+                              sortControl.dir === "asc" ? "rotate-180" : ""
+                            }
                           >
-                            <span
-                              style={{
-                                fontSize: 8,
-                                color:
-                                  sortable.dir === "asc"
-                                    ? "#fff"
-                                    : "rgba(255,255,255,0.4)",
-                                lineHeight: 1,
-                              }}
-                            >
-                              ▲
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 8,
-                                color:
-                                  sortable.dir === "desc"
-                                    ? "#fff"
-                                    : "rgba(255,255,255,0.4)",
-                                lineHeight: 1,
-                              }}
-                            >
-                              ▼
-                            </span>
+                            <IconChevronDown size={11} />
                           </span>
-                        </span>
-                      ) : (
-                        col.header
-                      )}
+                        ) : null}
+                      </span>
                     </th>
                   );
                 })}
               </tr>
             </thead>
-
             <tbody>
-              {isLoading && (
+              {isLoading ? (
                 <tr>
                   <td
-                    colSpan={allColumns.length + 1}
-                    style={{
-                      ...tdFirst,
-                      ...tdLast,
-                      borderRight: "1px solid #e2e8f0",
-                      borderRadius: 10,
-                      textAlign: "center",
-                      padding: 56,
-                    }}
+                    colSpan={displayedColumns.length + 1}
+                    className="rounded-[10px] border border-slate-200 py-14 text-center"
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 10,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: "50%",
-                          border: "3px solid #e2e8f0",
-                          borderTopColor: "#1b2a6b",
-                          animation: "spin 0.8s linear infinite",
-                        }}
-                      />
-                      <span style={{ fontSize: 13, color: "#94a3b8" }}>
-                        Loading…
-                      </span>
-                    </div>
+                    <span className="inline-block h-9 w-9 animate-spin rounded-full border-[3px] border-slate-200 border-t-navy-700" />
+                    <p className="mt-2 text-sm text-slate-400">Loading...</p>
                   </td>
                 </tr>
-              )}
-
-              {!isLoading && rows.length === 0 && (
+              ) : null}
+              {!isLoading && rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={allColumns.length + 1}
-                    style={{
-                      ...tdFirst,
-                      ...tdLast,
-                      borderRight: "1px solid #e2e8f0",
-                      borderRadius: 10,
-                      textAlign: "center",
-                      padding: 60,
-                    }}
+                    colSpan={displayedColumns.length + 1}
+                    className="rounded-[10px] border border-slate-200 py-14 text-center"
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 10,
-                      }}
-                    >
-                      <span style={{ fontSize: 36 }}>{emptyIcon}</span>
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 600,
-                          color: "#475569",
-                        }}
-                      >
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-4xl">{emptyIcon}</span>
+                      <span className="font-semibold text-slate-600">
                         {emptyTitle}
                       </span>
-                      <span style={{ fontSize: 13, color: "#94a3b8" }}>
+                      <span className="text-sm text-slate-400">
                         {emptySubtitle}
                       </span>
                     </div>
                   </td>
                 </tr>
-              )}
-
-              {!isLoading &&
-                rows.map((row, relIdx) => {
-                  const absIdx = (currentPage - 1) * pageSize + relIdx;
-                  return (
-                    <tr
-                      key={rowKey(row, relIdx)}
-                      style={{
-                        background: "#fff",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => hoverRow(e, "#f8faff")}
-                      onMouseLeave={(e) => hoverRow(e, "#fff")}
-                    >
-                      <td style={tdFirst}>
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: 26,
-                            height: 26,
-                            background: "#f1f5f9",
-                            borderRadius: 8,
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            color: "#64748b",
-                          }}
+              ) : null}
+              {!isLoading
+                ? rows.map((row, relativeIndex) => {
+                    const absoluteIndex =
+                      (currentPage - 1) * pageSize + relativeIndex;
+                    return (
+                      <tr key={getRowKey(row, relativeIndex)} className="group">
+                        <td
+                          className={`${CELL_CLASSES} rounded-l-[10px] border-l`}
                         >
-                          {absIdx + 1}
-                        </span>
-                      </td>
-
-                      {columns.map((col, cIdx) => {
-                        const isLastDataCol =
-                          !hasActions && cIdx === columns.length - 1;
-                        return (
+                          <span className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-500">
+                            {absoluteIndex + 1}
+                          </span>
+                        </td>
+                        {columns.map((column, columnIndex) => (
                           <td
-                            key={col.key}
-                            style={isLastDataCol ? tdLast : tdBase}
+                            key={column.key}
+                            className={`${CELL_CLASSES} ${!hasActions && columnIndex === columns.length - 1 ? "rounded-r-[10px] border-r" : ""}`}
                           >
-                            {col.render
-                              ? col.render(row, absIdx, relIdx)
+                            {column.render
+                              ? column.render(row, absoluteIndex, relativeIndex)
                               : String(
-                                  (row as Record<string, unknown>)[col.key] ??
-                                    "—",
+                                  (row as Record<string, unknown>)[
+                                    column.key
+                                  ] ?? "—",
                                 )}
                           </td>
-                        );
-                      })}
-
-                      {hasActions && (
-                        <td style={tdLast}>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            {actions.map((action) => (
-                              <button
-                                key={action.label}
-                                title={action.title ?? action.label}
-                                onClick={() => action.onClick(row)}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 5,
-                                  background: action.bg ?? "#f1f5f9",
-                                  border: `1px solid ${action.borderColor ?? "#e2e8f0"}`,
-                                  cursor: "pointer",
-                                  color: action.color ?? "#374151",
-                                  fontSize: 12.5,
-                                  padding: "6px 12px",
-                                  borderRadius: 8,
-                                  fontWeight: 600,
-                                  transition: "all 0.15s",
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (action.bgHover)
-                                    (
-                                      e.currentTarget as HTMLButtonElement
-                                    ).style.background = action.bgHover;
-                                  if (action.borderColorHover)
-                                    (
-                                      e.currentTarget as HTMLButtonElement
-                                    ).style.borderColor =
-                                      action.borderColorHover;
-                                }}
-                                onMouseLeave={(e) => {
-                                  (
-                                    e.currentTarget as HTMLButtonElement
-                                  ).style.background = action.bg ?? "#f1f5f9";
-                                  (
-                                    e.currentTarget as HTMLButtonElement
-                                  ).style.borderColor =
-                                    action.borderColor ?? "#e2e8f0";
-                                }}
-                              >
-                                {action.icon}
-                                {action.label}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
+                        ))}
+                        {hasActions ? (
+                          <td
+                            className={`${CELL_CLASSES} rounded-r-[10px] border-r`}
+                          >
+                            <div className="flex gap-1.5">
+                              {actions.map((action) => (
+                                <button
+                                  key={action.label}
+                                  type="button"
+                                  title={action.title ?? action.label}
+                                  onClick={() => action.onClick(row)}
+                                  className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                                >
+                                  {action.icon}
+                                  {action.label}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                        ) : null}
+                      </tr>
+                    );
+                  })
+                : null}
             </tbody>
           </table>
         </div>
-
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -679,8 +324,6 @@ export default function DataTable<T>({
           itemLabel={itemLabel}
         />
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }

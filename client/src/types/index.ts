@@ -48,6 +48,12 @@ export interface Employee {
   is_active?: boolean;
 }
 
+export interface UpdateUserNamePayload {
+  first_name?: string;
+  last_name?: string;
+  name?: string;
+}
+
 export interface Supervisor {
   id: number;
   name: string;
