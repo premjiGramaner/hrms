@@ -77,7 +77,7 @@ export default function UnifiedReportsPage() {
   };
 
   // Handle filter options fetch error
-  const handleFilterOptionsError = (error: unknown) => {
+  const handleFilterOptionsError = () => {
     // Error logged for debugging
   };
 
@@ -85,8 +85,8 @@ export default function UnifiedReportsPage() {
     try {
       const options = await fetchReportFilterOptions();
       handleFilterOptionsSuccess(options);
-    } catch (error) {
-      handleFilterOptionsError(error);
+    } catch {
+      handleFilterOptionsError();
     }
   }, []);
 
@@ -112,7 +112,7 @@ export default function UnifiedReportsPage() {
   }, [reportType]);
 
   // Handle report data fetch error
-  const handleReportDataError = (error: unknown) => {
+  const handleReportDataError = () => {
     // Error logged for debugging
     setReportData([]);
   };
@@ -166,8 +166,8 @@ export default function UnifiedReportsPage() {
       setReportData(result?.reportData || []);
       setTotalRecords(result?.totalRecords || 0);
       setTotalPages(result?.totalPages || 1);
-    } catch (error) {
-      handleReportDataError(error);
+    } catch {
+      handleReportDataError();
     } finally {
       handleReportDataComplete();
     }
@@ -190,7 +190,7 @@ export default function UnifiedReportsPage() {
   }, [loadReportData]);
 
   // Handle export error
-  const handleExportError = (error: unknown) => {
+  const handleExportError = () => {
     // Error logged for debugging
     alert("Failed to export report. Please try again.");
   };
@@ -220,8 +220,8 @@ export default function UnifiedReportsPage() {
         };
         await downloadTerminationReportExcel(queryParams);
       }
-    } catch (error) {
-      handleExportError(error);
+    } catch {
+      handleExportError();
     }
   };
 
@@ -238,8 +238,8 @@ export default function UnifiedReportsPage() {
 
     try {
       await downloadTerminationReportPDF(queryParams);
-    } catch (error) {
-      handleExportError(error);
+    } catch {
+      handleExportError();
     }
   };
 
@@ -391,14 +391,12 @@ export default function UnifiedReportsPage() {
       header: "Termination Type",
       width: 150,
       render: (row) => {
+        const backgroundColor =
+          TERMINATION_TYPE_COLORS[row.termination_type || ""] || "#94A3B8";
         return (
           <span
             className="px-3 py-1.5 rounded-md text-xs font-semibold text-white inline-block whitespace-nowrap text-center"
-            style={{
-              background:
-                TERMINATION_TYPE_COLORS[row.termination_type || ""] ||
-                "#94A3B8",
-            }}
+            style={{ backgroundColor }}
           >
             {row.termination_type || "N/A"}
           </span>
@@ -552,45 +550,107 @@ export default function UnifiedReportsPage() {
         ? (getAnniversaryColumns() as ColumnDef<ReportRecord>[])
         : (getTerminationColumns() as ColumnDef<ReportRecord>[]);
 
+  // Filter change handlers
+  const handleMonthChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedMonth(event.target.value);
+  };
+
+  const handleYearsChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedYears(event.target.value);
+  };
+
+  const handleDepartmentChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    setSelectedDepartment(event.target.value);
+  };
+
+  const handleDateFromChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDateFrom(event.target.value);
+  };
+
+  const handleDateToChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDateTo(event.target.value);
+  };
+
+  const handleGroupCompanyChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    setSelectedGroupCompany(event.target.value);
+  };
+
+  const handleLocationChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    setSelectedLocation(event.target.value);
+  };
+
+  const handleReportTypeSelect = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    setReportType(event.target.value as ReportType);
+  };
+
+  const handlePageSizeUpdate = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
+
+  // Render month option
+  const renderMonthOption = (month: { value: string; label: string }) => (
+    <option key={month.value} value={month.value}>
+      {month.label}
+    </option>
+  );
+
+  // Render years option
+  const renderYearsOption = (yearValue: number) => (
+    <option key={yearValue} value={yearValue}>
+      {yearValue} Year{yearValue !== 1 ? "s" : ""}
+    </option>
+  );
+
+  // Render department option
+  const renderDepartmentOption = (unit: string) => (
+    <option key={unit} value={unit}>
+      {unit}
+    </option>
+  );
+
+  // Render location option
+  const renderLocationOption = (location: string) => (
+    <option key={location} value={location}>
+      {location}
+    </option>
+  );
+
   const renderBirthdayFilters = () => <></>;
 
   const renderAnniversaryFilters = () => (
     <>
       <select
         value={selectedMonth}
-        onChange={(event) => setSelectedMonth(event.target.value)}
+        onChange={handleMonthChange}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Months</option>
-        {MONTH_OPTIONS.map((m) => (
-          <option key={m.value} value={m.value}>
-            {m.label}
-          </option>
-        ))}
+        {MONTH_OPTIONS.map(renderMonthOption)}
       </select>
       <select
         value={selectedYears}
-        onChange={(event) => setSelectedYears(event.target.value)}
+        onChange={handleYearsChange}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Years</option>
-        {YEARS_OF_SERVICE_OPTIONS.map((y) => (
-          <option key={y} value={y}>
-            {y} Year{y !== 1 ? "s" : ""}
-          </option>
-        ))}
+        {YEARS_OF_SERVICE_OPTIONS.map(renderYearsOption)}
       </select>
       <select
         value={selectedDepartment}
-        onChange={(event) => setSelectedDepartment(event.target.value)}
+        onChange={handleDepartmentChange}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Departments</option>
-        {filterOptions.subUnits.map((unit) => (
-          <option key={unit} value={unit}>
-            {unit}
-          </option>
-        ))}
+        {filterOptions.subUnits.map(renderDepartmentOption)}
       </select>
     </>
   );
@@ -600,82 +660,74 @@ export default function UnifiedReportsPage() {
       <input
         type="date"
         value={dateFrom}
-        onChange={(event) => setDateFrom(event.target.value)}
+        onChange={handleDateFromChange}
         placeholder="From Date"
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       />
       <input
         type="date"
         value={dateTo}
-        onChange={(event) => setDateTo(event.target.value)}
+        onChange={handleDateToChange}
         placeholder="To Date"
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       />
       <select
         value={selectedGroupCompany}
-        onChange={(event) => setSelectedGroupCompany(event.target.value)}
+        onChange={handleGroupCompanyChange}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Companies</option>
-        {filterOptions.subUnits.map((unit) => (
-          <option key={unit} value={unit}>
-            {unit}
-          </option>
-        ))}
+        {filterOptions.subUnits.map(renderDepartmentOption)}
       </select>
       <select
         value={selectedLocation}
-        onChange={(event) => setSelectedLocation(event.target.value)}
+        onChange={handleLocationChange}
         className="px-3 py-2 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none"
       >
         <option value="">All Locations</option>
-        {filterOptions.locations.map((loc) => (
-          <option key={loc} value={loc}>
-            {loc}
-          </option>
-        ))}
+        {filterOptions.locations.map(renderLocationOption)}
       </select>
     </>
   );
+
+  const renderExportPDFButton = () => {
+    if (reportType !== "termination") return null;
+    return (
+      <button
+        onClick={handleExportPDF}
+        className="py-2 px-4 bg-gradient-to-br from-[#172554] to-[#14b8a6] text-white border-0 rounded-md text-[13px] font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
+      >
+        <IconUpload size={14} />
+        Export PDF
+      </button>
+    );
+  };
 
   const filterToolbar = (
     <div className="flex gap-3 flex-wrap items-center">
       <select
         value={reportType}
-        onChange={(event) => setReportType(event.target.value as ReportType)}
+        onChange={handleReportTypeSelect}
         className="py-2 px-4 border-2 border-[#1B2A6B] rounded-md text-sm font-semibold outline-none bg-white text-[#1B2A6B] cursor-pointer"
       >
         <option value="birthday"> All Employee Birthday Details</option>
         <option value="anniversary"> All Employee Anniversary Details</option>
         <option value="termination"> Termination Employee Details</option>
-        {/* {(userRole === 'hradmin' || userRole === 'empmanager') && (
-        )} */}
       </select>
 
-      {/* Divider */}
       <div className="w-px h-8 bg-slate-200" />
 
-      {/* Dynamic filters based on report type */}
       {reportType === "birthday" && renderBirthdayFilters()}
       {reportType === "anniversary" && renderAnniversaryFilters()}
       {reportType === "termination" && renderTerminationFilters()}
 
-      {/* Export buttons */}
       <button
         onClick={handleExportExcel}
         className="py-2 px-4 bg-[#16A085] text-white border-0 rounded-md text-[13px] font-semibold cursor-pointer"
       >
         Export Excel
       </button>
-      {reportType === "termination" && (
-        <button
-          onClick={handleExportPDF}
-          className="py-2 px-4 bg-gradient-to-br from-[#172554] to-[#14b8a6] text-white border-0 rounded-md text-[13px] font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
-        >
-          <IconUpload size={14} />
-          Export PDF
-        </button>
-      )}
+      {renderExportPDFButton()}
     </div>
   );
 
@@ -728,10 +780,7 @@ export default function UnifiedReportsPage() {
           pageSize={pageSize}
           pageSizeOptions={[10, 15, 20, 50, 100]}
           onPageChange={setCurrentPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setCurrentPage(1);
-          }}
+          onPageSizeChange={handlePageSizeUpdate}
           searchQuery={searchQuery}
           searchPlaceholder="Search by employee name..."
           onSearchChange={setSearchQuery}
