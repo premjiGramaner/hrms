@@ -55,9 +55,7 @@ function RemoveEmployeeConfirmationModal({
 
         <p className="mb-5 text-sm text-slate-600">
           Are you sure you want to remove{" "}
-          <span className="font-semibold text-slate-800">
-            {employeeName}
-          </span>{" "}
+          <span className="font-semibold text-slate-800">{employeeName}</span>{" "}
           from this appraisal cycle?
         </p>
 
@@ -103,8 +101,7 @@ export default function AppraisalCycleDetails() {
   const [employeeToRemove, setEmployeeToRemove] =
     useState<PerformanceEmployee | null>(null);
 
-  const [isRemovingEmployee, setIsRemovingEmployee] =
-    useState(false);
+  const [isRemovingEmployee, setIsRemovingEmployee] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -117,9 +114,7 @@ export default function AppraisalCycleDetails() {
   const rows = useMemo(
     () =>
       (cycle?.employees || []).filter((employee) =>
-        employee.name
-          .toLowerCase()
-          .includes(query.trim().toLowerCase()),
+        employee.name.toLowerCase().includes(query.trim().toLowerCase()),
       ),
     [cycle?.employees, query],
   );
@@ -178,9 +173,7 @@ export default function AppraisalCycleDetails() {
     {
       key: "status",
       header: "Status",
-      render: (row) => (
-        <StatusBadge status={row.status || "Not Created"} />
-      ),
+      render: (row) => <StatusBadge status={row.status || "Not Created"} />,
     },
   ];
 
@@ -188,16 +181,13 @@ export default function AppraisalCycleDetails() {
     setSelectedIds((currentSelectedIds) =>
       currentSelectedIds.includes(employeeId)
         ? currentSelectedIds.filter(
-            (selectedEmployeeId) =>
-              selectedEmployeeId !== employeeId,
+            (selectedEmployeeId) => selectedEmployeeId !== employeeId,
           )
         : [...currentSelectedIds, employeeId],
     );
   };
 
-  const handleOpenRemoveConfirmation = (
-    employee: PerformanceEmployee,
-  ) => {
+  const handleOpenRemoveConfirmation = (employee: PerformanceEmployee) => {
     if (!cycle) return;
 
     if (isClosedCycleStatus(cycle.status)) {
@@ -228,30 +218,21 @@ export default function AppraisalCycleDetails() {
     setIsRemovingEmployee(true);
 
     try {
-      const updatedCycle = await removeEmployeeFromCycle(
-        cycle.id,
-        employeeId,
-      );
+      const updatedCycle = await removeEmployeeFromCycle(cycle.id, employeeId);
 
       setCycle(updatedCycle);
 
       setSelectedIds((currentSelectedIds) =>
         currentSelectedIds.filter(
-          (selectedEmployeeId) =>
-            selectedEmployeeId !== employeeId,
+          (selectedEmployeeId) => selectedEmployeeId !== employeeId,
         ),
       );
 
       setEmployeeToRemove(null);
 
-      Toast.success(
-        "Employee removed from the appraisal cycle.",
-      );
+      Toast.success("Employee removed from the appraisal cycle.");
     } catch (error: unknown) {
-      showPerformanceError(
-        error,
-        "Unable to remove employee from cycle.",
-      );
+      showPerformanceError(error, "Unable to remove employee from cycle.");
     } finally {
       setIsRemovingEmployee(false);
     }
@@ -271,10 +252,7 @@ export default function AppraisalCycleDetails() {
 
       navigate(PAGE_PATHS.performanceAppraisalsList);
     } catch (error: unknown) {
-      showPerformanceError(
-        error,
-        "Unable to create appraisals.",
-      );
+      showPerformanceError(error, "Unable to create appraisals.");
     }
   };
 
@@ -313,9 +291,7 @@ export default function AppraisalCycleDetails() {
             Appraisal Cycle Status
           </p>
 
-          <p className="font-bold text-slate-600">
-            {cycle.status}
-          </p>
+          <p className="font-bold text-slate-600">{cycle.status}</p>
         </div>
 
         <Stepper active={1} />
@@ -355,9 +331,7 @@ export default function AppraisalCycleDetails() {
           </Button>
 
           <div className="space-y-5 border-t border-slate-100 pt-6">
-            <h3 className="text-sm font-bold text-slate-500">
-              Cycle Details
-            </h3>
+            <h3 className="text-sm font-bold text-slate-500">Cycle Details</h3>
 
             {[
               ["Location", cycle.location],
@@ -365,13 +339,8 @@ export default function AppraisalCycleDetails() {
               ["To Date", cycle.toDate],
               ["Due Date", cycle.dueDate],
             ].map(([label, value]) => (
-              <div
-                key={label}
-                className="rounded-[8px] bg-[#fbf9ff] p-4"
-              >
-                <p className="text-xs font-semibold text-slate-400">
-                  {label}
-                </p>
+              <div key={label} className="rounded-[8px] bg-[#fbf9ff] p-4">
+                <p className="text-xs font-semibold text-slate-400">{label}</p>
 
                 <p className="mt-2 text-lg font-semibold text-slate-600">
                   {value}
@@ -400,11 +369,7 @@ export default function AppraisalCycleDetails() {
             data={rows}
             selectedIds={selectedIds}
             getRowId={(row) => row.id}
-            onSelectRow={
-              isCycleClosed
-                ? undefined
-                : toggleEmployeeSelection
-            }
+            onSelectRow={isCycleClosed ? undefined : toggleEmployeeSelection}
             onSelectAll={
               isCycleClosed
                 ? undefined
@@ -422,12 +387,8 @@ export default function AppraisalCycleDetails() {
                     ? "Closed cycles cannot be edited"
                     : "Remove employee"
                 }
-                disabled={
-                  isCycleClosed || isRemovingEmployee
-                }
-                onClick={() =>
-                  handleOpenRemoveConfirmation(row)
-                }
+                disabled={isCycleClosed || isRemovingEmployee}
+                onClick={() => handleOpenRemoveConfirmation(row)}
               >
                 <Trash2 size={17} />
               </IconButton>
