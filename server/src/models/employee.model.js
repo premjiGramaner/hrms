@@ -358,12 +358,13 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
       ? `${data.first_name} ${data.last_name}`.trim()
       : undefined;
 
-  const n = (value) =>
+  const normalizeNullableText = (value) =>
     value && String(value).trim() !== "" ? String(value).trim() : null;
-  const d = (value) =>
+  const normalizeNullableDate = (value) =>
     !value || String(value).trim() === "" ? null : String(value).trim();
 
-  const realDob = d(data.real_dob) || d(data.dob);
+  const realDob =
+    normalizeNullableDate(data.real_dob) || normalizeNullableDate(data.dob);
 
   // Convert supervisor IDs to names and store names
   const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
@@ -414,43 +415,43 @@ async function updateEmployee(id, data, avatarBase64, updatedBy) {
      WHERE id = $41::bigint AND is_deleted = false`,
     [
       data.first_name || "",
-      n(data.middle_name),
+      normalizeNullableText(data.middle_name),
       data.last_name || "",
       name || "",
-      n(data.email) || "",
-      n(data.employee_id),
-      d(data.dob),
+      normalizeNullableText(data.email) || "",
+      normalizeNullableText(data.employee_id),
+      normalizeNullableDate(data.dob),
       realDob, // Use realDob which falls back to dob
-      n(data.nationality),
-      n(data.marital_status),
-      n(data.gender),
-      n(data.blood_group),
-      n(data.license_number),
-      d(data.license_expiry),
-      n(data.mobile),
-      n(data.home_tel),
-      n(data.work_tel),
-      n(data.other_email),
+      normalizeNullableText(data.nationality),
+      normalizeNullableText(data.marital_status),
+      normalizeNullableText(data.gender),
+      normalizeNullableText(data.blood_group),
+      normalizeNullableText(data.license_number),
+      normalizeNullableDate(data.license_expiry),
+      normalizeNullableText(data.mobile),
+      normalizeNullableText(data.home_tel),
+      normalizeNullableText(data.work_tel),
+      normalizeNullableText(data.other_email),
       avatarBase64 || null,
-      n(data.address1),
-      n(data.address2),
-      n(data.city),
-      n(data.country),
-      n(data.state),
-      n(data.zip),
-      d(data.joined_date),
-      n(data.location),
-      n(data.job_title),
-      n(data.employment_status),
-      n(data.job_specification),
-      n(data.job_category),
-      n(data.sub_unit),
-      n(data.attendance_calc),
-      d(data.probation_end_date),
-      d(data.date_of_permanence),
-      d(data.contract_start_date),
-      d(data.contract_end_date),
-      n(data.comments),
+      normalizeNullableText(data.address1),
+      normalizeNullableText(data.address2),
+      normalizeNullableText(data.city),
+      normalizeNullableText(data.country),
+      normalizeNullableText(data.state),
+      normalizeNullableText(data.zip),
+      normalizeNullableDate(data.joined_date),
+      normalizeNullableText(data.location),
+      normalizeNullableText(data.job_title),
+      normalizeNullableText(data.employment_status),
+      normalizeNullableText(data.job_specification),
+      normalizeNullableText(data.job_category),
+      normalizeNullableText(data.sub_unit),
+      normalizeNullableText(data.attendance_calc),
+      normalizeNullableDate(data.probation_end_date),
+      normalizeNullableDate(data.date_of_permanence),
+      normalizeNullableDate(data.contract_start_date),
+      normalizeNullableDate(data.contract_end_date),
+      normalizeNullableText(data.comments),
       supervisorNames,
       updatedBy || null,
       id,
@@ -646,7 +647,7 @@ async function getLocations() {
        AND is_deleted = false
      ORDER BY LOWER(location) ASC, location ASC`,
   );
-  return rows.map((r) => r.location);
+  return rows.map((locationRow) => locationRow.location);
 }
 
 export {

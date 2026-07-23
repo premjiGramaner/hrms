@@ -1,20 +1,23 @@
 import { ChangeEvent } from "react";
+import { NON_DIGIT_PATTERN } from "../../../constants/validationPatterns";
 
 export const handleMobileInput = (
-  e: ChangeEvent<HTMLInputElement>,
-  formRef: React.MutableRefObject<Record<string, any>>,
+  event: ChangeEvent<HTMLInputElement>,
+  formRef: React.MutableRefObject<Record<string, string>>,
   fieldName: string,
   errors: Record<string, string>,
   setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>,
 ) => {
-  const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+  const digitsOnly = event.target.value
+    .replace(NON_DIGIT_PATTERN, "")
+    .slice(0, 10);
 
-  e.target.value = digitsOnly;
+  event.target.value = digitsOnly;
   formRef.current[fieldName] = digitsOnly;
 
   if (errors[fieldName]) {
-    setErrors((prev) => {
-      const updatedErrors = { ...prev };
+    setErrors((currentErrors) => {
+      const updatedErrors = { ...currentErrors };
       delete updatedErrors[fieldName];
       return updatedErrors;
     });
@@ -27,7 +30,7 @@ export const getNumericValue = (
   >,
   maxLength?: number,
 ): string => {
-  const digits = event.target.value.replace(/\D/g, "");
+  const digits = event.target.value.replace(NON_DIGIT_PATTERN, "");
 
   return maxLength ? digits.slice(0, maxLength) : digits;
 };

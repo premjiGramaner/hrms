@@ -72,7 +72,6 @@ export default function LeaveList({ employee }: LeaveListProps) {
     navigate(PAGE_PATHS.leaveList);
   };
 
-  // Group leaves by month
   const groupedLeaves = leaves.reduce(
     (groups: Record<string, LeaveRequest[]>, leave) => {
       const date = formatDate(leave.start_date);

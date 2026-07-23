@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getEmployee,
@@ -47,6 +47,11 @@ import {
 } from "../../utils/profileValidation";
 import { getNumericValue } from "./components/inputHelpers";
 import { PAGE_PATHS, ROLES } from "../../config/roles";
+import {
+  uniqueCaseInsensitive,
+  toSupervisorOptions,
+} from "../../utils/employeeOptions";
+import { IconAlertCircle, IconUserMinus } from "../../components/Icons";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: PAGE_PATHS.employees },
@@ -88,20 +93,19 @@ export default function EmployeeProfilePage() {
 
   useEffect(() => {
     getJobTitles()
-      .then((res) =>
-        setJobTitleOptions(res.data.map((jobtitle) => jobtitle.title)),
+      .then((response) =>
+        setJobTitleOptions(response.data.map((jobTitle) => jobTitle.title)),
       )
-      .catch((err) => {
-        console.error("Failed to load job titles:", err);
+      .catch(() => {
         setError("Failed to load job titles.");
       });
 
     getJobCategories()
-      .then((res) =>
+      .then((response) =>
         setJobCategoryOptions(
-          res.data.map((c) => ({
-            id: c.id,
-            category: c.category,
+          response.data.map((jobCategory) => ({
+            id: jobCategory.id,
+            category: jobCategory.category,
           })),
         ),
       )
@@ -110,45 +114,28 @@ export default function EmployeeProfilePage() {
       });
 
     getSubUnits()
-      .then((res) =>
-        setSubUnitOptions(res.data.map((subunit) => subunit.sub_unit_name)),
+      .then((response) =>
+        setSubUnitOptions(
+          response.data.map((subUnit) => subUnit.sub_unit_name),
+        ),
       )
-      .catch((err) => {
-        console.error("Failed to load sub units:", err);
+      .catch(() => {
         setError("Failed to load sub units.");
       });
 
     getLocations()
-      .then((res) => {
-        const seenMap = new Map<string, string>();
-        const deduped = res.data.filter((loc: string) => {
-          const lowerLoc = loc.toLowerCase();
-          if (seenMap.has(lowerLoc)) {
-            return false;
-          }
-          seenMap.set(lowerLoc, loc);
-          return true;
-        });
-        setLocationOptions(deduped);
+      .then((response) => {
+        setLocationOptions(uniqueCaseInsensitive(response.data));
       })
-      .catch((err) => {
-        console.error("Failed to load locations:", err);
+      .catch(() => {
         setError("Failed to load locations.");
       });
 
     getSupervisors()
-      .then((res) =>
-        setSupervisorOptions(
-          (res.data || [])
-            .filter((supervisor: any) => supervisor.id != null)
-            .map((supervisor: any) => ({
-              id: Number(supervisor.id),
-              name: supervisor.name,
-            })),
-        ),
+      .then((response) =>
+        setSupervisorOptions(toSupervisorOptions(response.data || [])),
       )
-      .catch((err) => {
-        console.error("Failed to load supervisors:", err);
+      .catch(() => {
         setError("Failed to load supervisors.");
       });
   }, []);
@@ -172,7 +159,7 @@ export default function EmployeeProfilePage() {
         if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
           const supervisorName = supervisorNames[0];
           const foundSupervisor = supervisorOptions.find(
-            (s) => s.name === supervisorName,
+            (supervisorOption) => supervisorOption.name === supervisorName,
           );
           supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
         }
@@ -206,14 +193,16 @@ export default function EmployeeProfilePage() {
     return (
       <Layout title="Employee Profile" tabs={TABS} activeTab="Employee List">
         <div className="text-center py-14">
-          <div className="text-4xl mb-2">⚠️</div>
+          <div className="mb-2 flex justify-center text-amber-500">
+            <IconAlertCircle size={36} />
+          </div>
           <div className="text-sm text-[#757575]">{error}</div>
-          <button
-            onClick={() => navigate(PAGE_PATHS.employees)}
+          <Link
+            to={PAGE_PATHS.employees}
             className="mt-4 px-4 py-2 bg-[#00897b] text-white rounded-lg hover:bg-[#00bfa5]"
           >
             Back to Employee List
-          </button>
+          </Link>
         </div>
       </Layout>
     );
@@ -235,13 +224,19 @@ export default function EmployeeProfilePage() {
       setForm((current) =>
         current ? { ...current, [name]: numericValue } : current,
       );
-      setModifiedFields((prev) => new Set(prev).add(name));
-      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+      setModifiedFields((currentFields) => new Set(currentFields).add(name));
+      setValidationErrors((currentErrors) => ({
+        ...currentErrors,
+        [name]: "",
+      }));
       return;
     }
     setForm((current) => (current ? { ...current, [name]: value } : current));
-    setModifiedFields((prev) => new Set(prev).add(name));
-    setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+    setModifiedFields((currentFields) => new Set(currentFields).add(name));
+    setValidationErrors((currentErrors) => ({
+      ...currentErrors,
+      [name]: "",
+    }));
   };
 
   const hasTabChanges = () => {
@@ -296,7 +291,6 @@ export default function EmployeeProfilePage() {
 
     const fieldsToCheck = tabFields[activeLabel] || [];
 
-    // Check if any field in the current tab has changed
     return fieldsToCheck.some((field) => {
       const currentValue = String(
         form[field as keyof EditableEmployeeProfileForm] || "",
@@ -344,7 +338,6 @@ export default function EmployeeProfilePage() {
       setValidationErrors({});
       const formData = new FormData();
 
-      // Exclude avatar from regular profile updates - avatar is updated separately via updateProfileImage
       Object.entries(form).forEach(([key, value]) => {
         if (key !== "avatar") {
           const stringValue = String(value || "");
@@ -360,7 +353,6 @@ export default function EmployeeProfilePage() {
       const { data } = await getEmployee(employee.id);
       setEmployee(data);
 
-      // Map supervisor names back to IDs after save
       const supervisorNames = Array.isArray(data.supervisors)
         ? data.supervisors
         : [];
@@ -369,7 +361,7 @@ export default function EmployeeProfilePage() {
       if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
         const supervisorName = supervisorNames[0];
         const foundSupervisor = supervisorOptions.find(
-          (s) => s.name === supervisorName,
+          (supervisorOption) => supervisorOption.name === supervisorName,
         );
         supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
       }
@@ -395,19 +387,25 @@ export default function EmployeeProfilePage() {
       }
 
       setActionMessage("Employee details saved successfully.");
-    } catch (err: unknown) {
-      console.error("❌ Save employee error:", err);
-      console.error("❌ Error details:", {
-        message: (err as any)?.message,
-        response: (err as any)?.response?.data,
-        status: (err as any)?.response?.status,
-      });
+    } catch (requestError: unknown) {
       setActionMessage(
-        getApiErrorMessage(err, "Failed to save employee details."),
+        getApiErrorMessage(requestError, "Failed to save employee details."),
       );
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleProfileCardUpdate = (updatedEmployee: Employee) => {
+    setEmployee((currentEmployee) =>
+      currentEmployee
+        ? { ...currentEmployee, ...updatedEmployee }
+        : updatedEmployee,
+    );
+  };
+
+  const handleTerminationSuccess = () => {
+    navigate(PAGE_PATHS.employees, { replace: true });
   };
 
   const renderTabContent = () => {
@@ -528,19 +526,7 @@ export default function EmployeeProfilePage() {
                 disabled={terminating}
                 className="inline-flex items-center gap-2 text-sm font-medium text-blue-800 underline underline-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  aria-hidden="true"
-                >
-                  <circle cx="9" cy="7" r="3" />
-                  <path d="M3.5 20a5.5 5.5 0 0 1 8.8-4.4" />
-                  <path d="M16 12v8" />
-                  <path d="M12 16h8" />
-                </svg>
+                <IconUserMinus size={16} />
                 {terminating ? "Terminating..." : "Terminate Employment"}
               </button>
               <button
@@ -580,7 +566,9 @@ export default function EmployeeProfilePage() {
             name="job_category"
             value={form.job_category}
             onChange={handleFieldChange}
-            options={jobCategoryOptions.map((c) => c.category)}
+            options={jobCategoryOptions.map(
+              (jobCategory) => jobCategory.category,
+            )}
           />
           <EditableProfileField
             label="Job Specification"
@@ -778,11 +766,7 @@ export default function EmployeeProfilePage() {
         <div className="lg:col-span-2 space-y-6">
           <EmployeeProfileCard
             employee={employee}
-            onEmployeeUpdate={(updatedEmployee) => {
-              setEmployee((prev) =>
-                prev ? { ...prev, ...updatedEmployee } : updatedEmployee,
-              );
-            }}
+            onEmployeeUpdate={handleProfileCardUpdate}
           />
           <LeaveList employee={employee} />
         </div>
@@ -805,12 +789,12 @@ export default function EmployeeProfilePage() {
       )}
 
       <div className="mb-6 bg-white rounded-lg shadow-sm p-2 flex overflow-x-auto gap-2">
-        {PROFILE_TABS.map((tab, idx) => (
+        {PROFILE_TABS.map((tab, tabIndex) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(idx)}
+            onClick={() => setActiveTab(tabIndex)}
             className={`px-6 py-2 text-sm font-medium whitespace-nowrap rounded-full transition ${
-              activeTab === idx
+              activeTab === tabIndex
                 ? "bg-[#fff3e0] text-[#ff9800]"
                 : "text-[#757575] hover:bg-gray-50"
             }`}
@@ -825,11 +809,7 @@ export default function EmployeeProfilePage() {
         <TerminationModal
           employeeId={employee!.id}
           onClose={() => setShowTerminationModal(false)}
-          onSuccess={() => {
-            navigate(PAGE_PATHS.employees, {
-              replace: true,
-            });
-          }}
+          onSuccess={handleTerminationSuccess}
         />
       )}
     </Layout>

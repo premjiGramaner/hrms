@@ -16,6 +16,12 @@ import {
   TemplateQuestion,
 } from "../../types/performance.types";
 import { getAvatarSrc } from "../../utils/avatar";
+import Toast from "../../utils/toast";
+import {
+  CLOSED_CYCLE_MESSAGE,
+  isClosedCycleStatus,
+  showPerformanceError,
+} from "./performanceNotifications";
 import { isAdminRole } from "../../config/roles";
 
 type ReviewerType = "self" | "supervisor";
@@ -151,7 +157,6 @@ export default function AppraisalMultipleView() {
   const [ratings, setRatings] = useState<RatingDraft>({});
   const [commentQuestion, setCommentQuestion] =
     useState<TemplateQuestion | null>(null);
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -201,7 +206,6 @@ export default function AppraisalMultipleView() {
       ? "supervisor"
       : "self";
 
-  // Live rating — recalculates on every segment click
   const visibleRating = useMemo(() => ratingAverage(ratings), [ratings]);
 
   if (!appraisal) {
@@ -215,12 +219,14 @@ export default function AppraisalMultipleView() {
   }
 
   const employee = appraisal.employee;
+  const cycleClosed = isClosedCycleStatus(appraisal.cycleStatus);
   const evaluator =
     reviewerType === "supervisor" ? appraisal.mainEvaluator : employee;
   const canEdit =
-    reviewerType === "supervisor"
+    !cycleClosed &&
+    (reviewerType === "supervisor"
       ? isAssignedEvaluator && !appraisal.supervisorSubmitted
-      : isSelfReviewer && !appraisal.selfSubmitted;
+      : isSelfReviewer && !appraisal.selfSubmitted);
   const reviewWeight =
     reviewerType === "supervisor"
       ? appraisal.supervisorWeight
@@ -254,31 +260,72 @@ export default function AppraisalMultipleView() {
 
   const saveDraft = async () => {
     if (!id) return;
-    const detail = await saveAppraisalRatings(id, {
-      reviewerType,
-      ratings: ratingPayload,
-    });
-    setAppraisal(detail);
-    setMessage("Saved.");
+    if (cycleClosed) {
+      Toast.warning(CLOSED_CYCLE_MESSAGE);
+      return;
+    }
+    try {
+      const detail = await saveAppraisalRatings(id, {
+        reviewerType,
+        ratings: ratingPayload,
+      });
+      setAppraisal(detail);
+      Toast.success(
+        reviewerType === "supervisor"
+          ? "Supervisor ratings saved successfully."
+          : "Self-review draft saved successfully.",
+      );
+    } catch (error) {
+      showPerformanceError(error, "Unable to save appraisal ratings.");
+    }
   };
 
   const submit = async () => {
     if (!id) return;
-    const detail = await submitAppraisalReview(id, {
-      reviewerType,
-      ratings: ratingPayload,
-    });
-    setAppraisal(detail);
-    setMessage(
-      reviewerType === "supervisor"
-        ? "Final review submitted."
-        : "Self review submitted.",
-    );
+    if (cycleClosed) {
+      Toast.warning(CLOSED_CYCLE_MESSAGE);
+      return;
+    }
+    try {
+      const detail = await submitAppraisalReview(id, {
+        reviewerType,
+        ratings: ratingPayload,
+      });
+      setAppraisal(detail);
+      Toast.success(
+        reviewerType === "supervisor"
+          ? "Supervisor review submitted successfully."
+          : "Self review submitted successfully.",
+      );
+    } catch (error) {
+      showPerformanceError(error, "Unable to submit appraisal review.");
+    }
+  };
+
+  const download = async () => {
+    try {
+      await downloadAppraisalPdf(appraisal.id, employee.name);
+      Toast.success("Appraisal downloaded successfully.");
+    } catch (error) {
+      showPerformanceError(error, "Unable to download appraisal.");
+    }
+  };
+
+  const closeCommentModal = () => setCommentQuestion(null);
+
+  const saveComment = async () => {
+    if (canEdit) await saveDraft();
+    closeCommentModal();
   };
 
   return (
     <PerformanceLayout title={pageTitle} activeTab={activeTab}>
       <div className="mx-auto min-h-[760px] max-w-[1500px] rounded-[24px] bg-white px-8 py-8 shadow-sm">
+        {cycleClosed ? (
+          <p className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+            {CLOSED_CYCLE_MESSAGE}
+          </p>
+        ) : null}
         <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-5">
           <h1 className="text-xl font-bold text-slate-600">
             {reviewerType === "supervisor" ? "Final Review" : "Self Review"}
@@ -297,7 +344,6 @@ export default function AppraisalMultipleView() {
               avatar={employee.avatar}
               className="mx-auto h-[180px] w-[180px]"
             />
-            {/* Live rating — updates on every segment click */}
             <p className="mt-7 text-6xl font-medium text-navy-700">
               {formatScore(visibleRating)}
             </p>
@@ -327,7 +373,6 @@ export default function AppraisalMultipleView() {
                 {appraisal.dueDate}
               </p>
             </div>
-            {/* Final Rating — only visible after both sides submit */}
             <div className="col-span-2">
               <p className="mb-2 text-xs font-medium text-navy-700">
                 Final Rating
@@ -353,7 +398,6 @@ export default function AppraisalMultipleView() {
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-slate-600">KPIss</h2>
             <div className="flex items-center gap-3 text-sm font-semibold text-slate-500">
-              {/* Live running average next to KPIs header */}
               <span>{formatScore(visibleRating)}</span>
               <ChevronDown size={18} className="rotate-180" />
             </div>
@@ -432,14 +476,7 @@ export default function AppraisalMultipleView() {
         </section>
 
         <div className="sticky bottom-0 mt-3 flex justify-end gap-2 border-t border-slate-100 bg-white py-5">
-          {message ? (
-            <span className="mr-auto self-center text-sm font-semibold text-emerald-600">
-              {message}
-            </span>
-          ) : null}
-          <Button
-            onClick={() => downloadAppraisalPdf(appraisal.id, employee.name)}
-          >
+          <Button onClick={download}>
             <Download size={16} />
             Download
           </Button>
@@ -459,14 +496,12 @@ export default function AppraisalMultipleView() {
         <CommentModal
           question={commentQuestion}
           comment={ratings[commentQuestion.id]?.comment || ""}
+          editable={canEdit}
           onChange={(comment) =>
             setQuestionComment(commentQuestion.id, comment)
           }
-          onClose={() => setCommentQuestion(null)}
-          onSave={async () => {
-            await saveDraft();
-            setCommentQuestion(null);
-          }}
+          onClose={closeCommentModal}
+          onSave={saveComment}
         />
       ) : null}
     </PerformanceLayout>
@@ -487,12 +522,14 @@ function Field({ label, value }: { label: string; value: string }) {
 function CommentModal({
   question,
   comment,
+  editable,
   onChange,
   onClose,
   onSave,
 }: {
   question: TemplateQuestion;
   comment: string;
+  editable: boolean;
   onChange: (comment: string) => void;
   onClose: () => void;
   onSave: () => void;
@@ -527,6 +564,7 @@ function CommentModal({
             </span>
             <textarea
               value={comment}
+              readOnly={!editable}
               onChange={(event) => onChange(event.target.value)}
               className="min-h-[140px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600 outline-none focus:border-navy-700"
             />
@@ -536,7 +574,9 @@ function CommentModal({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={onSave}>Save</Button>
+          <Button disabled={!editable} onClick={onSave}>
+            Save
+          </Button>
         </div>
       </div>
     </div>

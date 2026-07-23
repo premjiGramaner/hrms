@@ -16,8 +16,14 @@ import {
   PerformanceEmployee,
 } from "../../types/performance.types";
 import { DataTableColumn } from "../../types/table.types";
+import Toast from "../../utils/toast";
 import { IconButton, Stepper } from "./performanceUi";
 import { PAGE_PATHS } from "../../config/roles";
+import {
+  CLOSED_CYCLE_MESSAGE,
+  isClosedCycleStatus,
+  showPerformanceError,
+} from "./performanceNotifications";
 
 export default function AppraisalCycleDetails() {
   const { id } = useParams();
@@ -103,14 +109,24 @@ export default function AppraisalCycleDetails() {
     );
   const removeEmployee = async (employeeId: string) => {
     if (!cycle) return;
-    const next = await removeEmployeeFromCycle(cycle.id, employeeId);
-    setCycle(next);
+    if (isClosedCycleStatus(cycle.status)) {
+      Toast.warning(CLOSED_CYCLE_MESSAGE);
+      return;
+    }
+    try {
+      const next = await removeEmployeeFromCycle(cycle.id, employeeId);
+      setCycle(next);
+      Toast.success("Employee removed from the appraisal cycle.");
+    } catch (error) {
+      showPerformanceError(error, "Unable to remove employee from cycle.");
+    }
   };
   const createAppraisals = async () => {
     if (!cycle) return;
     await createCycleAppraisals(cycle.id);
     const next = await getAppraisalCycle(cycle.id);
     setCycle(next);
+    Toast.success("Appraisals created successfully.");
     navigate(PAGE_PATHS.performanceAppraisalsList);
   };
 
@@ -140,10 +156,18 @@ export default function AppraisalCycleDetails() {
           <p className="font-bold text-slate-600">{cycle.status}</p>
         </div>
         <Stepper active={1} />
-        <Button disabled={rows.length === 0} onClick={createAppraisals}>
+        <Button
+          disabled={rows.length === 0 || isClosedCycleStatus(cycle.status)}
+          onClick={createAppraisals}
+        >
           Create Appraisals
         </Button>
       </div>
+      {isClosedCycleStatus(cycle.status) ? (
+        <p className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+          {CLOSED_CYCLE_MESSAGE}
+        </p>
+      ) : null}
       <div className="grid gap-6 rounded-[8px] bg-white p-6 xl:grid-cols-[330px_1fr]">
         <aside className="border-r border-slate-100 pr-6">
           <div className="mb-8 rounded-[8px] bg-[#fbf9ff] px-4 py-4 text-lg font-bold text-slate-600">
@@ -152,6 +176,7 @@ export default function AppraisalCycleDetails() {
           <Button
             variant="secondary"
             className="mb-8 w-full"
+            disabled={isClosedCycleStatus(cycle.status)}
             onClick={() =>
               navigate(
                 `/performance/appraisal_cycles/${cycle.id}/add-employees`,
@@ -195,16 +220,29 @@ export default function AppraisalCycleDetails() {
             data={rows}
             selectedIds={selectedIds}
             getRowId={(row) => row.id}
-            onSelectRow={toggle}
-            onSelectAll={() =>
-              setSelectedIds(
-                selectedIds.length === rows.length
-                  ? []
-                  : rows.map((row) => row.id),
-              )
+            onSelectRow={
+              isClosedCycleStatus(cycle.status) ? undefined : toggle
+            }
+            onSelectAll={
+              isClosedCycleStatus(cycle.status)
+                ? undefined
+                : () =>
+                    setSelectedIds(
+                      selectedIds.length === rows.length
+                        ? []
+                        : rows.map((row) => row.id),
+                    )
             }
             actions={(row) => (
-              <IconButton title="Delete" onClick={() => removeEmployee(row.id)}>
+              <IconButton
+                title={
+                  isClosedCycleStatus(cycle.status)
+                    ? "Closed cycles cannot be edited"
+                    : "Delete"
+                }
+                disabled={isClosedCycleStatus(cycle.status)}
+                onClick={() => removeEmployee(row.id)}
+              >
                 <Trash2 size={17} />
               </IconButton>
             )}

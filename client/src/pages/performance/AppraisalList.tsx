@@ -6,7 +6,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DataTable from "../../components/common/DataTable";
 import ProgressCircle from "../../components/common/ProgressCircle";
@@ -22,13 +22,14 @@ import { useAppSelector } from "../../app/hooks";
 import { PAGE_PATHS, isAdminRole } from "../../config/roles";
 import { Appraisal, AppraisalStatus } from "../../types/performance.types";
 import { DataTableColumn } from "../../types/table.types";
+import Toast from "../../utils/toast";
 import { IconButton } from "./performanceUi";
+import { showPerformanceError } from "./performanceNotifications";
 
-// ─── types ────────────────────────────────────────────────────────────────────
 interface FilterState {
   from: string;
   to: string;
-  cycleId: string; // "" | "open" | "<uuid>"
+  cycleId: string;
   statuses: AppraisalStatus[];
 }
 
@@ -53,8 +54,6 @@ const STATUS_HINTS: Record<string, string> = {
   COMPLETED: "COMPLETED",
 };
 
-// ─── small sub-components ─────────────────────────────────────────────────────
-
 function DateField({
   label,
   value,
@@ -62,26 +61,23 @@ function DateField({
 }: {
   label: string;
   value: string;
-  onChange: (v: string) => void;
+  onChange: (value: string) => void;
 }) {
-  const ref = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm font-semibold text-slate-500">{label}</label>
       <div className="relative">
         <input
-          ref={ref}
+          ref={inputRef}
           type="date"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(event) => onChange(event.target.value)}
           className="h-12 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 pr-12 text-sm text-slate-600 outline-none focus:border-teal-400 [&::-webkit-calendar-picker-indicator]:hidden"
-          style={{
-            colorScheme: "light",
-          }}
         />
         <button
           type="button"
-          onClick={() => ref.current?.showPicker?.()}
+          onClick={() => inputRef.current?.showPicker?.()}
           className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl bg-[#f4f1f8] text-slate-500 hover:bg-[#e8e3f0] transition-colors"
         >
           <CalendarDays size={17} />
@@ -96,18 +92,21 @@ function StatusTagInput({
   onChange,
 }: {
   value: AppraisalStatus[];
-  onChange: (v: AppraisalStatus[]) => void;
+  onChange: (value: AppraisalStatus[]) => void;
 }) {
   const [hint, setHint] = useState("");
   const filtered = ALL_STATUSES.filter(
-    (s) => !value.includes(s) && s.toLowerCase().includes(hint.toLowerCase()),
+    (status) =>
+      !value.includes(status) &&
+      status.toLowerCase().includes(hint.toLowerCase()),
   );
 
-  const add = (s: AppraisalStatus) => {
-    onChange([...value, s]);
+  const addStatus = (status: AppraisalStatus) => {
+    onChange([...value, status]);
     setHint("");
   };
-  const remove = (s: AppraisalStatus) => onChange(value.filter((x) => x !== s));
+  const removeStatus = (status: AppraisalStatus) =>
+    onChange(value.filter((selectedStatus) => selectedStatus !== status));
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -118,20 +117,20 @@ function StatusTagInput({
         <input
           type="text"
           value={hint}
-          onChange={(e) => setHint(e.target.value)}
+          onChange={(event) => setHint(event.target.value)}
           placeholder="Type for hints..."
           className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-600 outline-none focus:border-teal-400"
         />
         {hint && filtered.length > 0 && (
           <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-            {filtered.map((s) => (
+            {filtered.map((status) => (
               <button
-                key={s}
+                key={status}
                 type="button"
-                onClick={() => add(s)}
+                onClick={() => addStatus(status)}
                 className="block w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
               >
-                {STATUS_HINTS[s] ?? s}
+                {STATUS_HINTS[status] ?? status}
               </button>
             ))}
           </div>
@@ -139,15 +138,15 @@ function StatusTagInput({
       </div>
       {value.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-2">
-          {value.map((s) => (
+          {value.map((status) => (
             <span
-              key={s}
+              key={status}
               className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
             >
-              {STATUS_HINTS[s] ?? s}
+              {STATUS_HINTS[status] ?? status}
               <button
                 type="button"
-                onClick={() => remove(s)}
+                onClick={() => removeStatus(status)}
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X size={12} />
@@ -160,8 +159,6 @@ function StatusTagInput({
   );
 }
 
-// ─── Filter Modal ─────────────────────────────────────────────────────────────
-
 function FilterModal({
   initialFilter,
   showCycleFilter,
@@ -170,12 +167,14 @@ function FilterModal({
 }: {
   initialFilter: FilterState;
   showCycleFilter: boolean;
-  onSearch: (f: FilterState) => void;
+  onSearch: (filter: FilterState) => void;
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<FilterState>(initialFilter);
-  const set = <K extends keyof FilterState>(k: K, v: FilterState[K]) =>
-    setDraft((prev) => ({ ...prev, [k]: v }));
+  const updateDraftFilter = <FilterKey extends keyof FilterState>(
+    key: FilterKey,
+    value: FilterState[FilterKey],
+  ) => setDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
 
   return (
     <div
@@ -184,7 +183,7 @@ function FilterModal({
     >
       <div
         className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between px-8 py-5">
           <h2 className="text-lg font-bold text-slate-800">
@@ -215,17 +214,17 @@ function FilterModal({
           <DateField
             label="From"
             value={draft.from}
-            onChange={(v) => set("from", v)}
+            onChange={(fromDate) => updateDraftFilter("from", fromDate)}
           />
           <DateField
             label="To"
             value={draft.to}
-            onChange={(v) => set("to", v)}
+            onChange={(toDate) => updateDraftFilter("to", toDate)}
           />
 
           <StatusTagInput
             value={draft.statuses}
-            onChange={(v) => set("statuses", v)}
+            onChange={(statuses) => updateDraftFilter("statuses", statuses)}
           />
         </div>
 
@@ -250,8 +249,6 @@ function FilterModal({
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
 export default function AppraisalList() {
   const [query, setQuery] = useState("");
   const [appraisals, setAppraisals] = useState<Appraisal[]>([]);
@@ -268,31 +265,34 @@ export default function AppraisalList() {
   const isMyAppraisals = location.pathname.includes("my_appraisals");
   const isTeamAppraisals = location.pathname.includes("team_appraisals");
 
-  const fetchAppraisals = (f: FilterState = EMPTY_FILTER) => {
-    setLoading(true);
-    const params: Record<string, string> = {};
-    if (f.from) params.from = f.from;
-    if (f.to) params.to = f.to;
-    if (f.cycleId) params.cycleId = f.cycleId;
-    if (f.statuses.length > 0) params.status = f.statuses.join(",");
+  const fetchAppraisals = useCallback(
+    (filter: FilterState = EMPTY_FILTER) => {
+      setLoading(true);
+      const params: Record<string, string> = {};
+      if (filter.from) params.from = filter.from;
+      if (filter.to) params.to = filter.to;
+      if (filter.cycleId) params.cycleId = filter.cycleId;
+      if (filter.statuses.length > 0) {
+        params.status = filter.statuses.join(",");
+      }
+      (isMyAppraisals ? getMyAppraisals(params) : getAppraisals(params))
+        .then(setAppraisals)
+        .catch(() => setAppraisals([]))
+        .finally(() => setLoading(false));
+    },
+    [isMyAppraisals],
+  );
 
-    (isMyAppraisals ? getMyAppraisals(params) : getAppraisals(params))
-      .then(setAppraisals)
-      .catch(() => setAppraisals([]))
-      .finally(() => setLoading(false));
-  };
-
-  // Initial fetch
   useEffect(() => {
-    fetchAppraisals(appliedFilter);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMyAppraisals]);
+    fetchAppraisals();
+  }, [fetchAppraisals]);
 
-  // Client-side search only (admin, by name — no round-trip needed)
   const rows = useMemo(() => {
     if (!isAdmin || !query.trim()) return appraisals;
-    const q = query.trim().toLowerCase();
-    return appraisals.filter((a) => a.employeeName.toLowerCase().includes(q));
+    const normalizedQuery = query.trim().toLowerCase();
+    return appraisals.filter((appraisal) =>
+      appraisal.employeeName.toLowerCase().includes(normalizedQuery),
+    );
   }, [appraisals, query, isAdmin]);
 
   const hasActiveFilter =
@@ -330,13 +330,37 @@ export default function AppraisalList() {
   ];
 
   const toggle = (id: string) =>
-    setSelectedIds((curr) =>
-      curr.includes(id) ? curr.filter((x) => x !== id) : [...curr, id],
+    setSelectedIds((currentIds) =>
+      currentIds.includes(id)
+        ? currentIds.filter((selectedId) => selectedId !== id)
+        : [...currentIds, id],
     );
   const openAppraisal = (id: string) =>
     navigate(PAGE_PATHS.performanceAppraisalView(id));
   const openReview = (id: string) =>
     navigate(PAGE_PATHS.performanceAppraisalReview(id));
+  const downloadAppraisal = async (row: Appraisal) => {
+    try {
+      await downloadAppraisalPdf(row.id, row.employeeName);
+      Toast.success("Appraisal downloaded successfully.");
+    } catch (error) {
+      showPerformanceError(error, "Unable to download appraisal.");
+    }
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(
+      selectedIds.length === rows.length
+        ? []
+        : rows.map((appraisal) => appraisal.id),
+    );
+  };
+
+  const applyFilters = (filter: FilterState) => {
+    setAppliedFilter(filter);
+    setShowFilter(false);
+    fetchAppraisals(filter);
+  };
 
   const activeTab = isMyAppraisals
     ? "My Appraisals"
@@ -373,11 +397,7 @@ export default function AppraisalList() {
             loading={loading}
             getRowId={(row) => row.id}
             onSelectRow={toggle}
-            onSelectAll={() =>
-              setSelectedIds(
-                selectedIds.length === rows.length ? [] : rows.map((r) => r.id),
-              )
-            }
+            onSelectAll={toggleSelectAll}
             onRowClick={(row) => openAppraisal(row.id)}
             actions={(row) => (
               <div className="flex justify-end gap-2">
@@ -386,7 +406,7 @@ export default function AppraisalList() {
                 </IconButton>
                 <IconButton
                   title="Download"
-                  onClick={() => downloadAppraisalPdf(row.id, row.employeeName)}
+                  onClick={() => downloadAppraisal(row)}
                 >
                   <Download size={17} />
                 </IconButton>
@@ -400,11 +420,7 @@ export default function AppraisalList() {
         <FilterModal
           initialFilter={appliedFilter}
           showCycleFilter={isAdmin}
-          onSearch={(f) => {
-            setAppliedFilter(f);
-            setShowFilter(false);
-            fetchAppraisals(f);
-          }}
+          onSearch={applyFilters}
           onClose={() => setShowFilter(false)}
         />
       )}

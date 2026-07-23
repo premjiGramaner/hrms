@@ -6,7 +6,7 @@ import {
 } from "../config/performance.config.js";
 import appraisalTemplateSeed from "../data/appraisalTemplateSeed.js";
 
-let schemaPromise = null;
+let schemaPromise = null; 
 let seedPromise = null;
 
 const toSlug = (value) =>
@@ -24,6 +24,22 @@ const toDate = (value) =>
 const toNumber = (value, fallback = 0) =>
   Number.isFinite(Number(value)) ? Number(value) : fallback;
 const normalizeLookup = (value) => compact(value);
+
+function removeAdjacentDuplicateNames(description) {      
+  const descriptionParts = String(description || "")
+    .split(" - ")
+    .map((descriptionPart) => descriptionPart.trim())
+    .filter(Boolean);
+
+  return descriptionParts
+    .filter(
+      (descriptionPart, descriptionIndex) =>
+        descriptionIndex === 0 ||
+        normalizeLookup(descriptionPart) !==
+          normalizeLookup(descriptionParts[descriptionIndex - 1]),
+    )
+    .join(" - ");
+}
 
 const displayTextFor = (question) =>
   question.displayText ||
@@ -218,25 +234,42 @@ async function ensurePerformanceSchema() {
 
 function normalizeEmployee(row, supervisorUsers = []) {
   const supervisorEntries = parseSupervisors(row.supervisors);
-  const supervisors = supervisorEntries.map((entry) => {
-    const name = getSupervisorKey(entry);
-    const matchedUser = matchSupervisorUser(entry, supervisorUsers);
-    const rawId = getSupervisorId(entry);
-    const supervisorId = matchedUser?.id
-      ? String(matchedUser.id)
-      : /^\d+$/.test(rawId)
-        ? rawId
-        : toSlug(name);
+  const seenSupervisorKeys = new Set();
+  const supervisors = supervisorEntries
+    .map((entry) => {
+      const name = getSupervisorKey(entry);
+      const matchedUser = matchSupervisorUser(entry, supervisorUsers);
+      const rawId = getSupervisorId(entry);
+      const supervisorId = matchedUser?.id
+        ? String(matchedUser.id)
+        : /^\d+$/.test(rawId)
+          ? rawId
+          : toSlug(name);
 
-    return {
-      id: supervisorId,
-      name: matchedUser?.name || name || rawId || "Supervisor",
-      role: matchedUser?.job_title || "Supervisor",
-      employeeId: matchedUser?.employee_id || null,
-      jobTitle: matchedUser?.job_title || null,
-      avatar: matchedUser?.avatar || null,
-    };
-  });
+      return {
+        id: supervisorId,
+        name: matchedUser?.name || name || rawId || "Supervisor",
+        role: matchedUser?.job_title || "Supervisor",
+        employeeId: matchedUser?.employee_id || null,
+        jobTitle: matchedUser?.job_title || null,
+        avatar: matchedUser?.avatar || null,
+      };
+    })
+    .filter((supervisor) => {
+      const supervisorKey = normalizeLookup(
+        supervisor.id || supervisor.employeeId || supervisor.name,
+      );
+      const supervisorNameKey = normalizeLookup(supervisor.name);
+      if (
+        seenSupervisorKeys.has(supervisorKey) ||
+        seenSupervisorKeys.has(supervisorNameKey)
+      ) {
+        return false;
+      }
+      seenSupervisorKeys.add(supervisorKey);
+      seenSupervisorKeys.add(supervisorNameKey);
+      return true;
+    });
 
   return {
     id: String(row.id),
@@ -930,7 +963,7 @@ async function createAppraisalsForCycle(cycleId) {
         cycle.fromDate,
         cycle.toDate,
         cycle.dueDate,
-        `${cycle.name} - ${employee.name}`,
+        removeAdjacentDuplicateNames(`${cycle.name} - ${employee.name}`),
       ],
     );
   }
@@ -958,7 +991,7 @@ function mapAppraisalRow(row) {
     from: toDate(row.from_date),
     to: toDate(row.to_date),
     dueDate: toDate(row.due_date),
-    description: row.description,
+    description: removeAdjacentDuplicateNames(row.description),
     status: row.status,
     reviewProgress: Number(row.review_progress || 0),
     finalRating: row.final_rating === null ? null : toNumber(row.final_rating),
@@ -1000,7 +1033,6 @@ async function listAppraisals({
       `a.cycle_id IN (SELECT id FROM appraisal_cycles WHERE status NOT IN ('Completed', 'Closed'))`,
     );
   }
-  // Overlap: show appraisals whose period intersects the selected range
   if (from) {
     filters.push(`a.to_date >= ${push(from)}::date`);
   }
@@ -1010,7 +1042,7 @@ async function listAppraisals({
   if (status) {
     const statuses = status
       .split(",")
-      .map((s) => s.trim())
+      .map((statusValue) => statusValue.trim())
       .filter(Boolean);
     if (statuses.length > 0) {
       filters.push(`a.status = ANY(${push(statuses)}::text[])`);
@@ -1052,7 +1084,6 @@ async function listSupervisorAppraisals({
       `a.cycle_id IN (SELECT id FROM appraisal_cycles WHERE status NOT IN ('Completed', 'Closed'))`,
     );
   }
-  // Overlap: show appraisals whose period intersects the selected range
   if (from) {
     filters.push(`a.to_date >= ${push(from)}::date`);
   }
@@ -1062,7 +1093,7 @@ async function listSupervisorAppraisals({
   if (status) {
     const statuses = status
       .split(",")
-      .map((s) => s.trim())
+      .map((statusValue) => statusValue.trim())
       .filter(Boolean);
     if (statuses.length > 0) {
       filters.push(`a.status = ANY(${push(statuses)}::text[])`);
@@ -1224,7 +1255,7 @@ async function findAppraisal(id) {
     from: toDate(row.from_date),
     to: toDate(row.to_date),
     dueDate: toDate(row.due_date),
-    description: row.description,
+    description: removeAdjacentDuplicateNames(row.description),
     status: row.status,
     selfWeight: toNumber(row.self_weight, 50),
     supervisorWeight: toNumber(row.supervisor_weight, 50),

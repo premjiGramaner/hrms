@@ -13,7 +13,6 @@ import {
   BASIC_SUPERVISOR_ROLES,
   PAGE_PATHS,
   ROLES,
-  type UserRole,
 } from "../../config/roles";
 import { ROLE_OPTIONS } from "../../config/uiConstants";
 import {
@@ -508,9 +507,17 @@ export default function RoleAccessPage() {
   const hasFilters =
     searchQuery !== "" || roleFilter !== "" || genderFilter !== "";
 
-  const employeeCount = countUsersByPredicate(users, isEmployeeRole);
-  const supervisorCount = countUsersByPredicate(users, isSupervisorRole);
-  const globalCount = countUsersByPredicate(users, isGlobalAdminRole);
+  const employeeCount = users.filter((u) => u.role === ROLES.EMPLOYEE).length;
+  const supervisorCount = users.filter((userRecord) =>
+    BASIC_SUPERVISOR_ROLES.some(
+      (supervisorRole) => supervisorRole === userRecord.role,
+    ),
+  ).length;
+  const globalCount = users.filter((userRecord) =>
+    [ROLES.HR_ADMIN, ROLES.EMP_MANAGER].some(
+      (adminRole) => adminRole === userRecord.role,
+    ),
+  ).length;
 
   const stats: StatCard[] = [
     {

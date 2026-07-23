@@ -9,7 +9,9 @@ import DateInput from "../../components/common/DateInput";
 import SelectInput from "../../components/common/SelectInput";
 import PerformanceLayout from "../../components/layout/PerformanceLayout";
 import { AppraisalTemplate } from "../../types/performance.types";
+import Toast from "../../utils/toast";
 import { FieldShell, PanelTitle, SoftInput } from "./performanceUi";
+import { showPerformanceError } from "./performanceNotifications";
 import { PAGE_PATHS } from "../../config/roles";
 
 export default function CreateAppraisalCycle() {
@@ -32,15 +34,24 @@ export default function CreateAppraisalCycle() {
   }, []);
 
   const save = async () => {
-    const cycle = await createAppraisalCycle({
-      name: cycleName,
-      location,
-      fromDate,
-      toDate,
-      dueDate,
-      templateId: template,
-    });
-    navigate(PAGE_PATHS.performanceAppraisalCycleAddEmployees(cycle.id));
+    if (!cycleName.trim() || !fromDate || !toDate || !dueDate || !template) {
+      Toast.warning("Cycle name, dates, and template are required.");
+      return;
+    }
+    try {
+      const cycle = await createAppraisalCycle({
+        name: cycleName.trim(),
+        location,
+        fromDate,
+        toDate,
+        dueDate,
+        templateId: template,
+      });
+      Toast.created("Appraisal cycle");
+      navigate(PAGE_PATHS.performanceAppraisalCycleAddEmployees(cycle.id));
+    } catch (error) {
+      showPerformanceError(error, "Unable to create appraisal cycle.");
+    }
   };
 
   return (

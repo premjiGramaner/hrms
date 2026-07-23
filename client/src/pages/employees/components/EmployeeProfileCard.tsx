@@ -22,6 +22,7 @@ import {
   SUPPORTED_IMAGE_EXTENSIONS,
 } from "../../../config/constants";
 import { IconButton } from "../../../components/common/Button";
+import Toast from "../../../utils/toast";
 
 interface EmployeeProfileCardProps {
   employee: Employee;
@@ -57,7 +58,6 @@ export default function EmployeeProfileCard({
   const currentUser = useAppSelector((state) => state.auth.user);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState("");
   const [showImageModal, setShowImageModal] = useState(false);
   const [supervisorMap, setSupervisorMap] = useState<
     Map<string | number, string>
@@ -91,8 +91,8 @@ export default function EmployeeProfileCard({
             setSupervisorMap(map);
           }
         }
-      } catch (err) {
-        console.error("Failed to fetch supervisor names:", err);
+      } catch {
+        setSupervisorMap(new Map());
       }
     };
 
@@ -133,13 +133,12 @@ export default function EmployeeProfileCard({
 
     const validationError = validateImageFile(file);
     if (validationError) {
-      setUploadMessage(validationError);
+      Toast.error(validationError);
       return;
     }
 
     try {
       setUploading(true);
-      setUploadMessage("");
 
       const formData = new FormData();
       formData.append("avatar", file);
@@ -161,13 +160,6 @@ export default function EmployeeProfileCard({
             last_name: updatedEmployee.last_name,
           }),
         );
-      } else {
-        console.log(
-          "ℹ Not updating Redux - Current user:",
-          currentUser?.id,
-          "Updated employee:",
-          updatedEmployee.id,
-        );
       }
 
       if (onEmployeeUpdate) {
@@ -177,10 +169,9 @@ export default function EmployeeProfileCard({
         });
       }
 
-      setUploadMessage("Profile picture updated successfully!");
-      setTimeout(() => setUploadMessage(""), 3000);
+      Toast.success("Profile picture updated successfully.");
     } catch (error) {
-      setUploadMessage(
+      Toast.error(
         getApiErrorMessage(error, "Failed to update profile picture."),
       );
     } finally {
@@ -229,19 +220,6 @@ export default function EmployeeProfileCard({
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-base font-semibold text-slate-800 mb-4">About</h2>
-
-      {uploadMessage && (
-        <div
-          className={`mb-4 p-3 rounded-lg text-sm ${
-            uploadMessage.includes("successfully") ||
-            uploadMessage.includes("Success")
-              ? "bg-green-100 text-green-700 border border-green-200"
-              : "bg-red-100 text-red-700 border border-red-200"
-          }`}
-        >
-          {uploadMessage}
-        </div>
-      )}
 
       <div className="flex flex-col sm:flex-row gap-6">
         <div className="flex-shrink-0">
