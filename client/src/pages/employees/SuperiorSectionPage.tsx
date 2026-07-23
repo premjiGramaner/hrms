@@ -12,7 +12,12 @@ import {
   isAdminRole,
   type UserRole,
 } from "../../config/roles";
-import { IconSettings, IconShield, IconUsers, IconX } from "../../components/Icons";
+import {
+  IconSettings,
+  IconShield,
+  IconUsers,
+  IconX,
+} from "../../components/Icons";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: PAGE_PATHS.employees },
@@ -39,7 +44,6 @@ function initials(employee: Employee) {
 
 function avatarSrc(employee: Employee) {
   if (!employee.avatar) return "";
-
   return employee.avatar;
 }
 

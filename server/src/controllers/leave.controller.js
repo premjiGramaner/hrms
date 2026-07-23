@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import * as LeaveModel from "../models/leave.model.js";
+import { resetExpiredEntitlements } from "../models/entitlement.model.js";
 import { success, created, error } from "../utils/response.js";
 import { ADMIN_ROLES, SUPERVISOR_ROLES } from "../constants/roles.js";
 
@@ -17,6 +18,9 @@ const getLeaveTypes = async (req, res, next) => {
 
 const getLeaveBalance = async (req, res, next) => {
   try {
+    // Reset used_days for any entitlement periods that have already ended so
+    // the balance cards on /leave/apply always show 0 for expired periods.
+    await resetExpiredEntitlements().catch(() => {});
     const employeeId = req.query.employee_id || req.user.id;
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const balance = await LeaveModel.getLeaveBalance(employeeId, year);
@@ -82,8 +86,12 @@ const listLeaves = async (req, res, next) => {
     }
 
     if (role === "employee") {
+      // Employees are always restricted to their own leaves only.
       filters.own_employee_id = req.user.id;
     } else if (req.query.own_employee_id) {
+      // Admins / supervisors may pass own_employee_id to fetch only their own
+      // leaves (e.g. the "Last Leave Taken" card on the Apply Leave page).
+      // Use Number() on both sides to avoid strict-equality type mismatches.
       const requestedId = Number(req.query.own_employee_id);
       if (!isNaN(requestedId) && requestedId === Number(req.user.id)) {
         filters.own_employee_id = Number(req.user.id);
@@ -229,8 +237,20 @@ const approveLeave = async (req, res, next) => {
     const actorId = req.user.id;
     const actorRole = req.user.role;
 
-    if (actorRole === "employee")
-      return error(res, "Employees cannot approve leave requests", 403);
+    const PRIVILEGED_ROLES = [
+      "empmanager",
+      "hradmin",
+      "supervisor",
+      "manager",
+      "line_manager",
+      "reporting_manager",
+    ];
+    if (!PRIVILEGED_ROLES.includes(actorRole))
+      return error(
+        res,
+        "You do not have permission to approve leave requests",
+        403,
+      );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot approve your own leave request", 403);
     if (leave.status === "Cancelled")

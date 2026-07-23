@@ -19,6 +19,9 @@ import {
   type UserRole,
 } from "../../config/roles";
 
+import LeaveActionDropdown from "./components/LeaveActionDropdown";
+import { Paperclip, ArrowLeft } from "lucide-react";
+
 function StatusBadge({ status }: { status: string }) {
   return <span>{status}</span>;
 }
@@ -31,6 +34,20 @@ function RejectModal({
   onClose: () => void;
 }) {
   const [reason, setReason] = useState("");
+
+  const handleReasonChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    setReason(event.target.value);
+  };
+
+  const handleRejectClick = () => {
+    const trimmedReason = reason.trim();
+
+    if (!trimmedReason) return;
+
+    onConfirm(trimmedReason);
+  };
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
@@ -42,7 +59,7 @@ function RejectModal({
         </label>
         <textarea
           value={reason}
-          onChange={(event) => setReason(event.target.value)}
+          onChange={handleReasonChange}
           rows={4}
           autoFocus
           placeholder="Enter reason for rejection…"
@@ -57,7 +74,7 @@ function RejectModal({
           </button>
           <button
             disabled={!reason.trim()}
-            onClick={() => reason.trim() && onConfirm(reason.trim())}
+            onClick={handleRejectClick}
             className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer transition disabled:opacity-50"
           >
             Reject
@@ -103,145 +120,6 @@ function CancelModal({
   );
 }
 
-function ActionMenu({
-  leave,
-  isRequester,
-  isAdminOrHR,
-  onApprove,
-  onReject,
-  onCancel,
-}: {
-  leave: LeaveRequest;
-  isRequester: boolean;
-  isAdminOrHR: boolean;
-  onApprove: () => void;
-  onReject: () => void;
-  onCancel: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const openMenu = () => {
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      setPos({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.right + window.scrollX,
-      });
-    }
-    setOpen(true);
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        btnRef.current &&
-        !btnRef.current.contains(event.target as Node)
-      )
-        setOpen(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleScroll = () => setOpen(false);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => window.removeEventListener("scroll", handleScroll, true);
-  }, [open]);
-
-  const isPending = leave.status === "Pending Approval";
-  const canApproveReject = isAdminOrHR && !isRequester && isPending;
-  const canCancel = isPending && (isRequester || isAdminOrHR);
-  const hasAnyAction = canApproveReject || canCancel;
-
-  if (!hasAnyAction) {
-    return (
-      <button
-        disabled
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-300 rounded-lg bg-slate-50 text-slate-400 cursor-not-allowed opacity-50"
-      >
-        No Actions
-      </button>
-    );
-  }
-
-  return (
-    <>
-      <button
-        ref={btnRef}
-        onClick={() => (open ? setOpen(false) : openMenu())}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-300 rounded-lg bg-white hover:bg-slate-50 cursor-pointer transition whitespace-nowrap"
-      >
-        Select Action
-        <svg
-          className="w-3 h-3"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-
-      {open && (
-        <div
-          ref={menuRef}
-          style={{
-            position: "fixed",
-            top: pos.top,
-            left: pos.left,
-            transform: "translateX(-100%)",
-            zIndex: 9999,
-          }}
-          className="bg-white border border-slate-200 rounded-lg shadow-xl py-1 min-w-36"
-        >
-          {canApproveReject && (
-            <button
-              onClick={() => {
-                setOpen(false);
-                onApprove();
-              }}
-              className="w-full text-left px-4 py-2 text-xs text-green-700 hover:bg-green-50 transition cursor-pointer"
-            >
-              ✓ Approve
-            </button>
-          )}
-          {canCancel && (
-            <button
-              onClick={() => {
-                setOpen(false);
-                onCancel();
-              }}
-              className="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-            >
-              ⊘ Cancel
-            </button>
-          )}
-          {canApproveReject && (
-            <button
-              onClick={() => {
-                setOpen(false);
-                onReject();
-              }}
-              className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition cursor-pointer"
-            >
-              ✕ Reject
-            </button>
-          )}
-        </div>
-      )}
-    </>
-  );
-}
-
 function initials(name = "") {
   return (
     name
@@ -258,7 +136,6 @@ export default function LeaveDetailsPage() {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
   const { toasts, addToast, removeToast } = useToast();
-
   const [leave, setLeave] = useState<LeaveRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -266,8 +143,7 @@ export default function LeaveDetailsPage() {
   const [showCancel, setShowCancel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-
-  const leaveId = parseInt(id || "0");
+  const leaveId = Number.parseInt(id || "0", 10);
 
   const load = async () => {
     if (!leaveId) return;
@@ -297,6 +173,10 @@ export default function LeaveDetailsPage() {
     user?.id &&
     String(leave.user_id) === String(user.id)
   );
+
+  const isPending = leave?.status === "Pending Approval";
+  const canApproveReject = Boolean(isAdminOrHR && !isRequester && isPending);
+  const canCancel = Boolean(isPending && (isRequester || isAdminOrHR));
 
   const handleApprove = async () => {
     setActionLoading(true);
@@ -361,27 +241,56 @@ export default function LeaveDetailsPage() {
     }
   };
 
+  const handleOpenRejectModal = () => {
+    setShowReject(true);
+  };
+
+  const handleCloseRejectModal = () => {
+    setShowReject(false);
+  };
+
+  const handleOpenCancelModal = () => {
+    setShowCancel(true);
+  };
+
+  const handleCloseCancelModal = () => {
+    setShowCancel(false);
+  };
+
+  const handleBackClick = () => {
+    navigate(-1);
+  };
+
+  const handleOpenFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
       {showReject && (
         <RejectModal
           onConfirm={handleRejectConfirm}
-          onClose={() => setShowReject(false)}
+          onClose={handleCloseRejectModal}
         />
       )}
       {showCancel && (
         <CancelModal
           onConfirm={handleCancelConfirm}
-          onClose={() => setShowCancel(false)}
+          onClose={handleCloseCancelModal}
         />
       )}
 
       <button
-        onClick={() => navigate(-1)}
+        onClick={handleBackClick}
         className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-700 mb-4 cursor-pointer bg-transparent border-none transition"
       >
-        ← Back
+        <ArrowLeft
+          size={14}
+          aria-hidden="true"
+          style={{ position: "relative", top: "1px" }}
+        />{" "}
+        Back
       </button>
 
       {loading ? (
@@ -447,7 +356,7 @@ export default function LeaveDetailsPage() {
                   )}
                 </div>
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 font-medium text-slate-500">
                 <StatusBadge status={leave.status} />
               </div>
             </div>
@@ -513,18 +422,15 @@ export default function LeaveDetailsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {actionLoading ? (
-                        <div className="w-4 h-4 border-2 border-blue-900 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <ActionMenu
-                          leave={leave}
-                          isRequester={isRequester}
-                          isAdminOrHR={isAdminOrHR}
-                          onApprove={handleApprove}
-                          onReject={() => setShowReject(true)}
-                          onCancel={() => setShowCancel(true)}
-                        />
-                      )}
+                      <LeaveActionDropdown
+                        canApproveReject={canApproveReject}
+                        canCancel={canCancel}
+                        loading={actionLoading}
+                        onApprove={handleApprove}
+                        onReject={handleOpenRejectModal}
+                        onCancel={handleOpenCancelModal}
+                      />
+                      {/* )} */}
                     </td>
                   </tr>
                 </tbody>
@@ -549,7 +455,6 @@ export default function LeaveDetailsPage() {
             </h3>
             {leave.attachment_path ? (
               <div className="flex items-center gap-3 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <span className="text-2xl">📎</span>
                 <div className="flex-1 min-w-0">
                   <a
                     href={`/${leave.attachment_path}`}
@@ -571,7 +476,7 @@ export default function LeaveDetailsPage() {
                   rel="noreferrer"
                   className="text-xs text-blue-700 hover:text-blue-900 px-3 py-1.5 border border-blue-200 rounded-lg no-underline transition"
                 >
-                  View
+                  Download
                 </a>
               </div>
             ) : (
@@ -587,7 +492,7 @@ export default function LeaveDetailsPage() {
               onChange={handleFileChange}
             />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={handleOpenFilePicker}
               disabled={uploading}
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-xs font-semibold rounded-lg cursor-pointer hover:opacity-90 transition disabled:opacity-60"
             >
@@ -597,7 +502,15 @@ export default function LeaveDetailsPage() {
                   Uploading…
                 </>
               ) : (
-                <>📎 FILE ATTACHMENT</>
+                <>
+                  <Paperclip
+                    size={14}
+                    strokeWidth={2.5}
+                    className="text-white"
+                    aria-hidden="true"
+                  />
+                  FILE ATTACHMENT
+                </>
               )}
             </button>
             <p className="text-xs text-slate-400 mt-2">Accepts up to 5 MB</p>

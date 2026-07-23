@@ -62,7 +62,6 @@ export default function LeaveNavBar() {
         </Link>
       )}
 
-      {/* Admins see the full Entitlements dropdown */}
       {isAdmin && (
         <div ref={entRef} className="relative flex flex-shrink-0 items-stretch">
           <button

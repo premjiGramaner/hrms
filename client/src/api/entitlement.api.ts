@@ -9,7 +9,6 @@ export interface EmployeeOption {
   job_title?: string;
   sub_unit?: string;
 }
-
 export interface EntitlementRecord {
   id: number;
   emp_code: string;
@@ -23,23 +22,26 @@ export interface EntitlementRecord {
   used_days: number;
   carried_days: number;
   net_balance: number;
+  credited_on: string;
+  updated_at: string;
+  valid_from: string;
+  valid_to: string;
+  expired: boolean;
+  last_added_days: number;
 }
-
-// Returned by GET /api/leave/entitlements/my — detailed view with period fields
 export interface MyEntitlementRecord {
   id: number;
   leave_type: string;
-  entitlement_type: string;   // always "Added"
-  credited_on: string;        // date string YYYY-MM-DD
-  valid_from: string;         // YYYY-MM-DD
-  valid_to: string;           // YYYY-MM-DD
+  entitlement_type: string;
+  credited_on: string;
+  valid_from: string;
+  valid_to: string;
   expired: boolean;
-  leave_entitlement: number;  // total_days
+  leave_entitlement: number;
   used_days: number;
   net_balance: number;
   year: number;
 }
-
 export interface CreateEntitlementPayload {
   employee_id?: number;
   employee_ids?: number[];
@@ -51,14 +53,14 @@ export interface CreateEntitlementPayload {
 
 export const getEntitlementEmployees = async (q = "") => {
   const res = await api.get<{ success: boolean; data: EmployeeOption[] }>(
-    `${ENTITLEMENT_PATHS.EMPLOYEES}?q=${encodeURIComponent(q)}`
+    `${ENTITLEMENT_PATHS.EMPLOYEES}?q=${encodeURIComponent(q)}`,
   );
   return res.data.data;
 };
 
 export const getEntitlementLeaveTypes = async () => {
   const res = await api.get<{ success: boolean; data: LeaveType[] }>(
-    ENTITLEMENT_PATHS.LEAVE_TYPES
+    ENTITLEMENT_PATHS.LEAVE_TYPES,
   );
   return res.data.data;
 };
@@ -78,11 +80,13 @@ export const getEntitlementList = async (params: {
   page?: number;
   limit?: number;
 }) => {
-  const parts: string[] = [];
+  const queryParams: string[] = [];
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== 0) parts.push(`${key}=${encodeURIComponent(String(value))}`);
+    if (value !== null && value !== 0)
+      queryParams.push(`${key}=${encodeURIComponent(String(value))}`);
   }
-  const qs = parts.length ? `?${parts.join("&")}` : "";
+
+  const qs = queryParams.length ? `?${queryParams.join("&")}` : "";
   const res = await api.get<{
     success: boolean;
     data: PaginatedResponse<EntitlementRecord>;
