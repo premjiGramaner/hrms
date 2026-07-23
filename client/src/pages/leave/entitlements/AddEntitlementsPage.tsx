@@ -47,24 +47,36 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
+    const trimmedQuery = query.trim();
     clearTimeout(debounceRef.current);
-    if (!query.trim()) {
+    if (!trimmedQuery) {
       setOptions([]);
       setOpen(false);
+      setLoading(false);
       return;
     }
+    let isSearchCancelled = false;
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const data = await getEntitlementEmployees(query);
-        setOptions(data);
-        setOpen(true);
+        const employees = await getEntitlementEmployees(trimmedQuery);
+        if (isSearchCancelled) return;
+        setOptions(employees);
+        setOpen(employees.length > 0);
       } catch {
+        if (isSearchCancelled) return;
         setOptions([]);
+        setOpen(false);
       } finally {
-        setLoading(false);
+        if (!isSearchCancelled) {
+          setLoading(false);
+        }
       }
     }, 250);
+    return () => {
+      isSearchCancelled = true;
+      clearTimeout(debounceRef.current);
+    };
   }, [query]);
 
   useEffect(() => {
