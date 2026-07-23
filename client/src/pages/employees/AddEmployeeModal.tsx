@@ -730,7 +730,7 @@ export default function AddEmployeeModal({
         onBlur={(event) =>
           handleEmployeeIdBlur(event.target.value, event.target)
         }
-        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
           errors.employee_id
             ? "border-red-500 bg-red-50"
             : checkingEmployeeId
@@ -796,7 +796,7 @@ export default function AddEmployeeModal({
         name={name}
         defaultValue={formRef.current[name]}
         onChange={(event) => handleSelectChange(name, event)}
-        className={`w-full px-3 py-2 pr-7 border-1.5 rounded-lg text-sm outline-none appearance-none transition-colors ${
+        className={`w-full px-3 py-2 pr-7 border-2 rounded-lg text-sm outline-none appearance-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
             : "border-slate-200 bg-slate-50 focus:border-slate-300"
@@ -1148,10 +1148,15 @@ export default function AddEmployeeModal({
                 {FormField(
                   "Comments",
                   <textarea
+                    name="comments"
                     defaultValue={formRef.current.comments}
                     onChange={handleFieldChange("comments")}
                     placeholder="Any notes…"
-                    className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg text-sm outline-none bg-slate-50 focus:border-slate-300 resize-none h-16"
+                    className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none resize-none h-16 transition-colors ${
+                      errors.comments
+                        ? "border-red-500 bg-red-50"
+                        : "border-slate-200 bg-slate-50 focus:border-slate-300"
+                    }`}
                   />,
                 )}
               </div>
