@@ -126,6 +126,7 @@ export default function ResetPasswordPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       autoFocus
+                      disabled={loading}
                       autoComplete="new-password"
                       className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-14 text-sm text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
                     />
@@ -152,6 +153,7 @@ export default function ResetPasswordPage() {
                       type={showConfirm ? "text" : "password"}
                       placeholder="Confirm new password"
                       value={confirmPassword}
+                      disabled={loading}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       autoComplete="new-password"
                       className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-14 text-sm text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
@@ -175,11 +177,10 @@ export default function ResetPasswordPage() {
                   {/* Password match indicator */}
                   {confirmPassword.length > 0 && (
                     <p
-                      className={`-mt-3 mb-4 text-xs ${
-                        password === confirmPassword
-                          ? "text-teal-600"
-                          : "text-red-500"
-                      }`}
+                      className={`-mt-3 mb-4 text-xs ${password === confirmPassword
+                        ? "text-teal-600"
+                        : "text-red-500"
+                        }`}
                     >
                       {password === confirmPassword
                         ? "✓ Passwords match"

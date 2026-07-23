@@ -19,6 +19,7 @@ export const AUTH_PATHS = {
     PROFILE: "/auth/profile",
     FORGOT_PASSWORD: "/auth/forgot-password",
     RESET_PASSWORD: "/auth/reset-password",
+    VERIFY_TOKEN: "/auth/verify-token",
     SET_PASSWORD: "/auth/set-password",
     CREATE_FIRST_TIME_PASSWORD: "/auth/create-first-time-password",
 } as const;

@@ -75,14 +75,16 @@ function PerformanceAdminOnly({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const [isCheckingAuth, setIsCheckingAuth] = React.useState(true);
+  const [isCheckingAuth, setIsCheckingAuth] = React.useState(false);
   const dispatch = useAppDispatch();
   const token = useAppSelector((state) => state.auth.token);
 
   React.useEffect(() => {
+    const isCookieExist =
+      token === "cookie_auth" || token === "cookie_authenticated";
+
     const checkCookieAuth = async () => {
-      const isCookieExist =
-        token === "cookie_auth" || token === "cookie_authenticated";
+      setIsCheckingAuth(true);
 
       if (token && !isCookieExist) {
         setIsCheckingAuth(false);
@@ -91,7 +93,7 @@ export default function App() {
 
       try {
         const userResponse = await self();
-        const userData = userResponse.data;
+        const userData = userResponse?.data;
         const tempToken = "cookie_authenticated";
 
         dispatch(
@@ -109,7 +111,9 @@ export default function App() {
       }
     };
 
-    checkCookieAuth();
+    if (token || isCookieExist)
+      checkCookieAuth();
+
   }, [dispatch, token]);
 
   if (isCheckingAuth) {

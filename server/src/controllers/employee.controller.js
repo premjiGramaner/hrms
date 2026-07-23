@@ -148,7 +148,7 @@ const createEmployee = async (req, res, next) => {
         return error(res, "Employee ID already exists", 409);
     }
 
-    const avatarPath = req.file ? `/uploads/profile/${req.file.filename}` : undefined;
+    const avatarPath = req.file ? `/uploads/profile/${req.file.filename}` : null;
 
     const emp = await EmployeeModel.createEmployee(
       { ...req.body, email: workEmail, created_by: req.user?.id },
@@ -216,8 +216,8 @@ const createEmployee = async (req, res, next) => {
 };
 
 const updateEmployee = async (req, res, next) => {
+  const id = parseInt(req.params.id);
   try {
-    const id = parseInt(req.params.id);
     const existing = await EmployeeModel.findEmployeeById(id);
     if (!existing) return error(res, "Employee not found", 404);
 
@@ -246,7 +246,7 @@ const updateEmployee = async (req, res, next) => {
         );
     }
 
-    const avatarPath = req.file ? `/uploads/profile/${req.file.filename}` : undefined;
+    const avatarPath = req.file ? `/uploads/profile/${req.file.filename}` : null;
 
     const body = { ...req.body, email: workEmail };
 
