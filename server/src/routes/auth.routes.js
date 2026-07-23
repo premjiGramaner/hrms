@@ -5,6 +5,7 @@ import {
   login,
   logout,
   resetPassword,
+  verifyToken,
   self,
 } from "../controllers/auth.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
@@ -16,6 +17,7 @@ const router = Router();
 router.post("/login", validate(loginSchema), login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+router.post("/verify-token", verifyToken);
 router.post("/create-first-time-password", createFirstTimePassword);
 router.post("/logout", logout);
 router.get("/profile", authenticate, self);

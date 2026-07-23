@@ -22,10 +22,20 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem(STORAGE_KEYS.token);
-      localStorage.removeItem(STORAGE_KEYS.user);
-      if (window.location.pathname !== "/login")
+      const pathname = window.location.pathname;
+      const isPublicAuthRoute = [
+        "/login",
+        "/forgot-password",
+        "/reset-password"
+      ].some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`),
+      );
+
+      if (!isPublicAuthRoute) {
+        localStorage.removeItem(STORAGE_KEYS.token);
+        localStorage.removeItem(STORAGE_KEYS.user);
         window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   },

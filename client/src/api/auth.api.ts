@@ -57,6 +57,14 @@ export const resetPassword = async (
   return { data: response.data.data };
 };
 
+export const verifyToken = async (token: string) => {
+  const response = await api.post<{
+    success: boolean;
+    data: { message: string; data: { user: AuthUser } };
+  }>(AUTH_PATHS.VERIFY_TOKEN, { token });
+  return response?.data?.data;
+};
+
 export const setPassword = async (
   token: string,
   password: string,

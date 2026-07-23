@@ -271,7 +271,24 @@ const forgotPassword = async (req, res, next) => {
   }
 };
 
+const validateResetToken = async (token) => {
+  const tokenHash = hashResetToken(token);
+  const { rows } = await pool.query(
+    `SELECT id, name
+     FROM tbl_appusers
+     WHERE password_reset_token = $1
+       AND password_reset_expires > NOW()
+       AND is_deleted = false
+       AND is_active = true
+     LIMIT 1`,
+    [tokenHash],
+  );
+
+  return rows[0];
+}
+
 async function completePasswordReset(token, password, confirmPassword) {
+  // Todo: Verify the "ensureAuthSchema" usage - I'm not fully sure about this workflow
   await ensureAuthSchema();
   if (!token)
     return {
@@ -291,18 +308,7 @@ async function completePasswordReset(token, password, confirmPassword) {
   const policyError = validatePasswordPolicy(password);
   if (policyError) return { errorMessage: policyError, status: 400 };
 
-  const tokenHash = hashResetToken(token);
-  const { rows } = await pool.query(
-    `SELECT id
-     FROM tbl_appusers
-     WHERE password_reset_token = $1
-       AND password_reset_expires > NOW()
-       AND is_deleted = false
-       AND is_active = true
-     LIMIT 1`,
-    [tokenHash],
-  );
-  const user = rows[0];
+  const user = await validateResetToken(token);
   if (!user)
     return {
       errorMessage: "Password reset link is invalid or expired.",
@@ -322,6 +328,18 @@ async function completePasswordReset(token, password, confirmPassword) {
   );
   return { ok: true };
 }
+
+export const verifyToken = async (req, res, next) => {
+  try {
+    const user = await validateResetToken(req.body.token);
+    if (!user)
+      return error(res, "Password reset link is invalid or expired.", 400);
+
+    return success(res, { message: "Token is valid.", data: { user } });
+  } catch (err) {
+    next(err);
+  }
+};
 
 const resetPassword = async (req, res, next) => {
   try {

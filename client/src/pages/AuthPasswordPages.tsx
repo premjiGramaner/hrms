@@ -1,9 +1,10 @@
-import { FormEvent, ReactNode, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   createFirstTimePassword,
   forgotPassword,
   resetPassword,
+  verifyToken,
 } from "../api/auth.api";
 import cannyforeLogo from "../assets/logo.png";
 import orangeHrmLogo from "../assets/orangehrm-logo.png";
@@ -31,10 +32,12 @@ function AuthShell({
   title,
   subtitle,
   children,
+  isError,
 }: {
   title: string;
-  subtitle: string;
+  subtitle: string | ReactNode;
   children: ReactNode;
+  isError?: boolean;
 }) {
   return (
     <main className="min-h-screen bg-white font-sans text-slate-800 lg:grid lg:grid-cols-2">
@@ -60,7 +63,11 @@ function AuthShell({
               </div>
             </div>
             <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-500">{subtitle}</p>
+            {
+              !isError && (
+                <p className="mt-2 text-sm leading-6 text-slate-500">{subtitle}</p>
+              )
+            }
             <div className="mt-6">{children}</div>
           </div>
         </div>
@@ -113,6 +120,7 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [authenticatedUserName, setAuthenticatedUserName] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const submitLabel = mode === "create" ? "Create Password" : "Reset Password";
@@ -126,8 +134,28 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
         ? `Create a permanent password for ${username}.`
         : "Create your permanent password before accessing HRMS.";
     }
-    return "Enter a new password for your HRMS account.";
-  }, [mode, username]);
+    return <>Enter a new password <b>{authenticatedUserName}</b> for your HRMS account.</>;
+  }, [mode, authenticatedUserName, username]);
+
+  useEffect(() => {
+    const verify = async () => {
+      setLoading(true);
+      try {
+        const response = await verifyToken(token);
+        if (response?.data?.user) {
+          setAuthenticatedUserName(response?.data?.user?.name || "");
+        }
+      } catch (err: unknown) {
+        console.log('** err', err)
+        setError("This password link is missing or invalid.");
+
+      }
+      setLoading(false);
+    };
+
+    verify();
+  }, [])
+
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -168,42 +196,44 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
   };
 
   return (
-    <AuthShell title={submitLabel} subtitle={subtitle}>
-      {error && (
-        <div className="mb-4 rounded-xl border-l-4 border-red-300 bg-red-50 px-3.5 py-2.5 text-sm text-red-900">
-          {error}
-        </div>
-      )}
+    <AuthShell title={submitLabel} subtitle={subtitle} isError={!!error}>
       {success && (
         <div className="mb-4 rounded-xl border-l-4 border-emerald-300 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-900">
           {success}
         </div>
       )}
-      <form onSubmit={onSubmit} noValidate>
-        <PasswordInput
-          label="New Password"
-          value={password}
-          onChange={setPassword}
-          autoComplete="new-password"
-        />
-        <PasswordInput
-          label="Confirm Password"
-          value={confirmPassword}
-          onChange={setConfirmPassword}
-          autoComplete="new-password"
-        />
-        <p className="mb-5 text-xs leading-5 text-slate-500">
-          Use at least 8 characters with uppercase, lowercase, number, and
-          special character.
-        </p>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-blue-950 to-teal-500 px-5 text-base font-bold text-white shadow-lg shadow-teal-600/20 transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {loading ? "Saving..." : submitLabel}
-        </button>
-      </form>
+      {error ? (
+        <div className="mb-4 rounded-xl border-l-4 border-red-300 bg-red-50 px-3.5 py-2.5 text-sm text-red-900">
+          {error}
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} noValidate>
+          <PasswordInput
+            label="New Password"
+            value={password}
+            onChange={setPassword}
+            autoComplete="new-password"
+          />
+          <PasswordInput
+            label="Confirm Password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            autoComplete="new-password"
+          />
+          <p className="mb-5 text-xs leading-5 text-slate-500">
+            Use at least 8 characters with uppercase, lowercase, number, and
+            special character.
+          </p>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-blue-950 to-teal-500 px-5 text-base font-bold text-white shadow-lg shadow-teal-600/20 transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {loading ? "Saving..." : submitLabel}
+          </button>
+        </form>
+      )}
+
       <Link
         to={PAGE_PATHS.login}
         className="mt-5 block text-center text-sm font-bold text-blue-950 hover:text-teal-600"
