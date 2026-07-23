@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS tbl_appusers (
   exit_interview_completed BOOLEAN      DEFAULT FALSE,
   rehire_eligible         BOOLEAN       DEFAULT TRUE,
   termination_notes       TEXT,
+  note       TEXT,
 
   -- Audit
   created_by              BIGINT,

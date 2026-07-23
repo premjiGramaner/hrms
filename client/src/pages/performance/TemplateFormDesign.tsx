@@ -72,7 +72,7 @@ export default function TemplateFormDesign() {
   if (!template) {
     return (
       <Layout title="Performance / Configuration / Appraisal / Templates">
-        <div className="min-h-full bg-[#fbf6ff] p-8">
+        <div className="min-h-full bg-gray-100 p-8">
           <div className="rounded-[8px] bg-white p-8 text-sm font-semibold text-slate-500">
             Loading template...
           </div>
@@ -223,7 +223,7 @@ export default function TemplateFormDesign() {
       activeTab={topPill}
       onFab={() => setIsAdding(true)}
     >
-      <div className="min-h-full bg-[#fbf6ff] p-2">
+      <div className="min-h-full bg-gray-100 p-2">
         <Card className="relative mx-auto min-h-[640px] max-w-[1480px] px-24 py-10">
           <div className="absolute right-8 top-8 flex items-center gap-4 text-slate-500">
             <button

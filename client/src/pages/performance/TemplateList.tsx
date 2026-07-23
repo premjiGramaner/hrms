@@ -127,7 +127,7 @@ export default function TemplateList() {
 
   return (
     <PerformanceLayout title="Performance" activeTab="Templates">
-      <div className="min-h-full bg-[#fbf6ff] p-2">
+      <div className="min-h-full bg-gray-100 p-2">
         <div className="rounded-[8px] bg-white p-8">
           <div className="mb-6 flex justify-end">
             <Button onClick={openAddModal}>
