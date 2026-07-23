@@ -1,12 +1,15 @@
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import {
+  EMAIL_PATTERN,
+  TEN_DIGIT_NUMBER_PATTERN,
+} from "../constants/validationPatterns";
 
 export const validateEmail = (email: string): boolean => {
-  return EMAIL_REGEX.test(email);
+  return EMAIL_PATTERN.test(email);
 };
 
-const NAME_REGEX = /^[A-Za-z\s'\-]+$/;
+export { EMAIL_PATTERN as EMAIL_REGEX };
 
-const MOBILE_10DIGIT_REGEX = /^\d{10}$/;
+const NAME_REGEX = /^[A-Za-z\s'\-]+$/;
 
 const LICENSE_REGEX = /^[A-Z]{2}\d{2}\d{4}\d{7}$/;
 
@@ -36,19 +39,19 @@ export function validateEmployeeStep(
   const errors: Record<string, string> = {};
 
   if (step === 1) {
-    const fn = form.first_name?.trim() || "";
-    const ln = form.last_name?.trim() || "";
-    const mn = form.middle_name?.trim() || "";
+    const firstName = form.first_name?.trim() || "";
+    const lastName = form.last_name?.trim() || "";
+    const middleName = form.middle_name?.trim() || "";
 
-    if (!fn) errors.first_name = "First name is required";
-    else if (!NAME_REGEX.test(fn))
+    if (!firstName) errors.first_name = "First name is required";
+    else if (!NAME_REGEX.test(firstName))
       errors.first_name = "First name must contain letters only";
 
-    if (!ln) errors.last_name = "Last name is required";
-    else if (!NAME_REGEX.test(ln))
+    if (!lastName) errors.last_name = "Last name is required";
+    else if (!NAME_REGEX.test(lastName))
       errors.last_name = "Last name must contain letters only";
 
-    if (mn && !NAME_REGEX.test(mn))
+    if (middleName && !NAME_REGEX.test(middleName))
       errors.middle_name = "Middle name must contain letters only";
 
     if (!form.joined_date) errors.joined_date = "Joined date is required";
@@ -58,8 +61,8 @@ export function validateEmployeeStep(
   if (step === 2) {
     if (!form.gender) errors.gender = "Gender is required";
 
-    const lic = form.license_number?.trim() || "";
-    if (lic && !LICENSE_REGEX.test(lic)) {
+    const licenseNumber = form.license_number?.trim() || "";
+    if (licenseNumber && !LICENSE_REGEX.test(licenseNumber)) {
       errors.license_number =
         "License format: 2 letters + 2 digits + 4-digit year + 7 digits (e.g. TN0120260012345)";
     }
@@ -73,25 +76,25 @@ export function validateEmployeeStep(
 
   if (step === 4) {
     if (!form.work_email?.trim()) errors.work_email = "Work email is required";
-    else if (!EMAIL_REGEX.test(form.work_email))
+    else if (!EMAIL_PATTERN.test(form.work_email))
       errors.work_email = "Enter a valid email";
 
     const otherEmail = form.other_email?.trim() || "";
-    if (otherEmail && !EMAIL_REGEX.test(otherEmail))
+    if (otherEmail && !EMAIL_PATTERN.test(otherEmail))
       errors.other_email = "Enter a valid email";
 
     const mobile = form.mobile?.trim() || "";
     if (!mobile) errors.mobile = "Mobile is required";
-    else if (!MOBILE_10DIGIT_REGEX.test(mobile))
+    else if (!TEN_DIGIT_NUMBER_PATTERN.test(mobile))
       errors.mobile = "Mobile must be exactly 10 digits";
 
     const workTel = form.work_tel?.trim() || "";
-    if (workTel && !MOBILE_10DIGIT_REGEX.test(workTel)) {
+    if (workTel && !TEN_DIGIT_NUMBER_PATTERN.test(workTel)) {
       errors.work_tel = "Work Tel must be exactly 10 digits";
     }
 
     const homeTel = form.home_tel?.trim() || "";
-    if (homeTel && !MOBILE_10DIGIT_REGEX.test(homeTel)) {
+    if (homeTel && !TEN_DIGIT_NUMBER_PATTERN.test(homeTel)) {
       errors.home_tel = "Home Tel must be exactly 10 digits";
     }
   }

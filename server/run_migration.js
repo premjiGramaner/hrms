@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import pool from "./src/config/db.js";
+import { logError } from "./src/utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -43,8 +44,9 @@ const migrations = [
   "011_fix_termination_trigger_ambiguous_column.sql",
   "012_backfill_real_dob_from_dob.sql",
   "013_add_external_emails_to_notification_config.sql",
-  // Leave management module
   "leave_management.sql",
+  "014_create_entitlement_history_table.sql",
+  // Leave management module
   "add_password_reset_columns.sql",
   "add_net_leave_balance_column.sql",
 ];
@@ -117,7 +119,7 @@ export async function runMigrations(options = {}) {
       log(`✓ applied ${fileName}`);
     } catch (error) {
       await client.query("ROLLBACK").catch(() => {});
-      console.error(`✗ failed  ${fileName}: ${error.message}`);
+      logError(`failed  ${fileName}: ${error.message}`);
       throw error;
     } finally {
       client.release();

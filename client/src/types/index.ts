@@ -26,7 +26,7 @@ export interface Employee {
   work_tel?: string;
   address1?: string;
   address2?: string;
-  
+
   city?: string;
   country?: string;
   state?: string;
@@ -46,6 +46,12 @@ export interface Employee {
   supervisors?: string[];
   supervisor_names?: string[];
   is_active?: boolean;
+}
+
+export interface UpdateUserNamePayload {
+  first_name?: string;
+  last_name?: string;
+  name?: string;
 }
 
 export interface Supervisor {
@@ -115,7 +121,7 @@ export interface LeaveRequest {
   approved_on?: string;
   rejected_on?: string;
   cancelled_on?: string;
-  supervisors?: string | string[]; 
+  supervisors?: string | string[];
 }
 
 export interface LeaveBalance {
@@ -142,8 +148,8 @@ export interface LeaveFilters {
   job_category?: string;
   attachment_status?: string;
   include_past?: boolean;
-   own_employee_id?: number;
   only_subordinates?: boolean;
+  own_employee_id?: number;
   statuses?: string[];
   page?: number;
   limit?: number;

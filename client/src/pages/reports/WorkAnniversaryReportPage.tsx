@@ -10,6 +10,63 @@ import {
   downloadWorkAnniversaryReportExcel,
   fetchReportFilterOptions,
 } from "../../api/report.api";
+import { IconAward } from "../../components/Icons";
+import { ERROR_MESSAGES } from "../../constants/messages";
+import { COLORS } from "../../styles/theme";
+
+const REPORT_CONFIG = {
+  TITLE: "Work Anniversary Report",
+  SUBTITLE: "View employee work anniversaries and tenure information",
+  SEARCH_PLACEHOLDER: "Search by employee name...",
+  ITEM_LABEL: "employees",
+  EMPTY_ICON_TEXT: "🎊",
+  EMPTY_TITLE: "No Work Anniversaries Found",
+  EMPTY_SUBTITLE: "No employee work anniversaries match your current filters",
+  EXPORT_BUTTON_LABEL: "Export Excel",
+  DEFAULT_SORT_COLUMN: "joined_date",
+  DEFAULT_SORT_DIRECTION: "asc" as const,
+} as const;
+
+const FILTER_OPTIONS = {
+  MONTHS: [
+    { value: "01", label: "January" },
+    { value: "02", label: "February" },
+    { value: "03", label: "March" },
+    { value: "04", label: "April" },
+    { value: "05", label: "May" },
+    { value: "06", label: "June" },
+    { value: "07", label: "July" },
+    { value: "08", label: "August" },
+    { value: "09", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ],
+  SERVICE_YEARS: [1, 2, 3, 5, 10, 15, 20, 25],
+} as const;
+
+const COLUMN_LABELS = {
+  EMPLOYEE_ID: "Employee ID",
+  EMPLOYEE_NAME: "Employee Name",
+  DESIGNATION: "Designation",
+  DEPARTMENT: "Department",
+  LOCATION: "Location",
+  DATE_OF_JOINING: "Date of Joining",
+  ANNIVERSARY_DATE: "Anniversary Date",
+  YEARS_OF_SERVICE: "Years of Service",
+  TENURE: "Tenure",
+  NOT_AVAILABLE: "N/A",
+  YEAR_SUFFIX: "Year",
+  YEARS_SUFFIX: "Years",
+  YEAR_LABEL: "y",
+  MONTH_LABEL: "m",
+} as const;
+
+const FILTER_LABELS = {
+  ALL_MONTHS: "All Months",
+  ALL_YEARS: "All Years",
+  ALL_DEPARTMENTS: "All Departments",
+} as const;
 import { PAGE_PATHS } from "../../config/roles";
 
 const TABS: TabItem[] = [
@@ -30,7 +87,6 @@ export default function WorkAnniversaryReportPage() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Filters
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedYears, setSelectedYears] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
@@ -43,8 +99,8 @@ export default function WorkAnniversaryReportPage() {
     try {
       const options = await fetchReportFilterOptions();
       setFilterOptions(options);
-    } catch (err) {
-      console.error("Failed to load filter options:", err);
+    } catch (error) {
+      console.error("Failed to load filter options:", error);
     }
   }, []);
 
@@ -58,16 +114,16 @@ export default function WorkAnniversaryReportPage() {
         month: selectedMonth || undefined,
         years_of_service: selectedYears || undefined,
         department: selectedDepartment || undefined,
-        sort_column: "joined_date",
-        sort_direction: "asc",
+        sort_column: REPORT_CONFIG.DEFAULT_SORT_COLUMN,
+        sort_direction: REPORT_CONFIG.DEFAULT_SORT_DIRECTION,
       };
 
       const result = await fetchWorkAnniversaryReport(queryParams);
       setReportData(result.reportData);
       setTotalRecords(result.totalRecords);
       setTotalPages(result.totalPages);
-    } catch (err) {
-      console.error("Failed to load work anniversary report:", err);
+    } catch (error) {
+      console.error("Failed to load work anniversary report:", error);
       setReportData([]);
     } finally {
       setIsLoading(false);
@@ -98,184 +154,135 @@ export default function WorkAnniversaryReportPage() {
     };
     try {
       await downloadWorkAnniversaryReportExcel(queryParams);
-    } catch (err) {
-      console.error("Export failed:", err);
-      alert("Failed to export report. Please try again.");
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert(ERROR_MESSAGES.EXPORT_FAILED);
     }
   };
 
   const columns: ColumnDef<WorkAnniversaryReportRecord>[] = [
     {
       key: "employee_id",
-      header: "Employee ID",
+      header: COLUMN_LABELS.EMPLOYEE_ID,
       width: 130,
       render: (row) => (
-        <span style={{ fontWeight: 600, color: "#1B2A6B" }}>
-          {row.employee_id || "N/A"}
+        <span className="font-semibold" style={{ color: COLORS.primary.navy }}>
+          {row.employee_id || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
     {
       key: "employee_name",
-      header: "Employee Name",
+      header: COLUMN_LABELS.EMPLOYEE_NAME,
       width: 200,
-      render: (row) => (
-        <span style={{ fontWeight: 500 }}>{row.employee_name}</span>
-      ),
+      render: (row) => <span className="font-medium">{row.employee_name}</span>,
     },
     {
       key: "designation",
-      header: "Designation",
+      header: COLUMN_LABELS.DESIGNATION,
       width: 180,
     },
     {
       key: "department",
-      header: "Department",
+      header: COLUMN_LABELS.DEPARTMENT,
       width: 150,
     },
     {
       key: "location",
-      header: "Location",
+      header: COLUMN_LABELS.LOCATION,
       width: 140,
     },
     {
       key: "date_of_joining",
-      header: "Date of Joining",
+      header: COLUMN_LABELS.DATE_OF_JOINING,
       width: 140,
     },
     {
       key: "formatted_anniversary",
-      header: "Anniversary Date",
+      header: COLUMN_LABELS.ANNIVERSARY_DATE,
       width: 150,
       render: (row) => (
-        <span style={{ fontWeight: 600, color: "#7C3AED" }}>
-          {row.formatted_anniversary || "N/A"}
+        <span className="font-semibold text-violet-600">
+          {row.formatted_anniversary || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
     {
       key: "years_of_service",
-      header: "Years of Service",
+      header: COLUMN_LABELS.YEARS_OF_SERVICE,
       width: 140,
       render: (row) => (
-        <span
-          style={{
-            padding: "6px 12px",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 700,
-            background: "#16A085",
-            color: "#fff",
-          }}
-        >
-          {row.years_of_service} Year{row.years_of_service !== 1 ? "s" : ""}
+        <span className="py-1.5 px-3 rounded-md text-xs font-bold bg-[#16A085] text-white">
+          {row.years_of_service}{" "}
+          {row.years_of_service !== 1
+            ? COLUMN_LABELS.YEARS_SUFFIX
+            : COLUMN_LABELS.YEAR_SUFFIX}
         </span>
       ),
     },
     {
       key: "additional_months",
-      header: "Tenure",
+      header: COLUMN_LABELS.TENURE,
       width: 120,
       render: (row) => (
-        <span style={{ fontSize: 12, color: "#64748b" }}>
-          {row.years_of_service}y {row.additional_months || 0}m
+        <span className="text-xs text-slate-500">
+          {row.years_of_service}
+          {COLUMN_LABELS.YEAR_LABEL} {row.additional_months || 0}
+          {COLUMN_LABELS.MONTH_LABEL}
         </span>
       ),
     },
   ];
 
-  const months = [
-    { value: "01", label: "January" },
-    { value: "02", label: "February" },
-    { value: "03", label: "March" },
-    { value: "04", label: "April" },
-    { value: "05", label: "May" },
-    { value: "06", label: "June" },
-    { value: "07", label: "July" },
-    { value: "08", label: "August" },
-    { value: "09", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
-  ];
-
   const filterToolbar = (
-    <div
-      style={{
-        display: "flex",
-        gap: 12,
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
+    <div className="flex gap-3 flex-wrap items-center">
       <select
         value={selectedMonth}
-        onChange={(e) => setSelectedMonth(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setSelectedMonth(event.target.value)}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       >
-        <option value="">All Months</option>
-        {months.map((month) => (
+        <option value="">{FILTER_LABELS.ALL_MONTHS}</option>
+        {FILTER_OPTIONS.MONTHS.map((month) => (
           <option key={month.value} value={month.value}>
             {month.label}
           </option>
         ))}
       </select>
+
       <select
         value={selectedYears}
-        onChange={(e) => setSelectedYears(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setSelectedYears(event.target.value)}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       >
-        <option value="">All Years</option>
-        {[1, 2, 3, 5, 10, 15, 20, 25].map((year) => (
-          <option key={year} value={year}>
-            {year} Year{year !== 1 ? "s" : ""}
+        <option value="">{FILTER_LABELS.ALL_YEARS}</option>
+        {FILTER_OPTIONS.SERVICE_YEARS.map((yearValue) => (
+          <option key={yearValue} value={yearValue}>
+            {yearValue}{" "}
+            {yearValue !== 1
+              ? COLUMN_LABELS.YEARS_SUFFIX
+              : COLUMN_LABELS.YEAR_SUFFIX}
           </option>
         ))}
       </select>
+
       <select
         value={selectedDepartment}
-        onChange={(e) => setSelectedDepartment(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 6,
-          fontSize: 13,
-          outline: "none",
-        }}
+        onChange={(event) => setSelectedDepartment(event.target.value)}
+        className="py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#1b2a6b] transition-colors"
       >
-        <option value="">All Departments</option>
+        <option value="">{FILTER_LABELS.ALL_DEPARTMENTS}</option>
         {filterOptions.subUnits.map((unit) => (
           <option key={unit} value={unit}>
             {unit}
           </option>
         ))}
       </select>
+
       <button
         onClick={handleExportExcel}
-        style={{
-          padding: "8px 16px",
-          background: "#16A085",
-          color: "#fff",
-          border: "none",
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
+        className="py-2 px-4 bg-[#16A085] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#138f72] transition-colors"
       >
-        Export Excel
+        {REPORT_CONFIG.EXPORT_BUTTON_LABEL}
       </button>
     </div>
   );
@@ -284,13 +291,13 @@ export default function WorkAnniversaryReportPage() {
     <Layout
       title="Reports and Analytics"
       tabs={TABS}
-      activeTab="Work Anniversary"
+      activeTab={REPORT_CONFIG.TITLE}
     >
-      <div style={{ padding: "20px 40px" }}>
+      <div className="py-5 px-10">
         <DataTable
-          title="Work Anniversary Report"
-          subtitle="View employee work anniversaries and tenure information"
-          icon=""
+          title={REPORT_CONFIG.TITLE}
+          subtitle={REPORT_CONFIG.SUBTITLE}
+          icon={<IconAward size={18} />}
           rows={reportData}
           columns={columns}
           isLoading={isLoading}
@@ -305,13 +312,13 @@ export default function WorkAnniversaryReportPage() {
             setCurrentPage(1);
           }}
           searchQuery={searchQuery}
-          searchPlaceholder="Search by employee name..."
+          searchPlaceholder={REPORT_CONFIG.SEARCH_PLACEHOLDER}
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
-          itemLabel="employees"
-          emptyIcon="🎊"
-          emptyTitle="No Work Anniversaries Found"
-          emptySubtitle="No employee work anniversaries match your current filters"
+          itemLabel={REPORT_CONFIG.ITEM_LABEL}
+          emptyIcon={REPORT_CONFIG.EMPTY_ICON_TEXT}
+          emptyTitle={REPORT_CONFIG.EMPTY_TITLE}
+          emptySubtitle={REPORT_CONFIG.EMPTY_SUBTITLE}
         />
       </div>
     </Layout>

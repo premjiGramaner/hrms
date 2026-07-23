@@ -16,8 +16,14 @@ import {
   PerformanceEmployee,
 } from "../../types/performance.types";
 import { DataTableColumn } from "../../types/table.types";
+import Toast from "../../utils/toast";
 import { IconButton, SoftInput } from "./performanceUi";
 import { PAGE_PATHS } from "../../config/roles";
+import {
+  CLOSED_CYCLE_MESSAGE,
+  isClosedCycleStatus,
+  showPerformanceError,
+} from "./performanceNotifications";
 
 export default function AddEmployeesToCycle() {
   const { id } = useParams();
@@ -51,6 +57,9 @@ export default function AddEmployeesToCycle() {
         if (!active) return;
         setCycle(cycleData);
         setEmployees(employeeData.data);
+        if (isClosedCycleStatus(cycleData.status)) {
+          Toast.warning(CLOSED_CYCLE_MESSAGE);
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -104,6 +113,19 @@ export default function AddEmployeesToCycle() {
     if (!cycle) return;
     await addEmployeesToCycle(cycle.id, selectedIds);
     navigate(PAGE_PATHS.performanceAppraisalCycle(cycle.id));
+    if (isClosedCycleStatus(cycle.status)) {
+      Toast.warning(CLOSED_CYCLE_MESSAGE);
+      return;
+    }
+    try {
+      await addEmployeesToCycle(cycle.id, selectedIds);
+      Toast.success(
+        `${selectedIds.length} employee${selectedIds.length === 1 ? "" : "s"} added to the appraisal cycle.`,
+      );
+      navigate(`/performance/appraisal_cycles/${cycle.id}`);
+    } catch (error) {
+      showPerformanceError(error, "Unable to add employees to this cycle.");
+    }
   };
 
   if (!cycle) {
@@ -114,6 +136,25 @@ export default function AddEmployeesToCycle() {
       >
         <div className="rounded-[8px] bg-white p-8 text-sm font-semibold text-slate-500">
           Loading cycle...
+        </div>
+      </PerformanceLayout>
+    );
+  }
+
+  if (isClosedCycleStatus(cycle.status)) {
+    return (
+      <PerformanceLayout
+        title={`Performance / Appraisals / Appraisal Cycles / ${cycle.name}`}
+        activeTab="Appraisal Cycles"
+      >
+        <div className="rounded-[8px] bg-white p-8">
+          <p className="font-semibold text-amber-600">{CLOSED_CYCLE_MESSAGE}</p>
+          <Button
+            className="mt-5"
+            onClick={() => navigate(`/performance/appraisal_cycles/${cycle.id}`)}
+          >
+            Back to Cycle
+          </Button>
         </div>
       </PerformanceLayout>
     );

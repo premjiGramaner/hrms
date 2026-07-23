@@ -8,17 +8,20 @@ export function IconButton({
   children,
   title,
   onClick,
+  disabled = false,
 }: {
   children: React.ReactNode;
   title: string;
   onClick?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       title={title}
       onClick={onClick}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f0f7] text-slate-500 transition hover:bg-[#e8e2ef]"
+      disabled={disabled}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f0f7] text-slate-500 transition hover:bg-[#e8e2ef] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[#f3f0f7]"
     >
       {children}
     </button>

@@ -140,6 +140,7 @@ export default function App() {
           path={PAGE_PATHS.resetPassword}
           element={<ResetPasswordPage />}
         />
+
         <Route
           path={PAGE_PATHS.createPassword}
           element={<CreatePasswordPage />}
@@ -514,10 +515,10 @@ export default function App() {
           }
         />
 
-        <Route
+        {/* <Route
           path="*"
           element={<Navigate to={PAGE_PATHS.employees} replace />}
-        />
+        /> */}
       </Routes>
     </BrowserRouter>
   );

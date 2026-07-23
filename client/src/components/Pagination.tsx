@@ -1,4 +1,5 @@
 import React from "react";
+import { IconChevronDown } from "./Icons";
 
 interface PaginationProps {
   currentPage: number;
@@ -15,22 +16,30 @@ function buildPageNumbers(
   activePage: number,
   totalPages: number,
 ): (number | "ellipsis")[] {
-  if (totalPages <= 7)
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  if (totalPages <= 7) {
+    return Array.from(
+      { length: totalPages },
+      (_unusedValue, pageIndex) => pageIndex + 1,
+    );
+  }
 
   const pages: (number | "ellipsis")[] = [1];
   if (activePage > 3) pages.push("ellipsis");
-
-  const start = Math.max(2, activePage - 1);
-  const end = Math.min(totalPages - 1, activePage + 1);
-  for (let p = start; p <= end; p++) pages.push(p);
-
+  const firstAdjacentPage = Math.max(2, activePage - 1);
+  const lastAdjacentPage = Math.min(totalPages - 1, activePage + 1);
+  for (
+    let pageNumber = firstAdjacentPage;
+    pageNumber <= lastAdjacentPage;
+    pageNumber += 1
+  ) {
+    pages.push(pageNumber);
+  }
   if (activePage < totalPages - 2) pages.push("ellipsis");
   pages.push(totalPages);
   return pages;
 }
 
-function PageBtn({
+function PageButton({
   children,
   onClick,
   disabled,
@@ -45,38 +54,15 @@ function PageBtn({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       title={title}
-      style={{
-        minWidth: 32,
-        height: 32,
-        padding: "0 7px",
-        borderRadius: 6,
-        border: active ? "1.5px solid #1b2a6b" : "1.5px solid #e2e8f0",
-        background: active ? "#1b2a6b" : disabled ? "transparent" : "#fff",
-        color: active ? "#fff" : disabled ? "#d1d5db" : "#374151",
-        fontSize: 13,
-        fontWeight: active ? 700 : 400,
-        cursor: disabled ? "not-allowed" : "pointer",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "border-color 0.15s, background 0.15s, color 0.15s",
-        lineHeight: 1,
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled && !active) {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "#94a3b8";
-          (e.currentTarget as HTMLButtonElement).style.color = "#1b2a6b";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled && !active) {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0";
-          (e.currentTarget as HTMLButtonElement).style.color = "#374151";
-        }
-      }}
+      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm transition ${
+        active
+          ? "border-navy-700 bg-navy-700 font-bold text-white"
+          : "border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:text-navy-700 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-slate-300"
+      }`}
     >
       {children}
     </button>
@@ -94,135 +80,91 @@ export default function Pagination({
   itemLabel = "records",
 }: PaginationProps) {
   if (totalRecords === 0) return null;
-
-  const firstRow = (currentPage - 1) * pageSize + 1;
-  const lastRow = Math.min(currentPage * pageSize, totalRecords);
+  const firstVisibleRow = (currentPage - 1) * pageSize + 1;
+  const lastVisibleRow = Math.min(currentPage * pageSize, totalRecords);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "12px 20px",
-        borderTop: "1px solid #f1f5f9",
-        flexWrap: "wrap",
-        gap: 10,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <span style={{ fontSize: 13, color: "#64748b", whiteSpace: "nowrap" }}>
+    <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-slate-100 px-5 py-3">
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="whitespace-nowrap text-sm text-slate-500">
           Showing{" "}
-          <span style={{ fontWeight: 600, color: "#1e293b" }}>
-            {firstRow}–{lastRow}
-          </span>{" "}
-          of{" "}
-          <span style={{ fontWeight: 600, color: "#1e293b" }}>
-            {totalRecords}
-          </span>{" "}
-          {itemLabel}
-          &nbsp;·&nbsp; Page{" "}
-          <span style={{ fontWeight: 600, color: "#1e293b" }}>
-            {currentPage}
-          </span>{" "}
-          of{" "}
-          <span style={{ fontWeight: 600, color: "#1e293b" }}>
-            {totalPages}
-          </span>
+          <strong className="text-slate-800">
+            {firstVisibleRow}–{lastVisibleRow}
+          </strong>{" "}
+          of <strong className="text-slate-800">{totalRecords}</strong>{" "}
+          {itemLabel} · Page{" "}
+          <strong className="text-slate-800">{currentPage}</strong> of{" "}
+          <strong className="text-slate-800">{totalPages}</strong>
         </span>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span
-            style={{ fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap" }}
-          >
-            Per page:
+        <label className="flex items-center gap-1.5 text-xs text-slate-400">
+          Per page:
+          <span className="relative">
+            <select
+              value={pageSize}
+              onChange={(event) => onPageSizeChange(Number(event.target.value))}
+              className="appearance-none rounded-md border border-slate-200 bg-white py-1 pl-2 pr-7 text-xs text-slate-700 outline-none focus:border-navy-700"
+            >
+              {pageSizeOptions.map((pageSizeOption) => (
+                <option key={pageSizeOption} value={pageSizeOption}>
+                  {pageSizeOption}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+              <IconChevronDown size={11} />
+            </span>
           </span>
-          <select
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            style={{
-              padding: "4px 24px 4px 8px",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 6,
-              fontSize: 12,
-              outline: "none",
-              background: "#fff",
-              appearance: "none",
-              cursor: "pointer",
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5' viewBox='0 0 9 5'%3E%3Cpath fill='%2394a3b8' d='M0 0l4.5 5 4.5-5z'/%3E%3C/svg%3E")`,
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "right 7px center",
-            }}
-          >
-            {pageSizeOptions.map((dropdownvalues) => (
-              <option key={dropdownvalues} value={dropdownvalues}>
-                {dropdownvalues}
-              </option>
-            ))}
-          </select>
-        </div>
+        </label>
       </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <PageBtn
+      <div className="flex items-center gap-0.5">
+        <PageButton
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
           title="First page"
         >
-          ««
-        </PageBtn>
-        <PageBtn
+          «
+        </PageButton>
+        <PageButton
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           title="Previous page"
         >
           ‹
-        </PageBtn>
-
-        {buildPageNumbers(currentPage, totalPages).map((entry, idx) =>
-          entry === "ellipsis" ? (
-            <span
-              key={`e${idx}`}
-              style={{
-                minWidth: 32,
-                height: 32,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 13,
-                color: "#94a3b8",
-                userSelect: "none",
-                letterSpacing: 1,
-              }}
-            >
-              ···
-            </span>
-          ) : (
-            <PageBtn
-              key={entry}
-              onClick={() => onPageChange(entry as number)}
-              disabled={false}
-              active={entry === currentPage}
-            >
-              {entry}
-            </PageBtn>
-          ),
+        </PageButton>
+        {buildPageNumbers(currentPage, totalPages).map(
+          (pageEntry, pageEntryIndex) =>
+            pageEntry === "ellipsis" ? (
+              <span
+                key={`ellipsis-${pageEntryIndex}`}
+                className="inline-flex h-8 min-w-8 items-center justify-center text-slate-400"
+              >
+                ...
+              </span>
+            ) : (
+              <PageButton
+                key={pageEntry}
+                onClick={() => onPageChange(pageEntry)}
+                disabled={false}
+                active={pageEntry === currentPage}
+              >
+                {pageEntry}
+              </PageButton>
+            ),
         )}
-
-        <PageBtn
+        <PageButton
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           title="Next page"
         >
           ›
-        </PageBtn>
-        <PageBtn
+        </PageButton>
+        <PageButton
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           title="Last page"
         >
-          »»
-        </PageBtn>
+          »
+        </PageButton>
       </div>
     </div>
   );

@@ -99,12 +99,12 @@ export default function LeaveBalance({ employee }: LeaveBalanceProps) {
                   {leave.leave_type_name}
                 </p>
 
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${leave.progressColor}`}
-                    style={{ width: `${leave.progressWidth}%` }}
-                  />
-                </div>
+                <progress
+                  className={`leave-balance-progress ${leave.progressColor}`}
+                  value={leave.progressWidth}
+                  max="100"
+                  aria-label={`${leave.leave_type_name} remaining balance`}
+                />
 
                 <p className="text-xs text-[#757575] mt-1">
                   {leave.remainingBalance.toFixed(1)} of{" "}

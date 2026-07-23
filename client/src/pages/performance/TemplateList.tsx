@@ -16,8 +16,10 @@ import { richTextEditorConfig } from "../../config/richTextEditor";
 import { AppraisalTemplate } from "../../types/performance.types";
 import { DataTableColumn } from "../../types/table.types";
 import { htmlToPreview } from "../../utils/htmlPreview";
+import Toast from "../../utils/toast";
 import TemplatePreviewModal from "./TemplatePreviewModal";
 import { FieldShell, IconButton, SoftInput } from "./performanceUi";
+import { showPerformanceError } from "./performanceNotifications";
 import { PAGE_PATHS } from "../../config/roles";
 
 export default function TemplateList() {
@@ -92,32 +94,40 @@ export default function TemplateList() {
         ...current.filter((item) => item.id !== cloned.id),
         cloned,
       ]);
+      Toast.success("Appraisal template cloned successfully.");
       navigate(PAGE_PATHS.performanceTemplateDesign(cloned.id));
-    } catch {
+    } catch (error) {
       setError("Unable to clone template. Please try again.");
+      showPerformanceError(error, "Unable to clone appraisal template.");
     }
   };
 
   const saveTemplate = async () => {
     if (!draft.jobTitle.trim() || !draft.templateName.trim()) {
       setError("Job title and template name are required.");
+      Toast.warning("Job title and template name are required.");
       return;
     }
-    const created = await createPerformanceTemplate({
-      jobTitle: draft.jobTitle.trim(),
-      templateName: draft.templateName.trim(),
-      weight: Number(draft.weight) || 100,
-      header: draft.header.trim(),
-    });
-    setTemplates((current) => [...current, created]);
-    setIsAdding(false);
-    resetAddDraft();
-    navigate(PAGE_PATHS.performanceTemplateDesign(created.id));
+    try {
+      const created = await createPerformanceTemplate({
+        jobTitle: draft.jobTitle.trim(),
+        templateName: draft.templateName.trim(),
+        weight: Number(draft.weight) || 100,
+        header: draft.header.trim(),
+      });
+      setTemplates((current) => [...current, created]);
+      setIsAdding(false);
+      resetAddDraft();
+      Toast.created("Appraisal template");
+      navigate(PAGE_PATHS.performanceTemplateDesign(created.id));
+    } catch (error) {
+      showPerformanceError(error, "Unable to create appraisal template.");
+    }
   };
 
   return (
     <PerformanceLayout title="Performance" activeTab="Templates">
-      <div className="min-h-full bg-[#fbf6ff] p-2">
+      <div className="min-h-full bg-gray-100 p-2">
         <div className="rounded-[8px] bg-white p-8">
           <div className="mb-6 flex justify-end">
             <Button onClick={openAddModal}>

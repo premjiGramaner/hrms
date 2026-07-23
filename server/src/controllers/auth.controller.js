@@ -253,6 +253,7 @@ const forgotPassword = async (req, res, next) => {
 
     if (user?.is_active) {
       const token = await issuePasswordToken(user.id);
+
       const resetLink = `${getClientUrl(req)}/reset-password?token=${encodeURIComponent(token)}`;
       try {
         await sendPasswordResetEmail({
@@ -260,7 +261,7 @@ const forgotPassword = async (req, res, next) => {
           name: user.name || user.username,
           resetLink,
         });
-      } catch { }
+      } catch {}
     }
 
     return success(res, {

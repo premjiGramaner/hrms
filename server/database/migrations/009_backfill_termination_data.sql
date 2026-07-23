@@ -24,11 +24,8 @@ SET
   ),
   terminated_by_user_id = COALESCE(
     terminated_by_user_id,
-    CASE 
-      WHEN updated_by IS NOT NULL AND updated_by ~ '^[0-9]+$' THEN updated_by::bigint
-      WHEN created_by IS NOT NULL AND created_by ~ '^[0-9]+$' THEN created_by::bigint
-      ELSE NULL
-    END
+    updated_by,
+    created_by
   )
 WHERE is_deleted = TRUE
   AND (
@@ -46,7 +43,8 @@ SELECT
   COUNT(CASE WHEN termination_reason IS NOT NULL THEN 1 END) as has_termination_reason,
   COUNT(CASE WHEN termination_type IS NOT NULL THEN 1 END) as has_termination_type,
   COUNT(CASE WHEN last_working_day IS NOT NULL THEN 1 END) as has_last_working_day,
-  COUNT(CASE WHEN termination_notes IS NOT NULL THEN 1 END) as has_termination_notes
+  COUNT(CASE WHEN termination_notes IS NOT NULL THEN 1 END) as has_termination_notes,
+  COUNT(CASE WHEN terminated_by_user_id IS NOT NULL THEN 1 END) as has_terminated_by
 FROM tbl_appusers
 WHERE is_deleted = TRUE;
 

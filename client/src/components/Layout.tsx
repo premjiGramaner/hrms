@@ -16,6 +16,7 @@ import {
   IconGear,
   IconLogout,
   IconHome,
+  IconChevronLeft,
 } from "./Icons";
 import { fetchEmployeesWithLimit } from "../store/employeeSlice";
 import NavigationSearch from "./NavigationSearch";
@@ -32,6 +33,7 @@ interface Props {
   activeTab?: string;
   topNav?: React.ReactNode;
   onFab?: () => void;
+  backRoute?: string;
 }
 
 export default function Layout({
@@ -41,6 +43,7 @@ export default function Layout({
   activeTab,
   topNav,
   onFab,
+  backRoute,
 }: Props) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
@@ -120,20 +123,20 @@ export default function Layout({
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
       <div
         className={`relative flex-shrink-0 transition-[width] duration-[250ms] ease-in-out ${
-          collapsed ? "w-0 min-w-0" : "w-[230px]"
+          collapsed ? "w-[60px]" : "w-[230px]"
         }`}
       >
         <aside
           className={`flex flex-col bg-white shadow-lg z-10 h-screen select-none overflow-hidden transition-[width] duration-[250ms] ease-in-out ${
-            collapsed ? "w-0" : "w-[230px]"
+            collapsed ? "w-[60px]" : "w-[230px]"
           }`}
         >
-          <div className="flex items-center justify-center border-b border-slate-100 flex-shrink-0 h-16 px-6">
+          <div className="flex items-center justify-center border-b border-slate-100 flex-shrink-0 h-16 px-2">
             <img
               src={cannyforeLogo}
               alt="Cannyfore"
-              className={`h-[38px] max-w-[140px] object-contain transition-opacity duration-200 ease-in-out ${
-                collapsed ? "opacity-0" : "opacity-100"
+              className={`object-contain transition-all duration-200 ease-in-out ${
+                collapsed ? "h-[32px] w-[40px]" : "h-[38px] max-w-[140px]"
               }`}
             />
           </div>
@@ -199,15 +202,15 @@ export default function Layout({
         <button
           onClick={() => setCollapsed((prev) => !prev)}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="absolute right-[-14px] top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#233B86] hover:bg-[#1a2e6e] border-2 border-white text-white cursor-pointer z-30 flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(35,59,134,0.30)] text-sm font-bold transition-colors duration-200"
+          className="absolute right-[-14px] top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#233B86] hover:bg-[#1a2e6e] border-2 border-white text-white cursor-pointer z-30 flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(35,59,134,0.30)] transition-colors duration-200"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <span
-            className={`inline-block transition-transform duration-[250ms] ease-in-out leading-none ${
+            className={`inline-flex items-center justify-center leading-[0] transition-transform duration-[250ms] ease-in-out ${
               collapsed ? "rotate-180" : "rotate-0"
             }`}
           >
-            ‹
+            <IconChevronLeft size={14} color="white" />
           </span>
         </button>
       </div>
@@ -235,13 +238,23 @@ export default function Layout({
         </header>
 
         <div className="relative bg-white border-b border-slate-200 flex items-center px-4 flex-shrink-0 overflow-visible z-40">
-          <Link
-            to={homeRoute}
-            title="Home"
-            className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition py-5 py-2"
-          >
-            <IconHome size={15} color="#64748b" />
-          </Link>
+          {backRoute ? (
+            <Link
+              to={backRoute}
+              title="Back"
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition py-5 py-2"
+            >
+              <IconChevronLeft size={15} color="#64748b" />
+            </Link>
+          ) : (
+            <Link
+              to={homeRoute}
+              title="Home"
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0 mr-3 no-underline hover:bg-slate-100 transition py-5 py-2"
+            >
+              <IconHome size={15} color="#64748b" />
+            </Link>
+          )}
 
           {topNav}
 
@@ -271,7 +284,6 @@ export default function Layout({
         <div className="flex-1 overflow-y-auto p-6">
           {children}
 
-          {/* Footer Copyright */}
           <footer className="mt-8 pt-4 border-t border-slate-200 text-center">
             <p className="text-xs text-slate-400">
               Cannyfore © {new Date().getFullYear()} All rights reserved.
@@ -331,8 +343,10 @@ function SidebarNavItem({
     </>
   );
 
-  const linkClasses = `flex items-center rounded-[28px] mb-1 no-underline cursor-pointer select-none transition-all duration-[180ms] ease ${
-    collapsed ? "gap-0 p-2.5 justify-center" : "gap-3 py-2.5 px-3 justify-start"
+  const linkClasses = `flex items-center mb-1 no-underline cursor-pointer select-none transition-all duration-[180ms] ease ${
+    collapsed
+      ? "gap-0 p-2.5 justify-center rounded-full"
+      : "gap-3 py-2.5 px-3 justify-start rounded-[28px]"
   } ${
     active
       ? "bg-gradient-to-r from-[#233B86] to-[#12C7A5] shadow-[0_2px_10px_rgba(35,59,134,0.20)]"

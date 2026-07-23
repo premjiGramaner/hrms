@@ -1,5 +1,9 @@
 import { EditableEmployeeProfileForm } from "../types/employeeProfile";
 import { checkEmailExists, checkEmployeeIdExists } from "../api/employee.api";
+import {
+  EMAIL_PATTERN,
+  TEN_DIGIT_NUMBER_PATTERN,
+} from "../constants/validationPatterns";
 
 export interface ValidationErrors {
   [key: string]: string;
@@ -59,9 +63,6 @@ export const validateContactDetails = (
 ): ValidationErrors => {
   const errors: ValidationErrors = {};
 
-  const phoneRegex = /^\d{10}$/;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   const mobile = form.mobile.trim();
   const workTel = form.work_tel.trim();
   const homeTel = form.home_tel.trim();
@@ -69,21 +70,21 @@ export const validateContactDetails = (
 
   if (!mobile) {
     errors.mobile = "Mobile number is required.";
-  } else if (!phoneRegex.test(mobile)) {
+  } else if (!TEN_DIGIT_NUMBER_PATTERN.test(mobile)) {
     errors.mobile = "Mobile number must be exactly 10 digits.";
   }
 
-  if (workTel && !phoneRegex.test(workTel)) {
+  if (workTel && !TEN_DIGIT_NUMBER_PATTERN.test(workTel)) {
     errors.work_tel = "Work Telephone must be exactly 10 digits.";
   }
 
-  if (homeTel && !phoneRegex.test(homeTel)) {
+  if (homeTel && !TEN_DIGIT_NUMBER_PATTERN.test(homeTel)) {
     errors.home_tel = "Home Telephone must be exactly 10 digits.";
   }
 
   if (!workEmail) {
     errors.work_email = "Work Email is required.";
-  } else if (!emailRegex.test(workEmail)) {
+  } else if (!EMAIL_PATTERN.test(workEmail)) {
     errors.work_email = "Work Email must be valid.";
   }
 
@@ -133,8 +134,8 @@ export const validateEmailUniqueness = async (
     if (data.exists) {
       return "This email already exists";
     }
-  } catch (err) {
-    console.error("Error checking email uniqueness:", err);
+  } catch {
+    return "Unable to verify email uniqueness";
   }
   return "";
 };
@@ -149,8 +150,8 @@ export const validateEmployeeIdUniqueness = async (
     if (data.exists) {
       return "This Employee ID already exists";
     }
-  } catch (err) {
-    console.error("Error checking employee ID uniqueness:", err);
+  } catch {
+    return "Unable to verify Employee ID uniqueness";
   }
   return "";
 };

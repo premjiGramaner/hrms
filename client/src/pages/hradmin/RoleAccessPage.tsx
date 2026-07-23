@@ -9,12 +9,7 @@ import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import useDebounce from "../../hooks/useDebounce";
 import Toast from "../../utils/toast";
 import Alert from "../../utils/alert";
-import {
-  BASIC_SUPERVISOR_ROLES,
-  PAGE_PATHS,
-  ROLES,
-  type UserRole,
-} from "../../config/roles";
+import { BASIC_SUPERVISOR_ROLES, type UserRole } from "../../config/roles";
 import { ROLE_OPTIONS } from "../../config/uiConstants";
 import {
   IconX,
@@ -26,17 +21,28 @@ import {
 } from "../../components/Icons";
 
 const TABS: TabItem[] = [
-  { label: "Job Titles", path: PAGE_PATHS.hradminJobTitles },
-  { label: "Job Categories", path: PAGE_PATHS.hradminJobCategories },
-  { label: "Sub Units", path: PAGE_PATHS.hradminSubUnits },
-  { label: "Role Access", path: PAGE_PATHS.hradminRoleAccess },
-  { label: "Audit Trail", path: PAGE_PATHS.hradminAuditTrail },
+  { label: "Job Titles", path: "/hradmin/job-titles" },
+  { label: "Job Categories", path: "/hradmin/job-categories" },
+  { label: "Sub Units", path: "/hradmin/sub-units" },
+  { label: "Role Access", path: "/hradmin/role-access" },
+  { label: "Audit Trail", path: "/hradmin/audit-trail" },
 ];
 
 function roleValue(role: string) {
-  if (role === ROLES.MANAGER) return ROLES.SUPERVISOR;
-  if (role === ROLES.EMP_MANAGER) return ROLES.HR_ADMIN;
+  if (role === "manager") return "supervisor";
+  if (role === "empmanager") return "hradmin";
   return role;
+}
+
+function getRoleStyle(role: string) {
+  return (
+    ROLE_OPTIONS.find((r) => r.value === roleValue(role)) ?? {
+      color: "#64748b",
+      bg: "#f1f5f9",
+      border: "#e2e8f0",
+      label: role,
+    }
+  );
 }
 
 function getInitials(name: string): string {
@@ -56,6 +62,7 @@ function RoleDropdown({
   onRoleChange: (userId: number, newRole: string) => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const rs = getRoleStyle(user.role);
 
   const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRole = e.target.value;
@@ -96,27 +103,27 @@ function RoleDropdown({
   // Get border color class based on role
   const getBorderClass = (role: string) => {
     const val = roleValue(role);
-    if (val === ROLES.EMPLOYEE) return "border-[#bbf7d0]";
-    if (val === ROLES.SUPERVISOR) return "border-[#bae6fd]";
-    if (val === ROLES.HR_ADMIN) return "border-[#c4b5fd]";
+    if (val === "employee") return "border-[#bbf7d0]";
+    if (val === "supervisor") return "border-[#bae6fd]";
+    if (val === "hradmin") return "border-[#c4b5fd]";
     return "border-slate-200";
   };
 
   // Get background color class based on role
   const getBgClass = (role: string) => {
     const val = roleValue(role);
-    if (val === ROLES.EMPLOYEE) return "bg-[#dcfce7]";
-    if (val === ROLES.SUPERVISOR) return "bg-[#e0f2fe]";
-    if (val === ROLES.HR_ADMIN) return "bg-[#ede9fe]";
+    if (val === "employee") return "bg-[#dcfce7]";
+    if (val === "supervisor") return "bg-[#e0f2fe]";
+    if (val === "hradmin") return "bg-[#ede9fe]";
     return "bg-slate-100";
   };
 
   // Get text color class based on role
   const getTextClass = (role: string) => {
     const val = roleValue(role);
-    if (val === ROLES.EMPLOYEE) return "text-[#16a34a]";
-    if (val === ROLES.SUPERVISOR) return "text-[#075985]";
-    if (val === ROLES.HR_ADMIN) return "text-[#7c3aed]";
+    if (val === "employee") return "text-[#16a34a]";
+    if (val === "supervisor") return "text-[#075985]";
+    if (val === "hradmin") return "text-[#7c3aed]";
     return "text-slate-600";
   };
 
@@ -287,12 +294,12 @@ export default function RoleAccessPage() {
     genderFilter !== "" ||
     statusFilter !== "";
 
-  const employeeCount = users.filter((u) => u.role === ROLES.EMPLOYEE).length;
+  const employeeCount = users.filter((u) => u.role === "employee").length;
   const supervisorCount = users.filter((u) =>
     BASIC_SUPERVISOR_ROLES.includes(u.role as UserRole),
   ).length;
   const globalCount = users.filter((u) =>
-    [ROLES.HR_ADMIN, ROLES.EMP_MANAGER].includes(u.role as UserRole),
+    ["hradmin", "empmanager"].includes(u.role),
   ).length;
 
   const stats: StatCard[] = [
@@ -421,9 +428,9 @@ export default function RoleAccessPage() {
         value={roleFilter}
         onChange={setRoleFilter}
         options={[
-          { value: ROLES.EMPLOYEE, label: "Employee" },
-          { value: ROLES.SUPERVISOR, label: "Supervisor" },
-          { value: ROLES.HR_ADMIN, label: "Global Admin" },
+          { value: "employee", label: "Employee" },
+          { value: "supervisor", label: "Supervisor" },
+          { value: "hradmin", label: "Global Admin" },
         ]}
         placeholder="All Roles"
         minWidth={130}

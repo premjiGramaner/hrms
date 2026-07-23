@@ -30,7 +30,8 @@ import {
   EMPLOYMENT_STATUSES,
 } from "../../constants/employeeOptions";
 import { ISO_DATE_PATTERN } from "../../constants/employeeOptions";
-import { EMAIL_REGEX } from "./validation";
+import { EMAIL_PATTERN } from "../../constants/validationPatterns";
+import { KeyboardKey } from "../../constants/keyboard";
 import { handleMobileInput } from "./components/inputHelpers";
 import Toast from "../../utils/toast";
 import { ROLES } from "../../config/roles";
@@ -40,20 +41,19 @@ import {
   MAX_FILE_SIZE_BYTES,
   MAX_FILE_SIZE_MB,
 } from "../../config/constants";
+import { IconChevronDown, IconUser, IconX } from "../../components/Icons";
+import { EMAIL_REGEX } from "../../constants/validation";
 
 const PREDEFINED_LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"];
 
-// Email field name constants
 const WORK_EMAIL_FIELD = "work_email" as const;
 const OTHER_EMAIL_FIELD = "other_email" as const;
 type EmailFieldName = typeof WORK_EMAIL_FIELD | typeof OTHER_EMAIL_FIELD;
-
 interface Props {
   employee: Employee | null;
   onClose: () => void;
   onSaved: () => void;
 }
-
 interface Supervisor {
   id?: number | null;
   employee_id?: string | null;
@@ -65,11 +65,11 @@ interface Supervisor {
   sub_unit?: string | null;
 }
 
-function toDateStr(val?: string | null): string {
-  if (!val) return "";
-  if (ISO_DATE_PATTERN.test(val)) return val;
+function formatDateInputValue(value?: string | null): string {
+  if (!value) return "";
+  if (ISO_DATE_PATTERN.test(value)) return value;
   try {
-    return new Date(val).toISOString().slice(0, 10);
+    return new Date(value).toISOString().slice(0, 10);
   } catch {
     return "";
   }
@@ -100,40 +100,45 @@ export default function AddEmployeeModal({
 
   const avatarRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<Record<keyof typeof initialForm, string>>({} as any);
+  const validatedWorkEmailRef = useRef<string>("");
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [apiError, setApiError] = useState("");
 
   useEffect(() => {
     getSupervisors()
-      .then((res) =>
+      .then((response) =>
         setSupervisors(
-          res.data.filter((item) => !employee?.id || item.id !== employee.id),
+          response.data.filter(
+            (supervisor) => !employee?.id || supervisor.id !== employee.id,
+          ),
         ),
       )
       .catch(() => setApiError("Failed to load supervisors"));
     getJobTitles()
-      .then((res) =>
-        setJobTitleOptions(res.data.map((JobTitle) => JobTitle.title)),
+      .then((response) =>
+        setJobTitleOptions(response.data.map((jobTitle) => jobTitle.title)),
       )
       .catch(() => setApiError("Failed to load job titles"));
 
     getJobCategories()
-      .then((res) =>
+      .then((response) =>
         setJobCategoryOptions(
-          res.data.map((JobCategory) => JobCategory.category),
+          response.data.map((jobCategory) => jobCategory.category),
         ),
       )
       .catch(() => setApiError("Failed to load job categories"));
 
     getSubUnits()
-      .then((res) => {
-        setSubUnitRecords(res.data);
-        setSubUnitOptions(res.data.map((SubUnit) => SubUnit.sub_unit_name));
+      .then((response) => {
+        setSubUnitRecords(response.data);
+        setSubUnitOptions(
+          response.data.map((subUnit) => subUnit.sub_unit_name),
+        );
       })
       .catch(() => setApiError("Failed to load sub units"));
 
     getLastEmployeeId()
-      .then((res) => setLastEmployeeId(res.data.employee_id))
+      .then((response) => setLastEmployeeId(response.data.employee_id))
       .catch(() => setApiError("Failed to load employee ID"));
   }, [employee?.id]);
 
@@ -153,27 +158,31 @@ export default function AddEmployeeModal({
       middle_name: employee?.middle_name || "",
       last_name: employee?.last_name || "",
       employee_id: employee?.employee_id || "",
-      joined_date: toDateStr(employee?.joined_date) || today,
+      joined_date: formatDateInputValue(employee?.joined_date) || today,
       location: employee?.location || "",
       role: ROLES.EMPLOYEE,
       gender: employee?.gender || "",
-      dob: toDateStr(employee?.dob) || "",
+      dob: formatDateInputValue(employee?.dob) || "",
       nationality: employee?.nationality || "",
       marital_status: employee?.marital_status || "",
       blood_group: employee?.blood_group || "",
-      real_dob: toDateStr(employee?.real_dob) || "",
+      real_dob: formatDateInputValue(employee?.real_dob) || "",
       license_number: employee?.license_number || "",
-      license_expiry: toDateStr(employee?.license_expiry) || "",
+      license_expiry: formatDateInputValue(employee?.license_expiry) || "",
       job_title: employee?.job_title || "",
       job_category: employee?.job_category || "",
       sub_unit: employee?.sub_unit || "",
       employment_status: employee?.employment_status || "",
       job_specification: employee?.job_specification || "",
       attendance_calc: employee?.attendance_calc || "",
-      probation_end_date: toDateStr(employee?.probation_end_date) || "",
-      date_of_permanence: toDateStr(employee?.date_of_permanence) || "",
-      contract_start_date: toDateStr(employee?.contract_start_date) || "",
-      contract_end_date: toDateStr(employee?.contract_end_date) || "",
+      probation_end_date:
+        formatDateInputValue(employee?.probation_end_date) || "",
+      date_of_permanence:
+        formatDateInputValue(employee?.date_of_permanence) || "",
+      contract_start_date:
+        formatDateInputValue(employee?.contract_start_date) || "",
+      contract_end_date:
+        formatDateInputValue(employee?.contract_end_date) || "",
       comments: employee?.comments || "",
       work_email: employee?.email || "",
       other_email: employee?.other_email || "",
@@ -194,6 +203,85 @@ export default function AddEmployeeModal({
     formRef.current = initialForm;
   }, [initialForm]);
 
+  // Reset stale loading state when leaving Step 4
+  useEffect(() => {
+    if (step !== 4) {
+      setCheckingEmail((prev) => ({
+        ...prev,
+        [WORK_EMAIL_FIELD]: false,
+      }));
+    }
+  }, [step]);
+
+  // Centralized work email validation function
+  const validateWorkEmailExists = async (): Promise<boolean> => {
+    const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim().toLowerCase();
+
+    if (!workEmail || !EMAIL_REGEX.test(workEmail)) {
+      return false;
+    }
+
+    if (
+      validatedWorkEmailRef.current === workEmail &&
+      !errors[WORK_EMAIL_FIELD]
+    ) {
+      return true;
+    }
+
+    setCheckingEmail((prev) => ({
+      ...prev,
+      [WORK_EMAIL_FIELD]: true,
+    }));
+
+    try {
+      const result = await checkEmailExists(workEmail, employee?.id);
+
+      if (result.data.exists) {
+        validatedWorkEmailRef.current = "";
+        setErrors((prev) => ({
+          ...prev,
+          [WORK_EMAIL_FIELD]: "This email address is already registered",
+        }));
+        return false;
+      }
+
+      validatedWorkEmailRef.current = workEmail;
+      setErrors((prev) => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors[WORK_EMAIL_FIELD];
+        return updatedErrors;
+      });
+      return true;
+    } catch {
+      validatedWorkEmailRef.current = "";
+      setErrors((prev) => ({
+        ...prev,
+        [WORK_EMAIL_FIELD]: "Could not validate this email right now",
+      }));
+      return false;
+    } finally {
+      setCheckingEmail((prev) => ({
+        ...prev,
+        [WORK_EMAIL_FIELD]: false,
+      }));
+    }
+  };
+
+  // Validate work email when entering step 4
+  useEffect(() => {
+    if (step === 4) {
+      const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim().toLowerCase();
+
+      if (
+        workEmail &&
+        EMAIL_REGEX.test(workEmail) &&
+        validatedWorkEmailRef.current !== workEmail
+      ) {
+        validateWorkEmailExists();
+      }
+    }
+  }, [step, employee?.id]);
+
   const handleFieldChange =
     (fieldName: keyof typeof initialForm) =>
     (
@@ -201,7 +289,17 @@ export default function AddEmployeeModal({
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       >,
     ) => {
-      formRef.current[fieldName] = event.target.value;
+      const value = event.target.value;
+      formRef.current[fieldName] = value;
+
+      // Clear validated email cache when work email changes
+      if (fieldName === WORK_EMAIL_FIELD) {
+        const normalizedEmail = value.trim().toLowerCase();
+        if (validatedWorkEmailRef.current !== normalizedEmail) {
+          validatedWorkEmailRef.current = "";
+        }
+      }
+
       if (errors[fieldName])
         setErrors((prev) => {
           const updatedErrors = { ...prev };
@@ -245,7 +343,7 @@ export default function AddEmployeeModal({
     5: () => validateCurrentStep(5),
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validators[step] && !validators[step]()) {
       const firstErrorField = Object.keys(errors)[0];
       if (firstErrorField) {
@@ -279,6 +377,14 @@ export default function AddEmployeeModal({
       }
       return;
     }
+
+    // Validate work email on step 4 before proceeding
+    if (step === 4) {
+      const emailAvailable = await validateWorkEmailExists();
+      if (!emailAvailable) {
+        return;
+      }
+    }
     setStep((s) => s + 1);
   };
 
@@ -304,8 +410,8 @@ export default function AddEmployeeModal({
       }
       onSaved();
       onClose();
-    } catch (err: any) {
-      const errorMessage = getApiErrorMessage(err);
+    } catch (requestError: unknown) {
+      const errorMessage = getApiErrorMessage(requestError);
 
       if (
         errorMessage.toLowerCase().includes("employee id") &&
@@ -341,16 +447,19 @@ export default function AddEmployeeModal({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-    if (e.key === "Enter" && e.target instanceof HTMLElement) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    if (
+      event.key === KeyboardKey.Enter &&
+      event.target instanceof HTMLElement
+    ) {
       if (
-        e.target.tagName === "INPUT" ||
-        e.target.tagName === "SELECT" ||
-        e.target.tagName === "TEXTAREA"
+        event.target.tagName === "INPUT" ||
+        event.target.tagName === "SELECT" ||
+        event.target.tagName === "TEXTAREA"
       ) {
-        e.preventDefault();
+        event.preventDefault();
 
-        const targetElement = e.target as
+        const targetElement = event.target as
           | HTMLInputElement
           | HTMLSelectElement
           | HTMLTextAreaElement;
@@ -362,13 +471,13 @@ export default function AddEmployeeModal({
           return;
         }
 
-        const form = e.currentTarget;
+        const form = event.currentTarget;
         const focusableElements = Array.from(
           form.querySelectorAll(
             'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])',
           ),
         ) as HTMLElement[];
-        const currentIndex = focusableElements.indexOf(e.target);
+        const currentIndex = focusableElements.indexOf(event.target);
         if (currentIndex > -1 && currentIndex < focusableElements.length - 1) {
           focusableElements[currentIndex + 1].focus();
         }
@@ -410,13 +519,13 @@ export default function AddEmployeeModal({
     }
   };
 
-  const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const showFileError = (message: string) => {
       Toast.error(message);
-      e.target.value = "";
+      event.target.value = "";
     };
 
     if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
@@ -444,7 +553,27 @@ export default function AddEmployeeModal({
     fieldName: EmailFieldName,
     element: HTMLInputElement,
   ) => {
+    // For OTHER_EMAIL_FIELD: only validate format, not existence
     if (fieldName === OTHER_EMAIL_FIELD) {
+      if (!email.trim()) {
+        setErrors((prev) => {
+          const updatedErrors = { ...prev };
+          delete updatedErrors[fieldName];
+          return updatedErrors;
+        });
+        return;
+      }
+
+      if (!EMAIL_REGEX.test(email)) {
+        setErrors((prev) => ({
+          ...prev,
+          [fieldName]: "Enter a valid email",
+        }));
+        setTimeout(() => element.focus(), 100);
+        return;
+      }
+
+      // Clear error if format is valid
       setErrors((prev) => {
         const updatedErrors = { ...prev };
         delete updatedErrors[fieldName];
@@ -453,6 +582,7 @@ export default function AddEmployeeModal({
       return;
     }
 
+    // For WORK_EMAIL_FIELD: validate both format and existence
     if (!email.trim()) {
       setErrors((prev) => {
         const updatedErrors = { ...prev };
@@ -462,7 +592,7 @@ export default function AddEmployeeModal({
       return;
     }
 
-    if (!EMAIL_REGEX.test(email)) {
+    if (!EMAIL_PATTERN.test(email)) {
       setErrors((prev) => ({
         ...prev,
         [fieldName]: "Enter a valid email",
@@ -539,6 +669,32 @@ export default function AddEmployeeModal({
     }
   };
 
+  const handleSupervisorSelectionChange = (
+    supervisorId: number,
+    isSelected: boolean,
+  ) => {
+    setSelectedSupervisors((currentSupervisorIds) =>
+      isSelected
+        ? currentSupervisorIds.filter(
+            (selectedId) => selectedId !== supervisorId,
+          )
+        : currentSupervisorIds.length < 3
+          ? [...currentSupervisorIds, supervisorId]
+          : currentSupervisorIds,
+    );
+    setErrors((currentErrors) => {
+      const updatedErrors = { ...currentErrors };
+      delete updatedErrors.supervisors;
+      return updatedErrors;
+    });
+  };
+
+  const removeSelectedSupervisor = (supervisorId: number) => {
+    setSelectedSupervisors((currentSupervisorIds) =>
+      currentSupervisorIds.filter((selectedId) => selectedId !== supervisorId),
+    );
+  };
+
   const renderInput = (
     name: keyof typeof initialForm,
     placeholder = "",
@@ -551,7 +707,7 @@ export default function AddEmployeeModal({
         placeholder={placeholder}
         defaultValue={formRef.current[name]}
         onChange={handleFieldChange(name)}
-        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
             : "border-slate-200 bg-slate-50 focus:border-slate-300"
@@ -571,8 +727,10 @@ export default function AddEmployeeModal({
         placeholder="e.g. EMP-001"
         defaultValue={formRef.current.employee_id}
         onChange={handleFieldChange("employee_id")}
-        onBlur={(e) => handleEmployeeIdBlur(e.target.value, e.target)}
-        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+        onBlur={(event) =>
+          handleEmployeeIdBlur(event.target.value, event.target)
+        }
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
           errors.employee_id
             ? "border-red-500 bg-red-50"
             : checkingEmployeeId
@@ -606,10 +764,10 @@ export default function AddEmployeeModal({
         placeholder={placeholder}
         defaultValue={formRef.current[name]}
         onChange={handleFieldChange(name)}
-        onBlur={(e) => {
-          handleEmailBlur(e.target.value, name, e.target);
+        onBlur={(event) => {
+          handleEmailBlur(event.target.value, name, event.target);
         }}
-        className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
             : checkingEmail[name]
@@ -637,8 +795,8 @@ export default function AddEmployeeModal({
       <select
         name={name}
         defaultValue={formRef.current[name]}
-        onChange={(e) => handleSelectChange(name, e)}
-        className={`w-full px-3 py-2 pr-7 border-1.5 rounded-lg text-sm outline-none appearance-none transition-colors ${
+        onChange={(event) => handleSelectChange(name, event)}
+        className={`w-full px-3 py-2 pr-7 border-2 rounded-lg text-sm outline-none appearance-none transition-colors ${
           errors[name]
             ? "border-red-500 bg-red-50"
             : "border-slate-200 bg-slate-50 focus:border-slate-300"
@@ -651,8 +809,8 @@ export default function AddEmployeeModal({
           </option>
         ))}
       </select>
-      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-        ▼
+      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+        <IconChevronDown size={12} />
       </span>
       {errors[name] && (
         <span className="text-xs text-red-600 mt-1 block">{errors[name]}</span>
@@ -707,10 +865,10 @@ export default function AddEmployeeModal({
           placeholder={placeholder}
           defaultValue={formRef.current[field]}
           maxLength={10}
-          onChange={(e) =>
-            handleMobileInput(e, formRef, field, errors, setErrors)
+          onChange={(event) =>
+            handleMobileInput(event, formRef, field, errors, setErrors)
           }
-          className={`w-full px-3 py-2 border-1.5 rounded-lg text-sm outline-none transition-colors ${
+          className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
             errors[field]
               ? "border-red-500 bg-red-50"
               : "border-slate-200 bg-slate-50 focus:border-slate-300"
@@ -724,10 +882,9 @@ export default function AddEmployeeModal({
       </div>
     );
   };
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[100vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-900 to-teal-600">
           <h2 className="m-0 text-base font-bold text-white">
             {employee ? "Edit Employee" : "Add New Employee"}
@@ -797,11 +954,15 @@ export default function AddEmployeeModal({
 
           {step === 1 && (
             <Section title="Basic Information">
-              <div className="flex gap-4 mb-3">
+              <div className="flex gap-10 mb-3">
                 <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
                   <div
                     onClick={() => avatarRef.current?.click()}
-                    className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 cursor-pointer overflow-hidden flex items-center justify-center hover:bg-slate-100 transition"
+                    className={`w-20 h-20 rounded-full border-2 border-dashed cursor-pointer overflow-hidden flex items-center justify-center hover:bg-slate-100 transition ${
+                      errors.avatar
+                        ? "border-red-500 bg-red-50"
+                        : "border-slate-300 bg-slate-50"
+                    }`}
                   >
                     {avatarPreview ? (
                       <img
@@ -810,25 +971,27 @@ export default function AddEmployeeModal({
                         alt="preview"
                       />
                     ) : (
-                      <svg
-                        width="28"
-                        height="28"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        className="text-slate-300"
-                      >
-                        <circle cx="12" cy="8" r="4" />
-                        <path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6" />
-                      </svg>
+                      <span className="text-slate-300">
+                        <IconUser size={28} />
+                      </span>
                     )}
                   </div>
-                  <span className="text-xs text-slate-400 text-center leading-tight">
+                  <span
+                    className={`text-xs text-center  leading-tight ${errors.avatar ? "text-red-600" : "text-slate-400"}`}
+                  >
                     Click to
                     <br />
                     upload
                   </span>
+                  {errors.avatar ? (
+                    <span className="text-xs text-red-600 text-center leading-tight">
+                      {errors.avatar}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400 text-center leading-tight">
+                      Max 5MB
+                    </span>
+                  )}
                   <input
                     ref={avatarRef}
                     type="file"
@@ -837,7 +1000,7 @@ export default function AddEmployeeModal({
                     onChange={handleAvatarChange}
                   />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 ">
                   <TwoColumnGrid>
                     {FormField(
                       "First Name",
@@ -866,6 +1029,7 @@ export default function AddEmployeeModal({
                         PREDEFINED_LOCATIONS,
                         "-- Select Location --",
                       ),
+                      true
                     )}
                   </TwoColumnGrid>
                 </div>
@@ -985,10 +1149,15 @@ export default function AddEmployeeModal({
                 {FormField(
                   "Comments",
                   <textarea
+                    name="comments"
                     defaultValue={formRef.current.comments}
                     onChange={handleFieldChange("comments")}
                     placeholder="Any notes…"
-                    className="w-full px-3 py-2 border-1.5 border-slate-200 rounded-lg text-sm outline-none bg-slate-50 focus:border-slate-300 resize-none h-16"
+                    className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none resize-none h-16 transition-colors ${
+                      errors.comments
+                        ? "border-red-500 bg-red-50"
+                        : "border-slate-200 bg-slate-50 focus:border-slate-300"
+                    }`}
                   />,
                 )}
               </div>
@@ -1050,54 +1219,42 @@ export default function AddEmployeeModal({
                 </p>
               ) : (
                 <div className="border border-slate-300 rounded-xl overflow-hidden">
-                  {supervisors.map((supervis, idx) => {
+                  {supervisors.map((supervisor, supervisorIndex) => {
                     const supervisorId =
-                      typeof supervis.id === "number" ? supervis.id : -1;
+                      typeof supervisor.id === "number" ? supervisor.id : -1;
                     const checked =
                       supervisorId !== -1 &&
                       selectedSupervisors.includes(supervisorId);
                     const subUnitMatch = subUnitRecords.find(
-                      (su) =>
-                        su.supervisor_name?.toLowerCase() ===
-                        supervis.name.toLowerCase(),
+                      (subUnit) =>
+                        subUnit.supervisor_name?.toLowerCase() ===
+                        supervisor.name.toLowerCase(),
                     );
                     return (
                       <label
-                        key={supervis.id}
+                        key={supervisor.id}
                         className={`flex items-center gap-3 p-2.75 cursor-pointer transition-colors ${
                           checked
                             ? "bg-emerald-50"
-                            : idx % 2 === 0
+                            : supervisorIndex % 2 === 0
                               ? "bg-white"
                               : "bg-blue-50"
-                        } ${idx < supervisors.length - 1 ? "border-b border-slate-100" : ""}`}
+                        } ${supervisorIndex < supervisors.length - 1 ? "border-b border-slate-100" : ""}`}
                       >
                         <input
                           type="checkbox"
                           checked={checked}
                           disabled={!checked && selectedSupervisors.length >= 3}
-                          onChange={() => {
-                            if (typeof supervis.id === "number") {
-                              const supervisorId = supervis.id;
-                              setSelectedSupervisors((prev) =>
-                                checked
-                                  ? prev.filter((id) => id !== supervisorId)
-                                  : prev.length < 3
-                                    ? [...prev, supervisorId]
-                                    : prev,
-                              );
-                            }
-                            if (errors.supervisors)
-                              setErrors((e) => {
-                                const updatedErrors = { ...e };
-                                delete updatedErrors.supervisors;
-                                return updatedErrors;
-                              });
-                          }}
+                          onChange={() =>
+                            handleSupervisorSelectionChange(
+                              supervisorId,
+                              checked,
+                            )
+                          }
                           className="w-4 h-4 accent-blue-900 flex-shrink-0"
                         />
                         <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-900 to-teal-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                          {supervis.name
+                          {supervisor.name
                             .split(" ")
                             .map((user: string) => user[0])
                             .slice(0, 2)
@@ -1106,18 +1263,18 @@ export default function AddEmployeeModal({
                         </div>
                         <div className="flex-1">
                           <div className="text-sm font-semibold text-slate-900">
-                            {supervis.name}
+                            {supervisor.name}
                           </div>
                           {(subUnitMatch ||
-                            supervis.job_title ||
-                            supervis.sub_unit ||
-                            supervis.email) && (
+                            supervisor.job_title ||
+                            supervisor.sub_unit ||
+                            supervisor.email) && (
                             <div className="text-xs text-slate-500">
                               {[
-                                supervis.job_title,
-                                supervis.sub_unit ||
+                                supervisor.job_title,
+                                supervisor.sub_unit ||
                                   subUnitMatch?.sub_unit_name,
-                                supervis.email,
+                                supervisor.email,
                               ]
                                 .filter(Boolean)
                                 .join(" - ")}
@@ -1146,7 +1303,8 @@ export default function AddEmployeeModal({
                   </span>
                   {selectedSupervisors.map((supervisorId) => {
                     const supervisor = supervisors.find(
-                      (s) => s.id === supervisorId,
+                      (availableSupervisor) =>
+                        availableSupervisor.id === supervisorId,
                     );
                     const name = supervisor?.name || String(supervisorId);
                     return (
@@ -1156,14 +1314,12 @@ export default function AddEmployeeModal({
                       >
                         {name}
                         <button
-                          onClick={() =>
-                            setSelectedSupervisors((prev) =>
-                              prev.filter((id) => id !== supervisorId),
-                            )
-                          }
+                          type="button"
+                          aria-label={`Remove ${name}`}
+                          onClick={() => removeSelectedSupervisor(supervisorId)}
                           className="bg-none border-0 cursor-pointer text-blue-700 text-base leading-none pl-1"
                         >
-                          ×
+                          <IconX size={14} />
                         </button>
                       </span>
                     );
@@ -1189,7 +1345,7 @@ export default function AddEmployeeModal({
             {step > 1 && (
               <button
                 type="button"
-                onClick={() => setStep((s) => s - 1)}
+                onClick={() => setStep((currentStep) => currentStep - 1)}
                 className="px-5 py-2 rounded-full border border-blue-900 bg-white text-sm font-semibold cursor-pointer text-blue-900 hover:bg-blue-50 transition"
               >
                 ← Back
@@ -1199,9 +1355,16 @@ export default function AddEmployeeModal({
               <button
                 type="button"
                 onClick={handleNext}
-                className="px-7 py-2 rounded-full border-0 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-bold cursor-pointer hover:shadow-lg transition"
+                disabled={step === 4 && checkingEmail[WORK_EMAIL_FIELD]}
+                className={`px-7 py-2 rounded-full border-0 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-bold transition ${
+                  step === 4 && checkingEmail[WORK_EMAIL_FIELD]
+                    ? "opacity-65 cursor-not-allowed"
+                    : "cursor-pointer hover:shadow-lg"
+                }`}
               >
-                Next →
+                {step === 4 && checkingEmail[WORK_EMAIL_FIELD]
+                  ? "Checking..."
+                  : "Next →"}
               </button>
             ) : (
               <button

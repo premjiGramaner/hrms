@@ -3,6 +3,7 @@ type IconProps = {
   color?: string;
 };
 
+const strokecolor = "currentColor";
 export function IconBuilding() {
   return (
     <svg
@@ -10,7 +11,7 @@ export function IconBuilding() {
       height="17"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -27,7 +28,7 @@ export const EditIcon = (
     height="13"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={strokecolor}
     strokeWidth="2.5"
   >
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -41,7 +42,7 @@ export const DeleteIcon = (
     height="13"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke={strokecolor}
     strokeWidth="2.5"
   >
     <polyline points="3 6 5 6 21 6" />
@@ -58,7 +59,7 @@ export function IconPeople() {
       height="17"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -78,7 +79,7 @@ export function IconChart() {
       height="17"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -98,7 +99,7 @@ export function IconCalendar() {
       height="17"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -118,7 +119,7 @@ export function IconBriefcase() {
       height="17"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -129,7 +130,7 @@ export function IconBriefcase() {
   );
 }
 
-export function IconSearch({ size = 16, color = "currentColor" }: IconProps) {
+export function IconSearch({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -147,7 +148,7 @@ export function IconSearch({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconGear({ size = 14, color = "currentColor" }: IconProps) {
+export function IconGear({ size = 14, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -172,7 +173,7 @@ export function IconLogout({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -184,7 +185,7 @@ export function IconLogout({ size = 16 }: IconProps) {
   );
 }
 
-export function IconHome({ size = 16, color = "currentColor" }: IconProps) {
+export function IconHome({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -209,7 +210,7 @@ export function IconFilter({ size = 14 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -226,7 +227,7 @@ export function IconShare({ size = 14 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -247,7 +248,7 @@ export function IconShield({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -264,7 +265,7 @@ export function IconClipboardList({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -284,7 +285,7 @@ export function IconGrid({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -304,7 +305,7 @@ export function IconUserCheck({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -323,7 +324,7 @@ export function IconCheckCircle({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -341,7 +342,7 @@ export function IconUser({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -359,7 +360,7 @@ export function IconUsers({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -379,7 +380,7 @@ export function IconActivity({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -396,7 +397,7 @@ export function IconPlusCircle({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -415,7 +416,7 @@ export function IconEdit({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -433,7 +434,7 @@ export function IconXCircle({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -445,7 +446,7 @@ export function IconXCircle({ size = 16 }: IconProps) {
   );
 }
 
-export function IconX({ size = 16, color = "currentColor" }: IconProps) {
+export function IconX({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -470,7 +471,7 @@ export function IconUserShield({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -489,7 +490,7 @@ export function IconSettings({ size = 16 }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke={strokecolor}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -500,7 +501,7 @@ export function IconSettings({ size = 16 }: IconProps) {
   );
 }
 
-export function IconBell({ size = 16, color = "currentColor" }: IconProps) {
+export function IconBell({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -518,7 +519,7 @@ export function IconBell({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconMail({ size = 16, color = "currentColor" }: IconProps) {
+export function IconMail({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -536,7 +537,7 @@ export function IconMail({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconGift({ size = 16, color = "currentColor" }: IconProps) {
+export function IconGift({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -557,7 +558,7 @@ export function IconGift({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconAward({ size = 16, color = "currentColor" }: IconProps) {
+export function IconAward({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -575,7 +576,7 @@ export function IconAward({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconSend({ size = 16, color = "currentColor" }: IconProps) {
+export function IconSend({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -593,7 +594,7 @@ export function IconSend({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconClock({ size = 16, color = "currentColor" }: IconProps) {
+export function IconClock({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -611,10 +612,7 @@ export function IconClock({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconAlertCircle({
-  size = 16,
-  color = "currentColor",
-}: IconProps) {
+export function IconAlertCircle({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -633,7 +631,7 @@ export function IconAlertCircle({
   );
 }
 
-export function IconCheck({ size = 16, color = "currentColor" }: IconProps) {
+export function IconCheck({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -650,7 +648,7 @@ export function IconCheck({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconFlask({ size = 16, color = "currentColor" }: IconProps) {
+export function IconFlask({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -668,7 +666,7 @@ export function IconFlask({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconSave({ size = 16, color = "currentColor" }: IconProps) {
+export function IconSave({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -687,7 +685,7 @@ export function IconSave({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconUpload({ size = 16, color = "currentColor" }: IconProps) {
+export function IconUpload({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -706,7 +704,7 @@ export function IconUpload({ size = 16, color = "currentColor" }: IconProps) {
   );
 }
 
-export function IconEye({ size = 16, color = "currentColor" }: IconProps) {
+export function IconEye({ size = 16, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -767,7 +765,7 @@ export function IconLinkedIn({ size = 20 }: IconProps) {
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="currentColor"
+      fill={strokecolor}
       aria-hidden="true"
     >
       <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
@@ -781,7 +779,7 @@ export function IconFacebook({ size = 20 }: IconProps) {
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="currentColor"
+      fill={strokecolor}
       aria-hidden="true"
     >
       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -795,7 +793,7 @@ export function IconTwitterX({ size = 18 }: IconProps) {
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="currentColor"
+      fill={strokecolor}
       aria-hidden="true"
     >
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -803,7 +801,7 @@ export function IconTwitterX({ size = 18 }: IconProps) {
   );
 }
 
-export function IconMapPin({ size = 12, color = "currentColor" }: IconProps) {
+export function IconMapPin({ size = 12, color = strokecolor }: IconProps) {
   return (
     <svg
       width={size}
@@ -817,6 +815,69 @@ export function IconMapPin({ size = 12, color = "currentColor" }: IconProps) {
     >
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
       <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+export function IconChevronDown({
+  size = 16,
+  color = "currentColor",
+}: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+export function IconUserMinus({
+  size = 16,
+  color = "currentColor",
+}: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M16 11h6" />
+    </svg>
+  );
+}
+export function IconChevronLeft({
+  size = 16,
+  color = "currentColor",
+}: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="15 18 9 12 15 6" />
     </svg>
   );
 }

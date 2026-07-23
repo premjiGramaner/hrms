@@ -13,21 +13,19 @@ import useDebounce from "../../hooks/useDebounce";
 import { EMAIL_REGEX } from "../../validations/employee.validation";
 import Button, { ActionButton } from "../../components/common/Button";
 import { PAGE_PATHS, ROLES } from "../../config/roles";
+import { IconAlertCircle, IconEdit, IconX } from "../../components/Icons";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
 const DEFAULT_PAGE_SIZE = 10;
-
 const TABS: TabItem[] = [
   { label: "Job Titles", path: PAGE_PATHS.hradminJobTitles },
   { label: "Job Categories", path: PAGE_PATHS.hradminJobCategories },
   { label: "Sub Units", path: PAGE_PATHS.hradminSubUnits },
 ];
-
 const ROLE_DISPLAY_MAP: Record<string, string> = {
   hradmin: "Default ESS, Default Supervisor, Global Admin",
   empmanager: "Default ESS, Default Supervisor",
 };
-
 const TABLE_COLUMNS = [
   "checkbox",
   "Username",
@@ -36,7 +34,6 @@ const TABLE_COLUMNS = [
   "User Roles",
   "Actions",
 ];
-
 export default function HRUsersPage() {
   const [userList, setUserList] = useState<HRUser[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -50,7 +47,6 @@ export default function HRUsersPage() {
   const [userToDelete, setUserToDelete] = useState<HRUser | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [pageError, setPageError] = useState("");
-
   const fetchUsers = useCallback(
     (page: number, size: number, search: string) => {
       setIsLoading(true);
@@ -68,7 +64,6 @@ export default function HRUsersPage() {
     },
     [],
   );
-
   useEffect(() => {
     fetchUsers(currentPage, pageSize, searchQuery);
   }, []);
@@ -82,18 +77,15 @@ export default function HRUsersPage() {
     setSearchQuery(value);
     debouncedSearch(value);
   };
-
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     fetchUsers(newPage, pageSize, searchQuery);
   };
-
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
     setCurrentPage(1);
     fetchUsers(1, newSize, searchQuery);
   };
-
   const handleDeleteConfirm = async () => {
     if (!userToDelete) return;
     setIsDeleting(true);
@@ -113,13 +105,11 @@ export default function HRUsersPage() {
       setIsDeleting(false);
     }
   };
-
   const handleUserSaved = () => {
     setShowAddModal(false);
     setUserToEdit(null);
     fetchUsers(currentPage, pageSize, searchQuery);
   };
-
   const firstRowIndex =
     totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const lastRowIndex = Math.min(currentPage * pageSize, totalRecords);
@@ -132,58 +122,22 @@ export default function HRUsersPage() {
       onFab={() => setShowAddModal(true)}
     >
       {pageError && (
-        <div
-          style={{
-            marginBottom: 12,
-            padding: "10px 16px",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: 10,
-            color: "#dc2626",
-            fontSize: 13.5,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          {pageError}
+        <div className="mb-3 flex items-center justify-between rounded-[10px] border border-red-200 bg-red-50 px-4 py-[10px] text-[13.5px] text-red-600">
+          <span className="flex items-center gap-2">
+            <IconAlertCircle size={16} />
+            {pageError}
+          </span>
           <button
             onClick={() => setPageError("")}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#dc2626",
-              fontSize: 16,
-              lineHeight: 1,
-              padding: 0,
-            }}
+            className="bg-transparent border-0 cursor-pointer text-red-600 hover:opacity-70 transition-opacity"
           >
-            ✕
+            <IconX size={18} />
           </button>
         </div>
       )}
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: 10,
-        }}
-      >
-        <div style={{ position: "relative", width: 300 }}>
-          <span
-            style={{
-              position: "absolute",
-              left: 12,
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          >
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-[10px]">
+        <div className="relative w-[300px]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
             <svg
               width="14"
               height="14"
@@ -200,42 +154,20 @@ export default function HRUsersPage() {
             type="text"
             placeholder="Search by name, username or email…"
             value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "9px 12px 9px 34px",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 10,
-              fontSize: 13.5,
-              outline: "none",
-              background: "#fff",
-              boxSizing: "border-box",
-            }}
+            onChange={(event) => handleSearchChange(event.target.value)}
+            className="w-full border border-[1.5px] border-slate-200 rounded-[10px] py-[9px] pr-3 pl-[34px] text-[13.5px] bg-white box-border outline-none"
           />
         </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{ fontSize: 13, color: "#64748b", whiteSpace: "nowrap" }}
-          >
+        <div className="flex items-center gap-2">
+          <span className="text-[13px] text-slate-500 whitespace-nowrap">
             Rows per page:
           </span>
           <select
             value={pageSize}
-            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-            style={{
-              padding: "7px 28px 7px 10px",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 8,
-              fontSize: 13,
-              outline: "none",
-              background: "#fff",
-              appearance: "none",
-              cursor: "pointer",
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2394a3b8' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E")`,
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "right 8px center",
-            }}
+            onChange={(event) =>
+              handlePageSizeChange(Number(event.target.value))
+            }
+            className="py-[7px] pl-[10px] pr-7 border-[1.5px] border-slate-200 rounded-lg text-[13px] outline-none bg-white appearance-none cursor-pointer bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2710%27%20height=%276%27%20viewBox=%270%200%2010%206%27%3E%3Cpath%20fill=%27%2394a3b8%27%20d=%27M0%200l5%206%205-6z%27/%3E%3C/svg%3E')] bg-no-repeat bg-[right_8px_center]"
           >
             {PAGE_SIZE_OPTIONS.map((size) => (
               <option key={size} value={size}>
@@ -246,35 +178,19 @@ export default function HRUsersPage() {
         </div>
       </div>
 
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}
-        >
+      <div className="bg-white rounded-2xl shadow-[0_1px_8px_rgba(0,0,0,0.06)] overflow-hidden">
+        <table className="w-full border-collapse text-[13.5px]">
           <thead>
-            <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+            <tr className="border-b border-slate-100">
               {TABLE_COLUMNS.map((columnHeader, colIndex) => (
                 <th
                   key={colIndex}
-                  style={{
-                    padding: "12px 16px",
-                    textAlign: "left",
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    color: "#94a3b8",
-                    whiteSpace: "nowrap",
-                  }}
+                  className="p-3 px-4 text-left text-[11.5px] font-semibold text-slate-400 whitespace-nowrap"
                 >
                   {colIndex === 0 ? (
                     <input
                       type="checkbox"
-                      style={{ accentColor: "#1b2a6b", width: 14, height: 14 }}
+                      className="accent-[#1b2a6b] w-[14px] h-[14px]"
                     />
                   ) : (
                     columnHeader
@@ -289,15 +205,9 @@ export default function HRUsersPage() {
               <tr>
                 <td
                   colSpan={TABLE_COLUMNS.length}
-                  style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}
+                  className="text-center p-12 text-slate-400"
                 >
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
+                  <div className="inline-flex items-center gap-2">
                     <svg
                       width="18"
                       height="18"
@@ -305,7 +215,7 @@ export default function HRUsersPage() {
                       fill="none"
                       stroke="#94a3b8"
                       strokeWidth="2"
-                      style={{ animation: "spin 1s linear infinite" }}
+                      className="animate-spin"
                     >
                       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                     </svg>
@@ -319,7 +229,7 @@ export default function HRUsersPage() {
               <tr>
                 <td
                   colSpan={TABLE_COLUMNS.length}
-                  style={{ textAlign: "center", padding: 48, color: "#94a3b8" }}
+                  className="text-center p-12 text-slate-400"
                 >
                   {searchQuery
                     ? `No users matching "${searchQuery}"`
@@ -332,68 +242,38 @@ export default function HRUsersPage() {
               userList.map((user, rowIndex) => (
                 <tr
                   key={user.id}
-                  style={{
-                    borderBottom: "1px solid #f8fafc",
-                    background: rowIndex % 2 === 0 ? "#fff" : "#fafbff",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.background =
-                      "#f0f9ff")
-                  }
-                  onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.background =
-                      rowIndex % 2 === 0 ? "#fff" : "#fafbff")
-                  }
+                  className={`border-b border-slate-50 transition-colors hover:bg-sky-50 ${
+                    rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafbff]"
+                  }`}
                 >
-                  <td style={{ padding: "12px 16px" }}>
+                  <td className="p-3 px-4">
                     <input
                       type="checkbox"
-                      style={{ accentColor: "#1b2a6b", width: 14, height: 14 }}
+                      className="accent-[#1b2a6b] w-[14px] h-[14px]"
                     />
                   </td>
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      fontWeight: 500,
-                      color: "#1e293b",
-                    }}
-                  >
+                  <td className="p-3 px-4 font-medium text-slate-800">
                     {user.username}
                   </td>
-                  <td style={{ padding: "12px 16px", color: "#374151" }}>
-                    {user.name || "—"}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      color: "#64748b",
-                      fontSize: 12.5,
-                    }}
-                  >
+                  <td className="p-3 px-4 text-gray-700">{user.name || "—"}</td>
+                  <td className="p-3 px-4 text-slate-500 text-[12.5px]">
                     {user.email || "—"}
                   </td>
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      color: "#64748b",
-                      fontSize: 12.5,
-                    }}
-                  >
+                  <td className="p-3 px-4 text-slate-500 text-[12.5px]">
                     {ROLE_DISPLAY_MAP[user.role] ?? "Default ESS"}
                   </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: 6 }}>
+                  <td className="p-3 px-4">
+                    <div className="flex gap-[6px]">
                       <ActionButton
                         label="Edit"
-                        icon={<span>✎</span>}
+                        icon={<IconEdit size={13} />}
                         variant="edit"
                         onClick={() => setUserToEdit(user)}
                         title="Edit user"
                       />
                       <ActionButton
                         label="Delete"
-                        icon={<span>🗑</span>}
+                        icon={<IconX size={13} />}
                         variant="delete"
                         onClick={() => setUserToDelete(user)}
                         title="Delete user"
@@ -406,39 +286,25 @@ export default function HRUsersPage() {
         </table>
 
         {!isLoading && totalRecords > 0 && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "14px 20px",
-              borderTop: "1px solid #f1f5f9",
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            <span
-              style={{ fontSize: 13, color: "#64748b", whiteSpace: "nowrap" }}
-            >
+          <div className="flex items-center justify-between p-[14px_20px] border-t border-slate-100 flex-wrap gap-3">
+            <span className="text-[13px] text-slate-500 whitespace-nowrap">
               Showing{" "}
-              <span style={{ fontWeight: 600, color: "#1e293b" }}>
+              <span className="font-semibold text-slate-800">
                 {firstRowIndex}–{lastRowIndex}
               </span>{" "}
               of{" "}
-              <span style={{ fontWeight: 600, color: "#1e293b" }}>
+              <span className="font-semibold text-slate-800">
                 {totalRecords}
               </span>{" "}
               users &nbsp;·&nbsp; Page{" "}
-              <span style={{ fontWeight: 600, color: "#1e293b" }}>
+              <span className="font-semibold text-slate-800">
                 {currentPage}
               </span>{" "}
               of{" "}
-              <span style={{ fontWeight: 600, color: "#1e293b" }}>
-                {totalPages}
-              </span>
+              <span className="font-semibold text-slate-800">{totalPages}</span>
             </span>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <div className="flex items-center gap-[2px]">
               <NavBtn
                 onClick={() => handlePageChange(1)}
                 disabled={currentPage === 1}
@@ -460,17 +326,7 @@ export default function HRUsersPage() {
                   pageEntry === "ellipsis" ? (
                     <span
                       key={`ellipsis-${idx}`}
-                      style={{
-                        minWidth: 32,
-                        height: 32,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 13,
-                        color: "#94a3b8",
-                        userSelect: "none",
-                        letterSpacing: 1,
-                      }}
+                      className="min-w-[32px] h-8 inline-flex items-center justify-center text-[13px] text-slate-400 select-none tracking-wide"
                     >
                       ···
                     </span>
@@ -533,8 +389,6 @@ export default function HRUsersPage() {
           onCancel={() => setUserToDelete(null)}
         />
       )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </Layout>
   );
 }
@@ -581,35 +435,17 @@ function NavBtn({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      style={{
-        minWidth: 32,
-        height: 32,
-        padding: "0 7px",
-        borderRadius: 6,
-        border: active ? "1.5px solid #1b2a6b" : "1.5px solid #e2e8f0",
-        background: active ? "#1b2a6b" : disabled ? "transparent" : "#fff",
-        color: active ? "#fff" : disabled ? "#d1d5db" : "#374151",
-        fontSize: active ? 13 : 13,
-        fontWeight: active ? 700 : 400,
-        cursor: disabled ? "not-allowed" : "pointer",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "border-color 0.15s, background 0.15s, color 0.15s",
-        lineHeight: 1,
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled && !active) {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "#94a3b8";
-          (e.currentTarget as HTMLButtonElement).style.color = "#1b2a6b";
+      className={`
+        min-w-[32px] h-8 px-[7px] rounded-md inline-flex items-center justify-center
+        text-[13px] leading-none transition-all
+        ${
+          active
+            ? "border-[1.5px] border-[#1b2a6b] bg-[#1b2a6b] text-white font-bold"
+            : disabled
+              ? "border-[1.5px] border-slate-200 bg-transparent text-gray-300 cursor-not-allowed"
+              : "border-[1.5px] border-slate-200 bg-white text-gray-700 cursor-pointer hover:border-slate-400 hover:text-[#1b2a6b]"
         }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled && !active) {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0";
-          (e.currentTarget as HTMLButtonElement).style.color = "#374151";
-        }
-      }}
+      `}
     >
       {children}
     </button>
@@ -685,82 +521,25 @@ function UserFormModal({
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-        padding: 16,
-      }}
+      className="fixed inset-0 bg-black/45 flex items-center justify-center z-[200] p-4"
       onClick={(event) => event.target === event.currentTarget && onClose()}
     >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 20,
-          width: "100%",
-          maxWidth: 560,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: "20px 24px 0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#1b2a6b",
-            }}
-          >
+      <div className="bg-white rounded-[20px] w-full max-w-[560px] shadow-[0_20px_60px_rgba(0,0,0,0.2)] overflow-hidden">
+        <div className="pt-5 px-6 pb-0 flex items-center justify-between">
+          <h2 className="m-0 text-lg font-bold text-[#1b2a6b]">
             {mode === "add" ? "Add User" : "Edit User"}
           </h2>
           <button
             onClick={onClose}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background: "#f1f5f9",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 14,
-              color: "#64748b",
-            }}
+            className="w-7 h-7 rounded-full bg-slate-100 border-0 cursor-pointer text-sm text-slate-500 hover:bg-slate-200 transition-colors flex items-center justify-center"
           >
-            ✕
+            <IconX size={16} />
           </button>
         </div>
 
-        <div
-          style={{
-            padding: "20px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
+        <div className="p-5 px-6 flex flex-col gap-4">
           {formError && (
-            <div
-              style={{
-                padding: "8px 12px",
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
-                borderRadius: 8,
-                color: "#dc2626",
-                fontSize: 13,
-              }}
-            >
+            <div className="p-2 px-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-[13px]">
               {formError}
             </div>
           )}
@@ -796,19 +575,11 @@ function UserFormModal({
           </FormRow>
         </div>
 
-        <div
-          style={{
-            padding: "14px 24px 20px",
-            borderTop: "1px solid #f1f5f9",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <span style={{ fontSize: 12, color: "#94a3b8" }}>
-            <span style={{ color: "#ef4444" }}>*</span> Required
+        <div className="py-[14px_24px_20px] border-t border-slate-100 flex items-center justify-between">
+          <span className="text-xs text-slate-400">
+            <span className="text-red-500">*</span> Required
           </span>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="flex gap-[10px]">
             <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
@@ -841,67 +612,20 @@ function DeleteConfirmModal({
   onCancel,
 }: DeleteConfirmModalProps) {
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 16,
-          width: "100%",
-          maxWidth: 420,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-          padding: "28px 28px 24px",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: "50%",
-            background: "#fff1f2",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 16px",
-            fontSize: 22,
-          }}
-        >
-          🗑
+    <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-[200] p-4">
+      <div className="bg-white rounded-2xl w-full max-w-[420px] shadow-[0_20px_60px_rgba(0,0,0,0.2)] p-[28px_28px_24px] text-center">
+        <div className="w-[52px] h-[52px] rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
+          <IconAlertCircle size={28} color="#f43f5e" />
         </div>
-        <h3
-          style={{
-            margin: "0 0 8px",
-            fontSize: 17,
-            fontWeight: 700,
-            color: "#1e293b",
-          }}
-        >
+        <h3 className="m-0 mb-2 text-[17px] font-bold text-slate-800">
           Delete User
         </h3>
-        <p
-          style={{
-            margin: "0 0 24px",
-            fontSize: 14,
-            color: "#64748b",
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="m-0 mb-6 text-sm text-slate-500 leading-relaxed">
           Are you sure you want to delete{" "}
-          <strong style={{ color: "#1e293b" }}>{userName}</strong>? This action
+          <strong className="text-slate-800">{userName}</strong>? This action
           cannot be undone.
         </p>
-        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+        <div className="flex gap-[10px] justify-center">
           <Button variant="secondary" onClick={onCancel} disabled={isLoading}>
             Cancel
           </Button>
@@ -920,11 +644,7 @@ function DeleteConfirmModal({
 }
 
 function FormRow({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-      {children}
-    </div>
-  );
+  return <div className="grid grid-cols-2 gap-4">{children}</div>;
 }
 
 function FormField({
@@ -937,10 +657,10 @@ function FormField({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: "#4a5568" }}>
+    <div className="flex flex-col gap-[5px]">
+      <label className="text-[12.5px] font-semibold text-gray-600">
         {label}
-        {required && <span style={{ color: "#ef4444", marginLeft: 2 }}>*</span>}
+        {required && <span className="text-red-500 ml-[2px]">*</span>}
       </label>
       {children}
     </div>
@@ -960,17 +680,8 @@ function FormInput({
     <input
       value={value}
       placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value)}
-      style={{
-        width: "100%",
-        padding: "10px 12px",
-        border: "1.5px solid #e2e8f0",
-        borderRadius: 10,
-        fontSize: 13.5,
-        outline: "none",
-        background: "#fff",
-        boxSizing: "border-box",
-      }}
+      onChange={(event) => onChange(event.target.value)}
+      className="w-full p-[10px_12px] border-[1.5px] border-slate-200 rounded-[10px] text-[13.5px] outline-none bg-white box-border"
     />
   );
 }
@@ -985,42 +696,27 @@ function FormSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: "100%",
-          padding: "10px 32px 10px 12px",
-          border: "1.5px solid #e2e8f0",
-          borderRadius: 10,
-          fontSize: 13.5,
-          outline: "none",
-          appearance: "none",
-          background: "#fff",
-          boxSizing: "border-box",
-          cursor: "pointer",
-        }}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full p-[10px_32px_10px_12px] border-[1.5px] border-slate-200 rounded-[10px] text-[13.5px] outline-none appearance-none bg-white box-border cursor-pointer"
       >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
-      <span
-        style={{
-          position: "absolute",
-          right: 10,
-          top: "50%",
-          transform: "translateY(-50%)",
-          pointerEvents: "none",
-          color: "#94a3b8",
-          fontSize: 11,
-        }}
+      <svg
+        className="absolute right-[10px] top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+        width="10"
+        height="6"
+        viewBox="0 0 10 6"
+        fill="currentColor"
       >
-        ▼
-      </span>
+        <path d="M0 0l5 6 5-6z" />
+      </svg>
     </div>
   );
 }

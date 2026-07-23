@@ -85,7 +85,6 @@ export default function Button({
   );
 }
 
-// Icon Button (smaller, square/circular)
 interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -127,7 +126,6 @@ export function IconButton({
   );
 }
 
-// Action Button (with label and icon)
 interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   label: string;
   icon: React.ReactNode;
