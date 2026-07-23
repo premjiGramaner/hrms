@@ -111,8 +111,6 @@ export default function AddEmployeesToCycle() {
   };
   const submit = async () => {
     if (!cycle) return;
-    await addEmployeesToCycle(cycle.id, selectedIds);
-    navigate(PAGE_PATHS.performanceAppraisalCycle(cycle.id));
     if (isClosedCycleStatus(cycle.status)) {
       Toast.warning(CLOSED_CYCLE_MESSAGE);
       return;
@@ -151,7 +149,9 @@ export default function AddEmployeesToCycle() {
           <p className="font-semibold text-amber-600">{CLOSED_CYCLE_MESSAGE}</p>
           <Button
             className="mt-5"
-            onClick={() => navigate(`/performance/appraisal_cycles/${cycle.id}`)}
+            onClick={() =>
+              navigate(`/performance/appraisal_cycles/${cycle.id}`)
+            }
           >
             Back to Cycle
           </Button>

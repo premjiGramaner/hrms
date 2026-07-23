@@ -27,6 +27,7 @@ api.interceptors.response.use(
         "/login",
         "/forgot-password",
         "/reset-password",
+        "/create-password",
       ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
       if (!isPublicAuthRoute) {

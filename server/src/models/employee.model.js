@@ -1,6 +1,7 @@
 import pool from "../config/db.js";
 import bcrypt from "bcryptjs";
 import { logError } from "../utils/logger.js";
+import AppError from "../utils/AppError.js";
 import crypto from "crypto";
 import {
   ROLES,
@@ -212,7 +213,7 @@ async function findEmployeeById(id) {
   return rows[0] || null;
 }
 
-async function convertSupervisorIdsToNames(supervisors) {
+async function convertSupervisorIdsToNames(supervisors, employeeId = null) {
   if (!supervisors) return null;
 
   try {
@@ -223,26 +224,54 @@ async function convertSupervisorIdsToNames(supervisors) {
       return null;
     }
 
-    const validIds = parsed
-      .map((id) => parseInt(id, 10))
-      .filter((id) => !isNaN(id) && id > 0);
+    const supervisorIds = [
+      ...new Set(
+        parsed.map((supervisorId) => Number.parseInt(supervisorId, 10)),
+      ),
+    ];
+    const hasInvalidSupervisorId = supervisorIds.some(
+      (supervisorId) =>
+        !Number.isInteger(supervisorId) || supervisorId <= 0,
+    );
+    if (hasInvalidSupervisorId) {
+      throw new AppError("Select only valid supervisors.", 422);
+    }
 
-    if (validIds.length === 0) return null;
+    if (
+      employeeId !== null &&
+      supervisorIds.includes(Number(employeeId))
+    ) {
+      throw new AppError(
+        "An employee cannot be assigned as their own supervisor.",
+        422,
+      );
+    }
 
     const { rows } = await pool.query(
-      `SELECT name FROM tbl_appusers 
-       WHERE id = ANY($1::int[]) 
-       AND is_deleted = false 
-       ORDER BY name`,
-      [validIds],
+      `SELECT id::int, name
+       FROM tbl_appusers
+       WHERE id = ANY($1::int[])
+         AND is_deleted = false
+         AND is_active = true
+         AND (employment_status IS NULL OR employment_status != 'Terminated')
+         AND role = ANY($2::text[])`,
+      [supervisorIds, [...BASIC_SUPERVISOR_ROLES]],
     );
 
-    if (rows.length === 0) return null;
+    if (rows.length !== supervisorIds.length) {
+      throw new AppError("Select only valid, active supervisors.", 422);
+    }
 
-    const names = rows.map((row) => row.name);
+    const supervisorNamesById = new Map(
+      rows.map((supervisor) => [supervisor.id, supervisor.name]),
+    );
+    const names = supervisorIds.map((supervisorId) =>
+      supervisorNamesById.get(supervisorId),
+    );
     return JSON.stringify(names);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new AppError("Invalid supervisors value.", 422);
   }
 }
 
@@ -367,7 +396,10 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
     normalizeNullableDate(data.real_dob) || normalizeNullableDate(data.dob);
 
   // Convert supervisor IDs to names and store names
-  const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
+  const supervisorNames = await convertSupervisorIdsToNames(
+    data.supervisors,
+    id,
+  );
 
   const result = await pool.query(
     `UPDATE tbl_appusers SET
@@ -543,10 +575,11 @@ async function getSupervisors() {
      WHERE is_deleted = false
        AND is_active = true
        AND (employment_status IS NULL OR employment_status != 'Terminated')
-       AND role = 'supervisor'
+       AND role = ANY($1::text[])
        AND name IS NOT NULL
        AND TRIM(name) <> ''
      ORDER BY name ASC`,
+    [[...BASIC_SUPERVISOR_ROLES]],
   );
 
   return userRows.map((row) => ({

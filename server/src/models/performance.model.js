@@ -4,10 +4,15 @@ import {
   defaultAppraisalRatingType,
   defaultPerformanceEvaluationHeader,
 } from "../config/performance.config.js";
+import { SUPERVISOR_ROLES } from "../constants/roles.js";
 import appraisalTemplateSeed from "../data/appraisalTemplateSeed.js";
+import AppError from "../utils/AppError.js";
 
-let schemaPromise = null; 
+let schemaPromise = null;
 let seedPromise = null;
+
+const APPRAISAL_SUPERVISOR_REQUIRED_MESSAGE =
+  "Appraisals were not created. Assign a valid, active supervisor to the following users:";
 
 const toSlug = (value) =>
   String(value || "")
@@ -25,7 +30,7 @@ const toNumber = (value, fallback = 0) =>
   Number.isFinite(Number(value)) ? Number(value) : fallback;
 const normalizeLookup = (value) => compact(value);
 
-function removeAdjacentDuplicateNames(description) {      
+function removeAdjacentDuplicateNames(description) {
   const descriptionParts = String(description || "")
     .split(" - ")
     .map((descriptionPart) => descriptionPart.trim())
@@ -75,13 +80,13 @@ function getSupervisorKey(item) {
   }
   return String(
     item.name ||
-    item.employeeName ||
-    item.username ||
-    item.email ||
-    item.employee_id ||
-    item.employeeId ||
-    item.id ||
-    "",
+      item.employeeName ||
+      item.username ||
+      item.email ||
+      item.employee_id ||
+      item.employeeId ||
+      item.id ||
+      "",
   ).trim();
 }
 
@@ -97,28 +102,20 @@ function matchSupervisorUser(supervisor, supervisorUsers = []) {
 
   const key = normalizeLookup(rawKey);
   if (!key) return null;
-  return (
-    supervisorUsers.find((user) => {
-      const possibleValues = [
-        user.name,
-        user.username,
-        user.email,
-        user.employee_id,
-        user.first_name && user.last_name
-          ? `${user.first_name} ${user.last_name}`
-          : "",
-      ];
-      return possibleValues.some((value) => {
-        const normalized = normalizeLookup(value);
-        return (
-          normalized &&
-          (normalized === key ||
-            normalized.includes(key) ||
-            key.includes(normalized))
-        );
-      });
-    }) || null
-  );
+  const matchingUsers = supervisorUsers.filter((user) => {
+    const possibleValues = [
+      user.name,
+      user.username,
+      user.email,
+      user.employee_id,
+      user.first_name && user.last_name
+        ? `${user.first_name} ${user.last_name}`
+        : "",
+    ];
+    return possibleValues.some((value) => normalizeLookup(value) === key);
+  });
+
+  return matchingUsers.length === 1 ? matchingUsers[0] : null;
 }
 
 async function ensurePerformanceSchema() {
@@ -239,22 +236,20 @@ function normalizeEmployee(row, supervisorUsers = []) {
     .map((entry) => {
       const name = getSupervisorKey(entry);
       const matchedUser = matchSupervisorUser(entry, supervisorUsers);
-      const rawId = getSupervisorId(entry);
-      const supervisorId = matchedUser?.id
-        ? String(matchedUser.id)
-        : /^\d+$/.test(rawId)
-          ? rawId
-          : toSlug(name);
+      if (!matchedUser || String(matchedUser.id) === String(row.id)) {
+        return null;
+      }
 
       return {
-        id: supervisorId,
-        name: matchedUser?.name || name || rawId || "Supervisor",
-        role: matchedUser?.job_title || "Supervisor",
-        employeeId: matchedUser?.employee_id || null,
-        jobTitle: matchedUser?.job_title || null,
-        avatar: matchedUser?.avatar || null,
+        id: String(matchedUser.id),
+        name: matchedUser.name || name || "Supervisor",
+        role: matchedUser.role,
+        employeeId: matchedUser.employee_id || null,
+        jobTitle: matchedUser.job_title || null,
+        avatar: matchedUser.avatar || null,
       };
     })
+    .filter(Boolean)
     .filter((supervisor) => {
       const supervisorKey = normalizeLookup(
         supervisor.id || supervisor.employeeId || supervisor.name,
@@ -284,11 +279,18 @@ function normalizeEmployee(row, supervisorUsers = []) {
   };
 }
 
-async function getSupervisorUsers() {
-  const { rows } = await pool.query(
-    `SELECT id::int, employee_id, username, email, first_name, last_name, name, job_title, avatar
+async function getSupervisorUsers(databaseClient = pool) {
+  const { rows } = await databaseClient.query(
+    `SELECT id::int, employee_id, username, email, first_name, last_name,
+            name, role, job_title, avatar
      FROM tbl_appusers
-     WHERE is_deleted = false AND name IS NOT NULL`,
+     WHERE is_deleted = false
+       AND is_active = true
+       AND (employment_status IS NULL OR employment_status != 'Terminated')
+       AND role = ANY($1::text[])
+       AND name IS NOT NULL
+       AND TRIM(name) <> ''`,
+    [[...SUPERVISOR_ROLES]],
   );
   return rows;
 }
@@ -509,9 +511,9 @@ async function findTemplateById(id) {
   const sectionIds = sections.rows.map((section) => section.id);
   const questions = sectionIds.length
     ? await pool.query(
-      "SELECT * FROM appraisal_template_kpis WHERE section_id = ANY($1::text[]) AND is_active = true ORDER BY display_order ASC",
-      [sectionIds],
-    )
+        "SELECT * FROM appraisal_template_kpis WHERE section_id = ANY($1::text[]) AND is_active = true ORDER BY display_order ASC",
+        [sectionIds],
+      )
     : { rows: [] };
   return mapTemplateRows(templates.rows, sections.rows, questions.rows)[0];
 }
@@ -716,11 +718,26 @@ async function deleteTemplateKpi(templateId, questionId) {
 }
 
 async function getEmployeeById(id) {
-  const employees = await findEmployees({ limit: 1000 });
-  return employees.data.find((employee) => employee.id === String(id)) || null;
+  const employeeId = Number(id);
+  if (!Number.isInteger(employeeId)) return null;
+
+  const [{ rows }, supervisorUsers] = await Promise.all([
+    pool.query(
+      `SELECT id::int, employee_id, name, status, avatar, role, job_title,
+              employment_status, sub_unit, location, supervisors
+       FROM tbl_appusers
+       WHERE id = $1
+         AND is_deleted = false
+         AND (employment_status IS NULL OR employment_status != 'Terminated')`,
+      [employeeId],
+    ),
+    getSupervisorUsers(),
+  ]);
+
+  return rows[0] ? normalizeEmployee(rows[0], supervisorUsers) : null;
 }
 
-async function resolveMainEvaluatorId(employee) {
+function resolveMainEvaluatorId(employee) {
   const supervisor = employee?.supervisors?.find((item) => {
     const id = getSupervisorId(item);
     return /^\d+$/.test(id);
@@ -732,11 +749,15 @@ async function resolveMainEvaluatorId(employee) {
 }
 
 function resolveMainEvaluator(employee, storedEvaluator) {
-  if (storedEvaluator) return storedEvaluator;
-  const supervisor = employee?.supervisors?.find((item) => {
-    const id = getSupervisorId(item);
-    return /^\d+$/.test(id);
-  });
+  const supervisor =
+    employee?.supervisors?.find(
+      (item) =>
+        storedEvaluator && getSupervisorId(item) === String(storedEvaluator.id),
+    ) ??
+    employee?.supervisors?.find((item) => {
+      const id = getSupervisorId(item);
+      return /^\d+$/.test(id);
+    });
   if (!supervisor) return null;
 
   const id = getSupervisorId(supervisor);
@@ -749,9 +770,50 @@ function resolveMainEvaluator(employee, storedEvaluator) {
       typeof supervisor === "object"
         ? supervisor.jobTitle || supervisor.role || "Supervisor"
         : "Supervisor",
-    avatar:
-      typeof supervisor === "object" ? supervisor.avatar || null : null,
+    avatar: typeof supervisor === "object" ? supervisor.avatar || null : null,
   };
+}
+
+async function getCycleAppraisalCandidates(databaseClient, cycleId) {
+  const { rows } = await databaseClient.query(
+    `SELECT employee.id::int,
+            employee.employee_id,
+            employee.name,
+            employee.status,
+            employee.avatar,
+            employee.role,
+            employee.job_title,
+            employee.employment_status,
+            employee.sub_unit,
+            employee.location,
+            employee.supervisors
+     FROM appraisal_cycle_employees cycle_employee
+     INNER JOIN tbl_appusers employee
+       ON employee.id = cycle_employee.employee_id
+     WHERE cycle_employee.cycle_id = $1
+     ORDER BY employee.name ASC`,
+    [cycleId],
+  );
+  const supervisorUsers = await getSupervisorUsers(databaseClient);
+
+  return rows.map((employeeRow) => {
+    const employee = normalizeEmployee(employeeRow, supervisorUsers);
+    return {
+      employee,
+      mainEvaluator: employee.supervisors?.[0] || null,
+    };
+  });
+}
+
+function buildMissingSupervisorMessage(appraisalCandidates) {
+  const employeeNames = appraisalCandidates
+    .filter(({ mainEvaluator }) => !mainEvaluator)
+    .map(({ employee }) => employee.name || employee.employeeId)
+    .sort((firstName, secondName) => firstName.localeCompare(secondName));
+
+  if (employeeNames.length === 0) return null;
+
+  return `${APPRAISAL_SUPERVISOR_REQUIRED_MESSAGE} ${employeeNames.join(", ")}.`;
 }
 
 async function mapCycle(row, includeEmployees = true) {
@@ -788,11 +850,11 @@ async function mapCycle(row, includeEmployees = true) {
   cycle.employees = employees.filter(Boolean).map((employee, index) => {
     const storedEvaluator = evaluators[index]
       ? {
-        id: evaluators[index].id,
-        name: evaluators[index].name,
-        role: evaluators[index].jobTitle || "Supervisor",
-        avatar: evaluators[index].avatar,
-      }
+          id: evaluators[index].id,
+          name: evaluators[index].name,
+          role: evaluators[index].jobTitle || "Supervisor",
+          avatar: evaluators[index].avatar,
+        }
       : null;
     const evaluator = resolveMainEvaluator(employee, storedEvaluator);
     return {
@@ -851,7 +913,7 @@ async function addEmployeesToCycle(cycleId, employeeIds = []) {
   for (const id of uniqueIds) {
     const employee = await getEmployeeById(id);
     if (!employee) continue;
-    const evaluatorId = await resolveMainEvaluatorId(employee);
+    const evaluatorId = resolveMainEvaluatorId(employee);
     await pool.query(
       `INSERT INTO appraisal_cycle_employees (cycle_id, employee_id, main_evaluator_id, status)
        VALUES ($1, $2, $3, 'Not Created')
@@ -935,46 +997,90 @@ async function autoAssignEmployeesToCycle(cycleId) {
 }
 
 async function createAppraisalsForCycle(cycleId) {
-  const cycle = await findCycle(cycleId);
-  if (!cycle) return null;
-  for (const employee of cycle.employees || []) {
-    const appraisalId = `appraisal-${cycle.id}-${employee.id}`;
-    await pool.query(
-      `INSERT INTO appraisals
-        (id, cycle_id, template_id, employee_id, main_evaluator_id, from_date, to_date, due_date, description)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       ON CONFLICT (cycle_id, employee_id) DO UPDATE
-       SET main_evaluator_id = COALESCE(EXCLUDED.main_evaluator_id, appraisals.main_evaluator_id),
-           template_id = EXCLUDED.template_id,
-           from_date = EXCLUDED.from_date,
-           to_date = EXCLUDED.to_date,
-           due_date = EXCLUDED.due_date,
-           description = EXCLUDED.description,
-           updated_at = NOW()`,
-      [
-        appraisalId,
-        cycle.id,
-        cycle.templateId,
-        Number(employee.id),
-        employee.mainEvaluator?.id &&
-          /^\d+$/.test(String(employee.mainEvaluator.id))
-          ? Number(employee.mainEvaluator.id)
-          : null,
-        cycle.fromDate,
-        cycle.toDate,
-        cycle.dueDate,
-        removeAdjacentDuplicateNames(`${cycle.name} - ${employee.name}`),
-      ],
+  await ensurePerformanceSchema();
+  const databaseClient = await pool.connect();
+
+  try {
+    await databaseClient.query("BEGIN");
+    const { rows: cycleRows } = await databaseClient.query(
+      "SELECT * FROM appraisal_cycles WHERE id = $1 FOR UPDATE",
+      [cycleId],
     );
+    const cycle = cycleRows[0];
+    if (!cycle) {
+      await databaseClient.query("ROLLBACK");
+      return null;
+    }
+
+    const appraisalCandidates = await getCycleAppraisalCandidates(
+      databaseClient,
+      cycleId,
+    );
+    if (appraisalCandidates.length === 0) {
+      throw new AppError(
+        "Appraisals were not created. Add at least one user to the cycle.",
+        422,
+      );
+    }
+
+    const missingSupervisorMessage =
+      buildMissingSupervisorMessage(appraisalCandidates);
+    if (missingSupervisorMessage) {
+      throw new AppError(missingSupervisorMessage, 422);
+    }
+
+    for (const { employee, mainEvaluator } of appraisalCandidates) {
+      const evaluatorId = Number(mainEvaluator.id);
+      const appraisalId = `appraisal-${cycle.id}-${employee.id}`;
+
+      await databaseClient.query(
+        `UPDATE appraisal_cycle_employees
+         SET main_evaluator_id = $3, updated_at = NOW()
+         WHERE cycle_id = $1 AND employee_id = $2`,
+        [cycleId, Number(employee.id), evaluatorId],
+      );
+      await databaseClient.query(
+        `INSERT INTO appraisals
+          (id, cycle_id, template_id, employee_id, main_evaluator_id, from_date, to_date, due_date, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT (cycle_id, employee_id) DO UPDATE
+         SET main_evaluator_id = EXCLUDED.main_evaluator_id,
+             template_id = EXCLUDED.template_id,
+             from_date = EXCLUDED.from_date,
+             to_date = EXCLUDED.to_date,
+             due_date = EXCLUDED.due_date,
+             description = EXCLUDED.description,
+             updated_at = NOW()`,
+        [
+          appraisalId,
+          cycle.id,
+          cycle.template_id,
+          Number(employee.id),
+          evaluatorId,
+          cycle.from_date,
+          cycle.to_date,
+          cycle.due_date,
+          removeAdjacentDuplicateNames(`${cycle.name} - ${employee.name}`),
+        ],
+      );
+    }
+
+    await databaseClient.query(
+      "UPDATE appraisal_cycle_employees SET status = 'Created', updated_at = NOW() WHERE cycle_id = $1",
+      [cycleId],
+    );
+    await databaseClient.query(
+      "UPDATE appraisal_cycles SET status = 'Activated', updated_at = NOW() WHERE id = $1",
+      [cycleId],
+    );
+    await databaseClient.query("COMMIT");
+  } catch (error) {
+    await databaseClient.query("ROLLBACK");
+    throw error;
+  } finally {
+    databaseClient.release();
   }
-  await pool.query(
-    "UPDATE appraisal_cycle_employees SET status = 'Created', updated_at = NOW() WHERE cycle_id = $1",
-    [cycleId],
-  );
-  await pool.query(
-    "UPDATE appraisal_cycles SET status = 'Activated', updated_at = NOW() WHERE id = $1",
-    [cycleId],
-  );
+
   return listAppraisals({ cycleId });
 }
 
@@ -1111,31 +1217,175 @@ async function listSupervisorAppraisals({
   return rows.map(mapAppraisalRow);
 }
 
-function calculateAverage(scores) {
-  const numericScores = scores
-    .map(Number)
-    .filter((score) => Number.isFinite(score) && score > 0);
-  if (numericScores.length === 0) return 0;
-  return Number(
-    (
-      numericScores.reduce((sum, score) => sum + score, 0) /
-      numericScores.length
-    ).toFixed(2),
+const MINIMUM_KPI_RATING = 1;
+const MAXIMUM_KPI_RATING = 5;
+const REVIEWER_TYPES = new Set(["self", "supervisor"]);
+
+function validateReviewerType(reviewerType) {
+  if (!REVIEWER_TYPES.has(reviewerType)) {
+    throw new AppError("Reviewer type must be self or supervisor.", 422);
+  }
+}
+
+function normalizeRatingPayload(ratings, validQuestionIds) {
+  if (!Array.isArray(ratings)) {
+    throw new AppError("Ratings must be provided as a list.", 422);
+  }
+
+  const normalizedRatings = new Map();
+  for (const rating of ratings) {
+    const questionId = String(rating?.questionId || "").trim();
+    if (!questionId || !validQuestionIds.has(questionId)) {
+      throw new AppError("One or more ratings reference an invalid KPI.", 422);
+    }
+
+    const score = Number(rating.score);
+    if (score === 0) continue;
+    if (
+      !Number.isFinite(score) ||
+      score < MINIMUM_KPI_RATING ||
+      score > MAXIMUM_KPI_RATING
+    ) {
+      throw new AppError(
+        `KPI ratings must be between ${MINIMUM_KPI_RATING} and ${MAXIMUM_KPI_RATING}.`,
+        422,
+      );
+    }
+
+    normalizedRatings.set(questionId, {
+      questionId,
+      score,
+      comment: String(rating.comment || "").trim(),
+    });
+  }
+
+  return [...normalizedRatings.values()];
+}
+
+function calculateWeightedRating(ratingRows) {
+  const assignedRatings = ratingRows
+    .map((ratingRow) => ({
+      score: Number(ratingRow.score),
+      weight: Number(ratingRow.weight),
+    }))
+    .filter(
+      ({ score }) =>
+        Number.isFinite(score) &&
+        score >= MINIMUM_KPI_RATING &&
+        score <= MAXIMUM_KPI_RATING,
+    );
+  if (assignedRatings.length === 0) return 0;
+
+  const weightedRatings = assignedRatings.filter(
+    ({ weight }) => Number.isFinite(weight) && weight > 0,
+  );
+  const ratingsForCalculation =
+    weightedRatings.length > 0 ? weightedRatings : assignedRatings;
+  const totalWeight = ratingsForCalculation.reduce(
+    (weightTotal, { weight }) =>
+      weightTotal + (weightedRatings.length > 0 ? weight : 1),
+    0,
+  );
+  const weightedScore = ratingsForCalculation.reduce(
+    (scoreTotal, { score, weight }) =>
+      scoreTotal + score * (weightedRatings.length > 0 ? weight : 1),
+    0,
+  );
+
+  return Number((weightedScore / totalWeight).toFixed(2));
+}
+
+async function getRatingContext(databaseClient, appraisalId) {
+  const { rows: appraisalRows } = await databaseClient.query(
+    `SELECT id, template_id, self_submitted, supervisor_submitted
+     FROM appraisals
+     WHERE id = $1
+     FOR UPDATE`,
+    [appraisalId],
+  );
+  const appraisal = appraisalRows[0];
+  if (!appraisal) return null;
+
+  const { rows: questionRows } = await databaseClient.query(
+    `SELECT kpi.id, kpi.title, kpi.weight
+     FROM appraisal_template_kpis kpi
+     INNER JOIN appraisal_template_sections section
+       ON section.id = kpi.section_id
+     WHERE section.template_id = $1
+       AND kpi.is_active = true
+     ORDER BY kpi.display_order ASC`,
+    [appraisal.template_id],
+  );
+
+  return { appraisal, questionRows };
+}
+
+async function upsertAppraisalRatings(
+  databaseClient,
+  appraisalId,
+  reviewerType,
+  ratings,
+) {
+  for (const rating of ratings) {
+    await databaseClient.query(
+      `INSERT INTO appraisal_ratings
+         (appraisal_id, question_id, reviewer_type, score, comment)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (appraisal_id, question_id, reviewer_type) DO UPDATE
+       SET score = EXCLUDED.score,
+           comment = EXCLUDED.comment,
+           updated_at = NOW()`,
+      [
+        appraisalId,
+        rating.questionId,
+        reviewerType,
+        rating.score,
+        rating.comment,
+      ],
+    );
+  }
+}
+
+async function recalculateAppraisalRating(
+  databaseClient,
+  appraisalId,
+  reviewerType,
+) {
+  const { rows: ratingRows } = await databaseClient.query(
+    `SELECT rating.score, kpi.weight
+     FROM appraisal_ratings rating
+     INNER JOIN appraisal_template_kpis kpi
+       ON kpi.id = rating.question_id
+     INNER JOIN appraisal_template_sections section
+       ON section.id = kpi.section_id
+     INNER JOIN appraisals appraisal
+       ON appraisal.id = rating.appraisal_id
+      AND appraisal.template_id = section.template_id
+     WHERE rating.appraisal_id = $1
+       AND rating.reviewer_type = $2
+       AND kpi.is_active = true`,
+    [appraisalId, reviewerType],
+  );
+  const reviewerRating = calculateWeightedRating(ratingRows);
+  const ratingColumn =
+    reviewerType === "supervisor" ? "supervisor_rating" : "self_rating";
+
+  await databaseClient.query(
+    `UPDATE appraisals
+     SET ${ratingColumn} = $2, updated_at = NOW()
+     WHERE id = $1`,
+    [appraisalId, reviewerRating],
   );
 }
 
-async function recalculateAppraisal(appraisalId, reviewerType) {
-  const { rows: ratingRows } = await pool.query(
-    "SELECT score FROM appraisal_ratings WHERE appraisal_id = $1 AND reviewer_type = $2",
-    [appraisalId, reviewerType],
-  );
-  const average = calculateAverage(ratingRows.map((row) => row.score));
-  const column =
-    reviewerType === "supervisor" ? "supervisor_rating" : "self_rating";
-  await pool.query(
-    `UPDATE appraisals SET ${column} = $2, updated_at = NOW() WHERE id = $1`,
-    [appraisalId, average],
-  );
+function ensureReviewIsEditable(appraisal, reviewerType) {
+  const alreadySubmitted =
+    reviewerType === "supervisor"
+      ? appraisal.supervisor_submitted
+      : appraisal.self_submitted;
+  if (alreadySubmitted) {
+    throw new AppError("A submitted review cannot be changed.", 409);
+  }
 }
 
 async function updateAppraisalRatings({
@@ -1143,25 +1393,37 @@ async function updateAppraisalRatings({
   reviewerType,
   ratings = [],
 }) {
-  const appraisal = await findAppraisal(appraisalId);
-  if (!appraisal) return null;
-  const key = reviewerType === "supervisor" ? "supervisor" : "self";
-  for (const rating of ratings) {
-    await pool.query(
-      `INSERT INTO appraisal_ratings (appraisal_id, question_id, reviewer_type, score, comment)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (appraisal_id, question_id, reviewer_type) DO UPDATE
-       SET score = EXCLUDED.score, comment = EXCLUDED.comment, updated_at = NOW()`,
-      [
-        appraisalId,
-        rating.questionId,
-        key,
-        Number(rating.score) || 0,
-        rating.comment || "",
-      ],
+  validateReviewerType(reviewerType);
+  const databaseClient = await pool.connect();
+
+  try {
+    await databaseClient.query("BEGIN");
+    const ratingContext = await getRatingContext(databaseClient, appraisalId);
+    if (!ratingContext) {
+      await databaseClient.query("ROLLBACK");
+      return null;
+    }
+
+    ensureReviewIsEditable(ratingContext.appraisal, reviewerType);
+    const validQuestionIds = new Set(
+      ratingContext.questionRows.map((question) => question.id),
     );
+    const normalizedRatings = normalizeRatingPayload(ratings, validQuestionIds);
+    await upsertAppraisalRatings(
+      databaseClient,
+      appraisalId,
+      reviewerType,
+      normalizedRatings,
+    );
+    await recalculateAppraisalRating(databaseClient, appraisalId, reviewerType);
+    await databaseClient.query("COMMIT");
+  } catch (error) {
+    await databaseClient.query("ROLLBACK");
+    throw error;
+  } finally {
+    databaseClient.release();
   }
-  await recalculateAppraisal(appraisalId, key);
+
   return findAppraisal(appraisalId);
 }
 
@@ -1170,37 +1432,104 @@ async function submitAppraisalReview({
   reviewerType,
   ratings = [],
 }) {
-  const updated = await updateAppraisalRatings({
-    appraisalId,
-    reviewerType,
-    ratings,
-  });
-  if (!updated) return null;
-  const isSupervisor = reviewerType === "supervisor";
-  await pool.query(
-    `UPDATE appraisals
-     SET self_submitted = CASE WHEN $2 = false THEN true ELSE self_submitted END,
-         supervisor_submitted = CASE WHEN $2 = true THEN true ELSE supervisor_submitted END,
-         updated_at = NOW()
-     WHERE id = $1`,
-    [appraisalId, isSupervisor],
-  );
-  await pool.query(
-    `UPDATE appraisals
-     SET review_progress = ROUND((
-           (CASE WHEN self_submitted THEN self_weight ELSE 0 END) +
-           (CASE WHEN supervisor_submitted THEN supervisor_weight ELSE 0 END)
-         )::numeric)::int,
-         final_rating = CASE
-           WHEN self_submitted AND supervisor_submitted THEN
-             ROUND(((self_rating * self_weight / 100.0) + (supervisor_rating * supervisor_weight / 100.0))::numeric, 2)
-           ELSE NULL
-         END,
-         status = CASE WHEN self_submitted AND supervisor_submitted THEN 'COMPLETED' ELSE 'INITIATED' END,
-         updated_at = NOW()
-     WHERE id = $1`,
-    [appraisalId],
-  );
+  validateReviewerType(reviewerType);
+  const databaseClient = await pool.connect();
+
+  try {
+    await databaseClient.query("BEGIN");
+    const ratingContext = await getRatingContext(databaseClient, appraisalId);
+    if (!ratingContext) {
+      await databaseClient.query("ROLLBACK");
+      return null;
+    }
+
+    ensureReviewIsEditable(ratingContext.appraisal, reviewerType);
+    if (ratingContext.questionRows.length === 0) {
+      throw new AppError("This appraisal has no active KPIs to rate.", 422);
+    }
+
+    const validQuestionIds = new Set(
+      ratingContext.questionRows.map((question) => question.id),
+    );
+    const normalizedRatings = normalizeRatingPayload(ratings, validQuestionIds);
+    await upsertAppraisalRatings(
+      databaseClient,
+      appraisalId,
+      reviewerType,
+      normalizedRatings,
+    );
+
+    const { rows: assignedRatingRows } = await databaseClient.query(
+      `SELECT question_id
+       FROM appraisal_ratings
+       WHERE appraisal_id = $1
+         AND reviewer_type = $2
+         AND score BETWEEN $3 AND $4`,
+      [appraisalId, reviewerType, MINIMUM_KPI_RATING, MAXIMUM_KPI_RATING],
+    );
+    const assignedQuestionIds = new Set(
+      assignedRatingRows.map((ratingRow) => ratingRow.question_id),
+    );
+    const missingQuestions = ratingContext.questionRows.filter(
+      (question) => !assignedQuestionIds.has(question.id),
+    );
+
+    if (missingQuestions.length > 0) {
+      const missingTitles = missingQuestions
+        .map((question) => question.title)
+        .join(", ");
+      const reviewerLabel =
+        reviewerType === "supervisor" ? "Supervisors" : "Employees";
+      throw new AppError(
+        `${reviewerLabel} must rate every active KPI before submitting. Missing ratings: ${missingTitles}.`,
+        422,
+      );
+    }
+
+    await recalculateAppraisalRating(databaseClient, appraisalId, reviewerType);
+    const isSupervisor = reviewerType === "supervisor";
+    await databaseClient.query(
+      `UPDATE appraisals
+       SET self_submitted =
+             CASE WHEN $2 = false THEN true ELSE self_submitted END,
+           supervisor_submitted =
+             CASE WHEN $2 = true THEN true ELSE supervisor_submitted END,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [appraisalId, isSupervisor],
+    );
+    await databaseClient.query(
+      `UPDATE appraisals
+       SET review_progress = ROUND((
+             (CASE WHEN self_submitted THEN self_weight ELSE 0 END) +
+             (CASE WHEN supervisor_submitted THEN supervisor_weight ELSE 0 END)
+           )::numeric)::int,
+           final_rating = CASE
+             WHEN self_submitted AND supervisor_submitted THEN
+               ROUND((
+                 (self_rating * self_weight / 100.0) +
+                 (supervisor_rating * supervisor_weight / 100.0)
+               )::numeric, 2)
+             ELSE NULL
+           END,
+           status =
+             CASE
+               WHEN self_submitted AND supervisor_submitted
+                 THEN 'COMPLETED'
+               ELSE 'INITIATED'
+             END,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [appraisalId],
+    );
+    await databaseClient.query("COMMIT");
+  } catch (error) {
+    await databaseClient.query("ROLLBACK");
+    throw error;
+  } finally {
+    databaseClient.release();
+  }
+
   return findAppraisal(appraisalId);
 }
 
@@ -1239,11 +1568,11 @@ async function findAppraisal(id) {
 
   const mainEvaluator = evaluator
     ? {
-      id: evaluator.id,
-      name: evaluator.name,
-      role: evaluator.jobTitle || "Supervisor",
-      avatar: evaluator.avatar,
-    }
+        id: evaluator.id,
+        name: evaluator.name,
+        role: evaluator.jobTitle || "Supervisor",
+        avatar: evaluator.avatar,
+      }
     : null;
 
   return {

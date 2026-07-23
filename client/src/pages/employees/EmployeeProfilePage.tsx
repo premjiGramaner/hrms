@@ -133,12 +133,16 @@ export default function EmployeeProfilePage() {
 
     getSupervisors()
       .then((response) =>
-        setSupervisorOptions(toSupervisorOptions(response.data || [])),
+        setSupervisorOptions(
+          toSupervisorOptions(response.data || []).filter(
+            (supervisor) => String(supervisor.id) !== String(id),
+          ),
+        ),
       )
       .catch(() => {
         setError("Failed to load supervisors.");
       });
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     const fetchEmployee = async () => {

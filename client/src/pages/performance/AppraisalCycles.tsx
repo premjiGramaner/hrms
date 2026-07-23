@@ -180,9 +180,7 @@ export default function AppraisalCycles() {
       key: "status",
       header: "Status",
       sortable: true,
-      render: (cycle) => (
-        <StatusBadge status={normalizeStatus(cycle.status)} />
-      ),
+      render: (cycle) => <StatusBadge status={normalizeStatus(cycle.status)} />,
     },
     {
       key: "cycleAction",
@@ -220,7 +218,9 @@ export default function AppraisalCycles() {
                 onClick={() => setActiveStatus(statusItem.label)}
                 className={`flex h-12 w-full items-center gap-4 rounded-[8px] px-4 text-left text-sm font-semibold text-slate-500 transition ${activeStatus === statusItem.label ? "bg-[#f0edf3]" : "hover:bg-[#fbf9ff]"}`}
               >
-                <span className={`grid h-8 min-w-8 place-items-center rounded-lg px-2 font-bold ${statusItem.color}`}>
+                <span
+                  className={`grid h-8 min-w-8 place-items-center rounded-lg px-2 font-bold ${statusItem.color}`}
+                >
                   {statusCounts[statusItem.label] || 0}
                 </span>
                 {statusItem.label}
@@ -249,13 +249,31 @@ export default function AppraisalCycles() {
             emptyMessage="No appraisal cycles found."
             actions={(cycle) => (
               <div className="flex justify-end gap-3">
-                <IconButton title="Delete" onClick={() => setDeleteCycleTarget(cycle)}><Trash2 size={18} /></IconButton>
-                <IconButton title="Download Appraisals ZIP" onClick={() => downloadCycle(cycle)}><Download size={18} /></IconButton>
                 <IconButton
-                  title={isClosedCycleStatus(cycle.status) ? "Closed cycles cannot be edited" : "Edit"}
+                  title="Delete"
+                  onClick={() => setDeleteCycleTarget(cycle)}
+                >
+                  <Trash2 size={18} />
+                </IconButton>
+                <IconButton
+                  title="Download Appraisals ZIP"
+                  onClick={() => downloadCycle(cycle)}
+                >
+                  <Download size={18} />
+                </IconButton>
+                <IconButton
+                  title={
+                    isClosedCycleStatus(cycle.status)
+                      ? "Closed cycles cannot be edited"
+                      : "Edit"
+                  }
                   disabled={isClosedCycleStatus(cycle.status)}
-                  onClick={() => navigate(`/performance/appraisal_cycles/${cycle.id}`)}
-                ><Edit size={18} /></IconButton>
+                  onClick={() =>
+                    navigate(`/performance/appraisal_cycles/${cycle.id}`)
+                  }
+                >
+                  <Edit size={18} />
+                </IconButton>
               </div>
             )}
           />
@@ -264,8 +282,8 @@ export default function AppraisalCycles() {
 
       {deleteCycleTarget ? (
         <ConfirmDialog
-          title="Are you sure?"
-          message="The selected appraisal cycle will be permanently deleted. Are you sure you want to continue?"
+          title="Delete Appraisal Cycle?"
+          message={`Delete "${deleteCycleTarget.name}" and its appraisal records? This action cannot be undone.`}
           confirmLabel="Yes, Delete"
           onCancel={() => setDeleteCycleTarget(null)}
           onConfirm={confirmDelete}

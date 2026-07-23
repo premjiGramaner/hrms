@@ -7,6 +7,7 @@ import {
   removeEmployeeFromCycle,
 } from "../../api/performance.api";
 import Button from "../../components/common/Button";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
 import DataTable from "../../components/common/DataTable";
 import SearchInput from "../../components/common/SearchInput";
 import StatusBadge from "../../components/common/StatusBadge";
@@ -20,6 +21,7 @@ import Toast from "../../utils/toast";
 import { IconButton, Stepper } from "./performanceUi";
 import { PAGE_PATHS } from "../../config/roles";
 import {
+  APPRAISAL_VALIDATION_TOAST_DURATION_MS,
   CLOSED_CYCLE_MESSAGE,
   isClosedCycleStatus,
   showPerformanceError,
@@ -31,6 +33,9 @@ export default function AppraisalCycleDetails() {
   const [cycle, setCycle] = useState<AppraisalCycle | null>(null);
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [creatingAppraisals, setCreatingAppraisals] = useState(false);
+  const [employeePendingRemoval, setEmployeePendingRemoval] =
+    useState<PerformanceEmployee | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -119,15 +124,29 @@ export default function AppraisalCycleDetails() {
       Toast.success("Employee removed from the appraisal cycle.");
     } catch (error) {
       showPerformanceError(error, "Unable to remove employee from cycle.");
+    } finally {
+      setEmployeePendingRemoval(null);
     }
   };
   const createAppraisals = async () => {
-    if (!cycle) return;
-    await createCycleAppraisals(cycle.id);
-    const next = await getAppraisalCycle(cycle.id);
-    setCycle(next);
-    Toast.success("Appraisals created successfully.");
-    navigate(PAGE_PATHS.performanceAppraisalsList);
+    if (!cycle || creatingAppraisals) return;
+
+    setCreatingAppraisals(true);
+    try {
+      await createCycleAppraisals(cycle.id);
+      const next = await getAppraisalCycle(cycle.id);
+      setCycle(next);
+      Toast.success("Appraisals created successfully.");
+      navigate(PAGE_PATHS.performanceAppraisalsList);
+    } catch (error) {
+      showPerformanceError(
+        error,
+        "Unable to create appraisals.",
+        APPRAISAL_VALIDATION_TOAST_DURATION_MS,
+      );
+    } finally {
+      setCreatingAppraisals(false);
+    }
   };
 
   if (!cycle) {
@@ -158,6 +177,7 @@ export default function AppraisalCycleDetails() {
         <Stepper active={1} />
         <Button
           disabled={rows.length === 0 || isClosedCycleStatus(cycle.status)}
+          loading={creatingAppraisals}
           onClick={createAppraisals}
         >
           Create Appraisals
@@ -241,7 +261,7 @@ export default function AppraisalCycleDetails() {
                     : "Delete"
                 }
                 disabled={isClosedCycleStatus(cycle.status)}
-                onClick={() => removeEmployee(row.id)}
+                onClick={() => setEmployeePendingRemoval(row)}
               >
                 <Trash2 size={17} />
               </IconButton>
@@ -249,6 +269,15 @@ export default function AppraisalCycleDetails() {
           />
         </section>
       </div>
+      {employeePendingRemoval ? (
+        <ConfirmDialog
+          title="Remove Employee?"
+          message={`Remove ${employeePendingRemoval.name} from this appraisal cycle? Any appraisal created for this employee in the cycle will also be deleted.`}
+          confirmLabel="Yes, Remove"
+          onCancel={() => setEmployeePendingRemoval(null)}
+          onConfirm={() => removeEmployee(employeePendingRemoval.id)}
+        />
+      ) : null}
     </PerformanceLayout>
   );
 }

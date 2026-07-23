@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-  createFirstTimePassword,
   forgotPassword,
   login,
   logout,
@@ -18,7 +17,6 @@ router.post("/login", validate(loginSchema), login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.post("/verify-token", verifyToken);
-router.post("/create-first-time-password", createFirstTimePassword);
 router.post("/logout", logout);
 router.get("/profile", authenticate, self);
 

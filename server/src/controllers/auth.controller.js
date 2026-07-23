@@ -32,6 +32,8 @@ const parseDuration = (duration) => {
   }
 };
 let authSchemaPromise = null;
+const INVALID_PASSWORD_TOKEN_MESSAGE =
+  "Password link is invalid or expired.";
 
 function validatePasswordPolicy(password) {
   if (!password || password.length < 8) {
@@ -164,10 +166,10 @@ const login = async (req, res, next) => {
       return error(res, "This account has been deactivated", 403);
     }
     if (user.must_change_password) {
+      const passwordSetupToken = await issuePasswordToken(user.id);
       return success(res, {
         requiresPasswordChange: true,
-        userId: user.id,
-        isFirstLogin: true,
+        passwordSetupToken,
         user: {
           id: user.id,
           username: user.username,
@@ -286,14 +288,13 @@ const validateResetToken = async (token) => {
   );
 
   return rows[0];
-}
+};
 
 async function completePasswordReset(token, password, confirmPassword) {
-  // Todo: Verify the "ensureAuthSchema" usage - I'm not fully sure about this workflow
   await ensureAuthSchema();
   if (!token)
     return {
-      errorMessage: "Password reset link is invalid or expired.",
+      errorMessage: INVALID_PASSWORD_TOKEN_MESSAGE,
       status: 400,
     };
   if (!password || !confirmPassword)
@@ -309,24 +310,28 @@ async function completePasswordReset(token, password, confirmPassword) {
   const policyError = validatePasswordPolicy(password);
   if (policyError) return { errorMessage: policyError, status: 400 };
 
-  const user = await validateResetToken(token);
-  if (!user)
-    return {
-      errorMessage: "Password reset link is invalid or expired.",
-      status: 400,
-    };
-
   const passwordHash = await bcrypt.hash(password, 10);
-  await pool.query(
+  const tokenHash = hashResetToken(token);
+  const result = await pool.query(
     `UPDATE tbl_appusers
      SET password = $1,
          must_change_password = false,
          password_reset_token = NULL,
          password_reset_expires = NULL,
          updated_at = NOW()
-     WHERE id = $2`,
-    [passwordHash, user.id],
+     WHERE password_reset_token = $2
+       AND password_reset_expires > NOW()
+       AND is_deleted = false
+       AND is_active = true`,
+    [passwordHash, tokenHash],
   );
+  if (result.rowCount === 0) {
+    return {
+      errorMessage: INVALID_PASSWORD_TOKEN_MESSAGE,
+      status: 400,
+    };
+  }
+
   return { ok: true };
 }
 
@@ -334,7 +339,7 @@ export const verifyToken = async (req, res, next) => {
   try {
     const user = await validateResetToken(req.body.token);
     if (!user)
-      return error(res, "Password reset link is invalid or expired.", 400);
+      return error(res, INVALID_PASSWORD_TOKEN_MESSAGE, 400);
 
     return success(res, { message: "Token is valid.", data: { user } });
   } catch (err) {
@@ -355,48 +360,6 @@ const resetPassword = async (req, res, next) => {
     next(err);
   }
 };
-const createFirstTimePassword = async (req, res, next) => {
-  try {
-    const { userId, password, confirmPassword } = req.body;
-
-    if (!userId) return error(res, "User ID is required", 400);
-    if (!password || !confirmPassword)
-      return error(res, "New password and confirm password are required", 400);
-    if (password !== confirmPassword)
-      return error(res, "Password and confirm password must match", 400);
-
-    const policyError = validatePasswordPolicy(password);
-    if (policyError) return error(res, policyError, 400);
-
-    const { rows } = await pool.query(
-      `SELECT id, must_change_password FROM tbl_appusers 
-       WHERE id = $1 AND is_deleted = false AND is_active = true`,
-      [userId],
-    );
-    const user = rows[0];
-    if (!user) return error(res, "User not found", 404);
-    if (!user.must_change_password)
-      return error(res, "Password change not required for this user", 400);
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    await pool.query(
-      `UPDATE tbl_appusers 
-       SET password = $1, 
-           must_change_password = false, 
-           updated_at = NOW() 
-       WHERE id = $2`,
-      [passwordHash, userId],
-    );
-
-    return success(res, {
-      message:
-        "Password created successfully. Please log in using your new password.",
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 const logout = async (req, res, next) => {
   try {
     res.clearCookie("auth_token", {
@@ -416,6 +379,5 @@ export {
   self,
   forgotPassword,
   resetPassword,
-  createFirstTimePassword,
   logout,
 };

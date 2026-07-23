@@ -1,17 +1,20 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  createFirstTimePassword,
   forgotPassword,
   resetPassword,
-  verifyToken,
+  verifyPasswordToken,
 } from "../api/auth.api";
 import cannyforeLogo from "../assets/logo.png";
 import orangeHrmLogo from "../assets/orangehrm-logo.png";
 import rightPanelImage from "../assets/login_intelligent.png";
 import { getApiErrorMessage } from "../utils/errors";
 import { PAGE_PATHS } from "../config/roles";
+import { STORAGE_KEYS } from "../constants/storage";
 import { EyeOff, Eye } from "lucide-react";
+
+const MISSING_PASSWORD_LINK_MESSAGE =
+  "This password setup session is missing or expired. Return to login and sign in with your temporary password.";
 
 function validatePassword(password: string, confirmPassword: string) {
   if (!password || !confirmPassword)
@@ -64,11 +67,11 @@ function AuthShell({
               </div>
             </div>
             <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-            {
-              !isError && (
-                <p className="mt-2 text-sm leading-6 text-slate-500">{subtitle}</p>
-              )
-            }
+            {!isError && (
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                {subtitle}
+              </p>
+            )}
             <div className="mt-6">{children}</div>
           </div>
         </div>
@@ -126,100 +129,141 @@ function PasswordInput({
 function PasswordForm({ mode }: { mode: "create" | "reset" }) {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const token = params.get("token") || "";
-  const userIdParam = params.get("userId");
-  const userId = userIdParam ? parseInt(userIdParam, 10) : null;
-  const username = params.get("username") || "";
+  const [token] = useState(() => {
+    const queryToken = params.get("token")?.trim() || "";
+    if (queryToken) return queryToken;
+    return mode === "create"
+      ? sessionStorage.getItem(STORAGE_KEYS.passwordSetupToken) || ""
+      : "";
+  });
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+  const [linkError, setLinkError] = useState("");
+  const [formError, setFormError] = useState("");
   const [authenticatedUserName, setAuthenticatedUserName] = useState("");
   const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [verifyingToken, setVerifyingToken] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const submitLabel = mode === "create" ? "Create Password" : "Reset Password";
-
-  // Determine if this is first-time login (userId-based) or password reset (token-based)
-  const isFirstTimeLogin = mode === "create" && userId !== null;
 
   const subtitle = useMemo(() => {
     if (mode === "create") {
-      return username
-        ? `Create a permanent password for ${username}.`
+      return authenticatedUserName
+        ? `Create a permanent password for ${authenticatedUserName}.`
         : "Create your permanent password before accessing HRMS.";
     }
-    return <>Enter a new password <b>{authenticatedUserName}</b> for your HRMS account.</>;
-  }, [mode, authenticatedUserName, username]);
+    return authenticatedUserName
+      ? `Enter a new password for ${authenticatedUserName}.`
+      : "Enter a new password for your HRMS account.";
+  }, [mode, authenticatedUserName]);
 
   useEffect(() => {
+    let active = true;
+
     const verify = async () => {
-      setLoading(true);
+      if (!token) {
+        setLinkError(
+          mode === "create"
+            ? MISSING_PASSWORD_LINK_MESSAGE
+            : "This password link is missing or invalid.",
+        );
+        setVerifyingToken(false);
+        return;
+      }
+
+      setVerifyingToken(true);
       try {
-        const response = await verifyToken(token);
-        if (response?.data?.user) {
-          setAuthenticatedUserName(response?.data?.user?.name || "");
+        const user = await verifyPasswordToken(token);
+        if (active) {
+          setAuthenticatedUserName(user.name || "");
         }
       } catch (err: unknown) {
-        console.log('** err', err)
-        setError("This password link is missing or invalid.");
-
+        if (active) {
+          if (mode === "create") {
+            sessionStorage.removeItem(STORAGE_KEYS.passwordSetupToken);
+          }
+          setLinkError(
+            getApiErrorMessage(
+              err,
+              "This password link is missing, invalid, or expired.",
+            ),
+          );
+        }
+      } finally {
+        if (active) {
+          setVerifyingToken(false);
+        }
       }
-      setLoading(false);
     };
 
     verify();
-  }, [])
-
+    return () => {
+      active = false;
+    };
+  }, [mode, token]);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setError("");
+    setFormError("");
     setSuccess("");
 
-    // Validate passwords
     const validationError = validatePassword(password, confirmPassword);
     if (validationError) {
-      setError(validationError);
+      setFormError(validationError);
       return;
     }
 
-    setLoading(true);
+    if (!token) {
+      setLinkError(
+        mode === "create"
+          ? MISSING_PASSWORD_LINK_MESSAGE
+          : "This password link is missing or invalid.",
+      );
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      if (isFirstTimeLogin && userId) {
-        // First-time login: use userId-based endpoint
-        const { data } = await createFirstTimePassword(
-          userId,
-          password,
-          confirmPassword,
-        );
-        setSuccess(data.message || "Password created successfully.");
-        setTimeout(() => navigate(PAGE_PATHS.login, { replace: true }), 2000);
-      } else if (token) {
-        // Password reset: use token-based endpoint (both create and reset use same backend)
-        const { data } = await resetPassword(token, password, confirmPassword);
-        setSuccess(data.message || "Password updated successfully.");
-        setTimeout(() => navigate(PAGE_PATHS.login, { replace: true }), 1200);
-      } else {
-        setError("This password link is missing or invalid.");
+      const { data } = await resetPassword(token, password, confirmPassword);
+      if (mode === "create") {
+        sessionStorage.removeItem(STORAGE_KEYS.passwordSetupToken);
       }
+      setSuccess(data.message || "Password updated successfully.");
+      const redirectDelay = mode === "create" ? 2000 : 1200;
+      setTimeout(
+        () => navigate(PAGE_PATHS.login, { replace: true }),
+        redirectDelay,
+      );
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, "Unable to update password."));
+      setFormError(getApiErrorMessage(err, "Unable to update password."));
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <AuthShell title={submitLabel} subtitle={subtitle} isError={!!error}>
+    <AuthShell title={submitLabel} subtitle={subtitle} isError={!!linkError}>
       {success && (
         <div className="mb-4 rounded-xl border-l-4 border-emerald-300 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-900">
           {success}
         </div>
       )}
-      {error ? (
+      {linkError && (
         <div className="mb-4 rounded-xl border-l-4 border-red-300 bg-red-50 px-3.5 py-2.5 text-sm text-red-900">
-          {error}
+          {linkError}
         </div>
-      ) : (
+      )}
+      {formError && (
+        <div className="mb-4 rounded-xl border-l-4 border-red-300 bg-red-50 px-3.5 py-2.5 text-sm text-red-900">
+          {formError}
+        </div>
+      )}
+      {verifyingToken && (
+        <p className="py-4 text-center text-sm font-semibold text-slate-500">
+          Validating password link...
+        </p>
+      )}
+      {!verifyingToken && !linkError && !success && (
         <form onSubmit={onSubmit} noValidate>
           <PasswordInput
             label="New Password"
@@ -239,16 +283,21 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
           </p>
           <button
             type="submit"
-            disabled={loading}
+            disabled={submitting}
             className="flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-blue-950 to-teal-500 px-5 text-base font-bold text-white shadow-lg shadow-teal-600/20 transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {loading ? "Saving..." : submitLabel}
+            {submitting ? "Saving..." : submitLabel}
           </button>
         </form>
       )}
 
       <Link
         to={PAGE_PATHS.login}
+        onClick={() => {
+          if (mode === "create") {
+            sessionStorage.removeItem(STORAGE_KEYS.passwordSetupToken);
+          }
+        }}
         className="mt-5 block text-center text-sm font-bold text-blue-950 hover:text-teal-600"
       >
         Back to Login

@@ -335,7 +335,8 @@ export default function TemplateFormDesign() {
         {deleteQuestion ? (
           <ConfirmDialog
             title="Delete KPI"
-            message="Delete this KPI from the template?"
+            message={`Delete "${deleteQuestion.title}" from this appraisal template? This action cannot be undone.`}
+            confirmLabel="Yes, Delete"
             onCancel={() => setDeleteQuestion(null)}
             onConfirm={confirmDeleteQuestion}
           />
@@ -424,7 +425,8 @@ export default function TemplateFormDesign() {
         {isDeletingTemplate ? (
           <ConfirmDialog
             title="Delete Template"
-            message="Delete this appraisal template?"
+            message={`Delete "${template.templateName}" and all of its KPIs? This action cannot be undone.`}
+            confirmLabel="Yes, Delete"
             onCancel={() => setIsDeletingTemplate(false)}
             onConfirm={deleteCurrentTemplate}
           />

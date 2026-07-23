@@ -8,6 +8,7 @@ import { loginSuccess } from "../store/authSlice";
 import { getApiErrorMessage } from "../utils/errors";
 import { validateLogin } from "../validations/auth.validation";
 import { PAGE_PATHS } from "../config/roles";
+import { STORAGE_KEYS } from "../constants/storage";
 import cannyforeLogo from "../assets/logo.png";
 import rightPanelImage from "../assets/login_intelligent.png";
 
@@ -31,33 +32,23 @@ export default function LoginPage() {
       return;
     }
 
+    sessionStorage.removeItem(STORAGE_KEYS.passwordSetupToken);
     setLoading(true);
     try {
-      const response = await loginApi(username, password, rememberMe);
-      const payload =
-        (response as { data?: any } | undefined)?.data ?? response;
-      const data = payload as {
-        token?: string;
-        user?: {
-          id: number;
-          username: string;
-          role: string;
-          name: string;
-          avatar?: string;
-        };
-        requiresPasswordChange?: boolean;
-        userId?: number;
-        isFirstLogin?: boolean;
-      };
-      const token = data?.token;
-      const user = data?.user;
-      const requiresPasswordChange = data?.requiresPasswordChange;
-      const userId = data?.userId;
+      const loginData = await loginApi(username, password, rememberMe);
+      const token = loginData.token;
+      const user = loginData.user;
 
-      if (requiresPasswordChange && user) {
-        navigate(
-          `/create-password?userId=${encodeURIComponent(String(userId ?? user.id))}&username=${encodeURIComponent(user.username)}`,
+      if (loginData.requiresPasswordChange && user) {
+        if (!loginData.passwordSetupToken) {
+          setError("Password setup could not be started. Please try again.");
+          return;
+        }
+        sessionStorage.setItem(
+          STORAGE_KEYS.passwordSetupToken,
+          loginData.passwordSetupToken,
         );
+        navigate(PAGE_PATHS.createPassword);
         return;
       }
 

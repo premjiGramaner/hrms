@@ -21,8 +21,14 @@ import {
   isClosedCycleStatus,
   showPerformanceError,
 } from "./performanceNotifications";
+import {
+  calculateWeightedKpiRating,
+  getRatingSubmissionError,
+  isAssignedKpiRating,
+  ReviewerType,
+} from "./performanceRatings";
+import { PERFORMANCE_REVIEW_LABELS } from "./performanceUi";
 
-type ReviewerType = "self" | "supervisor";
 type RatingDraft = Record<
   string,
   {
@@ -32,18 +38,6 @@ type RatingDraft = Record<
     supervisorComment: string;
   }
 >;
-
-function calcAverage(scores: number[]): number {
-  const validScores = scores.filter(
-    (score) => Number.isFinite(score) && score > 0,
-  );
-  if (!validScores.length) return 0;
-  const totalScore = validScores.reduce(
-    (runningTotal, score) => runningTotal + score,
-    0,
-  );
-  return Number((totalScore / validScores.length).toFixed(2));
-}
 
 function formatScore(score?: number | null, empty = "--") {
   const numericScore = Number(score);
@@ -208,6 +202,7 @@ function KeyPerformanceIndicatorRatingCell({
 function CommentModal({
   question,
   reviewer,
+  employeeReviewLabel,
   comment,
   editable,
   onChange,
@@ -216,6 +211,7 @@ function CommentModal({
 }: {
   question: TemplateQuestion;
   reviewer: ReviewerType;
+  employeeReviewLabel: string;
   comment: string;
   editable: boolean;
   onChange: (comment: string) => void;
@@ -242,7 +238,9 @@ function CommentModal({
           Appraisal Comments and Answers
         </h2>
         <p className="mt-1 text-sm font-semibold text-slate-500">
-          {reviewer === "supervisor" ? "Final Review" : "Self"}
+          {reviewer === "supervisor"
+            ? PERFORMANCE_REVIEW_LABELS.finalReview
+            : employeeReviewLabel}
         </p>
         <p className="mt-2 max-w-[820px] text-lg font-medium leading-8 text-slate-400">
           ({question.displayText})
@@ -321,6 +319,9 @@ export default function AppraisalCompactView() {
       String(user?.id) === String(appraisal?.mainEvaluator?.id),
     [appraisal?.mainEvaluator?.id, user?.id],
   );
+  const employeeReviewLabel = isSelfReviewer
+    ? PERFORMANCE_REVIEW_LABELS.self
+    : PERFORMANCE_REVIEW_LABELS.employeeReview;
 
   const activeReviewer: ReviewerType = useMemo(() => {
     if (isAssignedEvaluator) return "supervisor";
@@ -329,14 +330,19 @@ export default function AppraisalCompactView() {
 
   const liveSupervisorRating = useMemo(
     () =>
-      calcAverage(
-        Object.values(ratings).map((rating) => rating.supervisor),
+      calculateWeightedKpiRating(
+        appraisal?.questions || [],
+        (question) => ratings[question.id]?.supervisor || 0,
       ),
-    [ratings],
+    [appraisal?.questions, ratings],
   );
   const liveSelfRating = useMemo(
-    () => calcAverage(Object.values(ratings).map((rating) => rating.self)),
-    [ratings],
+    () =>
+      calculateWeightedKpiRating(
+        appraisal?.questions || [],
+        (question) => ratings[question.id]?.self || 0,
+      ),
+    [appraisal?.questions, ratings],
   );
 
   if (!appraisal) {
@@ -367,14 +373,16 @@ export default function AppraisalCompactView() {
   const bothSubmitted =
     appraisal.selfSubmitted && appraisal.supervisorSubmitted;
   const finalRating = bothSubmitted
-    ? appraisal.finalRating || appraisal.supervisorRating || 0
+    ? (appraisal.finalRating ?? appraisal.supervisorRating ?? 0)
     : 0;
 
-  const ratingPayload = appraisal.questions.map((question) => ({
-    questionId: question.id,
-    score: scoreForReviewer(ratings[question.id], activeReviewer),
-    comment: commentForReviewer(ratings[question.id], activeReviewer),
-  }));
+  const ratingPayload = appraisal.questions
+    .map((question) => ({
+      questionId: question.id,
+      score: scoreForReviewer(ratings[question.id], activeReviewer),
+      comment: commentForReviewer(ratings[question.id], activeReviewer),
+    }))
+    .filter((rating) => isAssignedKpiRating(rating.score));
 
   const setQuestionRating = (
     questionId: string,
@@ -387,8 +395,7 @@ export default function AppraisalCompactView() {
         self: currentRatings[questionId]?.self || 0,
         supervisor: currentRatings[questionId]?.supervisor || 0,
         selfComment: currentRatings[questionId]?.selfComment || "",
-        supervisorComment:
-          currentRatings[questionId]?.supervisorComment || "",
+        supervisorComment: currentRatings[questionId]?.supervisorComment || "",
         [reviewer]: score,
       },
     }));
@@ -405,8 +412,7 @@ export default function AppraisalCompactView() {
         self: currentRatings[questionId]?.self || 0,
         supervisor: currentRatings[questionId]?.supervisor || 0,
         selfComment: currentRatings[questionId]?.selfComment || "",
-        supervisorComment:
-          currentRatings[questionId]?.supervisorComment || "",
+        supervisorComment: currentRatings[questionId]?.supervisorComment || "",
         [reviewer === "supervisor" ? "supervisorComment" : "selfComment"]:
           comment,
       },
@@ -439,10 +445,7 @@ export default function AppraisalCompactView() {
 
   const saveComment = async () => {
     if (!commentTarget) return;
-    if (
-      commentTarget.reviewer === activeReviewer &&
-      canEditActiveReviewer
-    ) {
+    if (commentTarget.reviewer === activeReviewer && canEditActiveReviewer) {
       await saveDraft();
     }
     closeCommentModal();
@@ -452,6 +455,15 @@ export default function AppraisalCompactView() {
     if (!id) return;
     if (cycleClosed) {
       Toast.warning(CLOSED_CYCLE_MESSAGE);
+      return;
+    }
+    const validationError = getRatingSubmissionError(
+      appraisal.questions,
+      activeReviewer,
+      (question) => scoreForReviewer(ratings[question.id], activeReviewer),
+    );
+    if (validationError) {
+      Toast.warning(validationError);
       return;
     }
     try {
@@ -503,7 +515,7 @@ export default function AppraisalCompactView() {
             </div>
 
             <ReviewerPanel
-              title="Self"
+              title={employeeReviewLabel}
               name={employee.name}
               avatar={employee.avatar}
               liveRating={liveSelfRating}
@@ -627,6 +639,7 @@ export default function AppraisalCompactView() {
         <CommentModal
           question={commentTarget.question}
           reviewer={commentTarget.reviewer}
+          employeeReviewLabel={employeeReviewLabel}
           comment={commentForReviewer(
             ratings[commentTarget.question.id],
             commentTarget.reviewer,

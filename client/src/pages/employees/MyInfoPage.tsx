@@ -49,10 +49,7 @@ import { updateUserAvatar, updateUserName } from "../../store/authSlice";
 import { getNumericValue } from "./components/inputHelpers";
 import Toast from "../../utils/toast";
 import { PAGE_PATHS, ROLES, isAdminRole } from "../../config/roles";
-import {
-  toSupervisorOptions,
-  uniqueCaseInsensitive,
-} from "../../utils/employeeOptions";
+import { toSupervisorOptions } from "../../utils/employeeOptions";
 
 const ADMIN_TABS: TabItem[] = [
   { label: "Employee List", path: PAGE_PATHS.employees },
@@ -145,16 +142,15 @@ export default function MyInfoPage() {
     getSupervisors()
       .then((response) =>
         setSupervisorOptions(
-          (response.data || []).map((Supervisor: any, index: number) => ({
-            id: Supervisor.id ?? index + 1,
-            name: Supervisor.name,
-          })),
+          toSupervisorOptions(response.data || []).filter(
+            (supervisor) => String(supervisor.id) !== String(user?.id),
+          ),
         ),
       )
       .catch((error) =>
         setError(getApiErrorMessage(error, "Failed to load supervisors.")),
       );
-  }, [isAdmin]);
+  }, [isAdmin, user?.id]);
 
   const loadProfile = async () => {
     try {
@@ -359,13 +355,6 @@ export default function MyInfoPage() {
       ).trim();
       return currentValue !== originalValue;
     });
-  };
-
-  const handleProfileCardUpdate = (updatedEmployee: Employee) => {
-    setEmployee(updatedEmployee);
-    const updatedForm = employeeToEditableProfileForm(updatedEmployee);
-    setForm(updatedForm);
-    setOriginalForm({ ...updatedForm });
   };
 
   const saveFooter = (

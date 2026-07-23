@@ -109,7 +109,8 @@ export default function AddEmployeeModal({
       .then((response) =>
         setSupervisors(
           response.data.filter(
-            (supervisor) => !employee?.id || supervisor.id !== employee.id,
+            (supervisor) =>
+              !employee?.id || String(supervisor.id) !== String(employee.id),
           ),
         ),
       )
@@ -147,7 +148,11 @@ export default function AddEmployeeModal({
       setSelectedSupervisors(
         employee.supervisors
           .map((supervisor) => parseInt(String(supervisor), 10))
-          .filter((id) => !isNaN(id)),
+          .filter(
+            (supervisorId) =>
+              !isNaN(supervisorId) &&
+              String(supervisorId) !== String(employee.id),
+          ),
       );
     }
   }, [employee?.id]);
@@ -1029,7 +1034,7 @@ export default function AddEmployeeModal({
                         PREDEFINED_LOCATIONS,
                         "-- Select Location --",
                       ),
-                      true
+                      true,
                     )}
                   </TwoColumnGrid>
                 </div>

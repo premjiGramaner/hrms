@@ -2,6 +2,13 @@ import api from "./axios";
 import { AuthUser } from "../types";
 import { AUTH_PATHS } from "../constants/apiPaths";
 
+interface LoginData {
+  token?: string;
+  user?: AuthUser;
+  requiresPasswordChange?: boolean;
+  passwordSetupToken?: string;
+}
+
 export const login = async (
   username: string,
   password: string,
@@ -9,22 +16,9 @@ export const login = async (
 ) => {
   const response = await api.post<{
     success: boolean;
-    data: {
-      token?: string;
-      user?: AuthUser;
-      requiresPasswordChange?: boolean;
-      userId?: number;
-      isFirstLogin?: boolean;
-    };
-    passwordExpired?: boolean;
-    username?: string;
-    token?: string;
-    user?: AuthUser;
-    requiresPasswordChange?: boolean;
-    userId?: number;
-    isFirstLogin?: boolean;
+    data: LoginData;
   }>(AUTH_PATHS.LOGIN, { username, password, rememberMe });
-  return response.data;
+  return response.data.data;
 };
 
 export const logout = async () => {
@@ -59,12 +53,15 @@ export const resetPassword = async (
   };
 };
 
-export const verifyToken = async (token: string) => {
+export const verifyPasswordToken = async (token: string) => {
   const response = await api.post<{
     success: boolean;
-    data: { message: string; data: { user: AuthUser } };
+    data: {
+      message: string;
+      data: { user: Pick<AuthUser, "id" | "name"> };
+    };
   }>(AUTH_PATHS.VERIFY_TOKEN, { token });
-  return response?.data?.data;
+  return response.data.data.data.user;
 };
 
 export const setPassword = async (
@@ -80,21 +77,5 @@ export const setPassword = async (
     { password, confirmPassword },
     { headers: { Authorization: `Bearer ${token}` } },
   );
-  return { data: response.data.data };
-};
-
-export const createFirstTimePassword = async (
-  userId: number,
-  password: string,
-  confirmPassword: string,
-) => {
-  const response = await api.post<{
-    success: boolean;
-    data: { message: string };
-  }>(AUTH_PATHS.CREATE_FIRST_TIME_PASSWORD, {
-    userId,
-    password,
-    confirmPassword,
-  });
   return { data: response.data.data };
 };

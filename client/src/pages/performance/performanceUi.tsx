@@ -1,5 +1,12 @@
 import React from "react";
 
+export const PERFORMANCE_REVIEW_LABELS = {
+  employeeReview: "Employee Review",
+  finalReview: "Final Review",
+  self: "Self",
+  selfReview: "Self Review",
+} as const;
+
 export function PanelTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-bold text-slate-600">{children}</h2>;
 }

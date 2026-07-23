@@ -23,8 +23,14 @@ import {
   showPerformanceError,
 } from "./performanceNotifications";
 import { isAdminRole } from "../../config/roles";
+import {
+  calculateWeightedKpiRating,
+  getRatingSubmissionError,
+  isAssignedKpiRating,
+  ReviewerType,
+} from "./performanceRatings";
+import { PERFORMANCE_REVIEW_LABELS } from "./performanceUi";
 
-type ReviewerType = "self" | "supervisor";
 type RatingDraft = Record<string, { score: number; comment: string }>;
 
 function Avatar({
@@ -94,15 +100,6 @@ function formatStatus(value: string) {
   return String(value || "IN PROGRESS").replace(/_/g, " ");
 }
 
-function ratingAverage(ratings: RatingDraft) {
-  const scores = Object.values(ratings)
-    .map((rating) => Number(rating.score))
-    .filter((score) => Number.isFinite(score) && score > 0);
-  if (!scores.length) return 0;
-  return Number(
-    (scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(2),
-  );
-}
 function questionWeight(question: TemplateQuestion, total: number) {
   if (Number(question.weight) > 0)
     return Number(question.weight).toFixed(1).replace(/\.0$/, "");
@@ -201,12 +198,22 @@ export default function AppraisalMultipleView() {
   const isAssignedEvaluator =
     Boolean(appraisal?.mainEvaluator?.id) &&
     String(user?.id) === String(appraisal?.mainEvaluator?.id);
+  const employeeReviewLabel = isSelfReviewer
+    ? PERFORMANCE_REVIEW_LABELS.selfReview
+    : PERFORMANCE_REVIEW_LABELS.employeeReview;
   const reviewerType: ReviewerType =
     appraisal && isAssignedEvaluator && appraisal.mainEvaluator
       ? "supervisor"
       : "self";
 
-  const visibleRating = useMemo(() => ratingAverage(ratings), [ratings]);
+  const visibleRating = useMemo(
+    () =>
+      calculateWeightedKpiRating(
+        appraisal?.questions || [],
+        (question) => ratings[question.id]?.score || 0,
+      ),
+    [appraisal?.questions, ratings],
+  );
 
   if (!appraisal) {
     return (
@@ -235,14 +242,16 @@ export default function AppraisalMultipleView() {
   const bothSubmitted =
     appraisal.selfSubmitted && appraisal.supervisorSubmitted;
   const finalRatingValue = bothSubmitted
-    ? appraisal.finalRating || appraisal.supervisorRating || 0
+    ? appraisal.finalRating ?? appraisal.supervisorRating ?? 0
     : 0;
 
-  const ratingPayload = appraisal.questions.map((question) => ({
-    questionId: question.id,
-    score: ratings[question.id]?.score || 0,
-    comment: ratings[question.id]?.comment || "",
-  }));
+  const ratingPayload = appraisal.questions
+    .map((question) => ({
+      questionId: question.id,
+      score: ratings[question.id]?.score || 0,
+      comment: ratings[question.id]?.comment || "",
+    }))
+    .filter((rating) => isAssignedKpiRating(rating.score));
 
   const setQuestionRating = (questionId: string, score: number) => {
     setRatings((current) => ({
@@ -284,6 +293,15 @@ export default function AppraisalMultipleView() {
     if (!id) return;
     if (cycleClosed) {
       Toast.warning(CLOSED_CYCLE_MESSAGE);
+      return;
+    }
+    const validationError = getRatingSubmissionError(
+      appraisal.questions,
+      reviewerType,
+      (question) => ratings[question.id]?.score || 0,
+    );
+    if (validationError) {
+      Toast.warning(validationError);
       return;
     }
     try {
@@ -328,7 +346,9 @@ export default function AppraisalMultipleView() {
         ) : null}
         <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-5">
           <h1 className="text-xl font-bold text-slate-600">
-            {reviewerType === "supervisor" ? "Final Review" : "Self Review"}
+            {reviewerType === "supervisor"
+              ? PERFORMANCE_REVIEW_LABELS.finalReview
+              : employeeReviewLabel}
           </h1>
           <ChevronDown size={20} className="rotate-180 text-slate-500" />
         </div>
@@ -361,8 +381,8 @@ export default function AppraisalMultipleView() {
               >
                 <span>
                   {reviewerType === "supervisor"
-                    ? `${evaluator?.name || "-"} (Final Review)`
-                    : `${employee.name} (Self)`}
+                    ? `${evaluator?.name || "-"} (${PERFORMANCE_REVIEW_LABELS.finalReview})`
+                    : `${employee.name} (${employeeReviewLabel})`}
                 </span>
                 <ChevronDown size={18} />
               </button>

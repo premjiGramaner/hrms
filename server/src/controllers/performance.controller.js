@@ -159,6 +159,34 @@ const isClosedCycle = (cycle) =>
 const closedCycleMessage =
   "This appraisal cycle is closed. Reopen it before making changes.";
 
+function validateReviewerAccess(appraisal, authenticatedUser, reviewerType) {
+  if (!["self", "supervisor"].includes(reviewerType)) {
+    return {
+      message: "Reviewer type must be self or supervisor.",
+      statusCode: 422,
+    };
+  }
+
+  const assignedReviewerId =
+    reviewerType === "supervisor"
+      ? appraisal.mainEvaluator?.id
+      : appraisal.employee?.id;
+  if (
+    !assignedReviewerId ||
+    String(authenticatedUser?.id) !== String(assignedReviewerId)
+  ) {
+    return {
+      message:
+        reviewerType === "supervisor"
+          ? "Only the assigned supervisor can rate this appraisal."
+          : "Only the assigned employee can complete this self review.",
+      statusCode: 403,
+    };
+  }
+
+  return null;
+}
+
 const createCycle = async (req, res, next) => {
   const { name, fromDate, toDate, dueDate, templateId } = req.body;
   if (!name || !fromDate || !toDate || !dueDate || !templateId) {
@@ -280,9 +308,9 @@ const listAppraisals = async (req, res, next) => {
     const rows = isPerformanceAdmin
       ? await PerformanceModel.listAppraisals(filters)
       : await PerformanceModel.listSupervisorAppraisals({
-        userId: req.user?.id,
-        ...filters,
-      });
+          userId: req.user?.id,
+          ...filters,
+        });
 
     return success(res, rows);
   } catch (err) {
@@ -396,6 +424,14 @@ const saveAppraisalRatings = async (req, res, next) => {
     if (!appraisal) return error(res, "Appraisal not found", 404);
     if (isClosedCycle({ status: appraisal.cycleStatus }))
       return error(res, closedCycleMessage, 409);
+    const accessError = validateReviewerAccess(
+      appraisal,
+      req.user,
+      req.body.reviewerType,
+    );
+    if (accessError) {
+      return error(res, accessError.message, accessError.statusCode);
+    }
     const result = await PerformanceModel.updateAppraisalRatings({
       appraisalId: req.params.id,
       reviewerType: req.body.reviewerType,
@@ -414,6 +450,14 @@ const submitAppraisalReview = async (req, res, next) => {
     if (!appraisal) return error(res, "Appraisal not found", 404);
     if (isClosedCycle({ status: appraisal.cycleStatus }))
       return error(res, closedCycleMessage, 409);
+    const accessError = validateReviewerAccess(
+      appraisal,
+      req.user,
+      req.body.reviewerType,
+    );
+    if (accessError) {
+      return error(res, accessError.message, accessError.statusCode);
+    }
     const result = await PerformanceModel.submitAppraisalReview({
       appraisalId: req.params.id,
       reviewerType: req.body.reviewerType,
