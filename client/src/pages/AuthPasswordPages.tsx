@@ -10,6 +10,7 @@ import orangeHrmLogo from "../assets/orangehrm-logo.png";
 import rightPanelImage from "../assets/login_intelligent.png";
 import { getApiErrorMessage } from "../utils/errors";
 import { PAGE_PATHS } from "../config/roles";
+import { EyeOff, Eye } from "lucide-react";
 
 function validatePassword(password: string, confirmPassword: string) {
   if (!password || !confirmPassword)
@@ -108,7 +109,7 @@ function PasswordInput({
           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
           title={showPassword ? "Hide password" : "Show password"}
         >
-          {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
     </label>
