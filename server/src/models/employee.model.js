@@ -23,9 +23,9 @@ const TRIM_UNDERSCORE_REGEX = /^_+|_+$/g;
 async function createUniqueUsername(email, name) {
   let base = name
     ? name
-      .toLowerCase()
-      .replace(SPACE_REGEX, "_")
-      .replace(INVALID_CHAR_REGEX, "")
+        .toLowerCase()
+        .replace(SPACE_REGEX, "_")
+        .replace(INVALID_CHAR_REGEX, "")
     : email.split("@")[0];
   base = base.replace(TRIM_UNDERSCORE_REGEX, "") || email.split("@")[0];
 
@@ -389,7 +389,7 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       home_tel          = $16,
       work_tel          = $17,
       other_email       = $18,
-      avatar            = CASE WHEN $19 IS NOT NULL THEN $19 ELSE avatar END,
+      avatar            = COALESCE($19::text, avatar),
       address1          = $20,
       address2          = $21,
       city              = $22,
