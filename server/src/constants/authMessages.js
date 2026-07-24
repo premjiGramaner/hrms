@@ -35,5 +35,5 @@ export const PASSWORD_CONFIG = {
   REMINDER_INTERVAL_MINUTES: 1, // For testing - reminder every 1 minute
   RESET_TOKEN_EXPIRY_HOURS: 1,
   MIN_LENGTH: 8,
-  USE_MINUTES_FOR_TESTING: false, // ✅ PRODUCTION MODE - Using DAYS
+  USE_MINUTES_FOR_TESTING: false, // PRODUCTION MODE - Using DAYS
 };

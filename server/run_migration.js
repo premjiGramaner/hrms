@@ -49,7 +49,6 @@ const migrations = [
   // Leave management module
   "add_password_reset_columns.sql",
   "add_net_leave_balance_column.sql",
-  // Password expiry tracking
   "015_add_password_expiry_columns.sql",
 ];
 

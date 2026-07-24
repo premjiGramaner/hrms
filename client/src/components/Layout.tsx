@@ -8,6 +8,7 @@ import { STORAGE_KEYS } from "../constants/storage";
 import cannyforeLogo from "../assets/cannyfore_title_logo.png";
 import UserAvatar from "./UserAvatar";
 import PasswordExpiryAlert from "./PasswordExpiryAlert";
+import logger from "../utils/logger";
 
 import {
   IconBuilding,
@@ -80,7 +81,7 @@ export default function Layout({
     try {
       await logoutApi();
     } catch (error) {
-      console.error("Logout error:", error);
+      logger.error("Logout error:", error);
     } finally {
       dispatch(logoutAction());
       navigate(PAGE_PATHS.login);
