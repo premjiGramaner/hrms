@@ -27,13 +27,13 @@ export const PASSWORD_POLICY_MESSAGES = {
 
 export const PASSWORD_CONFIG = {
   EXPIRY_DAYS: 40,
-  EXPIRY_MINUTES: 15, // For testing - password expires after 15 minutes
+  EXPIRY_MINUTES: 2,
   WARNING_DAYS: 37,
-  WARNING_MINUTES: 12, // For testing - warning starts at 12 minutes
+  WARNING_MINUTES: 1,
   MAX_REMINDERS: 3,
   REMINDER_INTERVAL_DAYS: 1,
-  REMINDER_INTERVAL_MINUTES: 1, // For testing - reminder every 1 minute
+  REMINDER_INTERVAL_MINUTES: 1,
   RESET_TOKEN_EXPIRY_HOURS: 1,
   MIN_LENGTH: 8,
-  USE_MINUTES_FOR_TESTING: false, // PRODUCTION MODE - Using DAYS
+  USE_MINUTES_FOR_TESTING: false,
 };

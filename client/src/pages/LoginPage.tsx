@@ -78,7 +78,7 @@ export default function LoginPage() {
         if (passwordExpired) {
           setError(message || UI_MESSAGES.LOGIN.PASSWORD_EXPIRED_REDIRECT);
           setTimeout(() => {
-            navigate(PAGE_PATHS.createPassword);
+            navigate(`${PAGE_PATHS.createPassword}?expired=true`);
           }, PASSWORD_EXPIRY_REDIRECT_DELAY);
           return;
         }

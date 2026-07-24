@@ -494,7 +494,12 @@ const validateResetToken = async (token) => {
   return rows[0];
 };
 
-async function completePasswordReset(token, password, confirmPassword) {
+async function completePasswordReset(
+  token,
+  password,
+  confirmPassword,
+  oldPassword = null,
+) {
   await ensureAuthSchema();
   if (!token)
     return {
@@ -518,7 +523,7 @@ async function completePasswordReset(token, password, confirmPassword) {
   const tokenHash = hashResetToken(token);
 
   const { rows } = await pool.query(
-    `SELECT id, username, email FROM tbl_appusers 
+    `SELECT id, username, email, password FROM tbl_appusers 
      WHERE password_reset_token = $1
        AND password_reset_expires > NOW()
        AND is_deleted = false
@@ -527,6 +532,25 @@ async function completePasswordReset(token, password, confirmPassword) {
   );
   const user = rows[0];
 
+  if (!user) {
+    return {
+      errorMessage: AUTH_MESSAGES.TOKEN_INVALID,
+      status: 400,
+    };
+  }
+  if (oldPassword) {
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isOldPasswordValid) {
+      logAuth("Password reset failed - invalid old password", user.username, {
+        userId: user.id,
+        email: user.email,
+      });
+      return {
+        errorMessage: "Current password is incorrect",
+        status: 400,
+      };
+    }
+  }
   const result = await pool.query(
     `UPDATE tbl_appusers
      SET password = $1,
@@ -551,12 +575,11 @@ async function completePasswordReset(token, password, confirmPassword) {
     };
   }
 
-  if (user) {
-    logAuth("Password successfully reset", user.username, {
-      userId: user.id,
-      email: user.email,
-    });
-  }
+  logAuth("Password successfully reset", user.username, {
+    userId: user.id,
+    email: user.email,
+    withOldPasswordVerification: !!oldPassword,
+  });
 
   return { ok: true };
 }
@@ -578,6 +601,7 @@ const resetPassword = async (req, res, next) => {
       req.body.token,
       req.body.password,
       req.body.confirmPassword,
+      req.body.oldPassword,
     );
     if (!result.ok) return error(res, result.errorMessage, result.status);
     return success(res, { message: AUTH_MESSAGES.PASSWORD_UPDATED });

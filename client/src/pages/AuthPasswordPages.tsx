@@ -136,11 +136,13 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
       ? sessionStorage.getItem(STORAGE_KEYS.passwordSetupToken) || ""
       : "";
   });
+  const [oldPassword, setOldPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [linkError, setLinkError] = useState("");
   const [formError, setFormError] = useState("");
   const [authenticatedUserName, setAuthenticatedUserName] = useState("");
+  const [isExpiredPassword, setIsExpiredPassword] = useState(false);
   const [success, setSuccess] = useState("");
   const [verifyingToken, setVerifyingToken] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -169,6 +171,11 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
         );
         setVerifyingToken(false);
         return;
+      }
+
+      const expiredParam = params.get("expired");
+      if (expiredParam === "true") {
+        setIsExpiredPassword(true);
       }
 
       setVerifyingToken(true);
@@ -200,12 +207,17 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
     return () => {
       active = false;
     };
-  }, [mode, token]);
+  }, [mode, token, params]);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setFormError("");
     setSuccess("");
+
+    if (isExpiredPassword && !oldPassword) {
+      setFormError("Current password is required for security verification.");
+      return;
+    }
 
     const validationError = validatePassword(password, confirmPassword);
     if (validationError) {
@@ -224,7 +236,12 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
 
     setSubmitting(true);
     try {
-      const { data } = await resetPassword(token, password, confirmPassword);
+      const { data } = await resetPassword(
+        token,
+        password,
+        confirmPassword,
+        isExpiredPassword ? oldPassword : undefined,
+      );
       if (mode === "create") {
         sessionStorage.removeItem(STORAGE_KEYS.passwordSetupToken);
       }
@@ -265,6 +282,20 @@ function PasswordForm({ mode }: { mode: "create" | "reset" }) {
       )}
       {!verifyingToken && !linkError && !success && (
         <form onSubmit={onSubmit} noValidate>
+          {isExpiredPassword && (
+            <>
+              <PasswordInput
+                label="Current Password"
+                value={oldPassword}
+                onChange={setOldPassword}
+                autoComplete="current-password"
+              />
+              <p className="mb-4 text-xs leading-5 text-amber-700 bg-amber-50 border-l-4 border-amber-400 px-3 py-2 rounded">
+                For security, please verify your current password before setting
+                a new one.
+              </p>
+            </>
+          )}
           <PasswordInput
             label="New Password"
             value={password}
