@@ -105,7 +105,7 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
 
   return (
     <div ref={containerRef} className="relative">
-      {selected.length > 0 && (
+      {/* {selected.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {selected.map((emp) => (
             <span
@@ -124,7 +124,7 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
             </span>
           ))}
         </div>
-      )}
+      )} */}
 
       {(multi || selected.length === 0) && (
         <div className="relative">
@@ -175,6 +175,27 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
           })}
         </div>
       )}
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {selected.map((emp) => (
+            <span
+              key={emp.id}
+              className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full"
+            >
+              {emp.employee_id ? `${emp.employee_id} - ` : ""}
+              {emp.name}
+              <button
+                type="button"
+                onClick={() => onRemove(emp.id)}
+                className="text-blue-400 hover:text-blue-700 cursor-pointer bg-transparent border-none leading-none"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
       {open && !loading && options.length === 0 && query.trim() && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 px-4 py-3 text-sm text-slate-400">
           No employees found
@@ -187,10 +208,8 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
 export default function AddEntitlementsPage() {
   const navigate = useNavigate();
   const { toasts, addToast, removeToast } = useToast();
-
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(true);
-
   const [multiMode, setMultiMode] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState<EmployeeOption[]>(
     [],
