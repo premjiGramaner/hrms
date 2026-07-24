@@ -30,6 +30,7 @@ import Toast from "../../utils/toast";
 import Alert from "../../utils/alert";
 import Button from "../../components/common/Button";
 import { PAGE_PATHS } from "../../config/roles";
+import Modal from "../../components/common/Modal";
 
 enum FormMode {
   ADD = "add",
@@ -91,7 +92,8 @@ export default function SubUnitsPage() {
     return filteredList.slice(start, start + pageSize);
   }, [filteredList, currentPage, pageSize]);
 
-  const handleDeleteConfirm = async (subUnit: SubUnit) => {
+  const handleDeleteConfirm = async (subUnit: SubUnit, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
     const confirmed = await Alert.confirmDelete(subUnit.sub_unit_name);
     if (!confirmed) return;
 
@@ -208,7 +210,7 @@ export default function SubUnitsPage() {
       bgHover: "#dbeafe",
       borderColor: "#bfdbfe",
       borderColorHover: "#93c5fd",
-      onClick: (row) => setSubUnitToEdit(row),
+      onClick: (row, event) => { setSubUnitToEdit(row), event!.stopPropagation() },
       title: "Edit sub unit",
     },
     {
@@ -219,10 +221,15 @@ export default function SubUnitsPage() {
       bgHover: "#ffe4e6",
       borderColor: "#fecdd3",
       borderColorHover: "#fda4af",
-      onClick: (row) => handleDeleteConfirm(row),
+      onClick: (row, event) => handleDeleteConfirm(row, event!),
       title: "Delete sub unit",
     },
   ];
+
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const additionalInfo = (row: SubUnit) => {
+    setAddModalOpen(true)
+  };
 
   return (
     <Layout title="HR Administration" tabs={TABS} activeTab="Sub Units">
@@ -276,6 +283,7 @@ export default function SubUnitsPage() {
         onSearchChange={handleSearchChange}
         addLabel="Add Sub Unit"
         onAdd={() => setShowAddModal(true)}
+        onClick={(row) => additionalInfo(row)}
       />
 
       {showAddModal && (
@@ -295,6 +303,13 @@ export default function SubUnitsPage() {
           onError={(message) => setPageError(message)}
         />
       )}
+      {
+        addModalOpen &&
+        <Modal title="Additional Information" footer={<Button onClick={() => setAddModalOpen(false)}>Close</Button>}
+          onClose={() => setAddModalOpen(false)}>
+          <p>working</p>
+        </Modal>
+      }
     </Layout>
   );
 }

@@ -19,7 +19,7 @@ export interface ActionDef<RowType> {
   bgHover?: string;
   borderColor?: string;
   borderColorHover?: string;
-  onClick: (row: RowType) => void;
+  onClick: (row: RowType, event?: React.MouseEvent<HTMLButtonElement>) => void;
   title?: string;
 }
 
@@ -63,6 +63,7 @@ export interface DataTableProps<RowType> {
     { dir: "asc" | "desc"; onToggle: () => void }
   >;
   getKey?: (row: RowType, relativeIndex: number) => string | number;
+  onClick?: (row: RowType) => void;
 }
 
 const CELL_CLASSES =
@@ -96,13 +97,14 @@ export default function DataTable<RowType>({
   extraToolbar,
   sortableColumns = {},
   getKey,
+  onClick
 }: DataTableProps<RowType>) {
   const hasActions = actions.length > 0;
   const displayedColumns = hasActions
     ? [
-        ...columns,
-        { key: "__actions__", header: "Actions" } as ColumnDef<RowType>,
-      ]
+      ...columns,
+      { key: "__actions__", header: "Actions" } as ColumnDef<RowType>,
+    ]
     : columns;
 
   const getRowKey = (row: RowType, relativeIndex: number) => {
@@ -259,54 +261,54 @@ export default function DataTable<RowType>({
               ) : null}
               {!isLoading
                 ? rows.map((row, relativeIndex) => {
-                    const absoluteIndex =
-                      (currentPage - 1) * pageSize + relativeIndex;
-                    return (
-                      <tr key={getRowKey(row, relativeIndex)} className="group">
+                  const absoluteIndex =
+                    (currentPage - 1) * pageSize + relativeIndex;
+                  return (
+                    <tr key={getRowKey(row, relativeIndex)} className="group" onClick={() => onClick && onClick(row)}>
+                      <td
+                        className={`${CELL_CLASSES} rounded-l-[10px] border-l`}
+                      >
+                        <span className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-500">
+                          {absoluteIndex + 1}
+                        </span>
+                      </td>
+                      {columns.map((column, columnIndex) => (
                         <td
-                          className={`${CELL_CLASSES} rounded-l-[10px] border-l`}
+                          key={column.key}
+                          className={`${CELL_CLASSES} ${!hasActions && columnIndex === columns.length - 1 ? "rounded-r-[10px] border-r" : ""}`}
                         >
-                          <span className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-500">
-                            {absoluteIndex + 1}
-                          </span>
+                          {column.render
+                            ? column.render(row, absoluteIndex, relativeIndex)
+                            : String(
+                              (row as Record<string, unknown>)[
+                              column.key
+                              ] ?? "—",
+                            )}
                         </td>
-                        {columns.map((column, columnIndex) => (
-                          <td
-                            key={column.key}
-                            className={`${CELL_CLASSES} ${!hasActions && columnIndex === columns.length - 1 ? "rounded-r-[10px] border-r" : ""}`}
-                          >
-                            {column.render
-                              ? column.render(row, absoluteIndex, relativeIndex)
-                              : String(
-                                  (row as Record<string, unknown>)[
-                                    column.key
-                                  ] ?? "—",
-                                )}
-                          </td>
-                        ))}
-                        {hasActions ? (
-                          <td
-                            className={`${CELL_CLASSES} rounded-r-[10px] border-r`}
-                          >
-                            <div className="flex gap-1.5">
-                              {actions.map((action) => (
-                                <button
-                                  key={action.label}
-                                  type="button"
-                                  title={action.title ?? action.label}
-                                  onClick={() => action.onClick(row)}
-                                  className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
-                                >
-                                  {action.icon}
-                                  {action.label}
-                                </button>
-                              ))}
-                            </div>
-                          </td>
-                        ) : null}
-                      </tr>
-                    );
-                  })
+                      ))}
+                      {hasActions ? (
+                        <td
+                          className={`${CELL_CLASSES} rounded-r-[10px] border-r`}
+                        >
+                          <div className="flex gap-1.5">
+                            {actions.map((action) => (
+                              <button
+                                key={action.label}
+                                type="button"
+                                title={action.title ?? action.label}
+                                onClick={(event) => action.onClick(row, event)}
+                                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                              >
+                                {action.icon}
+                                {action.label}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+                      ) : null}
+                    </tr>
+                  );
+                })
                 : null}
             </tbody>
           </table>
