@@ -18,7 +18,7 @@ import {
 } from "../../types/performance.types";
 import { DataTableColumn } from "../../types/table.types";
 import Toast from "../../utils/toast";
-import { IconButton, Stepper } from "./performanceUi";
+import { IconButton } from "./performanceUi";
 import { PAGE_PATHS } from "../../config/roles";
 import {
   APPRAISAL_VALIDATION_TOAST_DURATION_MS,
@@ -195,7 +195,7 @@ export default function AppraisalCycleDetails() {
       title="Performance / Appraisals / Appraisal Cycles"
       activeTab="Appraisal Cycles"
     >
-      <div className="mb-6 flex items-center gap-8 rounded-[8px] bg-white px-6 py-3">
+      <div className="mb-6 flex items-center justify-between rounded-[8px] bg-white px-6 py-3">
         <div>
           <p className="text-sm font-semibold text-slate-400">
             Appraisal Cycle Status
@@ -203,8 +203,6 @@ export default function AppraisalCycleDetails() {
 
           <p className="font-bold text-slate-600">{cycle.status}</p>
         </div>
-
-        <Stepper active={1} />
 
         <Button
           disabled={rows.length === 0 || isClosedCycleStatus(cycle.status)}

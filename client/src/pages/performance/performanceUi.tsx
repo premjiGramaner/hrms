@@ -58,20 +58,3 @@ export function SoftInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
     />
   );
 }
-
-export function Stepper({ active = 1 }: { active?: number }) {
-  return (
-    <div className="flex flex-1 items-center justify-center px-8">
-      {[1, 2, 3, 4, 5].map((step) => (
-        <React.Fragment key={step}>
-          <span
-            className={`grid h-11 w-11 place-items-center rounded-full text-sm font-bold ${step <= active ? "bg-[#47b8ad] text-white shadow" : "bg-[#f1eef3] text-white"}`}
-          >
-            {step}
-          </span>
-          {step < 5 ? <span className="h-1 w-28 bg-[#eeeaf2]" /> : null}
-        </React.Fragment>
-      ))}
-    </div>
-  );
-}
