@@ -1031,8 +1031,8 @@ const getAuditTrail = async (req, res, next) => {
       FROM tbl_appusers emp
       LEFT JOIN tbl_appusers actor_cre
              ON emp.created_by IS NOT NULL
-            AND emp.created_by ~ '^[1-9][0-9]*$'
-            AND actor_cre.id = emp.created_by::bigint
+            AND emp.created_by::text ~ '^[1-9][0-9]*$'
+            AND actor_cre.id::text = emp.created_by::text
             AND actor_cre.is_deleted = false
 
       UNION ALL
@@ -1071,8 +1071,8 @@ const getAuditTrail = async (req, res, next) => {
       FROM tbl_appusers emp
       LEFT JOIN tbl_appusers actor_upd
              ON emp.updated_by IS NOT NULL
-            AND emp.updated_by ~ '^[1-9][0-9]*$'
-            AND actor_upd.id = emp.updated_by::bigint
+            AND emp.updated_by::text ~ '^[1-9][0-9]*$'
+            AND actor_upd.id::text = emp.updated_by::text
             AND actor_upd.is_deleted = false
       WHERE emp.updated_at IS NOT NULL
         AND emp.updated_at::timestamptz > (emp.created_at::timestamptz + interval '1 second')
@@ -1114,8 +1114,8 @@ const getAuditTrail = async (req, res, next) => {
       FROM tbl_appusers emp
       LEFT JOIN tbl_appusers actor_del
              ON emp.updated_by IS NOT NULL
-            AND emp.updated_by ~ '^[1-9][0-9]*$'
-            AND actor_del.id = emp.updated_by::bigint
+            AND emp.updated_by::text ~ '^[1-9][0-9]*$'
+            AND actor_del.id::text = emp.updated_by::text
             AND actor_del.is_deleted = false
       WHERE emp.is_deleted = true
 
