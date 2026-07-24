@@ -6,6 +6,8 @@ import {
   updateSubUnit,
   deleteSubUnit,
   SubUnit,
+  getEmployeesBySubUnit,
+  SubUnitEmployee,
   CreateSubUnitPayload,
   UpdateSubUnitPayload,
 } from "../../api/hradmin.api";
@@ -15,7 +17,6 @@ import {
   DeleteIcon,
   IconBuilding,
   IconCheckCircle,
-  IconUser,
   IconPlusCircle,
   IconEdit,
   IconAlertCircle,
@@ -30,7 +31,6 @@ import Toast from "../../utils/toast";
 import Alert from "../../utils/alert";
 import Button from "../../components/common/Button";
 import { PAGE_PATHS } from "../../config/roles";
-import Modal from "../../components/common/Modal";
 
 enum FormMode {
   ADD = "add",
@@ -55,6 +55,12 @@ export default function SubUnitsPage() {
   const [pageError, setPageError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [selectedSubUnit, setSelectedSubUnit] = useState<SubUnit | null>(null);
+  const [subUnitEmployees, setSubUnitEmployees] = useState<SubUnitEmployee[]>(
+    [],
+  );
+  const [isEmployeesLoading, setIsEmployeesLoading] = useState(false);
+  const [employeesError, setEmployeesError] = useState("");
 
   const fetchSubUnits = () => {
     setIsLoading(true);
@@ -68,6 +74,32 @@ export default function SubUnitsPage() {
       .finally(() => setIsLoading(false));
   };
   useEffect(fetchSubUnits, []);
+
+  const handleSubUnitNameClick = async (subUnit: SubUnit) => {
+    setSelectedSubUnit(subUnit);
+    setSubUnitEmployees([]);
+    setEmployeesError("");
+    setIsEmployeesLoading(true);
+
+    try {
+      const response = await getEmployeesBySubUnit(subUnit.sub_unit_name);
+      setSubUnitEmployees(response.data.data);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        "Failed to load employees for this sub unit.";
+
+      setEmployeesError(message);
+    } finally {
+      setIsEmployeesLoading(false);
+    }
+  };
+
+  const handleEmployeesModalClose = () => {
+    setSelectedSubUnit(null);
+    setSubUnitEmployees([]);
+    setEmployeesError("");
+  };
 
   const debouncedFilter = useDebounce((value: string) => {
     const term = value.toLowerCase();
@@ -92,8 +124,11 @@ export default function SubUnitsPage() {
     return filteredList.slice(start, start + pageSize);
   }, [filteredList, currentPage, pageSize]);
 
-  const handleDeleteConfirm = async (subUnit: SubUnit, event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation()
+  const handleDeleteConfirm = async (
+    subUnit: SubUnit,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.stopPropagation();
     const confirmed = await Alert.confirmDelete(subUnit.sub_unit_name);
     if (!confirmed) return;
 
@@ -134,7 +169,7 @@ export default function SubUnitsPage() {
     {
       label: "With Supervisor",
       value: withSupervisor,
-      icon: <IconUser size={20} />,
+      icon: <IconCheckCircle size={20} />,
       color: "#0284c7",
       bg: "#e0f2fe",
       border: "#7dd3fc",
@@ -151,9 +186,13 @@ export default function SubUnitsPage() {
             {row.sub_unit_name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="font-bold text-slate-800 text-[14px]">
+            <button
+              type="button"
+              onClick={() => handleSubUnitNameClick(row)}
+              className="p-0 bg-transparent border-0 font-bold text-[#172554] text-[14px] cursor-pointer hover:text-[#0f766e] hover:underline text-left"
+            >
               {row.sub_unit_name}
-            </div>
+            </button>
             <div className="text-[11px] text-slate-400 mt-[1px]">
               ID #{row.id}
             </div>
@@ -210,7 +249,10 @@ export default function SubUnitsPage() {
       bgHover: "#dbeafe",
       borderColor: "#bfdbfe",
       borderColorHover: "#93c5fd",
-      onClick: (row, event) => { setSubUnitToEdit(row), event!.stopPropagation() },
+      onClick: (row, event) => {
+        setSubUnitToEdit(row);
+        event!.stopPropagation();
+      },
       title: "Edit sub unit",
     },
     {
@@ -226,9 +268,8 @@ export default function SubUnitsPage() {
     },
   ];
 
-  const [addModalOpen, setAddModalOpen] = useState(false);
   const additionalInfo = (row: SubUnit) => {
-    setAddModalOpen(true)
+    handleSubUnitNameClick(row);
   };
 
   return (
@@ -285,6 +326,15 @@ export default function SubUnitsPage() {
         onAdd={() => setShowAddModal(true)}
         onClick={(row) => additionalInfo(row)}
       />
+      {selectedSubUnit && (
+        <SubUnitEmployeesModal
+          subUnit={selectedSubUnit}
+          employees={subUnitEmployees}
+          isLoading={isEmployeesLoading}
+          error={employeesError}
+          onClose={handleEmployeesModalClose}
+        />
+      )}
 
       {showAddModal && (
         <SubUnitFormModal
@@ -303,14 +353,131 @@ export default function SubUnitsPage() {
           onError={(message) => setPageError(message)}
         />
       )}
-      {
-        addModalOpen &&
-        <Modal title="Additional Information" footer={<Button onClick={() => setAddModalOpen(false)}>Close</Button>}
-          onClose={() => setAddModalOpen(false)}>
-          <p>working</p>
-        </Modal>
-      }
     </Layout>
+  );
+}
+
+interface SubUnitEmployeesModalProps {
+  subUnit: SubUnit;
+  employees: SubUnitEmployee[];
+  isLoading: boolean;
+  error: string;
+  onClose: () => void;
+}
+
+function SubUnitEmployeesModal({
+  subUnit,
+  employees,
+  isLoading,
+  error,
+  onClose,
+}: SubUnitEmployeesModalProps) {
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  return (
+    <div
+      onClick={handleBackdropClick}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+    >
+      <div className="w-full max-w-[560px] overflow-hidden rounded-[20px] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
+        <div className="flex items-center justify-between bg-gradient-to-br from-[#172554] to-[#14b8a6] p-[22px_26px]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white/20 text-white">
+              <IconBuilding />
+            </div>
+
+            <div>
+              <h2 className="m-0 text-[17px] font-bold text-white">
+                {subUnit.sub_unit_name}
+              </h2>
+
+              <p className="mt-1 text-xs text-white/70">
+                {employees.length}{" "}
+                {employees.length === 1 ? "employee" : "employees"}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-0 bg-white/20 text-white transition-colors hover:bg-white/30"
+            aria-label="Close employee details"
+          >
+            <IconX size={17} color="#ffffff" />
+          </button>
+        </div>
+
+        <div className="max-h-[480px] overflow-y-auto p-[22px_26px]">
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="inline-block w-8 h-8 border-4 border-slate-200 border-t-[#172554] rounded-full animate-spin mb-3"></div>
+                <p className="text-slate-600 text-sm">Loading employees...</p>
+              </div>
+            </div>
+          )}
+
+          {!isLoading && error && (
+            <div className="flex items-center gap-2 rounded-[10px] border border-red-200 border-l-4 border-l-red-500 bg-red-50 p-3 text-[13px] text-red-600">
+              <IconAlertCircle size={16} color="#dc2626" />
+              {error}
+            </div>
+          )}
+
+          {!isLoading && !error && employees.length === 0 && (
+            <div className="py-10 text-center">
+              <p className="text-slate-400 text-sm italic">
+                No employees found for this sub unit.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !error && employees.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    
+                    <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                      Employee ID
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                      Name
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((employee) => (
+                    <tr
+                      key={employee.id}
+                      className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-slate-900 font-medium">
+                        {employee.employee_id || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-900">
+                        {employee.name}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end border-t border-slate-100 bg-[#fafbff] px-[26px] py-4">
+          <Button variant="secondary" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -376,7 +543,6 @@ function SubUnitFormModal({
       className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
     >
       <div className="bg-white rounded-[20px] w-full max-w-[520px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] overflow-hidden">
-        {/* Header */}
         <div className="p-[22px_26px_18px] bg-gradient-to-br from-[#172554] to-[#14b8a6] flex items-center justify-between">
           <div className="flex items-center gap-[10px]">
             <div className="w-9 h-9 rounded-[10px] bg-white/18 flex items-center justify-center">

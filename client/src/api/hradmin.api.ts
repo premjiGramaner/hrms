@@ -355,3 +355,22 @@ export const updateUserRole = async (
   );
   return { data: response.data.data };
 };
+
+export interface SubUnitEmployee {
+  id: string;
+  employee_id: string | null;
+  name: string;
+}
+
+interface SubUnitEmployeesResponse {
+  message: string;
+  count: number;
+  data: SubUnitEmployee[];
+}
+
+export const getEmployeesBySubUnit = (subUnitName: string) =>
+  api.get<SubUnitEmployeesResponse>("/hradmin/sub-units/employees", {
+    params: {
+      subUnitName,
+    },
+  });

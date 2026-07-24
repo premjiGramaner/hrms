@@ -22,9 +22,15 @@ import {
   getRoleAccess,
   updateUserRole,
   getAuditTrail,
+  getEmployeesBySubUnit,
 } from "../controllers/hradmin.controller.js";
 
 const router = Router();
+
+// Public endpoint - no authentication required
+router.get("/sub-units/employees", getEmployeesBySubUnit);
+
+// Protected endpoints - require authentication and HR_ADMIN or EMP_MANAGER role
 router.use(authenticate);
 router.use(requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER));
 
