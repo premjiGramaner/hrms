@@ -6,6 +6,7 @@ type Props = {
   message: string;
   confirmLabel?: string;
   danger?: boolean;
+  loading?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 };
@@ -15,6 +16,7 @@ export default function ConfirmDialog({
   message,
   confirmLabel = "Delete",
   danger = true,
+  loading = false,
   onCancel,
   onConfirm,
 }: Props) {
@@ -24,13 +26,14 @@ export default function ConfirmDialog({
       onClose={onCancel}
       footer={
         <>
-          <Button variant="secondary" onClick={onCancel}>
+          <Button variant="secondary" disabled={loading} onClick={onCancel}>
             No, Cancel
           </Button>
           <button
             type="button"
+            disabled={loading}
             onClick={onConfirm}
-            className={`inline-flex items-center justify-center rounded-full px-8 py-2.5 text-sm font-bold text-white transition ${
+            className={`inline-flex items-center justify-center rounded-full px-8 py-2.5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
               danger
                 ? "bg-red-600 hover:bg-red-700"
                 : "bg-navy-700 hover:bg-navy-800"

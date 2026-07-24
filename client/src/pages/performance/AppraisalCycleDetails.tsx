@@ -27,71 +27,6 @@ import {
   showPerformanceError,
 } from "./performanceNotifications";
 
-interface RemoveEmployeeConfirmationModalProps {
-  employeeName: string;
-  loading: boolean;
-  onConfirm: () => Promise<void> | void;
-  onClose: () => void;
-}
-
-function RemoveEmployeeConfirmationModal({
-  employeeName,
-  loading,
-  onConfirm,
-  onClose,
-}: RemoveEmployeeConfirmationModalProps) {
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="remove-employee-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-    >
-      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl">
-        <h3
-          id="remove-employee-title"
-          className="mb-3 text-base font-bold text-slate-800"
-        >
-          Remove Employee
-        </h3>
-
-        <p className="mb-5 text-sm text-slate-600">
-          Are you sure you want to remove{" "}
-          <span className="font-semibold text-slate-800">{employeeName}</span>{" "}
-          from this appraisal cycle?
-        </p>
-
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onClose}
-            className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            No, Keep Employee
-          </button>
-
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onConfirm}
-            className="flex min-w-28 cursor-pointer items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Removing...
-              </>
-            ) : (
-              "Yes, Remove"
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function AppraisalCycleDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -100,6 +35,7 @@ export default function AppraisalCycleDetails() {
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [creatingAppraisals, setCreatingAppraisals] = useState(false);
+  const [isRemovingEmployee, setIsRemovingEmployee] = useState(false);
   const [employeePendingRemoval, setEmployeePendingRemoval] =
     useState<PerformanceEmployee | null>(null);
 
@@ -187,33 +123,14 @@ export default function AppraisalCycleDetails() {
     );
   };
 
-  const handleOpenRemoveConfirmation = (employee: PerformanceEmployee) => {
-    if (!cycle) return;
+  const removeEmployee = async (employeeId: string) => {
+    if (!cycle || isRemovingEmployee) return;
 
     if (isClosedCycleStatus(cycle.status)) {
       Toast.warning(CLOSED_CYCLE_MESSAGE);
+      setEmployeePendingRemoval(null);
       return;
     }
-
-    setEmployeeToRemove(employee);
-  };
-
-  const handleCloseRemoveConfirmation = () => {
-    if (isRemovingEmployee) return;
-
-    setEmployeeToRemove(null);
-  };
-
-  const handleRemoveEmployeeConfirm = async () => {
-    if (!cycle || !employeeToRemove) return;
-
-    if (isClosedCycleStatus(cycle.status)) {
-      Toast.warning(CLOSED_CYCLE_MESSAGE);
-      setEmployeeToRemove(null);
-      return;
-    }
-
-    const employeeId = employeeToRemove.id;
 
     setIsRemovingEmployee(true);
 
@@ -228,12 +145,11 @@ export default function AppraisalCycleDetails() {
         ),
       );
 
-      setEmployeeToRemove(null);
-
       Toast.success("Employee removed from the appraisal cycle.");
     } catch (error: unknown) {
       showPerformanceError(error, "Unable to remove employee from cycle.");
     } finally {
+      setIsRemovingEmployee(false);
       setEmployeePendingRemoval(null);
     }
   };
@@ -279,15 +195,6 @@ export default function AppraisalCycleDetails() {
       title="Performance / Appraisals / Appraisal Cycles"
       activeTab="Appraisal Cycles"
     >
-      {employeeToRemove && (
-        <RemoveEmployeeConfirmationModal
-          employeeName={employeeToRemove.name}
-          loading={isRemovingEmployee}
-          onConfirm={handleRemoveEmployeeConfirm}
-          onClose={handleCloseRemoveConfirmation}
-        />
-      )}
-
       <div className="mb-6 flex items-center gap-8 rounded-[8px] bg-white px-6 py-3">
         <div>
           <p className="text-sm font-semibold text-slate-400">
@@ -391,7 +298,9 @@ export default function AppraisalCycleDetails() {
                     ? "Closed cycles cannot be edited"
                     : "Remove employee"
                 }
-                disabled={isClosedCycleStatus(cycle.status)}
+                disabled={
+                  isClosedCycleStatus(cycle.status) || isRemovingEmployee
+                }
                 onClick={() => setEmployeePendingRemoval(row)}
               >
                 <Trash2 size={17} />
@@ -404,8 +313,11 @@ export default function AppraisalCycleDetails() {
         <ConfirmDialog
           title="Remove Employee?"
           message={`Remove ${employeePendingRemoval.name} from this appraisal cycle? Any appraisal created for this employee in the cycle will also be deleted.`}
-          confirmLabel="Yes, Remove"
-          onCancel={() => setEmployeePendingRemoval(null)}
+          confirmLabel={isRemovingEmployee ? "Removing..." : "Yes, Remove"}
+          loading={isRemovingEmployee}
+          onCancel={() => {
+            if (!isRemovingEmployee) setEmployeePendingRemoval(null);
+          }}
           onConfirm={() => removeEmployee(employeePendingRemoval.id)}
         />
       ) : null}
