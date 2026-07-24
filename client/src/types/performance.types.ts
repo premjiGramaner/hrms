@@ -45,7 +45,7 @@ export interface AppraisalDetail {
   cycleId: string;
   cycleStatus: AppraisalCycle["status"];
   templateId: string;
-  employee: PerformanceEmployee;
+  employee: PerformanceEmployee | null;
   mainEvaluator: Evaluator | null;
   from: string;
   to: string;

@@ -27,7 +27,10 @@ import {
   isAssignedKpiRating,
   ReviewerType,
 } from "./performanceRatings";
-import { PERFORMANCE_REVIEW_LABELS } from "./performanceUi";
+import {
+  PERFORMANCE_REVIEW_LABELS,
+  UnavailableAppraisalEmployee,
+} from "./performanceUi";
 
 type RatingDraft = Record<
   string,
@@ -351,6 +354,14 @@ export default function AppraisalCompactView() {
         <div className="rounded-[8px] bg-white p-8 text-sm font-semibold text-slate-500">
           Loading appraisal...
         </div>
+      </PerformanceLayout>
+    );
+  }
+
+  if (!appraisal.employee) {
+    return (
+      <PerformanceLayout title={pageTitle} activeTab={activeTab}>
+        <UnavailableAppraisalEmployee />
       </PerformanceLayout>
     );
   }

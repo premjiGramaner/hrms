@@ -58,3 +58,12 @@ export function SoftInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
     />
   );
 }
+
+export function UnavailableAppraisalEmployee() {
+  return (
+    <div className="rounded-[8px] bg-white p-8 text-sm font-semibold text-slate-500">
+      This appraisal cannot be displayed because its employee record is
+      unavailable.
+    </div>
+  );
+}

@@ -717,7 +717,7 @@ async function deleteTemplateKpi(templateId, questionId) {
   return findTemplateById(templateId);
 }
 
-async function getEmployeeById(id) {
+async function getEmployeeById(id, { includeInactive = false } = {}) {
   const employeeId = Number(id);
   if (!Number.isInteger(employeeId)) return null;
 
@@ -727,9 +727,14 @@ async function getEmployeeById(id) {
               employment_status, sub_unit, location, supervisors
        FROM tbl_appusers
        WHERE id = $1
-         AND is_deleted = false
-         AND (employment_status IS NULL OR employment_status != 'Terminated')`,
-      [employeeId],
+         AND (
+           $2::boolean = true
+           OR (
+             is_deleted = false
+             AND (employment_status IS NULL OR employment_status != 'Terminated')
+           )
+         )`,
+      [employeeId, includeInactive],
     ),
     getSupervisorUsers(),
   ]);
@@ -1542,9 +1547,9 @@ async function findAppraisal(id) {
   if (!row) return null;
   const [template, employee, evaluator, ratings] = await Promise.all([
     findTemplateById(row.template_id),
-    getEmployeeById(row.employee_id),
+    getEmployeeById(row.employee_id, { includeInactive: true }),
     row.main_evaluator_id
-      ? getEmployeeById(row.main_evaluator_id)
+      ? getEmployeeById(row.main_evaluator_id, { includeInactive: true })
       : Promise.resolve(null),
     pool.query("SELECT * FROM appraisal_ratings WHERE appraisal_id = $1", [id]),
   ]);
