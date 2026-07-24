@@ -4,8 +4,10 @@ import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { logout as logoutAction } from "../store/authSlice";
 import { logout as logoutApi } from "../api/auth.api";
 import { ROLES, PAGE_PATHS, getRoleLabel, isAdminRole } from "../config/roles";
+import { STORAGE_KEYS } from "../constants/storage";
 import cannyforeLogo from "../assets/cannyfore_title_logo.png";
 import UserAvatar from "./UserAvatar";
+import PasswordExpiryAlert from "./PasswordExpiryAlert";
 
 import {
   IconBuilding,
@@ -56,10 +58,34 @@ export default function Layout({
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [userNames, setUserName] = useState("");
+  const [passwordReminder, setPasswordReminder] = useState<string | null>(null);
 
   const role = user?.role || ROLES.EMPLOYEE;
   const isAdmin = isAdminRole(role);
   const roleLabel = getRoleLabel(role);
+
+  useEffect(() => {
+    const reminder = sessionStorage.getItem(STORAGE_KEYS.passwordReminder);
+    if (reminder) {
+      setPasswordReminder(reminder);
+      sessionStorage.removeItem(STORAGE_KEYS.passwordReminder);
+    }
+  }, [location]);
+
+  const handleCloseReminder = () => {
+    setPasswordReminder(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      dispatch(logoutAction());
+      navigate(PAGE_PATHS.login);
+    }
+  };
 
   const isActive = (path: string) => location.pathname.startsWith(path);
   const pageTitle =
@@ -220,16 +246,7 @@ export default function Layout({
             {pageTitle}
           </span>
           <button
-            onClick={async () => {
-              try {
-                await logoutApi();
-              } catch (error) {
-                console.error("Logout error:", error);
-              } finally {
-                dispatch(logoutAction());
-                navigate(PAGE_PATHS.login);
-              }
-            }}
+            onClick={handleLogout}
             className="flex items-center gap-2 bg-white/20 border border-white/35 text-white rounded-full px-4 py-1.5 text-sm font-medium cursor-pointer hover:bg-white/30 transition"
           >
             <IconLogout size={15} />
@@ -282,6 +299,13 @@ export default function Layout({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
+          {passwordReminder && (
+            <PasswordExpiryAlert
+              message={passwordReminder}
+              onClose={handleCloseReminder}
+            />
+          )}
+
           {children}
 
           <footer className="mt-8 pt-4 border-t border-slate-200 text-center">

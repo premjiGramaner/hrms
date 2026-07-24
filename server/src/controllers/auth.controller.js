@@ -5,8 +5,18 @@ import pool from "../config/db.js";
 import { jwtSecret, jwtExpiresIn, rememberMeDuration } from "../config/env.js";
 import { clientBaseUrl } from "../config/env.js";
 import { success, error } from "../utils/response.js";
-import { sendPasswordResetEmail } from "../../email.service.js";
+import {
+  sendPasswordResetEmail,
+  sendPasswordExpiredEmail,
+  sendPasswordExpiryReminderEmail,
+} from "../../email.service.js";
 import { ROLES } from "../constants/roles.js";
+import {
+  AUTH_MESSAGES,
+  PASSWORD_POLICY_MESSAGES,
+  PASSWORD_CONFIG,
+} from "../constants/authMessages.js";
+import { logError, logAuth, logEmail } from "../utils/logger.js";
 
 const signToken = (payload, expiresIn = jwtExpiresIn) =>
   jwt.sign(payload, jwtSecret, {
@@ -32,20 +42,23 @@ const parseDuration = (duration) => {
   }
 };
 let authSchemaPromise = null;
-const INVALID_PASSWORD_TOKEN_MESSAGE =
-  "Password link is invalid or expired.";
 
 function validatePasswordPolicy(password) {
-  if (!password || password.length < 8) {
-    return "Password must be at least 8 characters.";
+  if (!password || password.length < PASSWORD_CONFIG.MIN_LENGTH) {
+    return PASSWORD_POLICY_MESSAGES.MIN_LENGTH;
   }
-  if (!/[a-z]/.test(password))
-    return "Password must include a lowercase letter.";
-  if (!/[A-Z]/.test(password))
-    return "Password must include an uppercase letter.";
-  if (!/[0-9]/.test(password)) return "Password must include a number.";
-  if (!/[^A-Za-z0-9]/.test(password))
-    return "Password must include a special character.";
+  if (!/[a-z]/.test(password)) {
+    return PASSWORD_POLICY_MESSAGES.REQUIRE_LOWERCASE;
+  }
+  if (!/[A-Z]/.test(password)) {
+    return PASSWORD_POLICY_MESSAGES.REQUIRE_UPPERCASE;
+  }
+  if (!/[0-9]/.test(password)) {
+    return PASSWORD_POLICY_MESSAGES.REQUIRE_NUMBER;
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return PASSWORD_POLICY_MESSAGES.REQUIRE_SPECIAL;
+  }
   return "";
 }
 
@@ -113,7 +126,7 @@ const login = async (req, res, next) => {
   try {
     const { username, password, rememberMe } = req.body;
     if (!username || !password) {
-      return error(res, "Username and password are required", 400);
+      return error(res, AUTH_MESSAGES.CREDENTIALS_REQUIRED, 400);
     }
 
     const tokenExpiry = rememberMe ? rememberMeDuration : jwtExpiresIn;
@@ -151,7 +164,9 @@ const login = async (req, res, next) => {
     }
 
     const { rows } = await pool.query(
-      `SELECT id, username, email, password, role, name, avatar, is_active, must_change_password
+      `SELECT id, username, email, password, role, name, avatar, is_active, 
+              must_change_password, password_changed_at, password_reminder_count, 
+              last_password_reminder_at
        FROM tbl_appusers
        WHERE (username = $1 OR email = $1) AND is_deleted = false`,
       [username],
@@ -159,12 +174,103 @@ const login = async (req, res, next) => {
     const user = rows[0];
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return error(res, "Invalid username or password", 401);
+      logAuth("Failed login attempt", username, {
+        reason: "Invalid credentials",
+        ip: req.ip,
+      });
+      return error(res, AUTH_MESSAGES.INVALID_CREDENTIALS, 401);
     }
 
     if (!user.is_active) {
-      return error(res, "This account has been deactivated", 403);
+      logAuth("Login blocked - inactive account", user.username, {
+        userId: user.id,
+        email: user.email,
+        ip: req.ip,
+      });
+      return error(res, AUTH_MESSAGES.ACCOUNT_DEACTIVATED, 403);
     }
+
+    const passwordAge = user.password_changed_at
+      ? PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
+        ? Math.floor(
+            (Date.now() - new Date(user.password_changed_at).getTime()) /
+              (1000 * 60),
+          )
+        : Math.floor(
+            (Date.now() - new Date(user.password_changed_at).getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
+      : null;
+
+    const expiryThreshold = PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
+      ? PASSWORD_CONFIG.EXPIRY_MINUTES
+      : PASSWORD_CONFIG.EXPIRY_DAYS;
+
+    const warningThreshold = PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
+      ? PASSWORD_CONFIG.WARNING_MINUTES
+      : PASSWORD_CONFIG.WARNING_DAYS;
+
+    const reminderInterval = PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
+      ? PASSWORD_CONFIG.REMINDER_INTERVAL_MINUTES
+      : PASSWORD_CONFIG.REMINDER_INTERVAL_DAYS;
+
+    const timeUnit = PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
+      ? "minutes"
+      : "days";
+
+    if (passwordAge !== null && passwordAge >= expiryThreshold) {
+      logAuth("Password expired - forcing reset", user.username, {
+        userId: user.id,
+        passwordAge,
+        passwordAgeUnit: timeUnit,
+        lastChanged: user.password_changed_at,
+        ip: req.ip,
+        testingMode: PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING,
+      });
+
+      res.clearCookie("auth_token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      });
+
+      const passwordSetupToken = await issuePasswordToken(user.id);
+      const resetLink = `${getClientUrl(req)}/reset-password?token=${encodeURIComponent(passwordSetupToken)}`;
+
+      try {
+        await sendPasswordExpiredEmail({
+          to: user.email,
+          name: user.name || user.username,
+          resetLink,
+        });
+        logEmail("Password expired email sent", user.email, {
+          userId: user.id,
+          username: user.username,
+          passwordAge,
+        });
+      } catch (emailErr) {
+        logError("Failed to send password expiry email", emailErr, {
+          userId: user.id,
+          username: user.username,
+          email: user.email,
+        });
+      }
+
+      return success(res, {
+        requiresPasswordChange: true,
+        passwordExpired: true,
+        passwordSetupToken,
+        message: AUTH_MESSAGES.PASSWORD_EXPIRED,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          name: user.name || user.username,
+          avatar: user.avatar,
+        },
+      });
+    }
+
     if (user.must_change_password) {
       const passwordSetupToken = await issuePasswordToken(user.id);
       return success(res, {
@@ -178,6 +284,70 @@ const login = async (req, res, next) => {
           avatar: user.avatar,
         },
       });
+    }
+
+    let passwordReminderMessage = null;
+    if (
+      passwordAge !== null &&
+      passwordAge >= warningThreshold &&
+      passwordAge < expiryThreshold
+    ) {
+      const reminderCount = user.password_reminder_count || 0;
+      const lastReminder = user.last_password_reminder_at
+        ? new Date(user.last_password_reminder_at)
+        : null;
+
+      const timeSinceLastReminder = lastReminder
+        ? PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
+          ? Math.floor((Date.now() - lastReminder.getTime()) / (1000 * 60))
+          : Math.floor(
+              (Date.now() - lastReminder.getTime()) / (1000 * 60 * 60 * 24),
+            )
+        : 999;
+
+      if (
+        reminderCount < PASSWORD_CONFIG.MAX_REMINDERS &&
+        timeSinceLastReminder >= reminderInterval
+      ) {
+        const timeLeft = expiryThreshold - passwordAge;
+        passwordReminderMessage = `Your password will expire in ${timeLeft} ${timeUnit}${timeLeft !== 1 ? (timeUnit === "minutes" ? "" : "s") : ""}. Please change it soon.`;
+
+        try {
+          const changePasswordLink = `${getClientUrl(req)}/my-info`;
+          const timeLeft = expiryThreshold - passwordAge;
+          await sendPasswordExpiryReminderEmail({
+            to: user.email,
+            name: user.name || user.username,
+            daysLeft: timeLeft,
+            changePasswordLink,
+          });
+          logEmail("Password expiry reminder sent", user.email, {
+            userId: user.id,
+            username: user.username,
+            timeLeft,
+            timeUnit,
+            reminderCount: reminderCount + 1,
+            testingMode: PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING,
+          });
+        } catch (emailErr) {
+          logError("Failed to send password reminder email", emailErr, {
+            userId: user.id,
+            username: user.username,
+            email: user.email,
+            timeLeft: expiryThreshold - passwordAge,
+            timeUnit,
+          });
+        }
+
+        await pool.query(
+          `UPDATE tbl_appusers 
+           SET password_reminder_count = $1, 
+               last_password_reminder_at = NOW(),
+               updated_at = NOW()
+           WHERE id = $2`,
+          [reminderCount + 1, user.id],
+        );
+      }
     }
 
     const token = signToken(
@@ -200,6 +370,15 @@ const login = async (req, res, next) => {
       res.cookie("auth_token", token, cookieOptions);
     }
 
+    logAuth("Successful login", user.username, {
+      userId: user.id,
+      role: user.role,
+      rememberMe,
+      passwordAge: passwordAge || "N/A",
+      reminderShown: !!passwordReminderMessage,
+      ip: req.ip,
+    });
+
     return success(res, {
       token,
       user: {
@@ -211,6 +390,7 @@ const login = async (req, res, next) => {
         last_name: user.last_name,
         avatar: user.avatar,
       },
+      passwordReminderMessage,
     });
   } catch (err) {
     next(err);
@@ -219,7 +399,7 @@ const login = async (req, res, next) => {
 
 const self = async (req, res, next) => {
   try {
-    if (!req.user) return error(res, "Unauthorized", 401);
+    if (!req.user) return error(res, AUTH_MESSAGES.UNAUTHORIZED, 401);
 
     const { rows } = await pool.query(
       `SELECT id, username, email, role, name, first_name, last_name,
@@ -228,7 +408,7 @@ const self = async (req, res, next) => {
       [req.user.id],
     );
 
-    if (!rows[0]) return error(res, "User not found", 404);
+    if (!rows[0]) return error(res, AUTH_MESSAGES.USER_NOT_FOUND, 404);
 
     return success(res, rows[0]);
   } catch (err) {
@@ -242,7 +422,7 @@ const forgotPassword = async (req, res, next) => {
     const emailAddress = String(req.body.email || "")
       .trim()
       .toLowerCase();
-    if (!emailAddress) return error(res, "Email is required", 400);
+    if (!emailAddress) return error(res, AUTH_MESSAGES.EMAIL_REQUIRED, 400);
 
     const { rows } = await pool.query(
       `SELECT id, name, username, email, is_active
@@ -263,11 +443,35 @@ const forgotPassword = async (req, res, next) => {
           name: user.name || user.username,
           resetLink,
         });
-      } catch {}
+        logEmail("Password reset email sent", user.email, {
+          userId: user.id,
+          username: user.username,
+          ip: req.ip,
+        });
+        logAuth("Password reset requested", user.username, {
+          userId: user.id,
+          email: user.email,
+          ip: req.ip,
+        });
+      } catch (emailErr) {
+        logError("Failed to send password reset email", emailErr, {
+          userId: user.id,
+          username: user.username,
+          email: user.email,
+        });
+      }
+    } else if (emailAddress) {
+      logAuth(
+        "Password reset attempted for non-existent/inactive account",
+        emailAddress,
+        {
+          ip: req.ip,
+        },
+      );
     }
 
     return success(res, {
-      message: "If the email exists, a password reset link has been sent.",
+      message: AUTH_MESSAGES.EMAIL_SENT,
     });
   } catch (err) {
     next(err);
@@ -294,17 +498,17 @@ async function completePasswordReset(token, password, confirmPassword) {
   await ensureAuthSchema();
   if (!token)
     return {
-      errorMessage: INVALID_PASSWORD_TOKEN_MESSAGE,
+      errorMessage: AUTH_MESSAGES.TOKEN_INVALID,
       status: 400,
     };
   if (!password || !confirmPassword)
     return {
-      errorMessage: "New password and confirm password are required.",
+      errorMessage: PASSWORD_POLICY_MESSAGES.REQUIRED,
       status: 400,
     };
   if (password !== confirmPassword)
     return {
-      errorMessage: "Password and confirm password must match.",
+      errorMessage: PASSWORD_POLICY_MESSAGES.MISMATCH,
       status: 400,
     };
   const policyError = validatePasswordPolicy(password);
@@ -312,12 +516,26 @@ async function completePasswordReset(token, password, confirmPassword) {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const tokenHash = hashResetToken(token);
+
+  const { rows } = await pool.query(
+    `SELECT id, username, email FROM tbl_appusers 
+     WHERE password_reset_token = $1
+       AND password_reset_expires > NOW()
+       AND is_deleted = false
+       AND is_active = true`,
+    [tokenHash],
+  );
+  const user = rows[0];
+
   const result = await pool.query(
     `UPDATE tbl_appusers
      SET password = $1,
          must_change_password = false,
          password_reset_token = NULL,
          password_reset_expires = NULL,
+         password_changed_at = NOW(),
+         password_reminder_count = 0,
+         last_password_reminder_at = NULL,
          updated_at = NOW()
      WHERE password_reset_token = $2
        AND password_reset_expires > NOW()
@@ -325,11 +543,19 @@ async function completePasswordReset(token, password, confirmPassword) {
        AND is_active = true`,
     [passwordHash, tokenHash],
   );
+
   if (result.rowCount === 0) {
     return {
-      errorMessage: INVALID_PASSWORD_TOKEN_MESSAGE,
+      errorMessage: AUTH_MESSAGES.TOKEN_INVALID,
       status: 400,
     };
+  }
+
+  if (user) {
+    logAuth("Password successfully reset", user.username, {
+      userId: user.id,
+      email: user.email,
+    });
   }
 
   return { ok: true };
@@ -338,8 +564,7 @@ async function completePasswordReset(token, password, confirmPassword) {
 export const verifyToken = async (req, res, next) => {
   try {
     const user = await validateResetToken(req.body.token);
-    if (!user)
-      return error(res, INVALID_PASSWORD_TOKEN_MESSAGE, 400);
+    if (!user) return error(res, AUTH_MESSAGES.TOKEN_INVALID, 400);
 
     return success(res, { message: "Token is valid.", data: { user } });
   } catch (err) {
@@ -355,29 +580,31 @@ const resetPassword = async (req, res, next) => {
       req.body.confirmPassword,
     );
     if (!result.ok) return error(res, result.errorMessage, result.status);
-    return success(res, { message: "Password updated successfully." });
+    return success(res, { message: AUTH_MESSAGES.PASSWORD_UPDATED });
   } catch (err) {
     next(err);
   }
 };
 const logout = async (req, res, next) => {
   try {
+    const username = req.user?.username || "unknown";
+    const userId = req.user?.id;
+
     res.clearCookie("auth_token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
     });
 
-    return success(res, { message: "Logged out successfully" });
+    logAuth("User logged out", username, {
+      userId,
+      ip: req.ip,
+    });
+
+    return success(res, { message: AUTH_MESSAGES.LOGOUT_SUCCESS });
   } catch (err) {
     next(err);
   }
 };
 
-export {
-  login,
-  self,
-  forgotPassword,
-  resetPassword,
-  logout,
-};
+export { login, self, forgotPassword, resetPassword, logout };

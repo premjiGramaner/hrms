@@ -7,6 +7,9 @@ interface LoginData {
   user?: AuthUser;
   requiresPasswordChange?: boolean;
   passwordSetupToken?: string;
+  passwordExpired?: boolean;
+  message?: string;
+  passwordReminderMessage?: string;
 }
 
 export const login = async (
