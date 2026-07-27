@@ -434,35 +434,37 @@ function SubUnitEmployeesModal({
           )}
 
           {!isLoading && !error && employees.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    
-                    <th className="px-4 py-3 text-left font-semibold text-slate-700">
+            <div className="max-h-[300px] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full border-collapse text-sm">
+                <thead className="sticky top-0 z-10 bg-slate-50">
+                  <tr className="h-12">
+                    <th className="border-b border-slate-200 px-4 text-left font-semibold text-slate-700">
                       Employee ID
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-700">
+
+                    <th className="border-b border-slate-200 px-4 text-left font-semibold text-slate-700">
                       Name
                     </th>
-                     <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                      Subunit
+
+                    <th className="border-b border-slate-200 px-4 text-left font-semibold text-slate-700">
+                      Sub Unit
                     </th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {employees.map((employee) => (
                     <tr
                       key={employee.id}
-                      className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                      className="h-12 border-b border-slate-100 transition-colors hover:bg-slate-50"
                     >
-                      <td className="px-4 py-3 text-slate-900 font-medium">
+                      <td className="px-4 text-slate-900">
                         {employee.employee_id || "-"}
                       </td>
-                      <td className="px-4 py-3 text-slate-900">
-                        {employee.name}
-                      </td>
-                       <td className="px-4 py-3 text-slate-900">
+
+                      <td className="px-4 text-slate-900">{employee.name}</td>
+
+                      <td className="px-4 text-slate-900">
                         {employee.sub_unit}
                       </td>
                     </tr>
