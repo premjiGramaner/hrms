@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import Layout, { TabItem } from "../../components/Layout";
+import Layout from "../../components/Layout";
 import {
   fetchNotificationConfig,
   updateNotificationConfig,
@@ -17,9 +17,14 @@ import {
   IconCheck,
 } from "../../components/Icons";
 import Alert from "../../utils/alert";
+import Toast from "../../utils/toast";
+import {
+  getApiErrorMessage,
+  type ApiErrorResponse,
+} from "../../utils/errors";
 import { getNumericValue } from "../employees/components/inputHelpers";
 import { validateEmail } from "../../validations/employee.validation";
-import { PAGE_PATHS } from "../../config/roles";
+import { REPORT_TABS } from "./reportTabs";
 
 const NOTIFICATION_CONFIG = {
   DEFAULT_DAYS_BEFORE: 2,
@@ -62,7 +67,6 @@ const UI_TEXT = {
   EXTERNAL_RECIPIENTS_LABEL: "External Email Recipients",
 } as const;
 
-// Success/Error Messages
 const MESSAGES = {
   BIRTHDAY_CONFIG_SAVED:
     "Birthday notification configuration saved successfully!",
@@ -83,24 +87,7 @@ const MESSAGES = {
   UNAUTHORIZED_ACCESS: "Unauthorized Access",
   UNAUTHORIZED_MESSAGE:
     "Please log out and log back in with admin credentials, then try again.\n\nThis feature requires Global Admin (hradmin) role.",
-  CHECK_SERVER_CONSOLE: "Check server console for details.",
-  UNKNOWN_ERROR: "Unknown error",
 } as const;
-
-const HELP_TEXT = {
-  DAYS_ZERO: "0 days: Send notification for TODAY only",
-  DAYS_RANGE: "1-30 days: Send notifications for TODAY + next N days",
-  DAYS_EXAMPLE:
-    "Example: Enter 2 to get reminders for today, tomorrow, and day after tomorrow",
-  DAYS_TIP: "You can type any number from 0 to 30",
-} as const;
-
-const TABS: TabItem[] = [
-  { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
-  { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },
-  { label: "Termination Report", path: PAGE_PATHS.reportsTermination },
-  { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
-];
 
 export default function ReportNotificationConfigPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -161,7 +148,12 @@ export default function ReportNotificationConfigPage() {
         setAnniversaryExternalEmails(externalEmailsArray);
       }
     } catch (error) {
-      console.error("Failed to load notification config:", error);
+      Toast.error(
+        getApiErrorMessage(
+          error,
+          "Failed to load notification configuration.",
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -170,14 +162,16 @@ export default function ReportNotificationConfigPage() {
   const loadHRAdmins = useCallback(async () => {
     try {
       await fetchAllEmployees(1, 1000);
-    } catch (err) {
-      console.error("Failed to load users:", err);
+    } catch (error) {
+      Toast.error(
+        getApiErrorMessage(error, "Failed to load HR administrators."),
+      );
     }
   }, []);
 
   useEffect(() => {
-    loadConfig();
-    loadHRAdmins();
+    void loadConfig();
+    void loadHRAdmins();
   }, [loadConfig, loadHRAdmins]);
 
   const handleSaveBirthdayConfig = async () => {
@@ -185,10 +179,6 @@ export default function ReportNotificationConfigPage() {
     setSaveMessage("");
     try {
       const externalEmailsString = birthdayExternalEmails.join(",");
-      console.log(
-        "Saving birthday config with external emails:",
-        externalEmailsString,
-      );
 
       await updateNotificationConfig({
         notification_type: "birthday",
@@ -199,6 +189,7 @@ export default function ReportNotificationConfigPage() {
       });
 
       setSaveMessage(MESSAGES.BIRTHDAY_CONFIG_SAVED);
+      Toast.success(MESSAGES.BIRTHDAY_CONFIG_SAVED);
 
       await loadConfig();
 
@@ -207,8 +198,8 @@ export default function ReportNotificationConfigPage() {
         NOTIFICATION_CONFIG.SAVE_MESSAGE_DURATION,
       );
     } catch (error) {
-      console.error("Failed to save birthday config:", error);
       setSaveMessage(MESSAGES.CONFIG_SAVE_FAILED);
+      Toast.error(getApiErrorMessage(error, MESSAGES.CONFIG_SAVE_FAILED));
       setTimeout(
         () => setSaveMessage(""),
         NOTIFICATION_CONFIG.SAVE_MESSAGE_DURATION,
@@ -233,6 +224,7 @@ export default function ReportNotificationConfigPage() {
       });
 
       setSaveMessage(MESSAGES.ANNIVERSARY_CONFIG_SAVED);
+      Toast.success(MESSAGES.ANNIVERSARY_CONFIG_SAVED);
 
       await loadConfig();
 
@@ -241,8 +233,8 @@ export default function ReportNotificationConfigPage() {
         NOTIFICATION_CONFIG.SAVE_MESSAGE_DURATION,
       );
     } catch (error) {
-      console.error("Failed to save anniversary config:", error);
       setSaveMessage(MESSAGES.CONFIG_SAVE_FAILED);
+      Toast.error(getApiErrorMessage(error, MESSAGES.CONFIG_SAVE_FAILED));
       setTimeout(
         () => setSaveMessage(""),
         NOTIFICATION_CONFIG.SAVE_MESSAGE_DURATION,
@@ -319,24 +311,25 @@ export default function ReportNotificationConfigPage() {
         () => setSaveMessage(""),
         NOTIFICATION_CONFIG.TEST_MESSAGE_DURATION,
       );
-    } catch (error: any) {
-      console.error("Failed to trigger notifications:", error);
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      const responseStatus = apiError.response?.status;
+      const isUnauthorized = responseStatus === 401 || responseStatus === 403;
 
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
+      if (isUnauthorized) {
         setSaveMessage(
           `${MESSAGES.UNAUTHORIZED_ACCESS}\n\n${MESSAGES.UNAUTHORIZED_MESSAGE}`,
         );
       } else {
-        const errorMsg =
-          error?.response?.data?.message ||
-          error?.message ||
-          MESSAGES.UNKNOWN_ERROR;
+        const errorMessage = getApiErrorMessage(
+          error,
+          MESSAGES.TRIGGER_FAILED,
+        );
         setSaveMessage(
-          `${MESSAGES.TRIGGER_FAILED}\n\n` +
-            `Error: ${errorMsg}\n\n` +
-            `${MESSAGES.CHECK_SERVER_CONSOLE}`,
+          `${MESSAGES.TRIGGER_FAILED}\n\nError: ${errorMessage}`,
         );
       }
+      Toast.error(getApiErrorMessage(error, MESSAGES.TRIGGER_FAILED));
 
       setTimeout(
         () => setSaveMessage(""),
@@ -351,7 +344,7 @@ export default function ReportNotificationConfigPage() {
     return (
       <Layout
         title="Reports and Analytics"
-        tabs={TABS}
+        tabs={REPORT_TABS}
         activeTab="Notifications"
       >
         <div className="p-10 text-center">
@@ -367,7 +360,11 @@ export default function ReportNotificationConfigPage() {
   }
 
   return (
-    <Layout title="Reports and Analytics" tabs={TABS} activeTab="Notifications">
+    <Layout
+      title="Reports and Analytics"
+      tabs={REPORT_TABS}
+      activeTab="Notifications"
+    >
       <div className="py-8 px-10 max-w-[1400px] mx-auto">
         <div className="mb-8 bg-gradient-to-br from-blue-950 to-teal-500 py-6 px-9 rounded-xl shadow-lg text-white">
           <div className="flex items-center justify-between flex-wrap gap-5">
@@ -621,7 +618,6 @@ export default function ReportNotificationConfigPage() {
           </div>
         </div>
 
-        {/* Work Anniversary Notifications Card */}
         <div className="bg-white border border-slate-200 rounded-xl mb-8 overflow-hidden shadow-sm">
           <div className="bg-gradient-to-br from-blue-950 to-teal-500 py-5 px-7 text-white flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -637,9 +633,7 @@ export default function ReportNotificationConfigPage() {
             </div>
           </div>
 
-          {/* Card Body */}
           <div className="p-7">
-            {/* Enable Checkbox */}
             <div className="mb-6">
               <label
                 className={`flex items-center gap-2.5 text-[15px] font-semibold cursor-pointer py-3.5 px-4 rounded-xl border-2 transition-all ${
@@ -714,7 +708,6 @@ export default function ReportNotificationConfigPage() {
               </p>
             </div>
 
-            {/* Auto Recipients Info Box */}
             <div className="mb-6">
               <div className="py-4 px-5 bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-500 rounded-xl flex items-start gap-3">
                 <div className="mt-0.5">

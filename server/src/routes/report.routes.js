@@ -14,6 +14,11 @@ import {
   getReportFilterOptions,
   triggerNotificationsManually,
 } from "../controllers/report.controller.js";
+import {
+  exportLeaveByDepartmentReportPdf,
+  getLeaveByDepartmentReport,
+  getLeaveByDepartmentReportFilterOptions,
+} from "../controllers/leaveDepartmentReport.controller.js";
 
 const router = express.Router();
 
@@ -59,6 +64,23 @@ router.put(
 
 // Filter options for dropdowns
 router.get("/filter-options", getReportFilterOptions);
+
+// Leave taken by department (Admin access only)
+router.get(
+  "/leave-by-department",
+  requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER),
+  getLeaveByDepartmentReport,
+);
+router.get(
+  "/leave-by-department/filter-options",
+  requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER),
+  getLeaveByDepartmentReportFilterOptions,
+);
+router.get(
+  "/leave-by-department/export/pdf",
+  requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER),
+  exportLeaveByDepartmentReportPdf,
+);
 
 // Manual trigger for testing notifications (Admin only)
 router.post(

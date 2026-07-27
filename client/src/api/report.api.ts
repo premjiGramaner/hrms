@@ -6,10 +6,34 @@ import type {
   ReportPaginatedResponse,
   NotificationConfig,
   ReportFilterOptions,
+  LeaveDepartmentFilterOptions,
+  LeaveDepartmentReportQuery,
+  LeaveDepartmentReportResponse,
+  ReportQueryParams,
 } from "../types";
 import { REPORT_PATHS } from "../constants/apiPaths";
 
-export async function fetchTerminationReport(queryParams: Record<string, any>) {
+const EXCEL_MIME_TYPE =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const PDF_MIME_TYPE = "application/pdf";
+
+function downloadReportFile(
+  fileData: BlobPart,
+  mimeType: string,
+  fileName: string,
+) {
+  const reportBlob = new Blob([fileData], { type: mimeType });
+  const downloadUrl = window.URL.createObjectURL(reportBlob);
+  const downloadLink = document.createElement("a");
+  downloadLink.href = downloadUrl;
+  downloadLink.download = fileName;
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
+export async function fetchTerminationReport(queryParams: ReportQueryParams) {
   const response = await api.get<{
     success: boolean;
     data: ReportPaginatedResponse<TerminationReportRecord>;
@@ -18,48 +42,36 @@ export async function fetchTerminationReport(queryParams: Record<string, any>) {
 }
 
 export async function downloadTerminationReportExcel(
-  queryParams: Record<string, any>,
+  queryParams: ReportQueryParams,
   filename?: string,
 ) {
   const response = await api.get(REPORT_PATHS.TERMINATION_EXPORT_EXCEL, {
     params: queryParams,
     responseType: "blob",
   });
-  const blob = new Blob([response.data], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download =
-    filename || `Termination_Report_${new Date().getFullYear()}.xlsx`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
+  downloadReportFile(
+    response.data,
+    EXCEL_MIME_TYPE,
+    filename || `Termination_Report_${new Date().getFullYear()}.xlsx`,
+  );
 }
 
 export async function downloadTerminationReportPDF(
-  queryParams: Record<string, any>,
+  queryParams: ReportQueryParams,
   filename?: string,
 ) {
   const response = await api.get(REPORT_PATHS.TERMINATION_EXPORT_PDF, {
     params: queryParams,
     responseType: "blob",
   });
-  const blob = new Blob([response.data], { type: "application/pdf" });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download =
-    filename || `Termination_Report_${new Date().getFullYear()}.pdf`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
+  downloadReportFile(
+    response.data,
+    PDF_MIME_TYPE,
+    filename || `Termination_Report_${new Date().getFullYear()}.pdf`,
+  );
 }
 
-export async function fetchBirthdayReport(queryParams: Record<string, any>) {
+export async function fetchBirthdayReport(queryParams: ReportQueryParams) {
   const response = await api.get<{
     success: boolean;
     data: ReportPaginatedResponse<BirthdayReportRecord>;
@@ -68,29 +80,22 @@ export async function fetchBirthdayReport(queryParams: Record<string, any>) {
 }
 
 export async function downloadBirthdayReportExcel(
-  queryParams: Record<string, any>,
+  queryParams: ReportQueryParams,
   filename?: string,
 ) {
   const response = await api.get(REPORT_PATHS.BIRTHDAY_EXPORT_EXCEL, {
     params: queryParams,
     responseType: "blob",
   });
-  const blob = new Blob([response.data], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download =
-    filename || `Birthday_Report_${new Date().getFullYear()}.xlsx`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
+  downloadReportFile(
+    response.data,
+    EXCEL_MIME_TYPE,
+    filename || `Birthday_Report_${new Date().getFullYear()}.xlsx`,
+  );
 }
 
 export async function fetchWorkAnniversaryReport(
-  queryParams: Record<string, any>,
+  queryParams: ReportQueryParams,
 ) {
   const response = await api.get<{
     success: boolean;
@@ -100,25 +105,18 @@ export async function fetchWorkAnniversaryReport(
 }
 
 export async function downloadWorkAnniversaryReportExcel(
-  queryParams: Record<string, any>,
+  queryParams: ReportQueryParams,
   filename?: string,
 ) {
   const response = await api.get(REPORT_PATHS.WORK_ANNIVERSARY_EXPORT_EXCEL, {
     params: queryParams,
     responseType: "blob",
   });
-  const blob = new Blob([response.data], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download =
-    filename || `Work_Anniversary_Report_${new Date().getFullYear()}.xlsx`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
+  downloadReportFile(
+    response.data,
+    EXCEL_MIME_TYPE,
+    filename || `Work_Anniversary_Report_${new Date().getFullYear()}.xlsx`,
+  );
 }
 
 export async function fetchNotificationConfig() {
@@ -162,4 +160,37 @@ export async function triggerNotificationsManually() {
     };
   }>(REPORT_PATHS.TRIGGER_NOTIFICATIONS);
   return response.data.data;
+}
+
+export async function fetchLeaveByDepartmentReport(
+  queryParams: LeaveDepartmentReportQuery,
+) {
+  const response = await api.get<{
+    success: boolean;
+    data: LeaveDepartmentReportResponse;
+  }>(REPORT_PATHS.LEAVE_BY_DEPARTMENT, { params: queryParams });
+  return response.data.data;
+}
+
+export async function fetchLeaveByDepartmentFilterOptions() {
+  const response = await api.get<{
+    success: boolean;
+    data: LeaveDepartmentFilterOptions;
+  }>(REPORT_PATHS.LEAVE_BY_DEPARTMENT_FILTER_OPTIONS);
+  return response.data.data;
+}
+
+export async function downloadLeaveByDepartmentReportPDF(
+  queryParams: LeaveDepartmentReportQuery,
+  filename?: string,
+) {
+  const response = await api.get(REPORT_PATHS.LEAVE_BY_DEPARTMENT_EXPORT_PDF, {
+    params: queryParams,
+    responseType: "blob",
+  });
+  downloadReportFile(
+    response.data,
+    PDF_MIME_TYPE,
+    filename || "Current Year's Leave Taken by Department.pdf",
+  );
 }
