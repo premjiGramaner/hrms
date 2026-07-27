@@ -379,6 +379,10 @@ const login = async (req, res, next) => {
       ip: req.ip,
     });
 
+    const passwordSetupToken = passwordReminderMessage
+      ? await issuePasswordToken(user.id)
+      : undefined;
+
     return success(res, {
       token,
       user: {
@@ -391,6 +395,7 @@ const login = async (req, res, next) => {
         avatar: user.avatar,
       },
       passwordReminderMessage,
+      passwordSetupToken,
     });
   } catch (err) {
     next(err);

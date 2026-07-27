@@ -1,4 +1,3 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import { PAGE_PATHS } from "../config/roles";
 import { AlertTriangle, X } from "lucide-react";
@@ -15,7 +14,7 @@ export default function PasswordExpiryAlert({
   const navigate = useNavigate();
 
   const handleChangePassword = () => {
-    navigate(PAGE_PATHS.myInfo);
+    navigate(`${PAGE_PATHS.createPassword}?expired=true`);
   };
 
   return (

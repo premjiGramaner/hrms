@@ -94,6 +94,13 @@ export default function LoginPage() {
 
       dispatch(loginSuccess({ token, user }));
 
+      if (passwordSetupToken) {
+        sessionStorage.setItem(
+          STORAGE_KEYS.passwordSetupToken,
+          passwordSetupToken,
+        );
+      }
+
       if (passwordReminderMessage) {
         sessionStorage.setItem(
           STORAGE_KEYS.passwordReminder,
