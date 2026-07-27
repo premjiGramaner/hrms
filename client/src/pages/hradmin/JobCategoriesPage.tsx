@@ -25,7 +25,7 @@ import Alert from "../../utils/alert";
 import Button from "../../components/common/Button";
 import { PAGE_PATHS } from "../../config/roles";
 import { ERROR_MESSAGES } from "../../constants/messages";
-import { DescriptionCell } from "../employees/components/Description" 
+import { DescriptionCell } from "../employees/components/Description";
 
 enum FormMode {
   ADD = "add",
@@ -294,20 +294,18 @@ export default function JobCategoriesPage() {
   );
 
   // Render description column
- const columns: ColumnDef<JobCategory>[] = [
-  {
-    key: "category",
-    header: COLUMN_CONFIG.CATEGORY_NAME,
-    render: renderCategoryNameColumn,
-  },
-  {
-    key: "description",
-    header: COLUMN_CONFIG.DESCRIPTION,
-    render: (row) => (
-      <DescriptionCell description={row.description} />
-    ),
-  },
-];
+  const columns: ColumnDef<JobCategory>[] = [
+    {
+      key: "category",
+      header: COLUMN_CONFIG.CATEGORY_NAME,
+      render: renderCategoryNameColumn,
+    },
+    {
+      key: "description",
+      header: COLUMN_CONFIG.DESCRIPTION,
+      render: (row) => <DescriptionCell description={row.description} />,
+    },
+  ];
   // Handle edit action
   const handleEdit = (row: JobCategory) => {
     setCategoryToEdit(row);

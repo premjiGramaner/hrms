@@ -29,7 +29,7 @@ enum FormMode {
   EDIT = "edit",
 }
 import { PAGE_PATHS } from "../../config/roles";
-import { DescriptionCell } from "../employees/components/Description" 
+import { DescriptionCell } from "../employees/components/Description";
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: PAGE_PATHS.hradminJobTitles },

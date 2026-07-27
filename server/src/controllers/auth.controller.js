@@ -32,8 +32,7 @@ const parseDuration = (duration) => {
   }
 };
 let authSchemaPromise = null;
-const INVALID_PASSWORD_TOKEN_MESSAGE =
-  "Password link is invalid or expired.";
+const INVALID_PASSWORD_TOKEN_MESSAGE = "Password link is invalid or expired.";
 
 function validatePasswordPolicy(password) {
   if (!password || password.length < 8) {
@@ -338,8 +337,7 @@ async function completePasswordReset(token, password, confirmPassword) {
 export const verifyToken = async (req, res, next) => {
   try {
     const user = await validateResetToken(req.body.token);
-    if (!user)
-      return error(res, INVALID_PASSWORD_TOKEN_MESSAGE, 400);
+    if (!user) return error(res, INVALID_PASSWORD_TOKEN_MESSAGE, 400);
 
     return success(res, { message: "Token is valid.", data: { user } });
   } catch (err) {
@@ -374,10 +372,4 @@ const logout = async (req, res, next) => {
   }
 };
 
-export {
-  login,
-  self,
-  forgotPassword,
-  resetPassword,
-  logout,
-};
+export { login, self, forgotPassword, resetPassword, logout };
