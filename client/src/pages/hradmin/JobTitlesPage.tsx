@@ -29,6 +29,7 @@ enum FormMode {
   EDIT = "edit",
 }
 import { PAGE_PATHS } from "../../config/roles";
+import { DescriptionCell } from "../employees/components/Description" 
 
 const TABS: TabItem[] = [
   { label: "Job Titles", path: PAGE_PATHS.hradminJobTitles },
@@ -126,16 +127,7 @@ export default function JobTitlesPage() {
     {
       key: "description",
       header: "Description",
-      render: (row) =>
-        row.description ? (
-          <span className="text-slate-600 text-[13px] line-clamp-2">
-            {row.description}
-          </span>
-        ) : (
-          <span className="text-slate-300 text-[12.5px] italic">
-            No description
-          </span>
-        ),
+      render: (row) => <DescriptionCell description={row.description} />,
     },
   ];
 
