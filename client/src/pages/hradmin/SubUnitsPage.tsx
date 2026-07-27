@@ -386,10 +386,6 @@ function SubUnitEmployeesModal({
       <div className="w-full max-w-[560px] overflow-hidden rounded-[20px] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
         <div className="flex items-center justify-between bg-gradient-to-br from-[#172554] to-[#14b8a6] p-[22px_26px]">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white/20 text-white">
-              <IconBuilding />
-            </div>
-
             <div>
               <h2 className="m-0 text-[17px] font-bold text-white">
                 {subUnit.sub_unit_name}
@@ -449,6 +445,9 @@ function SubUnitEmployeesModal({
                     <th className="px-4 py-3 text-left font-semibold text-slate-700">
                       Name
                     </th>
+                     <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                      Subunit
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -462,6 +461,9 @@ function SubUnitEmployeesModal({
                       </td>
                       <td className="px-4 py-3 text-slate-900">
                         {employee.name}
+                      </td>
+                       <td className="px-4 py-3 text-slate-900">
+                        {employee.sub_unit}
                       </td>
                     </tr>
                   ))}

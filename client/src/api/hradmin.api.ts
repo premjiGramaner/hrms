@@ -360,6 +360,7 @@ export interface SubUnitEmployee {
   id: string;
   employee_id: string | null;
   name: string;
+  sub_unit:string;
 }
 
 interface SubUnitEmployeesResponse {

@@ -5,8 +5,10 @@ export async function findEmployeesBySubUnitName(subUnitName) {
 
   const { rows } = await pool.query(
     `SELECT
+       id,
        employee_id,
-       name
+       name,
+       sub_unit
      FROM tbl_appusers
      WHERE is_deleted = FALSE
        AND is_active = TRUE
