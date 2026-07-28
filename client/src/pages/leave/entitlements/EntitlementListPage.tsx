@@ -99,7 +99,10 @@ function EmployeeAutocomplete({
           placeholder="Type for hints…"
           className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition pr-8"
         />
-        {value && (
+        {fetching && (
+          <div className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-slate-300 border-t-blue-700" />
+        )}
+        {!fetching && value && (
           <button
             type="button"
             onClick={() => {
