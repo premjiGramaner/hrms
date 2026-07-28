@@ -31,6 +31,7 @@ import {
   PERFORMANCE_REVIEW_LABELS,
   UnavailableAppraisalEmployee,
 } from "./performanceUi";
+import RatingSegmentControl from "./RatingSegmentControl";
 
 type RatingDraft = Record<
   string,
@@ -83,32 +84,6 @@ function Avatar({ name, avatar }: { name: string; avatar?: string | null }) {
           {(name[0] || "E").toUpperCase()}
         </span>
       )}
-    </div>
-  );
-}
-
-function SegmentScore({
-  score,
-  editable,
-  onChange,
-}: {
-  score?: number;
-  editable?: boolean;
-  onChange?: (score: number) => void;
-}) {
-  const value = Math.max(0, Math.min(5, Number(score) || 0));
-  return (
-    <div className="flex items-center gap-[3px]">
-      {[1, 2, 3, 4, 5].map((item) => (
-        <button
-          key={item}
-          type="button"
-          disabled={!editable}
-          onClick={() => onChange?.(item)}
-          className={`h-[9px] w-[38px] rounded-none ${value >= item ? "bg-navy-700" : "bg-[#e6e6eb]"} ${editable ? "cursor-pointer hover:bg-navy-600" : "cursor-default"}`}
-          aria-label={`Set rating ${item}`}
-        />
-      ))}
     </div>
   );
 }
@@ -182,7 +157,12 @@ function KeyPerformanceIndicatorRatingCell({
   return (
     <div className="flex items-center gap-3 border-l border-slate-100 py-3 pl-4">
       <div>
-        <SegmentScore score={score} editable={editable} onChange={onScore} />
+        <RatingSegmentControl
+          score={score}
+          editable={editable}
+          onChange={onScore}
+          segmentClassName="h-[9px] w-[38px]"
+        />
         <p className="mt-1 text-lg font-medium text-slate-600">
           {Number(score || 0).toFixed(1)}
         </p>
