@@ -241,6 +241,14 @@ export default function LeaveDetailsPage() {
     fileInputRef.current?.click();
   };
 
+  const STATUS_PREVIEW_LENGTH = 10;
+  const rejectionReason = leave?.rejection_reason ?? "";
+  const rejectionReasonPreview =
+    leave?.rejection_reason &&
+    leave.rejection_reason.length > STATUS_PREVIEW_LENGTH
+      ? `${leave.rejection_reason?.slice(0, STATUS_PREVIEW_LENGTH)}...`
+      : leave?.rejection_reason;
+
   return (
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
@@ -356,8 +364,8 @@ export default function LeaveDetailsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-4 overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-4 overflow-visible">
+            <div className="overflow-visible">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b-2 border-slate-100">
@@ -404,10 +412,19 @@ export default function LeaveDetailsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={leave.status} />
-                      {leave.rejection_reason && (
-                        <p className="text-xs text-red-500 mt-1 max-w-40 break-words">
-                          Reason: {leave.rejection_reason}
-                        </p>
+                      <br></br>
+                      {rejectionReason && (
+                        <div className="relative inline-block group">
+                          <p>
+                            <span className="text-xs text-red-500 mt-1 max-w-40 break-words cursor-pointer">
+                              Reason:
+                            </span>{" "}
+                            {rejectionReasonPreview}
+                          </p>
+                          <p className="absolute left-0 top-full z-50 mt-2 hidden min-w-[250px] max-w-sm rounded-lg border border-slate-200 bg-white p-3 text-[13px] text-slate-700 shadow-lg whitespace-normal break-words group-hover:block">
+                            {rejectionReason}
+                          </p>
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-600 max-w-40">
@@ -424,7 +441,6 @@ export default function LeaveDetailsPage() {
                         onReject={handleOpenRejectModal}
                         onCancel={handleOpenCancelModal}
                       />
-                      {/* )} */}
                     </td>
                   </tr>
                 </tbody>
@@ -433,12 +449,6 @@ export default function LeaveDetailsPage() {
             <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
               <button className="text-xs text-teal-600 hover:underline cursor-pointer bg-transparent border-none">
                 View Leave Request Comments
-              </button>
-              <button
-                onClick={load}
-                className="px-5 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-teal-600 text-white text-xs font-semibold cursor-pointer hover:opacity-90 transition"
-              >
-                SAVE
               </button>
             </div>
           </div>

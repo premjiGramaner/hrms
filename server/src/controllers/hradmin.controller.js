@@ -5,6 +5,8 @@ import { writeAuditLog } from "../services/audit.service.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendWelcomeEmail } from "../../email.service.js";
+import { findEmployeesBySubUnitName } from "../services/hradmin.service.js";
+import { logError } from "../utils/logger.js";
 import {
   ROLES,
   ADMIN_ROLES,
@@ -18,9 +20,9 @@ const TRIM_UNDERSCORE_REGEX = /^_+|_+$/g;
 async function generateUniqueUsername(email, fullName) {
   let base = fullName
     ? fullName
-      .toLowerCase()
-      .replace(SPACE_REGEX, "_")
-      .replace(INVALID_CHAR_REGEX, "")
+        .toLowerCase()
+        .replace(SPACE_REGEX, "_")
+        .replace(INVALID_CHAR_REGEX, "")
     : email.split("@")[0];
   base = base.replace(TRIM_UNDERSCORE_REGEX, "") || email.split("@")[0];
 
@@ -907,10 +909,7 @@ const updateUserRole = async (req, res, next) => {
     const allowedRoles = [ROLES.EMPLOYEE, ROLES.SUPERVISOR, ROLES.HR_ADMIN];
     if (!role || !allowedRoles.includes(role)) {
       return next(
-        new AppError(
-          `Invalid role. Must be ${allowedRoles.join(", ")}`,
-          400,
-        ),
+        new AppError(`Invalid role. Must be ${allowedRoles.join(", ")}`, 400),
       );
     }
 
@@ -930,6 +929,32 @@ const updateUserRole = async (req, res, next) => {
     next(err);
   }
 };
+
+export async function getEmployeesBySubUnit(req, res) {
+  const subUnitName = String(req.query.subUnitName ?? "").trim();
+
+  if (!subUnitName) {
+    return res.status(400).json({
+      message: "Sub-unit name is required.",
+    });
+  }
+
+  try {
+    const employees = await findEmployeesBySubUnitName(subUnitName);
+
+    return res.status(200).json({
+      message: "Sub-unit employees fetched successfully.",
+      count: employees.length,
+      data: employees,
+    });
+  } catch (error) {
+    logError("Failed to fetch employees by sub unit", error);
+
+    return res.status(500).json({
+      message: "Failed to fetch sub-unit employees.",
+    });
+  }
+}
 
 const getAuditTrail = async (req, res, next) => {
   try {
