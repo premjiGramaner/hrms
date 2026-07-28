@@ -26,7 +26,6 @@ import { isAdminRole } from "../../config/roles";
 import {
   calculateWeightedKpiRating,
   getRatingSubmissionError,
-  isAssignedKpiRating,
   ReviewerType,
 } from "./performanceRatings";
 import {
@@ -231,13 +230,11 @@ export default function AppraisalMultipleView() {
     ? appraisal.finalRating ?? appraisal.supervisorRating ?? 0
     : 0;
 
-  const ratingPayload = appraisal.questions
-    .map((question) => ({
-      questionId: question.id,
-      score: ratings[question.id]?.score || 0,
-      comment: ratings[question.id]?.comment || "",
-    }))
-    .filter((rating) => isAssignedKpiRating(rating.score));
+  const ratingPayload = appraisal.questions.map((question) => ({
+    questionId: question.id,
+    score: ratings[question.id]?.score || 0,
+    comment: ratings[question.id]?.comment || "",
+  }));
 
   const setQuestionRating = (questionId: string, score: number) => {
     setRatings((current) => ({

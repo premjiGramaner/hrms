@@ -24,7 +24,6 @@ import {
 import {
   calculateWeightedKpiRating,
   getRatingSubmissionError,
-  isAssignedKpiRating,
   ReviewerType,
 } from "./performanceRatings";
 import {
@@ -367,13 +366,11 @@ export default function AppraisalCompactView() {
     ? (appraisal.finalRating ?? appraisal.supervisorRating ?? 0)
     : 0;
 
-  const ratingPayload = appraisal.questions
-    .map((question) => ({
-      questionId: question.id,
-      score: scoreForReviewer(ratings[question.id], activeReviewer),
-      comment: commentForReviewer(ratings[question.id], activeReviewer),
-    }))
-    .filter((rating) => isAssignedKpiRating(rating.score));
+  const ratingPayload = appraisal.questions.map((question) => ({
+    questionId: question.id,
+    score: scoreForReviewer(ratings[question.id], activeReviewer),
+    comment: commentForReviewer(ratings[question.id], activeReviewer),
+  }));
 
   const setQuestionRating = (
     questionId: string,

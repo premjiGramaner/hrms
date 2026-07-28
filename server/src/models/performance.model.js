@@ -1246,7 +1246,14 @@ function normalizeRatingPayload(ratings, validQuestionIds) {
     }
 
     const score = Number(rating.score);
-    if (score === 0) continue;
+    if (score === 0) {
+      normalizedRatings.set(questionId, {
+        questionId,
+        score: 0,
+        comment: String(rating.comment || "").trim(),
+      });
+      continue;
+    }
     if (
       !Number.isFinite(score) ||
       score < MINIMUM_KPI_RATING ||

@@ -10,7 +10,6 @@ import type {
   LeaveDepartmentFilterOptions,
   LeaveDepartmentReportQuery,
 } from "../../types";
-import { PAGE_PATHS } from "../../config/roles";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
 import LeaveDepartmentReportFilters from "./components/LeaveDepartmentReportFilters";
@@ -20,6 +19,7 @@ import {
   EMPTY_LEAVE_DEPARTMENT_FILTER_OPTIONS,
   type LeaveDepartmentFilters,
 } from "./leaveDepartmentReport.config";
+import { REPORT_TABS } from "./reportTabs";
 
 export default function LeaveByDepartmentReportPage() {
   const [reportData, setReportData] = useState<LeaveByDepartmentRecord[]>([]);
@@ -141,13 +141,9 @@ export default function LeaveByDepartmentReportPage() {
 
   return (
     <Layout
-      title="Reports and Analytics / Reports"
-      backRoute={PAGE_PATHS.reports}
-      topNav={
-        <span className="rounded-full bg-orange-50 px-4 py-2 text-xs font-medium text-navy-700">
-          Current Year's Leave Taken by Department
-        </span>
-      }
+      title="Reports and Analytics"
+      tabs={REPORT_TABS}
+      activeTab="Leave by Department"
     >
       <LeaveDepartmentReportFilters
         draftFilters={draftFilters}

@@ -23,7 +23,8 @@ export default function RatingSegmentControl({
   ) => {
     const { left, width } = event.currentTarget.getBoundingClientRect();
     const clickedLeftHalf = event.clientX - left < width / 2;
-    onChange?.(clickedLeftHalf ? segment - 0.5 : segment);
+    const selectedRating = clickedLeftHalf ? segment - 0.5 : segment;
+    onChange?.(value === selectedRating ? 0 : selectedRating);
   };
 
   return (
