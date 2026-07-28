@@ -46,6 +46,7 @@ import {
   TerminationReportPage,
   BirthdayReportPage,
   WorkAnniversaryReportPage,
+  EmployeeContactReportPage,
   ReportNotificationConfigPage,
   LeaveByDepartmentReportPage,
 } from "./pages/reports";
@@ -503,6 +504,15 @@ export default function App() {
               <PerformanceAdminOnly>
                 <TemplateFormDesign />
               </PerformanceAdminOnly>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path={PAGE_PATHS.reportsEmployeeContact}
+          element={
+            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
+              <EmployeeContactReportPage />
             </ProtectedRoute>
           }
         />

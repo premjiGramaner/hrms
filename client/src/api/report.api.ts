@@ -3,6 +3,7 @@ import type {
   TerminationReportRecord,
   BirthdayReportRecord,
   WorkAnniversaryReportRecord,
+  EmployeeContactRecord,
   ReportPaginatedResponse,
   NotificationConfig,
   ReportFilterOptions,
@@ -102,6 +103,31 @@ export async function fetchWorkAnniversaryReport(
     data: ReportPaginatedResponse<WorkAnniversaryReportRecord>;
   }>(REPORT_PATHS.WORK_ANNIVERSARY, { params: queryParams });
   return response.data.data;
+}
+
+export async function fetchEmployeeContactReport(
+  queryParams: ReportQueryParams,
+) {
+  const response = await api.get<{
+    success: boolean;
+    data: ReportPaginatedResponse<EmployeeContactRecord>;
+  }>(REPORT_PATHS.EMPLOYEE_CONTACT, { params: queryParams });
+  return response.data.data;
+}
+
+export async function downloadEmployeeContactReportExcel(
+  queryParams: ReportQueryParams,
+  filename?: string,
+) {
+  const response = await api.get(REPORT_PATHS.EMPLOYEE_CONTACT_EXPORT_EXCEL, {
+    params: queryParams,
+    responseType: "blob",
+  });
+  downloadReportFile(
+    response.data,
+    EXCEL_MIME_TYPE,
+    filename || `Employee_Contact_Report_${new Date().getFullYear()}.xlsx`,
+  );
 }
 
 export async function downloadWorkAnniversaryReportExcel(

@@ -612,13 +612,147 @@ async function getDistinctLocations() {
      WHERE location IS NOT NULL AND location != '' AND is_deleted = FALSE
      ORDER BY location`,
   );
-  return rows.map((r) => r.location);
+  return rows.map((locationRow) => locationRow.location);
+}
+
+async function getEmployeeContactReportData(filterCriteria, userContext) {
+  const {
+    search,
+    location,
+    gender,
+    employmentStatus,
+    page,
+    limit,
+    sortColumn,
+    sortDirection,
+  } = filterCriteria;
+  const { userId, userRole } = userContext;
+
+  const offset = (page - 1) * limit;
+  const conditions = [
+    "u.is_deleted = FALSE",
+    "u.is_active = TRUE",
+    "(u.employment_status IS NULL OR u.employment_status != 'Terminated')",
+  ];
+  const values = [];
+  let valueIndex = 1;
+
+  if (userRole === "employee") {
+    conditions.push(`u.id = $${valueIndex}`);
+    values.push(userId);
+    valueIndex++;
+  }
+
+  if (search) {
+    conditions.push(
+      `(
+        u.name ILIKE $${valueIndex} OR 
+        u.first_name ILIKE $${valueIndex} OR 
+        u.last_name ILIKE $${valueIndex} OR 
+        u.employee_id ILIKE $${valueIndex} OR
+        u.email ILIKE $${valueIndex} OR
+        u.mobile ILIKE $${valueIndex} OR
+        u.address1 ILIKE $${valueIndex} OR
+        u.address2 ILIKE $${valueIndex} OR
+        u.city ILIKE $${valueIndex} OR
+        u.state ILIKE $${valueIndex} OR
+        u.country ILIKE $${valueIndex}
+      )`,
+    );
+    values.push(`%${search}%`);
+    valueIndex++;
+  }
+
+  if (location) {
+    conditions.push(`u.location = $${valueIndex}`);
+    values.push(location);
+    valueIndex++;
+  }
+
+  if (gender) {
+    conditions.push(`u.gender = $${valueIndex}`);
+    values.push(gender);
+    valueIndex++;
+  }
+
+  if (employmentStatus) {
+    conditions.push(`u.employment_status = $${valueIndex}`);
+    values.push(employmentStatus);
+    valueIndex++;
+  }
+
+  const whereClause = conditions.join(" AND ");
+
+  const allowedSortColumns = [
+    "employee_id",
+    "name",
+    "email",
+    "mobile",
+    "location",
+    "gender",
+    "employment_status",
+  ];
+  const safeSortColumn = allowedSortColumns.includes(sortColumn)
+    ? sortColumn
+    : "name";
+  const safeSortDirection = sortDirection === "asc" ? "ASC" : "DESC";
+
+  const countQuery = `SELECT COUNT(*)::int AS total_records FROM tbl_appusers u WHERE ${whereClause}`;
+  const { rows: countRows } = await pool.query(countQuery, values);
+  const totalRecords = countRows[0].total_records;
+
+  const dataQuery = `
+    SELECT 
+      u.id,
+      u.employee_id,
+      COALESCE(u.name, CONCAT_WS(' ', u.first_name, u.middle_name, u.last_name)) AS name,
+      u.first_name,
+      u.middle_name,
+      u.last_name,
+      u.email,
+      u.mobile,
+      u.home_tel,
+      u.work_tel,
+      u.dob::text,
+      TO_CHAR(u.dob, 'DD Mon YYYY') AS formatted_dob,
+      u.supervisors,
+      CASE
+        WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' OR u.supervisors = '[]' THEN '[]'::json
+        ELSE u.supervisors::json
+      END AS supervisor_names,
+      u.address1,
+      u.address2,
+      u.city,
+      u.state,
+      u.country,
+      u.zip,
+      u.location,
+      u.gender,
+      u.employment_status,
+      u.job_title,
+      u.sub_unit
+    FROM tbl_appusers u
+    WHERE ${whereClause}
+    ORDER BY u.${safeSortColumn} ${safeSortDirection}
+    LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
+  `;
+
+  values.push(limit, offset);
+  const { rows: dataRows } = await pool.query(dataQuery, values);
+
+  return {
+    reportData: dataRows,
+    totalRecords,
+    totalPages: Math.ceil(totalRecords / limit),
+    currentPage: page,
+  };
 }
 
 export default {
   getTerminationReportData,
   getBirthdayReportData,
   getWorkAnniversaryReportData,
+  getEmployeeContactReportData,
   getUpcomingBirthdays,
   getUpcomingWorkAnniversaries,
   getNotificationConfig,

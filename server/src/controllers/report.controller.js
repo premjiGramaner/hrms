@@ -791,13 +791,230 @@ const getReportFilterOptions = async (req, res, next) => {
   }
 };
 
+const getEmployeeContactReport = async (req, res, next) => {
+  try {
+    const filterCriteria = {
+      search: req.query.search || null,
+      location: req.query.location || null,
+      gender: req.query.gender || null,
+      employmentStatus: req.query.employment_status || null,
+      page: parseInt(req.query.page) || 1,
+      limit: parseInt(req.query.limit) || 15,
+      sortColumn: req.query.sort_column || "name",
+      sortDirection: req.query.sort_direction || "asc",
+    };
+
+    const userContext = {
+      userId: req.user.id,
+      userRole: req.user.role,
+    };
+
+    const reportResult = await ReportModel.getEmployeeContactReportData(
+      filterCriteria,
+      userContext,
+    );
+    return success(res, reportResult);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const exportEmployeeContactReportExcel = async (req, res, next) => {
+  try {
+    const filterCriteria = {
+      search: req.query.search || null,
+      location: req.query.location || null,
+      gender: req.query.gender || null,
+      employmentStatus: req.query.employment_status || null,
+      page: 1,
+      limit: 10000,
+      sortColumn: req.query.sort_column || "name",
+      sortDirection: req.query.sort_direction || "asc",
+    };
+
+    const userContext = {
+      userId: req.user.id,
+      userRole: req.user.role,
+    };
+
+    const reportResult = await ReportModel.getEmployeeContactReportData(
+      filterCriteria,
+      userContext,
+    );
+    const reportData = reportResult.reportData;
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "HRMS";
+    workbook.created = new Date();
+    const worksheet = workbook.addWorksheet("Employee Contact Details");
+
+    worksheet.mergeCells("A1:T1");
+    const titleCell = worksheet.getCell("A1");
+    titleCell.value = "Employee Contact Details Report - Complete Information";
+    titleCell.font = { bold: true, size: 14, color: { argb: "FF172554" } };
+    titleCell.alignment = { horizontal: "center" };
+
+    worksheet.mergeCells("A2:T2");
+    const timestampCell = worksheet.getCell("A2");
+    timestampCell.value = `Generated: ${new Date().toLocaleString()}`;
+    timestampCell.font = { size: 9, color: { argb: "FF666666" } };
+    timestampCell.alignment = { horizontal: "center" };
+    worksheet.addRow([]);
+
+    const headerRow = worksheet.addRow([
+      "Employee ID",
+      "First Name",
+      "Middle Name",
+      "Last Name",
+      "Full Name",
+      "Date of Birth",
+      "Email",
+      "Mobile",
+      "Home Phone",
+      "Work Phone",
+      "Supervisors",
+      "Address",
+      "City",
+      "State/Province",
+      "Country",
+      "Postal Code",
+      "Location",
+      "Gender",
+      "Employment Status",
+      "Job Title",
+    ]);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF172554" },
+      };
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+      cell.border = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+    headerRow.height = 30;
+
+    worksheet.columns = [
+      { width: 14 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
+      { width: 24 },
+      { width: 14 },
+      { width: 26 },
+      { width: 14 },
+      { width: 14 },
+      { width: 14 },
+      { width: 30 },
+      { width: 30 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
+      { width: 12 },
+      { width: 16 },
+      { width: 12 },
+      { width: 16 },
+      { width: 20 },
+    ];
+
+    reportData.forEach((dataRow, index) => {
+      const addressParts = [dataRow.address1, dataRow.address2].filter(Boolean);
+      const fullAddress = addressParts.join(", ");
+
+      let supervisorsList = "";
+      try {
+        if (dataRow.supervisor_names) {
+          const supervisors =
+            typeof dataRow.supervisor_names === "string"
+              ? JSON.parse(dataRow.supervisor_names)
+              : dataRow.supervisor_names;
+          if (Array.isArray(supervisors) && supervisors.length > 0) {
+            supervisorsList = supervisors.join(", ");
+          }
+        }
+      } catch (error) {
+        supervisorsList = "";
+      }
+
+      const excelRow = worksheet.addRow([
+        dataRow.employee_id || "",
+        dataRow.first_name || "",
+        dataRow.middle_name || "",
+        dataRow.last_name || "",
+        dataRow.name || "",
+        dataRow.formatted_dob || dataRow.dob || "",
+        dataRow.email || "",
+        dataRow.mobile || "",
+        dataRow.home_tel || "",
+        dataRow.work_tel || "",
+        supervisorsList || "No Supervisors",
+        fullAddress || "",
+        dataRow.city || "",
+        dataRow.state || "",
+        dataRow.country || "",
+        dataRow.zip || "",
+        dataRow.location || "",
+        dataRow.gender || "",
+        dataRow.employment_status || "",
+        dataRow.job_title || "",
+      ]);
+
+      const backgroundColor = index % 2 === 0 ? "FFF8F9FA" : "FFFFFFFF";
+      excelRow.eachCell((cell) => {
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: backgroundColor },
+        };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFE2E8F0" } },
+          bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+          left: { style: "thin", color: { argb: "FFE2E8F0" } },
+          right: { style: "thin", color: { argb: "FFE2E8F0" } },
+        };
+        cell.alignment = { vertical: "middle" };
+      });
+      excelRow.height = 16;
+    });
+
+    if (reportData.length === 0) {
+      worksheet.addRow(["No records found."]);
+    }
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="employee_contact_report.xlsx"',
+    );
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    next(err);
+  }
+};
+
 export {
   getTerminationReport,
   getBirthdayReport,
   getWorkAnniversaryReport,
+  getEmployeeContactReport,
   exportTerminationReportExcel,
   exportBirthdayReportExcel,
   exportWorkAnniversaryReportExcel,
+  exportEmployeeContactReportExcel,
   exportTerminationReportPDF,
   getNotificationConfig,
   updateNotificationConfig,

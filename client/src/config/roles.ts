@@ -142,4 +142,5 @@ export const PAGE_PATHS = {
   reportsTermination: "/reports/termination",
   reportsNotifications: "/reports/notifications",
   reportsLeaveByDepartment: "/reports/leave-by-department",
+  reportsEmployeeContact: "/reports/employee-contact",
 } as const;

@@ -9,5 +9,6 @@ export const REPORT_TABS: TabItem[] = [
     label: "Leave by Department",
     path: PAGE_PATHS.reportsLeaveByDepartment,
   },
+  { label: "Employee Contact", path: PAGE_PATHS.reportsEmployeeContact },
   { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
 ];

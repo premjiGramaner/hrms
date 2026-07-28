@@ -222,6 +222,34 @@ export interface WorkAnniversaryReportRecord {
   user_type?: string;
 }
 
+export interface EmployeeContactRecord {
+  id: number;
+  employee_id?: string;
+  name: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  email: string;
+  mobile?: string;
+  home_tel?: string;
+  work_tel?: string;
+  dob?: string;
+  formatted_dob?: string;
+  supervisors?: string;
+  supervisor_names?: string[];
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip?: string;
+  location?: string;
+  gender?: string;
+  employment_status?: string;
+  job_title?: string;
+  sub_unit?: string;
+}
+
 export interface ReportPaginatedResponse<T> {
   reportData: T[];
   totalRecords: number;

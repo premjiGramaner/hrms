@@ -126,6 +126,8 @@ export const REPORT_PATHS = {
   BIRTHDAY_EXPORT_EXCEL: "/reports/birthday/export/excel",
   WORK_ANNIVERSARY: "/reports/work-anniversary",
   WORK_ANNIVERSARY_EXPORT_EXCEL: "/reports/work-anniversary/export/excel",
+  EMPLOYEE_CONTACT: "/reports/employee-contact",
+  EMPLOYEE_CONTACT_EXPORT_EXCEL: "/reports/employee-contact/export/excel",
   NOTIFICATION_CONFIG: "/reports/notification-config",
   FILTER_OPTIONS: "/reports/filter-options",
   TRIGGER_NOTIFICATIONS: "/reports/trigger-notifications",

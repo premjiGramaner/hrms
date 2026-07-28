@@ -5,9 +5,11 @@ import {
   getTerminationReport,
   getBirthdayReport,
   getWorkAnniversaryReport,
+  getEmployeeContactReport,
   exportTerminationReportExcel,
   exportBirthdayReportExcel,
   exportWorkAnniversaryReportExcel,
+  exportEmployeeContactReportExcel,
   exportTerminationReportPDF,
   getNotificationConfig,
   updateNotificationConfig,
@@ -22,10 +24,8 @@ import {
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticate);
 
-// Termination Report (Admin access only)
 router.get(
   "/termination",
   requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER),
@@ -42,15 +42,23 @@ router.get(
   exportTerminationReportPDF,
 );
 
-// Birthday Report (All authenticated users with role-based filtering)
 router.get("/birthday", getBirthdayReport);
 router.get("/birthday/export/excel", exportBirthdayReportExcel);
 
-// Work Anniversary Report (All authenticated users with role-based filtering)
 router.get("/work-anniversary", getWorkAnniversaryReport);
 router.get("/work-anniversary/export/excel", exportWorkAnniversaryReportExcel);
 
-// Notification Configuration (Admin only)
+router.get(
+  "/employee-contact",
+  requireRole(ROLES.HR_ADMIN),
+  getEmployeeContactReport,
+);
+router.get(
+  "/employee-contact/export/excel",
+  requireRole(ROLES.HR_ADMIN),
+  exportEmployeeContactReportExcel,
+);
+
 router.get(
   "/notification-config",
   requireRole(ROLES.HR_ADMIN),
@@ -62,10 +70,8 @@ router.put(
   updateNotificationConfig,
 );
 
-// Filter options for dropdowns
 router.get("/filter-options", getReportFilterOptions);
 
-// Leave taken by department (Admin access only)
 router.get(
   "/leave-by-department",
   requireRole(ROLES.HR_ADMIN, ROLES.EMP_MANAGER),
@@ -82,7 +88,6 @@ router.get(
   exportLeaveByDepartmentReportPdf,
 );
 
-// Manual trigger for testing notifications (Admin only)
 router.post(
   "/trigger-notifications",
   requireRole(ROLES.HR_ADMIN),
