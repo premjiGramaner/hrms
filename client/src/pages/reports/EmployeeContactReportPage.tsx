@@ -10,73 +10,22 @@ import { IconUsers } from "../../components/Icons";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
 import { REPORT_TABS } from "./reportTabs";
-
-const REPORT_CONFIG = {
-  TITLE: "Employee Contact",
-  SUBTITLE: "View all employee contact details and addresses",
-  SEARCH_PLACEHOLDER: "Search by name, email, phone, or address...",
-  ITEM_LABEL: "employees",
-  EMPTY_ICON_TEXT: "👤",
-  EMPTY_TITLE: "No Employees Found",
-  EMPTY_SUBTITLE: "No employee records match your current filters",
-  EXPORT_BUTTON_LABEL: "Export Excel",
-  DEFAULT_SORT_COLUMN: "name",
-  DEFAULT_SORT_DIRECTION: "asc" as const,
-  INITIAL_PAGE_SIZE: 15,
-  PAGE_SIZE_OPTIONS: [10, 15, 20, 50, 100],
-} as const;
-
-const FILTER_OPTIONS = {
-  LOCATIONS: [] as string[],
-  GENDERS: [
-    { value: "", label: "All Genders" },
-    { value: "Male", label: "Male" },
-    { value: "Female", label: "Female" },
-    { value: "Other", label: "Other" },
-  ],
-  EMPLOYMENT_STATUS: [
-    { value: "", label: "All Status" },
-    { value: "Full-Time", label: "Full-Time" },
-    { value: "Part-Time", label: "Part-Time" },
-    { value: "Contract", label: "Contract" },
-    { value: "Probation", label: "Probation" },
-  ],
-} as const;
-
-const COLUMN_LABELS = {
-  EMPLOYEE_ID: "Employee ID",
-  FIRST_NAME: "First Name",
-  MIDDLE_NAME: "Middle Name",
-  LAST_NAME: "Last Name",
-  NAME: "Name",
-  EMAIL: "Email",
-  MOBILE: "Mobile",
-  HOME_TEL: "Home Phone",
-  WORK_TEL: "Work Phone",
-  DOB: "Date of Birth",
-  SUPERVISORS: "Supervisors",
-  ADDRESS: "Address",
-  LOCATION: "Location",
-  GENDER: "Gender",
-  STATUS: "Status",
-  NOT_AVAILABLE: "N/A",
-  NO_SUPERVISORS: "No Supervisors",
-} as const;
-
-const ERROR_MESSAGES = {
-  LOAD_FAILED: "Failed to load the employee contact report.",
-  EXPORT_FAILED: "Failed to export the report.",
-} as const;
-
-const SUCCESS_MESSAGES = {
-  EXPORT_SUCCESS: "Employee contact report downloaded successfully.",
-} as const;
-
-const FILTER_TOOLBAR_CLASS = "flex gap-3 flex-wrap items-center";
-const SELECT_CLASS =
-  "py-2 px-3 border-[1.5px] border-slate-200 rounded-md text-[13px] outline-none focus:border-[#172554] transition-colors bg-white";
-const EXPORT_BUTTON_CLASS =
-  "py-2 px-4 bg-[#16A085] text-white border-none rounded-md text-[13px] font-semibold cursor-pointer hover:bg-[#138f72] transition-colors";
+import {
+  REPORT_CONFIG,
+  GENDER_FILTER_OPTIONS,
+  EMPLOYMENT_STATUS_FILTER_OPTIONS,
+  COLUMN_LABELS,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  SORTABLE_COLUMN_KEYS,
+  TAILWIND_CLASSES,
+} from "./constants/employeeContactReport.constants";
+import { SortDirection } from "./types/employeeContactReport.types";
+import {
+  formatEmployeeAddress,
+  getEmployeeInitials,
+  extractUniqueValues,
+} from "./utils/employeeContactReport.utils";
 
 export default function EmployeeContactReportPage() {
   const [reportData, setReportData] = useState<EmployeeContactRecord[]>([]);
@@ -89,9 +38,18 @@ export default function EmployeeContactReportPage() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [sortColumn, setSortColumn] = useState<string>(
+    REPORT_CONFIG.DEFAULT_SORT_COLUMN,
+  );
+  const [sortDirection, setSortDirection] = useState<SortDirection>(
+    REPORT_CONFIG.DEFAULT_SORT_DIRECTION,
+  );
+
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedGender, setSelectedGender] = useState("");
   const [selectedEmploymentStatus, setSelectedEmploymentStatus] = useState("");
+  const [selectedSubUnit, setSelectedSubUnit] = useState("");
+  const [selectedJobTitle, setSelectedJobTitle] = useState("");
 
   const loadReportData = useCallback(async () => {
     setIsLoading(true);
@@ -103,8 +61,10 @@ export default function EmployeeContactReportPage() {
         location: selectedLocation || undefined,
         gender: selectedGender || undefined,
         employment_status: selectedEmploymentStatus || undefined,
-        sort_column: REPORT_CONFIG.DEFAULT_SORT_COLUMN,
-        sort_direction: REPORT_CONFIG.DEFAULT_SORT_DIRECTION,
+        sub_unit: selectedSubUnit || undefined,
+        job_title: selectedJobTitle || undefined,
+        sort_column: sortColumn,
+        sort_direction: sortDirection,
       };
 
       const result = await fetchEmployeeContactReport(queryParams);
@@ -124,6 +84,10 @@ export default function EmployeeContactReportPage() {
     selectedLocation,
     selectedGender,
     selectedEmploymentStatus,
+    selectedSubUnit,
+    selectedJobTitle,
+    sortColumn,
+    sortDirection,
   ]);
 
   useEffect(() => {
@@ -136,6 +100,8 @@ export default function EmployeeContactReportPage() {
       location: selectedLocation || undefined,
       gender: selectedGender || undefined,
       employment_status: selectedEmploymentStatus || undefined,
+      sub_unit: selectedSubUnit || undefined,
+      job_title: selectedJobTitle || undefined,
     };
     try {
       await downloadEmployeeContactReportExcel(queryParams);
@@ -150,83 +116,96 @@ export default function EmployeeContactReportPage() {
     setCurrentPage(1);
   };
 
-  const formatAddress = (row: EmployeeContactRecord): string => {
-    const addressParts = [
-      row.address1,
-      row.address2,
-      row.city,
-      row.state,
-      row.country,
-      row.zip,
-    ].filter(Boolean);
-
-    return addressParts.length > 0
-      ? addressParts.join(", ")
-      : COLUMN_LABELS.NOT_AVAILABLE;
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      setSortDirection(
+        sortDirection === SortDirection.ASCENDING
+          ? SortDirection.DESCENDING
+          : SortDirection.ASCENDING,
+      );
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection(SortDirection.ASCENDING);
+    }
+    setCurrentPage(1);
   };
 
-  const renderEmployeeName = (row: EmployeeContactRecord) => (
-    <div className="flex items-center gap-2">
-      <div className="w-8 h-8 rounded-full flex-shrink-0 bg-gradient-to-br from-[#172554] to-[#14b8a6] flex items-center justify-center text-white text-xs font-bold">
-        {row.name
-          .split(" ")
-          .map((word) => word[0])
-          .slice(0, 2)
-          .join("")
-          .toUpperCase()}
+  const handleResetFilters = () => {
+    setSelectedLocation("");
+    setSelectedGender("");
+    setSelectedEmploymentStatus("");
+    setSelectedSubUnit("");
+    setSelectedJobTitle("");
+    setSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  const formatAddress = (employee: EmployeeContactRecord): string => {
+    return formatEmployeeAddress(employee);
+  };
+
+  const renderEmployeeName = (employee: EmployeeContactRecord) => (
+    <div className={TAILWIND_CLASSES.NAME_CONTAINER}>
+      <div className={TAILWIND_CLASSES.AVATAR_CONTAINER}>
+        {getEmployeeInitials(employee.name)}
       </div>
-      <span className="font-semibold text-slate-800">{row.name}</span>
+      <span className={TAILWIND_CLASSES.EMPLOYEE_NAME_TEXT}>
+        {employee.name}
+      </span>
     </div>
   );
 
-  const renderEmployeeId = (row: EmployeeContactRecord) => (
-    <span className="font-semibold text-navy-700">
-      {row.employee_id || COLUMN_LABELS.NOT_AVAILABLE}
+  const renderEmployeeId = (employee: EmployeeContactRecord) => (
+    <span className={TAILWIND_CLASSES.EMPLOYEE_ID_TEXT}>
+      {employee.employee_id || COLUMN_LABELS.NOT_AVAILABLE}
     </span>
   );
 
-  const renderEmail = (row: EmployeeContactRecord) => (
-    <a href={`mailto:${row.email}`} className="text-blue-600 hover:underline">
-      {row.email}
+  const renderEmail = (employee: EmployeeContactRecord) => (
+    <a
+      href={`mailto:${employee.email}`}
+      className={TAILWIND_CLASSES.EMAIL_LINK}
+    >
+      {employee.email}
     </a>
   );
 
-  const renderPhone = (phone: string | null | undefined) => (
-    <span className="text-slate-700">
-      {phone || COLUMN_LABELS.NOT_AVAILABLE}
+  const renderPhone = (phoneNumber: string | null | undefined) => (
+    <span className={TAILWIND_CLASSES.TEXT_SLATE}>
+      {phoneNumber || COLUMN_LABELS.NOT_AVAILABLE}
     </span>
   );
 
-  const renderDOB = (row: EmployeeContactRecord) => (
-    <span className="text-slate-700 font-medium">
-      {row.formatted_dob || row.dob || COLUMN_LABELS.NOT_AVAILABLE}
+  const renderDOB = (employee: EmployeeContactRecord) => (
+    <span className={TAILWIND_CLASSES.TEXT_MEDIUM}>
+      {employee.formatted_dob || employee.dob || COLUMN_LABELS.NOT_AVAILABLE}
     </span>
   );
 
-  const renderSupervisors = (row: EmployeeContactRecord) => {
-    if (!row.supervisor_names || row.supervisor_names.length === 0) {
+  const renderSupervisors = (employee: EmployeeContactRecord) => {
+    if (!employee.supervisor_names || employee.supervisor_names.length === 0) {
       return (
-        <span className="text-slate-400 italic text-xs">
+        <span className={TAILWIND_CLASSES.TEXT_ITALIC_SMALL}>
           {COLUMN_LABELS.NO_SUPERVISORS}
         </span>
       );
     }
 
     return (
-      <div className="flex flex-col gap-1">
-        {row.supervisor_names.map((supervisor, index) => (
+      <div className={TAILWIND_CLASSES.SUPERVISOR_CONTAINER}>
+        {employee.supervisor_names.map((supervisorName, supervisorIndex) => (
           <span
-            key={index}
-            className="text-xs text-slate-700 bg-blue-50 px-2 py-1 rounded-md inline-block"
+            key={supervisorIndex}
+            className={TAILWIND_CLASSES.SUPERVISOR_TAG}
           >
-            {supervisor}
+            {supervisorName}
           </span>
         ))}
       </div>
     );
   };
 
-  const columns: ColumnDef<EmployeeContactRecord>[] = [
+  const tableColumns: ColumnDef<EmployeeContactRecord>[] = [
     {
       key: "employee_id",
       header: COLUMN_LABELS.EMPLOYEE_ID,
@@ -237,9 +216,9 @@ export default function EmployeeContactReportPage() {
       key: "first_name",
       header: COLUMN_LABELS.FIRST_NAME,
       width: 140,
-      render: (row) => (
-        <span className="text-slate-700">
-          {row.first_name || COLUMN_LABELS.NOT_AVAILABLE}
+      render: (employee) => (
+        <span className={TAILWIND_CLASSES.TEXT_SLATE}>
+          {employee.first_name || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
@@ -247,9 +226,9 @@ export default function EmployeeContactReportPage() {
       key: "middle_name",
       header: COLUMN_LABELS.MIDDLE_NAME,
       width: 140,
-      render: (row) => (
-        <span className="text-slate-700">
-          {row.middle_name || COLUMN_LABELS.NOT_AVAILABLE}
+      render: (employee) => (
+        <span className={TAILWIND_CLASSES.TEXT_SLATE}>
+          {employee.middle_name || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
@@ -257,9 +236,9 @@ export default function EmployeeContactReportPage() {
       key: "last_name",
       header: COLUMN_LABELS.LAST_NAME,
       width: 140,
-      render: (row) => (
-        <span className="text-slate-700">
-          {row.last_name || COLUMN_LABELS.NOT_AVAILABLE}
+      render: (employee) => (
+        <span className={TAILWIND_CLASSES.TEXT_SLATE}>
+          {employee.last_name || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
@@ -285,19 +264,19 @@ export default function EmployeeContactReportPage() {
       key: "mobile",
       header: COLUMN_LABELS.MOBILE,
       width: 140,
-      render: (row) => renderPhone(row.mobile),
+      render: (employee) => renderPhone(employee.mobile),
     },
     {
       key: "home_tel",
       header: COLUMN_LABELS.HOME_TEL,
       width: 140,
-      render: (row) => renderPhone(row.home_tel),
+      render: (employee) => renderPhone(employee.home_tel),
     },
     {
       key: "work_tel",
       header: COLUMN_LABELS.WORK_TEL,
       width: 140,
-      render: (row) => renderPhone(row.work_tel),
+      render: (employee) => renderPhone(employee.work_tel),
     },
     {
       key: "supervisors",
@@ -309,17 +288,39 @@ export default function EmployeeContactReportPage() {
       key: "address",
       header: COLUMN_LABELS.ADDRESS,
       width: 300,
-      render: (row) => (
-        <span className="text-slate-700 text-xs">{formatAddress(row)}</span>
+      render: (employee) => (
+        <span className={TAILWIND_CLASSES.TEXT_SMALL}>
+          {formatAddress(employee)}
+        </span>
       ),
     },
     {
       key: "location",
       header: COLUMN_LABELS.LOCATION,
       width: 150,
-      render: (row) => (
-        <span className="text-slate-700">
-          {row.location || COLUMN_LABELS.NOT_AVAILABLE}
+      render: (employee) => (
+        <span className={TAILWIND_CLASSES.TEXT_SLATE}>
+          {employee.location || COLUMN_LABELS.NOT_AVAILABLE}
+        </span>
+      ),
+    },
+    {
+      key: "sub_unit",
+      header: COLUMN_LABELS.SUB_UNIT,
+      width: 180,
+      render: (employee) => (
+        <span className={TAILWIND_CLASSES.TEXT_MEDIUM}>
+          {employee.sub_unit || COLUMN_LABELS.NOT_AVAILABLE}
+        </span>
+      ),
+    },
+    {
+      key: "job_title",
+      header: COLUMN_LABELS.JOB_TITLE,
+      width: 180,
+      render: (employee) => (
+        <span className={TAILWIND_CLASSES.TEXT_MEDIUM}>
+          {employee.job_title || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
@@ -327,9 +328,9 @@ export default function EmployeeContactReportPage() {
       key: "gender",
       header: COLUMN_LABELS.GENDER,
       width: 100,
-      render: (row) => (
-        <span className="text-slate-700">
-          {row.gender || COLUMN_LABELS.NOT_AVAILABLE}
+      render: (employee) => (
+        <span className={TAILWIND_CLASSES.TEXT_SLATE}>
+          {employee.gender || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
@@ -337,51 +338,111 @@ export default function EmployeeContactReportPage() {
       key: "employment_status",
       header: COLUMN_LABELS.STATUS,
       width: 120,
-      render: (row) => (
-        <span className="text-slate-700">
-          {row.employment_status || COLUMN_LABELS.NOT_AVAILABLE}
+      render: (employee) => (
+        <span className={TAILWIND_CLASSES.TEXT_SLATE}>
+          {employee.employment_status || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
     },
   ];
 
-  const uniqueLocations = useMemo(() => {
-    const locations = new Set<string>();
-    reportData.forEach((employee) => {
-      if (employee.location) {
-        locations.add(employee.location);
-      }
-    });
-    return Array.from(locations).sort();
-  }, [reportData]);
+  const uniqueLocations = useMemo(
+    () => extractUniqueValues(reportData, (employee) => employee.location),
+    [reportData],
+  );
+
+  const uniqueSubUnits = useMemo(
+    () => extractUniqueValues(reportData, (employee) => employee.sub_unit),
+    [reportData],
+  );
+
+  const uniqueJobTitles = useMemo(
+    () => extractUniqueValues(reportData, (employee) => employee.job_title),
+    [reportData],
+  );
 
   const handleLocationChange = (
     event: React.ChangeEvent<HTMLSelectElement>,
   ) => {
     setSelectedLocation(event.target.value);
+    setCurrentPage(1);
   };
 
   const handleGenderChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedGender(event.target.value);
+    setCurrentPage(1);
   };
 
   const handleEmploymentStatusChange = (
     event: React.ChangeEvent<HTMLSelectElement>,
   ) => {
     setSelectedEmploymentStatus(event.target.value);
+    setCurrentPage(1);
   };
 
+  const handleSubUnitChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedSubUnit(event.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleJobTitleChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    setSelectedJobTitle(event.target.value);
+    setCurrentPage(1);
+  };
+
+  const sortableColumnsConfig = useMemo(() => {
+    const sortConfig: Record<
+      string,
+      { dir: SortDirection; onToggle: () => void }
+    > = {};
+    SORTABLE_COLUMN_KEYS.forEach((columnKey) => {
+      sortConfig[columnKey] = {
+        dir: sortColumn === columnKey ? sortDirection : SortDirection.ASCENDING,
+        onToggle: () => handleSort(columnKey),
+      };
+    });
+    return sortConfig;
+  }, [sortColumn, sortDirection]);
+
   const filterToolbar = (
-    <div className={FILTER_TOOLBAR_CLASS}>
+    <div className={TAILWIND_CLASSES.FILTER_TOOLBAR}>
       <select
         value={selectedLocation}
         onChange={handleLocationChange}
-        className={SELECT_CLASS}
+        className={TAILWIND_CLASSES.SELECT_INPUT}
       >
         <option value="">All Locations</option>
-        {uniqueLocations.map((location) => (
-          <option key={location} value={location}>
-            {location}
+        {uniqueLocations.map((locationName) => (
+          <option key={locationName} value={locationName}>
+            {locationName}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={selectedSubUnit}
+        onChange={handleSubUnitChange}
+        className={TAILWIND_CLASSES.SELECT_INPUT}
+      >
+        <option value="">All Sub Units</option>
+        {uniqueSubUnits.map((subUnitName) => (
+          <option key={subUnitName} value={subUnitName}>
+            {subUnitName}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={selectedJobTitle}
+        onChange={handleJobTitleChange}
+        className={TAILWIND_CLASSES.SELECT_INPUT}
+      >
+        <option value="">All Job Titles</option>
+        {uniqueJobTitles.map((jobTitleName) => (
+          <option key={jobTitleName} value={jobTitleName}>
+            {jobTitleName}
           </option>
         ))}
       </select>
@@ -389,11 +450,11 @@ export default function EmployeeContactReportPage() {
       <select
         value={selectedGender}
         onChange={handleGenderChange}
-        className={SELECT_CLASS}
+        className={TAILWIND_CLASSES.SELECT_INPUT}
       >
-        {FILTER_OPTIONS.GENDERS.map((gender) => (
-          <option key={gender.value} value={gender.value}>
-            {gender.label}
+        {GENDER_FILTER_OPTIONS.map((genderOption) => (
+          <option key={genderOption.value} value={genderOption.value}>
+            {genderOption.label}
           </option>
         ))}
       </select>
@@ -401,16 +462,26 @@ export default function EmployeeContactReportPage() {
       <select
         value={selectedEmploymentStatus}
         onChange={handleEmploymentStatusChange}
-        className={SELECT_CLASS}
+        className={TAILWIND_CLASSES.SELECT_INPUT}
       >
-        {FILTER_OPTIONS.EMPLOYMENT_STATUS.map((status) => (
-          <option key={status.value} value={status.value}>
-            {status.label}
+        {EMPLOYMENT_STATUS_FILTER_OPTIONS.map((statusOption) => (
+          <option key={statusOption.value} value={statusOption.value}>
+            {statusOption.label}
           </option>
         ))}
       </select>
 
-      <button onClick={handleExportExcel} className={EXPORT_BUTTON_CLASS}>
+      <button
+        onClick={handleResetFilters}
+        className={TAILWIND_CLASSES.RESET_BUTTON}
+      >
+        Reset Filters
+      </button>
+
+      <button
+        onClick={handleExportExcel}
+        className={TAILWIND_CLASSES.EXPORT_BUTTON}
+      >
         {REPORT_CONFIG.EXPORT_BUTTON_LABEL}
       </button>
     </div>
@@ -428,7 +499,7 @@ export default function EmployeeContactReportPage() {
           subtitle={REPORT_CONFIG.SUBTITLE}
           icon={<IconUsers size={18} />}
           rows={reportData}
-          columns={columns}
+          columns={tableColumns}
           isLoading={isLoading}
           currentPage={currentPage}
           totalPages={totalPages}
@@ -441,6 +512,7 @@ export default function EmployeeContactReportPage() {
           searchPlaceholder={REPORT_CONFIG.SEARCH_PLACEHOLDER}
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
+          sortableColumns={sortableColumnsConfig}
           itemLabel={REPORT_CONFIG.ITEM_LABEL}
           emptyIcon={REPORT_CONFIG.EMPTY_ICON_TEXT}
           emptyTitle={REPORT_CONFIG.EMPTY_TITLE}

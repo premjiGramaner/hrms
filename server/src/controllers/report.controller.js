@@ -798,6 +798,8 @@ const getEmployeeContactReport = async (req, res, next) => {
       location: req.query.location || null,
       gender: req.query.gender || null,
       employmentStatus: req.query.employment_status || null,
+      subUnit: req.query.sub_unit || null,
+      jobTitle: req.query.job_title || null,
       page: parseInt(req.query.page) || 1,
       limit: parseInt(req.query.limit) || 15,
       sortColumn: req.query.sort_column || "name",
@@ -826,6 +828,8 @@ const exportEmployeeContactReportExcel = async (req, res, next) => {
       location: req.query.location || null,
       gender: req.query.gender || null,
       employmentStatus: req.query.employment_status || null,
+      subUnit: req.query.sub_unit || null,
+      jobTitle: req.query.job_title || null,
       page: 1,
       limit: 10000,
       sortColumn: req.query.sort_column || "name",
@@ -848,13 +852,13 @@ const exportEmployeeContactReportExcel = async (req, res, next) => {
     workbook.created = new Date();
     const worksheet = workbook.addWorksheet("Employee Contact Details");
 
-    worksheet.mergeCells("A1:T1");
+    worksheet.mergeCells("A1:U1");
     const titleCell = worksheet.getCell("A1");
     titleCell.value = "Employee Contact Details Report - Complete Information";
     titleCell.font = { bold: true, size: 14, color: { argb: "FF172554" } };
     titleCell.alignment = { horizontal: "center" };
 
-    worksheet.mergeCells("A2:T2");
+    worksheet.mergeCells("A2:U2");
     const timestampCell = worksheet.getCell("A2");
     timestampCell.value = `Generated: ${new Date().toLocaleString()}`;
     timestampCell.font = { size: 9, color: { argb: "FF666666" } };
@@ -879,9 +883,10 @@ const exportEmployeeContactReportExcel = async (req, res, next) => {
       "Country",
       "Postal Code",
       "Location",
+      "Sub Unit",
+      "Job Title",
       "Gender",
       "Employment Status",
-      "Job Title",
     ]);
     headerRow.eachCell((cell) => {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
@@ -922,9 +927,10 @@ const exportEmployeeContactReportExcel = async (req, res, next) => {
       { width: 16 },
       { width: 12 },
       { width: 16 },
+      { width: 20 },
+      { width: 20 },
       { width: 12 },
       { width: 16 },
-      { width: 20 },
     ];
 
     reportData.forEach((dataRow, index) => {
@@ -964,9 +970,10 @@ const exportEmployeeContactReportExcel = async (req, res, next) => {
         dataRow.country || "",
         dataRow.zip || "",
         dataRow.location || "",
+        dataRow.sub_unit || "",
+        dataRow.job_title || "",
         dataRow.gender || "",
         dataRow.employment_status || "",
-        dataRow.job_title || "",
       ]);
 
       const backgroundColor = index % 2 === 0 ? "FFF8F9FA" : "FFFFFFFF";

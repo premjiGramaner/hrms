@@ -621,6 +621,8 @@ async function getEmployeeContactReportData(filterCriteria, userContext) {
     location,
     gender,
     employmentStatus,
+    subUnit,
+    jobTitle,
     page,
     limit,
     sortColumn,
@@ -648,15 +650,24 @@ async function getEmployeeContactReportData(filterCriteria, userContext) {
       `(
         u.name ILIKE $${valueIndex} OR 
         u.first_name ILIKE $${valueIndex} OR 
+        u.middle_name ILIKE $${valueIndex} OR
         u.last_name ILIKE $${valueIndex} OR 
         u.employee_id ILIKE $${valueIndex} OR
         u.email ILIKE $${valueIndex} OR
         u.mobile ILIKE $${valueIndex} OR
+        u.home_tel ILIKE $${valueIndex} OR
+        u.work_tel ILIKE $${valueIndex} OR
         u.address1 ILIKE $${valueIndex} OR
         u.address2 ILIKE $${valueIndex} OR
         u.city ILIKE $${valueIndex} OR
         u.state ILIKE $${valueIndex} OR
-        u.country ILIKE $${valueIndex}
+        u.country ILIKE $${valueIndex} OR
+        u.zip ILIKE $${valueIndex} OR
+        u.location ILIKE $${valueIndex} OR
+        u.gender ILIKE $${valueIndex} OR
+        u.employment_status ILIKE $${valueIndex} OR
+        u.job_title ILIKE $${valueIndex} OR
+        u.sub_unit ILIKE $${valueIndex}
       )`,
     );
     values.push(`%${search}%`);
@@ -681,16 +692,36 @@ async function getEmployeeContactReportData(filterCriteria, userContext) {
     valueIndex++;
   }
 
+  if (subUnit) {
+    conditions.push(`u.sub_unit = $${valueIndex}`);
+    values.push(subUnit);
+    valueIndex++;
+  }
+
+  if (jobTitle) {
+    conditions.push(`u.job_title = $${valueIndex}`);
+    values.push(jobTitle);
+    valueIndex++;
+  }
+
   const whereClause = conditions.join(" AND ");
 
   const allowedSortColumns = [
     "employee_id",
+    "first_name",
+    "middle_name",
+    "last_name",
     "name",
+    "dob",
     "email",
     "mobile",
+    "home_tel",
+    "work_tel",
     "location",
     "gender",
     "employment_status",
+    "job_title",
+    "sub_unit",
   ];
   const safeSortColumn = allowedSortColumns.includes(sortColumn)
     ? sortColumn
