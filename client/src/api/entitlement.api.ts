@@ -28,6 +28,7 @@ export interface EntitlementRecord {
   valid_to: string;
   expired: boolean;
   last_added_days: number;
+  description?: string | null;
 }
 export interface MyEntitlementRecord {
   id: number;
@@ -41,6 +42,7 @@ export interface MyEntitlementRecord {
   used_days: number;
   net_balance: number;
   year: number;
+  description?: string | null;
 }
 export interface CreateEntitlementPayload {
   employee_id?: number;
@@ -49,6 +51,7 @@ export interface CreateEntitlementPayload {
   leave_period_start: string;
   entitlement_days: number;
   comments?: string;
+  description?: string;
 }
 
 export const getEntitlementEmployees = async (q = "") => {

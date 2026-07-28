@@ -198,6 +198,7 @@ export default function AddEntitlementsPage() {
   const [periodStart, setPeriodStart] = useState(defaultPeriod());
   const [entitlementDays, setEntitlementDays] = useState("");
   const [comments, setComments] = useState("");
+  const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -253,6 +254,7 @@ export default function AddEntitlementsPage() {
             leave_period_start: periodStart,
             entitlement_days: parseFloat(entitlementDays),
             comments: comments || undefined,
+            description: description || undefined,
           }
         : {
             employee_id: selectedEmployees[0].id,
@@ -260,6 +262,7 @@ export default function AddEntitlementsPage() {
             leave_period_start: periodStart,
             entitlement_days: parseFloat(entitlementDays),
             comments: comments || undefined,
+            description: description || undefined,
           };
 
       const result = await createEntitlements(payload);
@@ -269,6 +272,7 @@ export default function AddEntitlementsPage() {
       setLeaveTypeId("");
       setEntitlementDays("");
       setComments("");
+      setDescription("");
     } catch (err) {
       addToast(getApiErrorMessage(err, "Failed to save entitlement."), "error");
     } finally {
@@ -433,10 +437,11 @@ export default function AddEntitlementsPage() {
                   Comment
                 </label>
                 <textarea
-                  value={comments}
-                  onChange={(event) => setComments(event.target.value)}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
                   rows={3}
-                  placeholder="Optional comments…"
+                  maxLength={300}
+                  placeholder="Optional description…"
                   className={`${inputCls()} resize-none`}
                 />
               </div>

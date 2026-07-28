@@ -127,16 +127,18 @@ async function bulkCreateEntitlements(
              year,
              days_added,
              comments,
+             description,
              added_by,
              added_at
            )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
         [
           entitlementId,
           empId,
           leaveTypeId,
           year,
           totalDays,
+          comments,
           comments,
           createdBy,
         ],
@@ -179,16 +181,15 @@ async function findMyEntitlements(employeeId) {
        lt.name                                    AS leave_type,
        'Added'                                    AS entitlement_type,
        e.created_at::date::text                   AS credited_on,
-       -- Financial year valid_from: April 1 of (year-1)
        ((e.year - 1)::text || '-04-01')           AS valid_from,
-       -- Financial year valid_to: March 31 of year
        (e.year::text || '-03-31')                 AS valid_to,
        (e.year::text || '-03-31') < $2            AS expired,
        e.total_days                               AS leave_entitlement,
        e.used_days,
        e.carried_days,
        (e.total_days + e.carried_days - e.used_days) AS net_balance,
-       e.year
+       e.year,
+       NULL                                       AS description
      FROM tbl_leave_entitlements e
      JOIN tbl_leave_types lt ON lt.id = e.leave_type_id
      WHERE e.employee_id = $1
@@ -239,6 +240,7 @@ async function findEntitlements({
               lt.id AS leave_type_id,
               h.added_at AS credited_on,
               h.comments,
+              h.description,
               MAKE_DATE(h.year - 1, 4, 1) AS valid_from,
               MAKE_DATE(h.year, 3, 31) AS valid_to,
               CASE WHEN CURRENT_DATE > MAKE_DATE(h.year, 3, 31) THEN true ELSE false END AS expired
