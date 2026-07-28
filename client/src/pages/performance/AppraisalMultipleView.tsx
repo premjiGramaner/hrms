@@ -33,6 +33,7 @@ import {
   PERFORMANCE_REVIEW_LABELS,
   UnavailableAppraisalEmployee,
 } from "./performanceUi";
+import RatingSegmentControl from "./RatingSegmentControl";
 
 type RatingDraft = Record<string, { score: number; comment: string }>;
 
@@ -62,32 +63,6 @@ function Avatar({
           {(name[0] || "E").toUpperCase()}
         </span>
       )}
-    </div>
-  );
-}
-
-function SegmentScore({
-  score,
-  editable,
-  onChange,
-}: {
-  score?: number;
-  editable?: boolean;
-  onChange?: (score: number) => void;
-}) {
-  const value = Math.max(0, Math.min(5, Number(score) || 0));
-  return (
-    <div className="flex items-center gap-[3px]">
-      {[1, 2, 3, 4, 5].map((item) => (
-        <button
-          key={item}
-          type="button"
-          disabled={!editable}
-          onClick={() => onChange?.(item)}
-          className={`h-[20px] w-[88px] rounded-none transition ${value >= item ? "bg-navy-700" : "bg-[#e6e6eb]"} ${editable ? "cursor-pointer hover:bg-navy-600" : "cursor-default"}`}
-          aria-label={`Set rating ${item}`}
-        />
-      ))}
     </div>
   );
 }
@@ -469,12 +444,13 @@ export default function AppraisalMultipleView() {
                   </p>
                   <div className="flex items-start gap-8">
                     <div>
-                      <SegmentScore
+                      <RatingSegmentControl
                         score={current}
                         editable={canEdit}
                         onChange={(score) =>
                           setQuestionRating(question.id, score)
                         }
+                        segmentClassName="h-[20px] w-[88px]"
                       />
                       <p className="mt-1 text-base text-slate-500">
                         {formatScore(current, "0.0")}
