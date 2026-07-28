@@ -26,6 +26,7 @@ const createEntitlements = async (req, res, next) => {
       leave_period_start,
       entitlement_days,
       comments,
+      description,
     } = req.body;
     const periodStart = new Date(leave_period_start);
 
@@ -59,7 +60,7 @@ const createEntitlements = async (req, res, next) => {
       parseInt(leave_type_id, 10),
       year,
       days,
-      comments || null,
+      description || comments || null,
       req.user?.id || null,
     );
 
@@ -68,11 +69,7 @@ const createEntitlements = async (req, res, next) => {
     const total = created_count + updated_count;
 
     if (total === 0) {
-      return error(
-        res,
-        "Failed to process entitlements.",
-        409,
-      );
+      return error(res, "Failed to process entitlements.", 409);
     }
 
     const msg =

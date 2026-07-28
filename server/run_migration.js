@@ -50,6 +50,7 @@ const migrations = [
   "add_password_reset_columns.sql",
   "add_net_leave_balance_column.sql",
   "015_add_password_expiry_columns.sql",
+  "016_add_description_to_entitlement_history.sql",
 ];
 
 async function ensureMigrationsTable(client) {
