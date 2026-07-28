@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import Layout, { TabItem } from "../../components/Layout";
+import Layout from "../../components/Layout";
 import DataTable, { ColumnDef } from "../../components/DataTable";
 import type {
   WorkAnniversaryReportRecord,
   ReportFilterOptions,
+  ReportQueryParams,
 } from "../../types";
 import {
   fetchWorkAnniversaryReport,
@@ -11,8 +12,8 @@ import {
   fetchReportFilterOptions,
 } from "../../api/report.api";
 import { IconAward } from "../../components/Icons";
-import { ERROR_MESSAGES } from "../../constants/messages";
-import { COLORS } from "../../styles/theme";
+import Toast from "../../utils/toast";
+import { getApiErrorMessage } from "../../utils/errors";
 
 const REPORT_CONFIG = {
   TITLE: "Work Anniversary Report",
@@ -67,14 +68,7 @@ const FILTER_LABELS = {
   ALL_YEARS: "All Years",
   ALL_DEPARTMENTS: "All Departments",
 } as const;
-import { PAGE_PATHS } from "../../config/roles";
-
-const TABS: TabItem[] = [
-  { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
-  { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },
-  { label: "Termination Report", path: PAGE_PATHS.reportsTermination },
-  { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
-];
+import { REPORT_TABS } from "./reportTabs";
 
 export default function WorkAnniversaryReportPage() {
   const [reportData, setReportData] = useState<WorkAnniversaryReportRecord[]>(
@@ -100,14 +94,16 @@ export default function WorkAnniversaryReportPage() {
       const options = await fetchReportFilterOptions();
       setFilterOptions(options);
     } catch (error) {
-      console.error("Failed to load filter options:", error);
+      Toast.error(
+        getApiErrorMessage(error, "Failed to load report filter options."),
+      );
     }
   }, []);
 
   const loadReportData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const queryParams: Record<string, any> = {
+      const queryParams: ReportQueryParams = {
         page: currentPage,
         limit: pageSize,
         employee_name: searchQuery || undefined,
@@ -123,8 +119,13 @@ export default function WorkAnniversaryReportPage() {
       setTotalRecords(result.totalRecords);
       setTotalPages(result.totalPages);
     } catch (error) {
-      console.error("Failed to load work anniversary report:", error);
       setReportData([]);
+      Toast.error(
+        getApiErrorMessage(
+          error,
+          "Failed to load the work anniversary report.",
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -154,9 +155,9 @@ export default function WorkAnniversaryReportPage() {
     };
     try {
       await downloadWorkAnniversaryReportExcel(queryParams);
+      Toast.success("Work anniversary report downloaded successfully.");
     } catch (error) {
-      console.error("Export failed:", error);
-      alert(ERROR_MESSAGES.EXPORT_FAILED);
+      Toast.error(getApiErrorMessage(error, "Failed to export the report."));
     }
   };
 
@@ -166,7 +167,7 @@ export default function WorkAnniversaryReportPage() {
       header: COLUMN_LABELS.EMPLOYEE_ID,
       width: 130,
       render: (row) => (
-        <span className="font-semibold" style={{ color: COLORS.primary.navy }}>
+        <span className="font-semibold text-navy-700">
           {row.employee_id || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
@@ -290,7 +291,7 @@ export default function WorkAnniversaryReportPage() {
   return (
     <Layout
       title="Reports and Analytics"
-      tabs={TABS}
+      tabs={REPORT_TABS}
       activeTab={REPORT_CONFIG.TITLE}
     >
       <div className="py-5 px-10">

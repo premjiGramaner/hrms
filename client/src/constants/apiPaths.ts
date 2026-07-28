@@ -129,4 +129,9 @@ export const REPORT_PATHS = {
   NOTIFICATION_CONFIG: "/reports/notification-config",
   FILTER_OPTIONS: "/reports/filter-options",
   TRIGGER_NOTIFICATIONS: "/reports/trigger-notifications",
+  LEAVE_BY_DEPARTMENT: "/reports/leave-by-department",
+  LEAVE_BY_DEPARTMENT_FILTER_OPTIONS:
+    "/reports/leave-by-department/filter-options",
+  LEAVE_BY_DEPARTMENT_EXPORT_PDF:
+    "/reports/leave-by-department/export/pdf",
 } as const;

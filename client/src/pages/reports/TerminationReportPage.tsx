@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import Layout, { TabItem } from "../../components/Layout";
+import Layout from "../../components/Layout";
 import DataTable, { ColumnDef } from "../../components/DataTable";
-import type { TerminationReportRecord, ReportFilterOptions } from "../../types";
+import type {
+  ReportFilterOptions,
+  ReportQueryParams,
+  TerminationReportRecord,
+} from "../../types";
 import {
   fetchTerminationReport,
   downloadTerminationReportExcel,
@@ -9,8 +13,8 @@ import {
   fetchReportFilterOptions,
 } from "../../api/report.api";
 import { IconClipboardList } from "../../components/Icons";
-import { ERROR_MESSAGES } from "../../constants/messages";
-import { COLORS } from "../../styles/theme";
+import Toast from "../../utils/toast";
+import { getApiErrorMessage } from "../../utils/errors";
 
 const REPORT_CONFIG = {
   TITLE: "Termination Report",
@@ -27,30 +31,19 @@ const REPORT_CONFIG = {
   DEFAULT_SORT_DIRECTION: "desc" as const,
 } as const;
 
-const TERMINATION_TYPE_STYLES = {
-  Voluntary: {
-    bgColor: "#E8F5E9",
-    textColor: "#2E7D32",
-  },
-  Involuntary: {
-    bgColor: "#FFEBEE",
-    textColor: "#C62828",
-  },
-  Retirement: {
-    bgColor: "#FFF3E0",
-    textColor: "#E65100",
-  },
+const TERMINATION_TYPE_CLASSES = {
+  Voluntary: "bg-green-50 text-green-700",
+  Involuntary: "bg-red-50 text-red-700",
+  Retirement: "bg-orange-50 text-orange-700",
 } as const;
 
-const REHIRE_STATUS_STYLES = {
+const REHIRE_STATUS_CONFIG = {
   eligible: {
-    bgColor: "#E8F5E9",
-    textColor: "#2E7D32",
+    className: "bg-green-50 text-green-700",
     label: "Yes",
   },
   notEligible: {
-    bgColor: "#FFEBEE",
-    textColor: "#C62828",
+    className: "bg-red-50 text-red-700",
     label: "No",
   },
 } as const;
@@ -80,14 +73,7 @@ const FILTER_LABELS = {
   FROM_DATE_PLACEHOLDER: "From Date",
   TO_DATE_PLACEHOLDER: "To Date",
 } as const;
-import { PAGE_PATHS } from "../../config/roles";
-
-const TABS: TabItem[] = [
-  { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
-  { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },
-  { label: "Termination Report", path: PAGE_PATHS.reportsTermination },
-  { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
-];
+import { REPORT_TABS } from "./reportTabs";
 
 export default function TerminationReportPage() {
   const [reportData, setReportData] = useState<TerminationReportRecord[]>([]);
@@ -112,14 +98,16 @@ export default function TerminationReportPage() {
       const options = await fetchReportFilterOptions();
       setFilterOptions(options);
     } catch (error) {
-      console.error("Failed to load filter options:", error);
+      Toast.error(
+        getApiErrorMessage(error, "Failed to load report filter options."),
+      );
     }
   }, []);
 
   const loadReportData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const queryParams: Record<string, any> = {
+      const queryParams: ReportQueryParams = {
         page: currentPage,
         limit: pageSize,
         employee_name: searchQuery || undefined,
@@ -136,8 +124,10 @@ export default function TerminationReportPage() {
       setTotalRecords(result.totalRecords);
       setTotalPages(result.totalPages);
     } catch (error) {
-      console.error("Failed to load termination report:", error);
       setReportData([]);
+      Toast.error(
+        getApiErrorMessage(error, "Failed to load the termination report."),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -169,9 +159,9 @@ export default function TerminationReportPage() {
     };
     try {
       await downloadTerminationReportExcel(queryParams);
+      Toast.success("Termination report spreadsheet downloaded.");
     } catch (error) {
-      console.error("Export failed:", error);
-      alert(ERROR_MESSAGES.EXPORT_FAILED);
+      Toast.error(getApiErrorMessage(error, "Failed to export the report."));
     }
   };
 
@@ -185,9 +175,9 @@ export default function TerminationReportPage() {
     };
     try {
       await downloadTerminationReportPDF(queryParams);
+      Toast.success("Termination report PDF downloaded.");
     } catch (error) {
-      console.error("Export failed:", error);
-      alert(ERROR_MESSAGES.EXPORT_FAILED);
+      Toast.error(getApiErrorMessage(error, "Failed to export the report."));
     }
   };
 
@@ -197,7 +187,7 @@ export default function TerminationReportPage() {
       header: COLUMN_LABELS.EMP_ID,
       width: 100,
       render: (row) => (
-        <span className="font-semibold" style={{ color: COLORS.primary.navy }}>
+        <span className="font-semibold text-navy-700">
           {row.emp_id || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
@@ -223,17 +213,13 @@ export default function TerminationReportPage() {
       width: 140,
       render: (row) => {
         const terminationType =
-          row.termination_type as keyof typeof TERMINATION_TYPE_STYLES;
-        const styleConfig =
-          TERMINATION_TYPE_STYLES[terminationType] ||
-          TERMINATION_TYPE_STYLES.Retirement;
+          row.termination_type as keyof typeof TERMINATION_TYPE_CLASSES;
+        const terminationTypeClass =
+          TERMINATION_TYPE_CLASSES[terminationType] ||
+          TERMINATION_TYPE_CLASSES.Retirement;
         return (
           <span
-            className="inline-block py-1 px-2.5 rounded-md text-xs font-semibold"
-            style={{
-              backgroundColor: styleConfig.bgColor,
-              color: styleConfig.textColor,
-            }}
+            className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold ${terminationTypeClass}`}
           >
             {row.termination_type || COLUMN_LABELS.NOT_AVAILABLE}
           </span>
@@ -293,15 +279,11 @@ export default function TerminationReportPage() {
       width: 130,
       render: (row) => {
         const statusConfig = row.rehire_eligible
-          ? REHIRE_STATUS_STYLES.eligible
-          : REHIRE_STATUS_STYLES.notEligible;
+          ? REHIRE_STATUS_CONFIG.eligible
+          : REHIRE_STATUS_CONFIG.notEligible;
         return (
           <span
-            className="inline-block py-1 px-2.5 rounded-md text-xs font-semibold"
-            style={{
-              backgroundColor: statusConfig.bgColor,
-              color: statusConfig.textColor,
-            }}
+            className={`inline-block rounded-md px-2.5 py-1 text-xs font-semibold ${statusConfig.className}`}
           >
             {statusConfig.label}
           </span>
@@ -403,7 +385,7 @@ export default function TerminationReportPage() {
   return (
     <Layout
       title="Reports and Analytics"
-      tabs={TABS}
+      tabs={REPORT_TABS}
       activeTab={REPORT_CONFIG.TITLE}
     >
       <div className="py-5 px-10">
