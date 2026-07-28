@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
+  const [supportsPasswordToggle, setSupportsPasswordToggle] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,24 @@ export default function LoginPage() {
   const handleForgotPassword = () => {
     navigate(PAGE_PATHS.forgotPassword);
   };
+
+  useEffect(() => {
+    const testInput = document.createElement("input");
+
+    try {
+      testInput.type = "password";
+      testInput.type = "text";
+
+      const supportsTextType = testInput.type === "text";
+
+      testInput.type = "password";
+      const supportsPasswordType = testInput.type === "password";
+
+      setSupportsPasswordToggle(supportsTextType && supportsPasswordType);
+    } catch {
+      setSupportsPasswordToggle(false);
+    }
+  }, []);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -160,28 +179,37 @@ export default function LoginPage() {
 
               <div className="relative mb-4">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                  <Lock size={18} />
+                  <Lock size={18} aria-hidden="true" />
                 </span>
+
                 <input
-                  type={showPass ? "text" : "password"}
+                  type={
+                    supportsPasswordToggle && showPass ? "text" : "password"
+                  }
                   placeholder={UI_MESSAGES.LOGIN.PASSWORD_PLACEHOLDER}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete="current-password"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-14 text-sm text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-50"
+                  className={`password-input h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 text-sm text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-50 ${
+                    supportsPasswordToggle ? "pr-14" : "pr-4"
+                  }`}
                 />
-                <button
-                  type="button"
-                  onClick={handlePasswordVisibilityToggle}
-                  className="absolute right-2 top-1/2 flex h-9 w-10 -translate-y-1/2 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200"
-                  aria-label={
-                    showPass
-                      ? UI_MESSAGES.ACCESSIBILITY.HIDE_PASSWORD
-                      : UI_MESSAGES.ACCESSIBILITY.SHOW_PASSWORD
-                  }
-                >
-                  {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
+
+                {supportsPasswordToggle && (
+                  <button
+                    type="button"
+                    onClick={handlePasswordVisibilityToggle}
+                    className="absolute right-2 top-1/2 flex h-9 w-10 -translate-y-1/2 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                    aria-label={showPass ? "Hide password" : "Show password"}
+                    aria-pressed={showPass}
+                  >
+                    {showPass ? (
+                      <EyeOff size={17} aria-hidden="true" />
+                    ) : (
+                      <Eye size={17} aria-hidden="true" />
+                    )}
+                  </button>
+                )}
               </div>
 
               <label className="mb-5 flex cursor-pointer items-center gap-2 text-sm text-slate-600">
