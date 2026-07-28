@@ -67,9 +67,9 @@ export default function JobTitlesPage() {
     const term = value.toLowerCase();
     setFilteredList(
       jobTitleList.filter(
-        (jt) =>
-          jt.title.toLowerCase().includes(term) ||
-          (jt.description || "").toLowerCase().includes(term),
+        (jobTitle) =>
+          jobTitle.title.toLowerCase().includes(term) ||
+          (jobTitle.description || "").toLowerCase().includes(term),
       ),
     );
     setCurrentPage(1);
@@ -131,30 +131,56 @@ export default function JobTitlesPage() {
     },
   ];
 
+  const handleEdit = (row: JobTitle) => {
+    setTitleToEdit(row);
+  };
+
   const actions: ActionDef<JobTitle>[] = [
     {
       label: "Edit",
       icon: EditIcon,
-      color: "#1b2a6b",
-      bg: "#eff6ff",
-      bgHover: "#dbeafe",
-      borderColor: "#bfdbfe",
-      borderColorHover: "#93c5fd",
-      onClick: (row) => setTitleToEdit(row),
+      color: "#0284c7",
+      bg: "#f0f9ff",
+      bgHover: "#e0f2fe",
+      borderColor: "#bae6fd",
+      borderColorHover: "#7dd3fc",
+      onClick: handleEdit,
       title: "Edit job title",
     },
     {
       label: "Delete",
       icon: DeleteIcon,
-      color: "#e11d48",
-      bg: "#fff1f2",
-      bgHover: "#ffe4e6",
-      borderColor: "#fecdd3",
-      borderColorHover: "#fda4af",
-      onClick: (row) => handleDeleteConfirm(row),
+      color: "#dc2626",
+      bg: "#fef2f2",
+      bgHover: "#fee2e2",
+      borderColor: "#fecaca",
+      borderColorHover: "#fca5a5",
+      onClick: handleDeleteConfirm,
       title: "Delete job title",
     },
   ];
+
+  const handleClearPageError = () => {
+    setPageError("");
+  };
+
+  const handleOpenAddModal = () => {
+    setShowAddModal(true);
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+  };
+
+  const handleCloseEditModal = () => {
+    setTitleToEdit(null);
+  };
+
+  const handleSetPageError = (message: string) => {
+    setPageError(message);
+  };
+
+  const handleGetRowKey = (row: JobTitle) => row.id;
 
   return (
     <Layout title="HR Administration" tabs={TABS} activeTab="Job Titles">
@@ -165,7 +191,7 @@ export default function JobTitlesPage() {
             {pageError}
           </span>
           <button
-            onClick={() => setPageError("")}
+            onClick={handleClearPageError}
             className="bg-transparent border-0 cursor-pointer text-red-600 text-lg p-0 leading-none hover:opacity-70 transition-opacity"
           >
             <IconX size={18} />
@@ -181,7 +207,7 @@ export default function JobTitlesPage() {
         isLoading={isLoading}
         columns={columns}
         actions={actions}
-        getKey={(row) => row.id}
+        getKey={handleGetRowKey}
         emptyTitle={
           searchQuery ? `No results for "${searchQuery}"` : "No job titles yet"
         }
@@ -196,8 +222,8 @@ export default function JobTitlesPage() {
         pageSize={pageSize}
         pageSizeOptions={[5, 10, 20, 50]}
         onPageChange={setCurrentPage}
-        onPageSizeChange={(s) => {
-          setPageSize(s);
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
           setCurrentPage(1);
         }}
         itemLabel="titles"
@@ -205,23 +231,23 @@ export default function JobTitlesPage() {
         searchPlaceholder="Search job titles or description…"
         onSearchChange={handleSearchChange}
         addLabel="Add Job Title"
-        onAdd={() => setShowAddModal(true)}
+        onAdd={handleOpenAddModal}
       />
       {showAddModal && (
         <JobTitleFormModal
           mode={FormMode.ADD}
-          onClose={() => setShowAddModal(false)}
+          onClose={handleCloseAddModal}
           onSaved={handleSaved}
-          onError={(message) => setPageError(message)}
+          onError={handleSetPageError}
         />
       )}
       {titleToEdit && (
         <JobTitleFormModal
           mode={FormMode.EDIT}
           jobTitle={titleToEdit}
-          onClose={() => setTitleToEdit(null)}
+          onClose={handleCloseEditModal}
           onSaved={handleSaved}
-          onError={(message) => setPageError(message)}
+          onError={handleSetPageError}
         />
       )}
     </Layout>
@@ -282,9 +308,30 @@ function JobTitleFormModal({
 
   const isAddMode = mode === FormMode.ADD;
 
+  const handleModalBackdropClick = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleTitleNameChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setTitleName(event.target.value);
+    setFormError("");
+  };
+
+  const handleDescriptionChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    setDescription(event.target.value);
+  };
+
   return (
     <div
-      onClick={(event) => event.target === event.currentTarget && onClose()}
+      onClick={handleModalBackdropClick}
       className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
     >
       <div className="bg-white rounded-[20px] w-full max-w-[500px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] overflow-hidden">
@@ -330,10 +377,7 @@ function JobTitleFormModal({
             </label>
             <input
               value={titleName}
-              onChange={(event) => {
-                setTitleName(event.target.value);
-                setFormError("");
-              }}
+              onChange={handleTitleNameChange}
               placeholder="e.g. Software Engineer"
               className="p-[11px_14px] border-[1.5px] border-slate-200 rounded-[10px] text-[13.5px] outline-none bg-white transition-colors focus:border-[#1b2a6b]"
             />
@@ -348,7 +392,7 @@ function JobTitleFormModal({
             </label>
             <textarea
               value={description}
-              onChange={(event) => setDescription(event.target.value)}
+              onChange={handleDescriptionChange}
               placeholder="Brief description of this role…"
               rows={3}
               className="p-[11px_14px] border-[1.5px] border-slate-200 rounded-[10px] text-[13.5px] outline-none bg-white resize-y font-[inherit] transition-colors focus:border-[#1b2a6b]"
