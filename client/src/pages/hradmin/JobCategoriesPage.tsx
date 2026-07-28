@@ -71,24 +71,23 @@ const ACTION_CONFIG = {
   EDIT: {
     LABEL: "Edit",
     TITLE: "Edit category",
-    COLOR: "#1b2a6b",
-    BG: "#eff6ff",
-    BG_HOVER: "#dbeafe",
-    BORDER: "#bfdbfe",
-    BORDER_HOVER: "#93c5fd",
+    COLOR: "#0284c7",
+    BG: "#f0f9ff",
+    BG_HOVER: "#e0f2fe",
+    BORDER: "#bae6fd",
+    BORDER_HOVER: "#7dd3fc",
   },
   DELETE: {
     LABEL: "Delete",
     TITLE: "Delete category",
-    COLOR: "#e11d48",
-    BG: "#fff1f2",
-    BG_HOVER: "#ffe4e6",
-    BORDER: "#fecdd3",
-    BORDER_HOVER: "#fda4af",
+    COLOR: "#dc2626",
+    BG: "#fef2f2",
+    BG_HOVER: "#fee2e2",
+    BORDER: "#fecaca",
+    BORDER_HOVER: "#fca5a5",
   },
 } as const;
 
-// Modal configuration
 const MODAL_CONFIG = {
   ADD_TITLE: "Add Job Category",
   ADD_SUBTITLE: "Create a new job category",
@@ -106,12 +105,10 @@ const MODAL_CONFIG = {
   DESCRIPTION_ROWS: 3,
 } as const;
 
-// Validation messages
 const VALIDATION_MESSAGES = {
   CATEGORY_REQUIRED: "Category name is required.",
 } as const;
 
-// Toast messages
 const TOAST_MESSAGES = {
   CREATED: "Job Category",
   UPDATED: "Job Category",
@@ -119,7 +116,6 @@ const TOAST_MESSAGES = {
   DELETE_FAILED: "Failed to delete job category. Please try again.",
 } as const;
 
-// Avatar styling
 const AVATAR_CONFIG = {
   SIZE: "w-9 h-9",
   BORDER_RADIUS: "rounded-[10px]",
@@ -128,12 +124,10 @@ const AVATAR_CONFIG = {
   SHADOW: "shadow-[0_2px_8px_rgba(27,42,107,0.2)]",
 } as const;
 
-// Get first character uppercase
 function getFirstCharUppercase(text: string): string {
   return text.charAt(0).toUpperCase();
 }
 
-// Check if category matches search term
 function categoryMatchesSearch(category: JobCategory, term: string): boolean {
   if (!term) return true;
 
@@ -146,7 +140,6 @@ function categoryMatchesSearch(category: JobCategory, term: string): boolean {
   );
 }
 
-// Filter categories by search term
 function filterCategoriesBySearch(
   categories: JobCategory[],
   searchTerm: string,
@@ -156,12 +149,10 @@ function filterCategoriesBySearch(
   );
 }
 
-// Calculate total pages
 function calculateTotalPages(totalRecords: number, pageSize: number): number {
   return Math.max(1, Math.ceil(totalRecords / pageSize));
 }
 
-// Paginate categories
 function paginateCategories(
   categories: JobCategory[],
   currentPage: number,
@@ -187,24 +178,20 @@ export default function JobCategoriesPage() {
     PAGE_CONFIG.INITIAL_PAGE_SIZE,
   );
 
-  // Handle successful categories fetch
   const handleFetchSuccess = (response: { data: JobCategory[] }) => {
     setCategoryList(response.data);
     setFilteredList(response.data);
     setSearchQuery("");
   };
 
-  // Handle categories fetch error
   const handleFetchError = () => {
     setPageError(ERROR_MESSAGES.LOAD_JOB_CATEGORIES_FAILED);
   };
 
-  // Handle categories fetch complete
   const handleFetchComplete = () => {
     setIsLoading(false);
   };
 
-  // Fetch categories from API
   const fetchCategories = () => {
     setIsLoading(true);
     getJobCategories()
@@ -215,7 +202,6 @@ export default function JobCategoriesPage() {
 
   useEffect(fetchCategories, []);
 
-  // Handle debounced filter
   const handleDebouncedFilter = (value: string) => {
     const filtered = filterCategoriesBySearch(categoryList, value);
     setFilteredList(filtered);
@@ -238,18 +224,15 @@ export default function JobCategoriesPage() {
     return paginateCategories(filteredList, currentPage, pageSize);
   }, [filteredList, currentPage, pageSize]);
 
-  // Handle delete success
   const handleDeleteSuccess = () => {
     Toast.deleted(TOAST_MESSAGES.DELETED);
     fetchCategories();
   };
 
-  // Handle delete error
   const handleDeleteError = () => {
     Toast.error(TOAST_MESSAGES.DELETE_FAILED);
   };
 
-  // Handle delete confirmation
   const handleDeleteConfirm = async (category: JobCategory) => {
     const confirmed = await Alert.confirmDelete(category.category);
     if (!confirmed) return;
@@ -268,7 +251,6 @@ export default function JobCategoriesPage() {
     fetchCategories();
   };
 
-  // Render category avatar
   const renderCategoryAvatar = (categoryName: string) => (
     <div
       className={`${AVATAR_CONFIG.SIZE} ${AVATAR_CONFIG.BORDER_RADIUS} flex-shrink-0 ${AVATAR_CONFIG.GRADIENT} flex items-center justify-center text-white ${AVATAR_CONFIG.TEXT_SIZE} font-bold ${AVATAR_CONFIG.SHADOW}`}
@@ -277,7 +259,6 @@ export default function JobCategoriesPage() {
     </div>
   );
 
-  // Render category name column
   const renderCategoryNameColumn = (row: JobCategory) => (
     <div className="flex items-center gap-[10px]">
       {renderCategoryAvatar(row.category)}
@@ -293,7 +274,6 @@ export default function JobCategoriesPage() {
     </div>
   );
 
-  // Render description column
   const columns: ColumnDef<JobCategory>[] = [
     {
       key: "category",
@@ -306,9 +286,13 @@ export default function JobCategoriesPage() {
       render: (row) => <DescriptionCell description={row.description} />,
     },
   ];
-  // Handle edit action
+
   const handleEdit = (row: JobCategory) => {
     setCategoryToEdit(row);
+  };
+
+  const handleDelete = (row: JobCategory) => {
+    handleDeleteConfirm(row);
   };
 
   const actions: ActionDef<JobCategory>[] = [
@@ -331,48 +315,40 @@ export default function JobCategoriesPage() {
       bgHover: ACTION_CONFIG.DELETE.BG_HOVER,
       borderColor: ACTION_CONFIG.DELETE.BORDER,
       borderColorHover: ACTION_CONFIG.DELETE.BORDER_HOVER,
-      onClick: handleDeleteConfirm,
+      onClick: handleDelete,
       title: ACTION_CONFIG.DELETE.TITLE,
     },
   ];
 
-  // Clear page error
   const handleClearPageError = () => {
     setPageError("");
   };
 
-  // Open add modal
   const handleOpenAddModal = () => {
     setShowAddModal(true);
   };
 
-  // Close add modal
   const handleCloseAddModal = () => {
     setShowAddModal(false);
   };
 
-  // Close edit modal
   const handleCloseEditModal = () => {
     setCategoryToEdit(null);
   };
 
-  // Handle page size change
-  const handlePageSizeChange = (size: number) => {
-    setPageSize(size);
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
     setCurrentPage(1);
   };
 
-  // Get row key
   const getRowKey = (row: JobCategory): number => row.id;
 
-  // Get empty title
   const getEmptyTitle = (): string => {
     return searchQuery
       ? EMPTY_STATE.NO_RESULTS_TITLE(searchQuery)
       : EMPTY_STATE.NO_CATEGORIES_TITLE;
   };
 
-  // Get empty subtitle
   const getEmptySubtitle = (): string => {
     return searchQuery
       ? EMPTY_STATE.NO_RESULTS_SUBTITLE
@@ -468,7 +444,6 @@ function JobCategoryFormModal({
 
   const isAddMode = mode === FormMode.ADD;
 
-  // Validate form
   const validateForm = (): boolean => {
     if (!categoryName.trim()) {
       setFormError(VALIDATION_MESSAGES.CATEGORY_REQUIRED);
@@ -477,7 +452,6 @@ function JobCategoryFormModal({
     return true;
   };
 
-  // Trim form data
   const getTrimmedFormData = (): {
     category: string;
     description: string | undefined;
@@ -488,19 +462,16 @@ function JobCategoryFormModal({
     };
   };
 
-  // Handle add category success
   const handleAddSuccess = () => {
     Toast.created(TOAST_MESSAGES.CREATED);
     onSaved();
   };
 
-  // Handle update category success
   const handleUpdateSuccess = () => {
     Toast.updated(TOAST_MESSAGES.UPDATED);
     onSaved();
   };
 
-  // Handle submit error
   const handleSubmitError = (error: any) => {
     const errorMessage =
       error?.response?.data?.message ||
@@ -512,12 +483,10 @@ function JobCategoryFormModal({
     onError(errorMessage);
   };
 
-  // Handle submit complete
   const handleSubmitComplete = () => {
     setIsSaving(false);
   };
 
-  // Create new category
   const createCategory = async (payload: CreateJobCategoryPayload) => {
     await createJobCategory(payload);
     handleAddSuccess();
@@ -597,7 +566,6 @@ function JobCategoryFormModal({
       className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
     >
       <div className="bg-white rounded-[20px] w-full max-w-[500px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] overflow-hidden">
-        {/* Header */}
         <div className="p-[22px_26px_18px] bg-gradient-to-br from-[#172554] to-[#14b8a6] flex items-center justify-between">
           <div className="flex items-center gap-[10px]">
             <div className="w-9 h-9 rounded-[10px] bg-white/18 flex items-center justify-center">

@@ -106,9 +106,9 @@ export default function SubUnitsPage() {
     const term = value.toLowerCase();
     setFilteredList(
       subUnitList.filter(
-        (su) =>
-          su.sub_unit_name.toLowerCase().includes(term) ||
-          (su.description || "").toLowerCase().includes(term),
+        (subUnit) =>
+          subUnit.sub_unit_name.toLowerCase().includes(term) ||
+          (subUnit.description || "").toLowerCase().includes(term),
       ),
     );
     setCurrentPage(1);
@@ -127,9 +127,11 @@ export default function SubUnitsPage() {
 
   const handleDeleteConfirm = async (
     subUnit: SubUnit,
-    event: React.MouseEvent<HTMLButtonElement>,
+    event?: React.MouseEvent<HTMLButtonElement>,
   ) => {
-    event.stopPropagation();
+    if (event) {
+      event.stopPropagation();
+    }
     const confirmed = await Alert.confirmDelete(subUnit.sub_unit_name);
     if (!confirmed) return;
 
@@ -148,8 +150,8 @@ export default function SubUnitsPage() {
     fetchSubUnits();
   };
 
-  const activeCount = subUnitList.filter((s) => s.is_active).length;
-  const withSupervisor = subUnitList.filter((s) => !!s.supervisor_name).length;
+  const activeCount = subUnitList.filter((subUnit) => subUnit.is_active).length;
+  const withSupervisor = subUnitList.filter((subUnit) => !!subUnit.supervisor_name).length;
   const stats: StatCard[] = [
     {
       label: "Total Sub Units",
@@ -232,30 +234,46 @@ export default function SubUnitsPage() {
     },
   ];
 
+  const handleEdit = (
+    row: SubUnit,
+    event?: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    setSubUnitToEdit(row);
+  };
+
+  const handleDelete = (
+    row: SubUnit,
+    event?: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    if (event) {
+      handleDeleteConfirm(row, event);
+    }
+  };
+
   const actions: ActionDef<SubUnit>[] = [
     {
       label: "Edit",
       icon: EditIcon,
-      color: "#1b2a6b",
-      bg: "#eff6ff",
-      bgHover: "#dbeafe",
-      borderColor: "#bfdbfe",
-      borderColorHover: "#93c5fd",
-      onClick: (row, event) => {
-        setSubUnitToEdit(row);
-        event!.stopPropagation();
-      },
+      color: "#0284c7",
+      bg: "#f0f9ff",
+      bgHover: "#e0f2fe",
+      borderColor: "#bae6fd",
+      borderColorHover: "#7dd3fc",
+      onClick: handleEdit,
       title: "Edit sub unit",
     },
     {
       label: "Delete",
       icon: DeleteIcon,
-      color: "#e11d48",
-      bg: "#fff1f2",
-      bgHover: "#ffe4e6",
-      borderColor: "#fecdd3",
-      borderColorHover: "#fda4af",
-      onClick: (row, event) => handleDeleteConfirm(row, event!),
+      color: "#dc2626",
+      bg: "#fef2f2",
+      bgHover: "#fee2e2",
+      borderColor: "#fecaca",
+      borderColorHover: "#fca5a5",
+      onClick: handleDelete,
       title: "Delete sub unit",
     },
   ];
@@ -306,8 +324,8 @@ export default function SubUnitsPage() {
         pageSize={pageSize}
         pageSizeOptions={[5, 10, 20, 50]}
         onPageChange={setCurrentPage}
-        onPageSizeChange={(s) => {
-          setPageSize(s);
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
           setCurrentPage(1);
         }}
         itemLabel="sub units"
