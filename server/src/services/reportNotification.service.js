@@ -24,6 +24,42 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// ─── Private Helpers ─────────────────────────────────────────────────────────
+
+async function getGlobalAdminRecipients() {
+  const { rows } = await pool.query(
+    `SELECT email FROM tbl_appusers 
+     WHERE (role IN (${ADMIN_ROLES_SQL})) 
+     AND is_deleted = FALSE 
+     AND is_active = TRUE 
+     AND email IS NOT NULL`,
+  );
+  return {
+    recipientEmails: rows.map((admin) => admin.email).filter(Boolean),
+    recipientUserIds: rows.length > 0
+      ? rows.map((admin) => admin.id || 0).filter((id) => id > 0)
+      : [],
+  };
+}
+
+function parseExternalEmails(externalEmailsString) {
+  if (!externalEmailsString) return [];
+  return externalEmailsString
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+}
+
+function appendExternalRecipients(recipientEmails, notificationConfig) {
+  const externalEmails = parseExternalEmails(notificationConfig.external_emails);
+  if (externalEmails.length > 0) {
+    return [...recipientEmails, ...externalEmails];
+  }
+  return recipientEmails;
+}
+
+// ─── Email Senders ───────────────────────────────────────────────────────────
+
 async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
   if (!upcomingBirthdaysData || upcomingBirthdaysData.length === 0) {
     return notificationMessages.noItems("birthdays");
@@ -181,6 +217,9 @@ async function sendWorkAnniversaryAlertEmail(
     return notificationMessages.sendFailed(err);
   }
 }
+
+// ─── Notification Processors ─────────────────────────────────────────────────
+
 async function processBirthdayNotifications() {
   try {
     logNotification("Starting birthday notifications processing");
@@ -212,31 +251,16 @@ async function processBirthdayNotifications() {
       );
     }
 
-    const { rows: globalAdmins } = await pool.query(
-      `SELECT email FROM tbl_appusers 
-       WHERE (role IN (${ADMIN_ROLES_SQL})) 
-       AND is_deleted = FALSE 
-       AND is_active = TRUE 
-       AND email IS NOT NULL`,
-    );
-    let recipientEmails = globalAdmins
-      .map((admin) => admin.email)
-      .filter(Boolean);
+    const { recipientEmails: adminEmails, recipientUserIds } =
+      await getGlobalAdminRecipients();
     logNotification("Retrieved global admin emails", {
-      adminCount: recipientEmails.length,
-      emails: recipientEmails.join(", "),
+      adminCount: adminEmails.length,
+      emails: adminEmails.join(", "),
     });
 
-    const recipientUserIds =
-      recipientEmails.length > 0
-        ? globalAdmins.map((admin) => admin.id || 0).filter((id) => id > 0)
-        : [];
-
+    let recipientEmails = adminEmails;
     if (notificationConfig.external_emails) {
-      const externalEmails = notificationConfig.external_emails
-        .split(",")
-        .map((email) => email.trim())
-        .filter(Boolean);
+      const externalEmails = parseExternalEmails(notificationConfig.external_emails);
       recipientEmails = [...recipientEmails, ...externalEmails];
       logNotification("Added external emails", {
         externalCount: externalEmails.length,
@@ -307,29 +331,10 @@ async function processWorkAnniversaryNotifications() {
       );
     }
 
-    const { rows: globalAdmins } = await pool.query(
-      `SELECT email FROM tbl_appusers 
-       WHERE (role IN (${ADMIN_ROLES_SQL})) 
-       AND is_deleted = FALSE 
-       AND is_active = TRUE 
-       AND email IS NOT NULL`,
-    );
-    let recipientEmails = globalAdmins
-      .map((admin) => admin.email)
-      .filter(Boolean);
+    const { recipientEmails: adminEmails, recipientUserIds } =
+      await getGlobalAdminRecipients();
 
-    const recipientUserIds =
-      recipientEmails.length > 0
-        ? globalAdmins.map((admin) => admin.id || 0).filter((id) => id > 0)
-        : [];
-
-    if (notificationConfig.external_emails) {
-      const externalEmails = notificationConfig.external_emails
-        .split(",")
-        .map((email) => email.trim())
-        .filter(Boolean);
-      recipientEmails = [...recipientEmails, ...externalEmails];
-    }
+    let recipientEmails = appendExternalRecipients(adminEmails, notificationConfig);
 
     if (recipientEmails.length === 0) {
       logNotification("No recipient emails configured for work anniversaries");
@@ -412,25 +417,8 @@ async function checkAndSendImmediateNotifications(employeeId) {
           daysBefore,
         });
 
-        // Get global admins
-        const { rows: globalAdmins } = await pool.query(
-          `SELECT email FROM tbl_appusers 
-           WHERE (role IN (${ADMIN_ROLES_SQL})) 
-           AND is_deleted = FALSE 
-           AND is_active = TRUE 
-           AND email IS NOT NULL`,
-        );
-        let recipientEmails = globalAdmins
-          .map((admin) => admin.email)
-          .filter(Boolean);
-
-        if (birthdayConfig.external_emails) {
-          const externalEmails = birthdayConfig.external_emails
-            .split(",")
-            .map((email) => email.trim())
-            .filter(Boolean);
-          recipientEmails = [...recipientEmails, ...externalEmails];
-        }
+        const { recipientEmails: adminEmails } = await getGlobalAdminRecipients();
+        const recipientEmails = appendExternalRecipients(adminEmails, birthdayConfig);
 
         if (recipientEmails.length > 0) {
           await sendBirthdayAlertEmail(birthdayCheck, recipientEmails);
@@ -483,24 +471,8 @@ async function checkAndSendImmediateNotifications(employeeId) {
       );
 
       if (anniversaryCheck.length > 0) {
-        const { rows: globalAdmins } = await pool.query(
-          `SELECT email FROM tbl_appusers 
-           WHERE (role IN (${ADMIN_ROLES_SQL})) 
-           AND is_deleted = FALSE 
-           AND is_active = TRUE 
-           AND email IS NOT NULL`,
-        );
-        let recipientEmails = globalAdmins
-          .map((admin) => admin.email)
-          .filter(Boolean);
-
-        if (anniversaryConfig.external_emails) {
-          const externalEmails = anniversaryConfig.external_emails
-            .split(",")
-            .map((email) => email.trim())
-            .filter(Boolean);
-          recipientEmails = [...recipientEmails, ...externalEmails];
-        }
+        const { recipientEmails: adminEmails } = await getGlobalAdminRecipients();
+        const recipientEmails = appendExternalRecipients(adminEmails, anniversaryConfig);
 
         if (recipientEmails.length > 0) {
           await sendWorkAnniversaryAlertEmail(
