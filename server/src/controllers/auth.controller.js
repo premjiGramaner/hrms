@@ -3,8 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 import { jwtSecret, jwtExpiresIn, rememberMeDuration } from "../config/env.js";
-import { clientBaseUrl } from "../config/env.js";
 import { success, error } from "../utils/response.js";
+import { getClientUrl } from "../utils/getClientUrl.js";
 import {
   sendPasswordResetEmail,
   sendPasswordExpiredEmail,
@@ -106,15 +106,6 @@ async function issuePasswordToken(userId) {
   return token;
 }
 
-function getClientUrl(req) {
-  if (clientBaseUrl) return clientBaseUrl.replace(/\/$/, "");
-  const host = req.get("origin") || `${req.protocol}://${req.get("host")}`;
-  return host
-    .replace(/\/$/, "")
-    .replace(/:5000$/, ":5173")
-    .replace(/:5001$/, ":5173");
-}
-
 const timingSafeCompare = (a, b) => {
   const bufA = Buffer.from(String(a));
   const bufB = Buffer.from(String(b));
@@ -193,13 +184,13 @@ const login = async (req, res, next) => {
     const passwordAge = user.password_changed_at
       ? PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
         ? Math.floor(
-            (Date.now() - new Date(user.password_changed_at).getTime()) /
-              (1000 * 60),
-          )
+          (Date.now() - new Date(user.password_changed_at).getTime()) /
+          (1000 * 60),
+        )
         : Math.floor(
-            (Date.now() - new Date(user.password_changed_at).getTime()) /
-              (1000 * 60 * 60 * 24),
-          )
+          (Date.now() - new Date(user.password_changed_at).getTime()) /
+          (1000 * 60 * 60 * 24),
+        )
       : null;
 
     const expiryThreshold = PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
@@ -301,8 +292,8 @@ const login = async (req, res, next) => {
         ? PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
           ? Math.floor((Date.now() - lastReminder.getTime()) / (1000 * 60))
           : Math.floor(
-              (Date.now() - lastReminder.getTime()) / (1000 * 60 * 60 * 24),
-            )
+            (Date.now() - lastReminder.getTime()) / (1000 * 60 * 60 * 24),
+          )
         : 999;
 
       if (

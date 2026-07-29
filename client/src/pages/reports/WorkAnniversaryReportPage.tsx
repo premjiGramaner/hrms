@@ -14,6 +14,7 @@ import {
 import { IconAward } from "../../components/Icons";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
+import { MONTH_OPTIONS, YEARS_OF_SERVICE_OPTIONS } from "../../config/uiConstants";
 
 const REPORT_CONFIG = {
   TITLE: "Work Anniversary Report",
@@ -29,21 +30,8 @@ const REPORT_CONFIG = {
 } as const;
 
 const FILTER_OPTIONS = {
-  MONTHS: [
-    { value: "01", label: "January" },
-    { value: "02", label: "February" },
-    { value: "03", label: "March" },
-    { value: "04", label: "April" },
-    { value: "05", label: "May" },
-    { value: "06", label: "June" },
-    { value: "07", label: "July" },
-    { value: "08", label: "August" },
-    { value: "09", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
-  ],
-  SERVICE_YEARS: [1, 2, 3, 5, 10, 15, 20, 25],
+  MONTHS: MONTH_OPTIONS,
+  SERVICE_YEARS: YEARS_OF_SERVICE_OPTIONS,
 } as const;
 
 const COLUMN_LABELS = {

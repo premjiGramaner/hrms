@@ -1,15 +1,5 @@
 import { Toaster } from "react-hot-toast";
-
-const commonStyle = {
-  borderRadius: "12px",
-  padding: "14px 18px",
-  fontWeight: 600,
-  fontSize: "14px",
-  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
-  backdropFilter: "blur(10px)",
-  minWidth: "300px",
-  maxWidth: "500px",
-};
+import { TOAST_COMMON_STYLE } from "../utils/toast";
 
 export const ToastContainer = () => {
   return (
@@ -24,7 +14,7 @@ export const ToastContainer = () => {
       toastOptions={{
         duration: 3000,
         style: {
-          ...commonStyle,
+          ...TOAST_COMMON_STYLE,
         },
       }}
     />
