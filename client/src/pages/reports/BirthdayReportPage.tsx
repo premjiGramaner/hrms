@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import Layout, { TabItem } from "../../components/Layout";
+import Layout from "../../components/Layout";
 import DataTable, { ColumnDef } from "../../components/DataTable";
-import type { BirthdayReportRecord } from "../../types";
+import type { BirthdayReportRecord, ReportQueryParams } from "../../types";
 import {
   fetchBirthdayReport,
   downloadBirthdayReportExcel,
 } from "../../api/report.api";
 import { IconGift } from "../../components/Icons";
-import { ERROR_MESSAGES } from "../../constants/messages";
-import { COLORS } from "../../styles/theme";
+import Toast from "../../utils/toast";
+import { getApiErrorMessage } from "../../utils/errors";
 
 const REPORT_CONFIG = {
   TITLE: "Birthday Report",
@@ -52,14 +52,7 @@ const FILTER_OPTIONS = {
     { value: "Widowed", label: "Widowed" },
   ],
 } as const;
-import { PAGE_PATHS } from "../../config/roles";
-
-const TABS: TabItem[] = [
-  { label: "Birthday Report", path: PAGE_PATHS.reportsBirthday },
-  { label: "Work Anniversary", path: PAGE_PATHS.reportsWorkAnniversary },
-  { label: "Termination Report", path: PAGE_PATHS.reportsTermination },
-  { label: "Notifications", path: PAGE_PATHS.reportsNotifications },
-];
+import { REPORT_TABS } from "./reportTabs";
 
 const COLUMN_LABELS = {
   EMPLOYEE_ID: "Employee ID",
@@ -88,7 +81,7 @@ export default function BirthdayReportPage() {
   const loadReportData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const queryParams: Record<string, any> = {
+      const queryParams: ReportQueryParams = {
         page: currentPage,
         limit: pageSize,
         employee_name: searchQuery || undefined,
@@ -104,8 +97,10 @@ export default function BirthdayReportPage() {
       setTotalRecords(result.totalRecords);
       setTotalPages(result.totalPages);
     } catch (error) {
-      console.error("Failed to load birthday report:", error);
       setReportData([]);
+      Toast.error(
+        getApiErrorMessage(error, "Failed to load the birthday report."),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -131,9 +126,9 @@ export default function BirthdayReportPage() {
     };
     try {
       await downloadBirthdayReportExcel(queryParams);
+      Toast.success("Birthday report downloaded successfully.");
     } catch (error) {
-      console.error("Export failed:", error);
-      alert(ERROR_MESSAGES.EXPORT_FAILED);
+      Toast.error(getApiErrorMessage(error, "Failed to export the report."));
     }
   };
 
@@ -143,7 +138,7 @@ export default function BirthdayReportPage() {
       header: COLUMN_LABELS.EMPLOYEE_ID,
       width: 130,
       render: (row) => (
-        <span className="font-semibold" style={{ color: COLORS.primary.navy }}>
+        <span className="font-semibold text-navy-700">
           {row.employee_id || COLUMN_LABELS.NOT_AVAILABLE}
         </span>
       ),
@@ -237,7 +232,7 @@ export default function BirthdayReportPage() {
   return (
     <Layout
       title="Reports and Analytics"
-      tabs={TABS}
+      tabs={REPORT_TABS}
       activeTab={REPORT_CONFIG.TITLE}
     >
       <div className="py-5 px-10">

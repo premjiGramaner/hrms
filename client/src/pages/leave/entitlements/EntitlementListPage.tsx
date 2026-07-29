@@ -10,6 +10,7 @@ import { LeaveType } from "../../../types";
 import { getApiErrorMessage } from "../../../utils/errors";
 import Toast, { useToast } from "../../../components/Toast";
 import EntitlementsLayout from "./EntitlementsLayout";
+import { DescriptionCell } from "../../employees/components/Description";
 import { X } from "lucide-react";
 
 function formatDate(dateString: string): string {
@@ -312,6 +313,7 @@ export default function EntitlementListPage() {
                   "Credit On",
                   "Valid From",
                   "Valid To",
+                  "Description",
                   "Expired Date",
                   "Leave Entitlements",
                 ].map((heading) => (
@@ -328,7 +330,7 @@ export default function EntitlementListPage() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={9} className="text-center py-16 text-slate-400">
+                  <td colSpan={10} className="text-center py-16 text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-7 h-7 border-2 border-blue-900 border-t-transparent rounded-full animate-spin" />
                       <span className="text-sm">Fetching records…</span>
@@ -339,7 +341,7 @@ export default function EntitlementListPage() {
 
               {!loading && records.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center py-16 text-slate-400">
+                  <td colSpan={10} className="text-center py-16 text-slate-400">
                     <div className="text-3xl mb-2">📋</div>
                     <p className="text-sm font-medium text-slate-500">
                       No Records Found
@@ -393,7 +395,9 @@ export default function EntitlementListPage() {
                       <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                         {formatDate(record.valid_to)}
                       </td>
-
+                      <td className="px-4 py-3 text-xs">
+                        <DescriptionCell description={record.description} />
+                      </td>
                       <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                         {record.expired ? (
                           <span className="inline-block px-2 py-0.5 bg-red-50 text-red-700 rounded border border-red-200">
@@ -403,7 +407,6 @@ export default function EntitlementListPage() {
                           <span className="text-slate-400">—</span>
                         )}
                       </td>
-
                       <td className="px-4 py-3 text-xs text-center">
                         <span className="inline-block font-bold px-2.5 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
                           {addedDays}

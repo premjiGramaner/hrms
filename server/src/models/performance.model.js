@@ -1222,8 +1222,9 @@ async function listSupervisorAppraisals({
   return rows.map(mapAppraisalRow);
 }
 
-const MINIMUM_KPI_RATING = 1;
+const MINIMUM_KPI_RATING = 0.5;
 const MAXIMUM_KPI_RATING = 5;
+const KPI_RATING_INCREMENT = 0.5;
 const REVIEWER_TYPES = new Set(["self", "supervisor"]);
 
 function validateReviewerType(reviewerType) {
@@ -1245,14 +1246,22 @@ function normalizeRatingPayload(ratings, validQuestionIds) {
     }
 
     const score = Number(rating.score);
-    if (score === 0) continue;
+    if (score === 0) {
+      normalizedRatings.set(questionId, {
+        questionId,
+        score: 0,
+        comment: String(rating.comment || "").trim(),
+      });
+      continue;
+    }
     if (
       !Number.isFinite(score) ||
       score < MINIMUM_KPI_RATING ||
-      score > MAXIMUM_KPI_RATING
+      score > MAXIMUM_KPI_RATING ||
+      !Number.isInteger(score / KPI_RATING_INCREMENT)
     ) {
       throw new AppError(
-        `KPI ratings must be between ${MINIMUM_KPI_RATING} and ${MAXIMUM_KPI_RATING}.`,
+        `KPI ratings must be between ${MINIMUM_KPI_RATING} and ${MAXIMUM_KPI_RATING} in ${KPI_RATING_INCREMENT} increments.`,
         422,
       );
     }
@@ -1268,32 +1277,30 @@ function normalizeRatingPayload(ratings, validQuestionIds) {
 }
 
 function calculateWeightedRating(ratingRows) {
-  const assignedRatings = ratingRows
-    .map((ratingRow) => ({
-      score: Number(ratingRow.score),
+  const ratings = ratingRows.map((ratingRow) => {
+    const score = Number(ratingRow.score);
+    const isAssigned =
+      Number.isFinite(score) &&
+      score >= MINIMUM_KPI_RATING &&
+      score <= MAXIMUM_KPI_RATING &&
+      Number.isInteger(score / KPI_RATING_INCREMENT);
+    return {
+      score: isAssigned ? score : 0,
       weight: Number(ratingRow.weight),
-    }))
-    .filter(
-      ({ score }) =>
-        Number.isFinite(score) &&
-        score >= MINIMUM_KPI_RATING &&
-        score <= MAXIMUM_KPI_RATING,
-    );
-  if (assignedRatings.length === 0) return 0;
+    };
+  });
+  if (ratings.length === 0) return 0;
 
-  const weightedRatings = assignedRatings.filter(
+  const useWeights = ratings.every(
     ({ weight }) => Number.isFinite(weight) && weight > 0,
   );
-  const ratingsForCalculation =
-    weightedRatings.length > 0 ? weightedRatings : assignedRatings;
-  const totalWeight = ratingsForCalculation.reduce(
-    (weightTotal, { weight }) =>
-      weightTotal + (weightedRatings.length > 0 ? weight : 1),
+  const totalWeight = ratings.reduce(
+    (weightTotal, { weight }) => weightTotal + (useWeights ? weight : 1),
     0,
   );
-  const weightedScore = ratingsForCalculation.reduce(
+  const weightedScore = ratings.reduce(
     (scoreTotal, { score, weight }) =>
-      scoreTotal + score * (weightedRatings.length > 0 ? weight : 1),
+      scoreTotal + score * (useWeights ? weight : 1),
     0,
   );
 
@@ -1358,16 +1365,16 @@ async function recalculateAppraisalRating(
 ) {
   const { rows: ratingRows } = await databaseClient.query(
     `SELECT rating.score, kpi.weight
-     FROM appraisal_ratings rating
-     INNER JOIN appraisal_template_kpis kpi
-       ON kpi.id = rating.question_id
+     FROM appraisals appraisal
      INNER JOIN appraisal_template_sections section
-       ON section.id = kpi.section_id
-     INNER JOIN appraisals appraisal
-       ON appraisal.id = rating.appraisal_id
-      AND appraisal.template_id = section.template_id
-     WHERE rating.appraisal_id = $1
-       AND rating.reviewer_type = $2
+       ON section.template_id = appraisal.template_id
+     INNER JOIN appraisal_template_kpis kpi
+       ON kpi.section_id = section.id
+     LEFT JOIN appraisal_ratings rating
+       ON rating.appraisal_id = appraisal.id
+      AND rating.question_id = kpi.id
+      AND rating.reviewer_type = $2
+     WHERE appraisal.id = $1
        AND kpi.is_active = true`,
     [appraisalId, reviewerType],
   );

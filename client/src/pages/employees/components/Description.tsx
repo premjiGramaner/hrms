@@ -23,8 +23,10 @@ export function DescriptionCell({ description }: DescriptionCellProps) {
       >
         {descriptionPreview}
       </span>
-      <div className="absolute left-0 top-full z-50 mt-2 hidden w-64 break-all whitespace-normal rounded-lg border border-slate-200 bg-white p-3 text-[13px] text-slate-700 shadow-lg group-hover:block">
-        {description}
+      <div className="absolute left-0 top-full z-[9999] mt-2 hidden w-80 max-w-[90vw] rounded-lg border border-slate-200 bg-white p-3 text-[13px] text-slate-700 shadow-xl group-hover:block break-words">
+        <div className="max-h-60 overflow-y-auto">
+          {description}
+        </div>
       </div>
     </div>
   );

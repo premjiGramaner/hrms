@@ -7,6 +7,9 @@ interface LoginData {
   user?: AuthUser;
   requiresPasswordChange?: boolean;
   passwordSetupToken?: string;
+  passwordExpired?: boolean;
+  message?: string;
+  passwordReminderMessage?: string;
 }
 
 export const login = async (
@@ -43,11 +46,17 @@ export const resetPassword = async (
   token: string,
   password: string,
   confirmPassword: string,
+  oldPassword?: string,
 ) => {
   const response = await api.post<{
     success: boolean;
     data: { message: string };
-  }>(AUTH_PATHS.RESET_PASSWORD, { token, password, confirmPassword });
+  }>(AUTH_PATHS.RESET_PASSWORD, {
+    token,
+    password,
+    confirmPassword,
+    oldPassword,
+  });
   return {
     data: response.data.data,
   };

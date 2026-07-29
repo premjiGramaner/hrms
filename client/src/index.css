@@ -61,6 +61,11 @@
   }
 }
 
+.password-input::-ms-reveal,
+.password-input::-ms-clear {
+  display: none;
+}
+
 @layer components {
   .nav-item {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 transition-all cursor-pointer no-underline;

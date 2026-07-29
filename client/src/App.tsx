@@ -47,6 +47,7 @@ import {
   BirthdayReportPage,
   WorkAnniversaryReportPage,
   ReportNotificationConfigPage,
+  LeaveByDepartmentReportPage,
 } from "./pages/reports";
 
 function PerformanceHomeRedirect() {
@@ -515,10 +516,15 @@ export default function App() {
           }
         />
 
-        {/* <Route
-          path="*"
-          element={<Navigate to={PAGE_PATHS.employees} replace />}
-        /> */}
+        <Route
+          path={PAGE_PATHS.reportsLeaveByDepartment}
+          element={
+            <ProtectedRoute roles={[ROLES.HR_ADMIN, ROLES.EMP_MANAGER]}>
+              <LeaveByDepartmentReportPage />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
     </BrowserRouter>
   );

@@ -244,3 +244,63 @@ export interface ReportFilterOptions {
   subUnits: string[];
   locations: string[];
 }
+
+export type ReportQueryParams = Record<string, unknown>;
+
+export type LeaveEmployeeScope = "current" | "past" | "all";
+
+export interface LeaveByDepartmentRecord {
+  id: number;
+  user_id: number;
+  employee_id: string;
+  employee_name: string;
+  department: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+  leave_type: string;
+  leave_days: number;
+  leave_hours: number;
+  status: string;
+  employee_scope: string;
+}
+
+export interface DepartmentLeaveTotal {
+  department: string;
+  totalDays: number;
+  leaveCount: number;
+  employeeCount: number;
+}
+
+export interface LeaveDepartmentSummary {
+  totalRecords: number;
+  totalDays: number;
+  totalEmployees: number;
+  totalDepartments: number;
+  departmentTotals: DepartmentLeaveTotal[];
+}
+
+export interface LeaveDepartmentReportResponse
+  extends ReportPaginatedResponse<LeaveByDepartmentRecord> {
+  summary: LeaveDepartmentSummary;
+}
+
+export interface LeaveDepartmentFilterOptions {
+  years: number[];
+  departments: string[];
+  statuses: string[];
+  leaveTypes: Array<{ id: number; name: string }>;
+  locations: string[];
+}
+
+export interface LeaveDepartmentReportQuery {
+  employee_scope?: LeaveEmployeeScope;
+  year?: number;
+  status?: string;
+  department?: string;
+  leave_type_id?: number;
+  location?: string;
+  employee_name?: string;
+  page?: number;
+  limit?: number;
+}
