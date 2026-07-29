@@ -224,6 +224,10 @@ async function convertSupervisorIdsToNames(supervisors, employeeId = null) {
       return null;
     }
 
+    if (parsed.length > 1) {
+      throw new AppError("Only one supervisor can be assigned.", 422);
+    }
+
     const supervisorIds = [
       ...new Set(
         parsed.map((supervisorId) => Number.parseInt(supervisorId, 10)),

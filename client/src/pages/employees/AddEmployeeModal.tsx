@@ -152,7 +152,8 @@ export default function AddEmployeeModal({
             (supervisorId) =>
               !isNaN(supervisorId) &&
               String(supervisorId) !== String(employee.id),
-          ),
+          )
+          .slice(0, 1),
       );
     }
   }, [employee?.id]);
@@ -678,15 +679,7 @@ export default function AddEmployeeModal({
     supervisorId: number,
     isSelected: boolean,
   ) => {
-    setSelectedSupervisors((currentSupervisorIds) =>
-      isSelected
-        ? currentSupervisorIds.filter(
-            (selectedId) => selectedId !== supervisorId,
-          )
-        : currentSupervisorIds.length < 3
-          ? [...currentSupervisorIds, supervisorId]
-          : currentSupervisorIds,
-    );
+    setSelectedSupervisors(isSelected ? [] : [supervisorId]);
     setErrors((currentErrors) => {
       const updatedErrors = { ...currentErrors };
       delete updatedErrors.supervisors;
@@ -1212,10 +1205,9 @@ export default function AddEmployeeModal({
           )}
 
           {step === 5 && (
-            <Section title="Report To - Assign Supervisors (Max 3)">
+            <Section title="Report To - Assign Supervisor">
               <p className="text-sm text-slate-600 mb-3.5">
-                Select up to 3 supervisors from the available supervisor list
-                below.
+                Select supervisor from the available supervisor list below.
               </p>
               {supervisors.length === 0 ? (
                 <p className="text-sm text-slate-400 italic">
@@ -1247,9 +1239,9 @@ export default function AddEmployeeModal({
                         } ${supervisorIndex < supervisors.length - 1 ? "border-b border-slate-100" : ""}`}
                       >
                         <input
-                          type="checkbox"
+                          type="radio"
+                          name="supervisor"
                           checked={checked}
-                          disabled={!checked && selectedSupervisors.length >= 3}
                           onChange={() =>
                             handleSupervisorSelectionChange(
                               supervisorId,

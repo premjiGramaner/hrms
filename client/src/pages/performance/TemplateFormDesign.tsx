@@ -318,6 +318,7 @@ export default function TemplateFormDesign() {
         {isAdding ? (
           <AddEditKpiModal
             existingWeight={totalQuestionWeight}
+            maximumWeight={Number(template.weight) || 100}
             onClose={() => setIsAdding(false)}
             onSave={saveQuestion}
           />
@@ -328,6 +329,7 @@ export default function TemplateFormDesign() {
             existingWeight={
               totalQuestionWeight - Number(editingQuestion.weight || 0)
             }
+            maximumWeight={Number(template.weight) || 100}
             onClose={() => setEditingQuestion(null)}
             onSave={saveQuestion}
           />
@@ -384,7 +386,6 @@ export default function TemplateFormDesign() {
                 <SoftInput
                   type="number"
                   min="1"
-                  max="100"
                   value={templateDraft.weight}
                   onChange={(event) =>
                     setTemplateDraft((current) => ({

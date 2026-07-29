@@ -26,6 +26,7 @@ const EMPTY_FIELD_ERRORS: KpiFieldErrors = {
 type Props = {
   question?: TemplateQuestion | null;
   existingWeight?: number;
+  maximumWeight?: number;
   onClose: () => void;
   onSave: (question: DraftQuestion | TemplateQuestion) => void;
 };
@@ -33,6 +34,7 @@ type Props = {
 export default function AddEditKpiModal({
   question,
   existingWeight = 0,
+  maximumWeight = 100,
   onClose,
   onSave,
 }: Props) {
@@ -61,10 +63,10 @@ export default function AddEditKpiModal({
 
   const weightError = (value: string) => {
     const nextWeight = Number(value) || 0;
-    if (existingWeight + nextWeight <= 100) return "";
-    return existingWeight >= 100
-      ? "The total KPI weight is already 100. You cannot add more weight."
-      : `The total KPI weight cannot exceed 100. Only ${Math.max(0, 100 - existingWeight)} weight is available.`;
+    if (existingWeight + nextWeight <= maximumWeight) return "";
+    return existingWeight >= maximumWeight
+      ? `The total KPI weight is already ${maximumWeight}. You cannot add more weight.`
+      : `The total KPI weight cannot exceed ${maximumWeight}. Only ${Math.max(0, maximumWeight - existingWeight)} weight is available.`;
   };
 
   const save = () => {
@@ -177,6 +179,7 @@ export default function AddEditKpiModal({
           <SoftInput
             type="number"
             min="0"
+            max={maximumWeight}
             step="0.01"
             value={weight}
             onChange={handleWeightChange}

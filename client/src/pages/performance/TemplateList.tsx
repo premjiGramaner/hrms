@@ -229,7 +229,6 @@ export default function TemplateList() {
                 <SoftInput
                   type="number"
                   min="1"
-                  max="100"
                   value={draft.weight}
                   onChange={(event) =>
                     setDraft((current) => ({

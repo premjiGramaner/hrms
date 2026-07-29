@@ -645,9 +645,39 @@ async function deleteTemplate(id) {
   return { id };
 }
 
+function validateTemplateKpiWeight(
+  template,
+  nextWeight,
+  excludedQuestionId = null,
+) {
+  const numericWeight = Number(nextWeight);
+  if (!Number.isFinite(numericWeight) || numericWeight < 0) {
+    throw new AppError("KPI weight must be zero or greater.", 422);
+  }
+
+  const maximumWeight = Number(template.weight) || 100;
+  const existingWeight = template.sections
+    .flatMap((section) => section.questions)
+    .filter((question) => question.id !== excludedQuestionId)
+    .reduce(
+      (weightTotal, question) =>
+        weightTotal + Number(question.weight || 0),
+      0,
+    );
+
+  if (existingWeight + numericWeight > maximumWeight) {
+    const availableWeight = Math.max(0, maximumWeight - existingWeight);
+    throw new AppError(
+      `The total KPI weight cannot exceed ${maximumWeight}. Only ${availableWeight} weight is available.`,
+      422,
+    );
+  }
+}
+
 async function createTemplateKpi(templateId, data) {
   const template = await findTemplateById(templateId);
   if (!template) return null;
+  validateTemplateKpiWeight(template, data.weight || 0);
   const section = template.sections[0];
   const nextOrder = data.order || section.questions.length + 1;
   const id = data.id || `${templateId}-kpi-${randomUUID()}`;
@@ -673,6 +703,12 @@ async function createTemplateKpi(templateId, data) {
 }
 
 async function updateTemplateKpi(templateId, questionId, data) {
+  if (data.weight !== undefined && data.weight !== null) {
+    const template = await findTemplateById(templateId);
+    if (!template) return null;
+    validateTemplateKpiWeight(template, data.weight, questionId);
+  }
+
   await pool.query(
     `UPDATE appraisal_template_kpis
      SET category = COALESCE($3, category),

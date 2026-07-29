@@ -104,7 +104,9 @@ export function validateEmployeeStep(
     availableSupervisorsCount > 0 &&
     selectedSupervisors.length === 0
   ) {
-    errors.supervisors = "Please assign at least one supervisor";
+    errors.supervisors = "Please assign a supervisor";
+  } else if (step === 5 && selectedSupervisors.length > 1) {
+    errors.supervisors = "Please assign only one supervisor";
   }
 
   return errors;
