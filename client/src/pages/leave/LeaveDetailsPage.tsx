@@ -249,6 +249,10 @@ export default function LeaveDetailsPage() {
       ? `${leave.rejection_reason?.slice(0, STATUS_PREVIEW_LENGTH)}...`
       : leave?.rejection_reason;
 
+  const LeaveLength =
+    leave?.comments?.trim() ?? "".length > STATUS_PREVIEW_LENGTH;
+  const LeaveCommandSlice = `${leave?.comments?.slice(0, 10)}...`;
+
   return (
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
@@ -427,8 +431,17 @@ export default function LeaveDetailsPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 max-w-40">
-                      {leave.comments || leave.reason || (
+                    <td className="relative max-w-40 px-4 py-3 text-xs text-slate-600">
+                      {LeaveLength ? (
+                        <div className="group relative">
+                          <p className="cursor-pointer truncate">
+                            {LeaveCommandSlice}
+                          </p>
+                          <div className="absolute left-0 top-full z-50 mt-2 hidden w-64 whitespace-normal break-words rounded-lg border border-slate-200 bg-white p-3 text-[13px] text-slate-700 shadow-lg group-hover:block">
+                            {leave.comments || leave.reason}
+                          </div>
+                        </div>
+                      ) : (
                         <span className="text-slate-300">—</span>
                       )}
                     </td>
