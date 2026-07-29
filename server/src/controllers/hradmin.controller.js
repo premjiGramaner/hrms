@@ -3,7 +3,6 @@ import { success, created } from "../utils/response.js";
 import AppError from "../utils/AppError.js";
 import { writeAuditLog } from "../services/audit.service.js";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import { sendWelcomeEmail } from "../../email.service.js";
 import { findEmployeesBySubUnitName } from "../services/hradmin.service.js";
 import { logError } from "../utils/logger.js";
@@ -12,49 +11,10 @@ import {
   ADMIN_ROLES,
   BASIC_SUPERVISOR_ROLES,
 } from "../constants/roles.js";
-
-const SPACE_REGEX = /\s+/g;
-const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
-const TRIM_UNDERSCORE_REGEX = /^_+|_+$/g;
-
-async function generateUniqueUsername(email, fullName) {
-  let base = fullName
-    ? fullName
-        .toLowerCase()
-        .replace(SPACE_REGEX, "_")
-        .replace(INVALID_CHAR_REGEX, "")
-    : email.split("@")[0];
-  base = base.replace(TRIM_UNDERSCORE_REGEX, "") || email.split("@")[0];
-
-  let username = base;
-  let counter = 1;
-  while (true) {
-    const { rows } = await pool.query(
-      "SELECT id FROM tbl_appusers WHERE username = $1",
-      [username],
-    );
-    if (rows.length === 0) break;
-    username = `${base}_${counter++}`;
-  }
-  return username;
-}
-
-function generateTemporaryPassword() {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghijkmnopqrstuvwxyz";
-  const digits = "23456789";
-  const special = "!@#$%^&*";
-  const all = `${upper}${lower}${digits}${special}`;
-  const chars = [upper, lower, digits, special].map(
-    (set) => set[crypto.randomInt(set.length)],
-  );
-  while (chars.length < 12) chars.push(all[crypto.randomInt(all.length)]);
-  for (let index = chars.length - 1; index > 0; index -= 1) {
-    const swapIndex = crypto.randomInt(index + 1);
-    [chars[index], chars[swapIndex]] = [chars[swapIndex], chars[index]];
-  }
-  return chars.join("");
-}
+import {
+  generateUniqueUsername,
+  generateTemporaryPassword,
+} from "../utils/userHelpers.js";
 
 const getUsers = async (req, res, next) => {
   try {
