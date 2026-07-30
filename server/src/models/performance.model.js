@@ -5,11 +5,9 @@ import {
   defaultPerformanceEvaluationHeader,
 } from "../config/performance.config.js";
 import { SUPERVISOR_ROLES } from "../constants/roles.js";
-import appraisalTemplateSeed from "../data/appraisalTemplateSeed.js";
 import AppError from "../utils/AppError.js";
 
 let schemaPromise = null;
-let seedPromise = null;
 
 const APPRAISAL_SUPERVISOR_REQUIRED_MESSAGE =
   "Appraisals were not created. Assign a valid, active supervisor to the following users:";
@@ -353,86 +351,6 @@ async function findEmployees({
   };
 }
 
-async function seedTemplatesIfEmpty() {
-  await ensurePerformanceSchema();
-  const { rows } = await pool.query(
-    "SELECT COUNT(*)::int AS count FROM appraisal_templates",
-  );
-  if ((rows[0]?.count || 0) > 0) return;
-  if (seedPromise) return seedPromise;
-
-  seedPromise = (async () => {
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      for (const template of appraisalTemplateSeed) {
-        await client.query(
-          `INSERT INTO appraisal_templates (id, job_title, template_name, description, weight, header, is_default)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           ON CONFLICT (id) DO NOTHING`,
-          [
-            template.id,
-            template.jobTitle,
-            template.templateName,
-            template.description || "",
-            template.weight || 100,
-            template.header || defaultPerformanceEvaluationHeader,
-            Boolean(template.isDefault),
-          ],
-        );
-        for (const [sectionIndex, section] of (
-          template.sections || []
-        ).entries()) {
-          await client.query(
-            `INSERT INTO appraisal_template_sections (id, template_id, name, weight, display_order)
-             VALUES ($1, $2, $3, $4, $5)
-             ON CONFLICT (id) DO NOTHING`,
-            [
-              section.id,
-              template.id,
-              section.name || "KPIs",
-              section.weight || 100,
-              sectionIndex + 1,
-            ],
-          );
-          for (const [questionIndex, question] of (
-            section.questions || []
-          ).entries()) {
-            await client.query(
-              `INSERT INTO appraisal_template_kpis
-                (id, section_id, category, title, description, display_text, weight, display_order, mandatory, rating_type, comments_required)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-               ON CONFLICT (id) DO NOTHING`,
-              [
-                question.id,
-                section.id,
-                question.category || "General",
-                question.title,
-                question.description || "",
-                displayTextFor(question),
-                question.weight || 0,
-                question.order || questionIndex + 1,
-                question.mandatory ?? true,
-                question.ratingType || defaultAppraisalRatingType,
-                question.commentsRequired ?? false,
-              ],
-            );
-          }
-        }
-      }
-      await client.query("COMMIT");
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
-    } finally {
-      client.release();
-      seedPromise = null;
-    }
-  })();
-
-  return seedPromise;
-}
-
 function mapTemplateRows(templateRows, sectionRows, questionRows) {
   const sectionMap = new Map();
   sectionRows.forEach((section) => {
@@ -482,7 +400,7 @@ function mapTemplateRows(templateRows, sectionRows, questionRows) {
 }
 
 async function listTemplates() {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   const [templates, sections, questions] = await Promise.all([
     pool.query(
       "SELECT * FROM appraisal_templates WHERE is_active = true ORDER BY template_name ASC",
@@ -498,7 +416,7 @@ async function listTemplates() {
 }
 
 async function findTemplateById(id) {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   const templates = await pool.query(
     "SELECT * FROM appraisal_templates WHERE id = $1 AND is_active = true",
     [id],
@@ -519,7 +437,7 @@ async function findTemplateById(id) {
 }
 
 async function createTemplate(data) {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   const baseId = toSlug(`${data.jobTitle}-${data.templateName}`) || "template";
   const id = data.id || `${baseId}-${Date.now().toString(36)}`;
   const sectionId = `${id}-kpis`;
@@ -545,7 +463,7 @@ async function createTemplate(data) {
 }
 
 async function updateTemplate(id, data) {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   await pool.query(
     `UPDATE appraisal_templates
      SET job_title = COALESCE($2, job_title),
@@ -909,7 +827,7 @@ async function mapCycle(row, includeEmployees = true) {
 }
 
 async function listCycles() {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   const { rows } = await pool.query(
     "SELECT * FROM appraisal_cycles ORDER BY created_at DESC",
   );
@@ -917,7 +835,7 @@ async function listCycles() {
 }
 
 async function createCycle(data) {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   const template = await findTemplateById(data.templateId);
   if (!template) throw new Error("Template not found");
   const id = data.id || `cycle-${Date.now().toString(36)}`;
@@ -938,7 +856,7 @@ async function createCycle(data) {
 }
 
 async function findCycle(id) {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   const { rows } = await pool.query(
     "SELECT * FROM appraisal_cycles WHERE id = $1",
     [id],
@@ -1126,7 +1044,7 @@ async function createAppraisalsForCycle(cycleId) {
 }
 
 async function ensureDefaultPerformanceData() {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
 }
 
 function mapAppraisalRow(row) {
@@ -1154,7 +1072,7 @@ async function listAppraisals({
   to,
   status,
 } = {}) {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   const filters = ["1 = 1"];
   const values = [];
 
@@ -1214,7 +1132,7 @@ async function listSupervisorAppraisals({
   to,
   status,
 } = {}) {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   const filters = ["a.main_evaluator_id = $1"];
   const values = [Number(userId)];
 
@@ -1582,7 +1500,7 @@ async function submitAppraisalReview({
 }
 
 async function findAppraisal(id) {
-  await seedTemplatesIfEmpty();
+  await ensurePerformanceSchema();
   const { rows } = await pool.query("SELECT * FROM appraisals WHERE id = $1", [
     id,
   ]);
