@@ -118,6 +118,16 @@ export const PERFORMANCE_PATHS = {
 } as const;
 
 /** Report endpoints */
+/** Excel data migration endpoints */
+export const MIGRATION_PATHS = {
+  UPLOAD: "/migration/upload",
+  HISTORY: "/migration/history",
+  start: (id: number | string) => `/migration/${id}/start`,
+  status: (id: number | string) => `/migration/${id}/status`,
+  errors: (id: number | string) => `/migration/${id}/errors`,
+  report: (id: number | string) => `/migration/${id}/report`,
+} as const;
+
 export const REPORT_PATHS = {
   TERMINATION: "/reports/termination",
   TERMINATION_EXPORT_EXCEL: "/reports/termination/export/excel",

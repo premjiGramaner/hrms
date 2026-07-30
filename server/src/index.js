@@ -13,6 +13,7 @@ import hradminRoutes from "./routes/hradmin.routes.js";
 import leaveRoutes from "./routes/leave.routes.js";
 import entitlementRoutes from "./routes/entitlement.routes.js";
 import reportRoutes from "./routes/report.routes.js";
+import migrationRoutes from "./routes/migration.routes.js";
 import { initializeReportNotificationScheduler } from "./jobs/reportNotificationScheduler.js";
 import { runMigrations } from "../run_migration.js";
 import { logInfo, logError } from "./utils/logger.js";
@@ -42,6 +43,7 @@ app.use("/api/hradmin", hradminRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/leave/entitlements", entitlementRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/migration", migrationRoutes);
 
 app.get("/api/health", (_req, res) =>
   res.json({ success: true, data: { status: "ok" } }),

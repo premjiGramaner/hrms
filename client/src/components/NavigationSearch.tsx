@@ -5,6 +5,7 @@ import { IconSearch } from "./Icons";
 import { searchNavigation, SearchableItem } from "../config/navigationSearch";
 import { useAppSelector } from "../app/hooks";
 import { KeyboardKey } from "../types";
+import { ROLES } from "../config/roles";
 
 interface DropdownPosition {
   top: number;
@@ -41,7 +42,11 @@ export default function NavigationSearch() {
 
   useEffect(() => {
     if (query.trim().length >= 2) {
-      const searchResults = searchNavigation(query, user?.role);
+      const isBuiltInAdmin = user?.id === 0 || user?.username === "admin";
+      const searchResults = searchNavigation(
+        query,
+        isBuiltInAdmin ? ROLES.HR_ADMIN : user?.role,
+      );
       setResults(searchResults);
       setIsOpen(searchResults.length > 0);
       setSelectedIndex(-1);
@@ -50,7 +55,7 @@ export default function NavigationSearch() {
       setIsOpen(false);
       setSelectedIndex(-1);
     }
-  }, [query, user?.role]);
+  }, [query, user?.id, user?.role, user?.username]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {

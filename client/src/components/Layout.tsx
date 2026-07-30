@@ -113,6 +113,15 @@ export default function Layout({
           },
         ]
       : []),
+    ...(role === ROLES.HR_ADMIN || user?.id === 0 || user?.username === "admin"
+      ? [
+          {
+            to: PAGE_PATHS.dataMigration,
+            label: "Data Migration",
+            icon: <IconGear />,
+          },
+        ]
+      : []),
     {
       to: PAGE_PATHS.employees,
       label: "Employee Management",
