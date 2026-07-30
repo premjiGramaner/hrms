@@ -1,0 +1,425 @@
+.add-entitlements {
+  width: 100%;
+  max-width: 96rem;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+.add-entitlements__title {
+  margin: 0 0 1.5rem;
+  color: #1e293b;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 700;
+}
+
+.add-entitlements__card {
+  padding: 1.5rem;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+}
+
+.add-entitlements__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.add-entitlements__field {
+  min-width: 0;
+}
+
+.add-entitlements__label {
+  display: block;
+  margin-bottom: 0.375rem;
+  color: #475569;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+}
+
+.add-entitlements__required {
+  margin-left: 0.25rem;
+  color: #ef4444;
+}
+
+.add-entitlements__input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  color: #0f172a;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 0.5rem;
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+  box-sizing: border-box;
+}
+
+.add-entitlements__input::placeholder {
+  color: #94a3b8;
+}
+
+.add-entitlements__input--default {
+  border-color: #cbd5e1;
+}
+
+.add-entitlements__input--default:focus,
+.add-entitlements__employee-input:focus {
+  border-color: #60a5fa;
+  outline: none;
+  box-shadow: none;
+}
+
+.add-entitlements__input--error {
+  border-color: #f87171;
+}
+
+.add-entitlements__input--error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
+}
+
+.add-entitlements__employee-search,
+.add-entitlements__search-input-wrapper,
+.add-entitlements__select-wrapper {
+  position: relative;
+}
+
+.add-entitlements__employee-input {
+  padding-right: 2rem;
+  border-color: #cbd5e1;
+}
+
+.add-entitlements__search-loader-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0.75rem;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.add-entitlements__spinner {
+  flex-shrink: 0;
+  border-style: solid;
+  border-radius: 9999px;
+  animation: add-entitlements-spin 0.8s linear infinite;
+}
+
+.add-entitlements__spinner--search {
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+  border-color: #1b2941;
+  border-top-color: transparent;
+}
+
+.add-entitlements__spinner--submit {
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+  border-color: #ffffff;
+  border-top-color: transparent;
+}
+
+@keyframes add-entitlements-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.add-entitlements__employee-options,
+.add-entitlements__empty-search {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 50;
+  margin-top: 0.25rem;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow:
+    0 20px 25px -5px rgb(0 0 0 / 10%),
+    0 8px 10px -6px rgb(0 0 0 / 10%);
+}
+
+.add-entitlements__employee-options {
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.add-entitlements__empty-search {
+  padding: 0.75rem 1rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.add-entitlements__employee-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  text-align: left;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.add-entitlements__employee-option--default {
+  color: #334155;
+  cursor: pointer;
+}
+
+.add-entitlements__employee-option--default:hover {
+  background-color: #f8fafc;
+}
+
+.add-entitlements__employee-option--selected {
+  color: #1d4ed8;
+  background-color: #eff6ff;
+  cursor: default;
+}
+
+.add-entitlements__employee-option-info {
+  min-width: 0;
+}
+
+.add-entitlements__employee-code {
+  margin-right: 0.5rem;
+  color: #94a3b8;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.add-entitlements__employee-job-title {
+  margin-left: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.add-entitlements__selected-check {
+  color: #3b82f6;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.add-entitlements__selected-employees {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.add-entitlements__employee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  color: #1e40af;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+
+.add-entitlements__employee-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.125rem;
+  padding: 0;
+  color: #60a5fa;
+  background-color: transparent;
+  border: 0;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.add-entitlements__employee-chip-remove:hover {
+  color: #1d4ed8;
+}
+
+.add-entitlements__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  color: #475569;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  cursor: pointer;
+}
+
+.add-entitlements__checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #1e3a8a;
+  cursor: pointer;
+}
+
+.add-entitlements__skeleton {
+  height: 2.25rem;
+  background-color: #f1f5f9;
+  border-radius: 0.5rem;
+  animation: add-entitlements-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes add-entitlements-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.add-entitlements__select {
+  padding-right: 2rem;
+  appearance: none;
+  cursor: pointer;
+}
+
+.add-entitlements__select-icon {
+  position: absolute;
+  top: 50%;
+  right: 0.625rem;
+  display: inline-flex;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.add-entitlements__error {
+  margin: 0.25rem 0 0;
+  color: #ef4444;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.add-entitlements__readonly-value {
+  padding: 0.5rem 0.75rem;
+  color: #64748b;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.add-entitlements__textarea {
+  min-height: 4.75rem;
+  resize: none;
+}
+
+.add-entitlements__required-note {
+  margin: 1.25rem 0 0;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.add-entitlements__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.add-entitlements__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  cursor: pointer;
+  transition:
+    opacity 150ms ease,
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.add-entitlements__button--cancel {
+  padding: 0.625rem 1.5rem;
+  color: #475569;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+.add-entitlements__button--cancel:hover {
+  background-color: #f8fafc;
+}
+
+.add-entitlements__button--save {
+  gap: 0.5rem;
+  padding: 0.625rem 2rem;
+  color: #ffffff;
+  background-image: linear-gradient(to right, #1e3a8a, #0d9488);
+  border: 0;
+  font-weight: 600;
+}
+
+.add-entitlements__button--save:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.add-entitlements__button--save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (min-width: 768px) {
+  .add-entitlements__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .add-entitlements__field--full {
+    grid-column: span 3 / span 3;
+  }
+}
+
+@media (max-width: 640px) {
+  .add-entitlements {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .add-entitlements__card {
+    padding: 1rem;
+  }
+
+  .add-entitlements__actions {
+    flex-direction: column-reverse;
+  }
+
+  .add-entitlements__button {
+    width: 100%;
+  }
+}

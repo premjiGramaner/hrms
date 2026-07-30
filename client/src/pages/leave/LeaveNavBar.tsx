@@ -1,54 +1,87 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppSelector } from "../../app/hooks";
 import { PAGE_PATHS, isAdminRole } from "../../config/roles";
+import "./Style/LeaveNavBar.css";
 
 export default function LeaveNavBar() {
   const { pathname } = useLocation();
-  const user = useAppSelector((s) => s.auth.user);
+  const user = useAppSelector((state) => state.auth.user);
   const isAdmin = isAdminRole(user?.role);
 
-  const [entOpen, setEntOpen] = useState(false);
-  const entRef = useRef<HTMLDivElement>(null);
+  const [isEntitlementMenuOpen, setIsEntitlementMenuOpen] = useState(false);
+  const entitlementMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
-      if (entRef.current && !entRef.current.contains(event.target as Node))
-        setEntOpen(false);
+      if (
+        entitlementMenuRef.current &&
+        !entitlementMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsEntitlementMenuOpen(false);
+      }
     };
+
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
   }, []);
 
-  const isActive = (path: string) =>
-    pathname === path || pathname.startsWith(path + "/");
+  const isActivePath = (path: string): boolean =>
+    pathname === path || pathname.startsWith(`${path}/`);
 
-  const tabCls = (active: boolean) =>
-    `inline-flex h-full items-center px-4 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
-      active
-        ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
-        : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
+  const getTabClassName = (isActive: boolean): string =>
+    `leave-nav__tab ${
+      isActive ? "leave-nav__tab--active" : "leave-nav__tab--inactive"
     }`;
 
-  const entSubPaths = [
+  const entitlementSubPaths = [
     PAGE_PATHS.leaveEntitlementsAdd,
     PAGE_PATHS.leaveEntitlementsList,
     PAGE_PATHS.leaveEntitlementsMy,
   ];
-  const entActive = entSubPaths.some((p) => pathname === p);
+
+  const isEntitlementActive = entitlementSubPaths.some(
+    (path) => pathname === path,
+  );
+
+  const entitlementMenuItems = [
+    {
+      label: "Add Entitlements",
+      path: PAGE_PATHS.leaveEntitlementsAdd,
+    },
+    {
+      label: "Entitlement List",
+      path: PAGE_PATHS.leaveEntitlementsList,
+    },
+    {
+      label: "My Entitlements",
+      path: PAGE_PATHS.leaveEntitlementsMy,
+    },
+  ];
+
+  const handleToggleEntitlementMenu = () => {
+    setIsEntitlementMenuOpen((previousState) => !previousState);
+  };
+
+  const handleCloseEntitlementMenu = () => {
+    setIsEntitlementMenuOpen(false);
+  };
 
   return (
-    <nav className="flex h-full flex-shrink-0 items-stretch gap-0.5 overflow-visible">
+    <nav className="leave-nav">
       <Link
         to={PAGE_PATHS.leaveApply}
-        className={tabCls(isActive(PAGE_PATHS.leaveApply))}
+        className={getTabClassName(isActivePath(PAGE_PATHS.leaveApply))}
       >
         Apply
       </Link>
 
       <Link
         to={PAGE_PATHS.leaveList}
-        className={tabCls(isActive(PAGE_PATHS.leaveList))}
+        className={getTabClassName(isActivePath(PAGE_PATHS.leaveList))}
       >
         Leave List
       </Link>
@@ -56,63 +89,55 @@ export default function LeaveNavBar() {
       {!isAdmin && (
         <Link
           to={PAGE_PATHS.leaveEntitlementsMy}
-          className={tabCls(isActive(PAGE_PATHS.leaveEntitlementsMy))}
+          className={getTabClassName(
+            isActivePath(PAGE_PATHS.leaveEntitlementsMy),
+          )}
         >
           My Entitlements
         </Link>
       )}
 
       {isAdmin && (
-        <div ref={entRef} className="relative flex flex-shrink-0 items-stretch">
+        <div ref={entitlementMenuRef} className="leave-nav__dropdown">
           <button
             type="button"
-            onClick={() => setEntOpen((o) => !o)}
-            className={`flex h-full cursor-pointer items-center gap-1 border-b-2 px-4 text-sm transition ${
-              entActive
-                ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
-                : "border-transparent text-slate-600 hover:text-slate-900 font-medium"
+            onClick={handleToggleEntitlementMenu}
+            className={`leave-nav__dropdown-button ${
+              isEntitlementActive
+                ? "leave-nav__dropdown-button--active"
+                : "leave-nav__dropdown-button--inactive"
             }`}
+            aria-expanded={isEntitlementMenuOpen}
+            aria-haspopup="menu"
           >
             Entitlements
             <svg
-              className={`w-3 h-3 transition-transform ${entOpen ? "rotate-180" : ""}`}
+              className={`leave-nav__dropdown-icon ${
+                isEntitlementMenuOpen ? "leave-nav__dropdown-icon--open" : ""
+              }`}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
+              aria-hidden="true"
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
 
-          {entOpen && (
-            <div
-              className="absolute top-full left-0 mt-0 bg-white border border-slate-200 rounded-lg shadow-xl py-1"
-              style={{ zIndex: 9999, minWidth: "11rem" }}
-            >
-              {[
-                {
-                  label: "Add Entitlements",
-                  path: PAGE_PATHS.leaveEntitlementsAdd,
-                },
-                {
-                  label: "Entitlement List",
-                  path: PAGE_PATHS.leaveEntitlementsList,
-                },
-                {
-                  label: "My Entitlements",
-                  path: PAGE_PATHS.leaveEntitlementsMy,
-                },
-              ].map((item) => (
+          {isEntitlementMenuOpen && (
+            <div className="leave-nav__dropdown-menu" role="menu">
+              {entitlementMenuItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={() => setEntOpen(false)}
-                  className={`block px-4 py-2 text-sm no-underline transition ${
+                  onClick={handleCloseEntitlementMenu}
+                  className={`leave-nav__dropdown-link ${
                     pathname === item.path
-                      ? "bg-orange-50 text-orange-700 font-semibold"
-                      : "text-slate-700 hover:bg-slate-50"
+                      ? "leave-nav__dropdown-link--active"
+                      : "leave-nav__dropdown-link--inactive"
                   }`}
+                  role="menuitem"
                 >
                   {item.label}
                 </Link>

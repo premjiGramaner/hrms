@@ -22,6 +22,7 @@ import {
 import LeaveActionDropdown from "./components/LeaveActionDropdown";
 import LeaveConfirmationModal from "./components/LeaveConfirmationModal";
 import { Paperclip, ArrowLeft } from "lucide-react";
+import "./Style/LeaveDetailsPage.css";
 
 function StatusBadge({ status }: { status: string }) {
   return <span>{status}</span>;
@@ -50,13 +51,11 @@ function RejectModal({
     onConfirm(trimmedReason);
   };
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-        <h3 className="text-base font-bold text-slate-800 mb-4">
-          Reject Leave Request
-        </h3>
-        <label className="block text-xs text-slate-500 mb-1">
-          Rejection Reason <span className="text-red-500">*</span>
+    <div className="leave-details-reject-overlay">
+      <div className="leave-details-reject-modal">
+        <h3 className="leave-details-reject-title">Reject Leave Request</h3>
+        <label className="leave-details-reject-label">
+          Rejection Reason <span className="leave-details-required">*</span>
         </label>
         <textarea
           value={reason}
@@ -64,19 +63,19 @@ function RejectModal({
           rows={4}
           autoFocus
           placeholder="Enter reason for rejection…"
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-blue-400 transition"
+          className="leave-details-reject-textarea"
         />
-        <div className="flex justify-end gap-2 mt-4">
+        <div className="leave-details-reject-actions">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 cursor-pointer transition"
+            className="leave-details-modal-cancel-button"
           >
             Cancel
           </button>
           <button
             disabled={!reason.trim()}
             onClick={handleRejectClick}
-            className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer transition disabled:opacity-50"
+            className="leave-details-modal-reject-button"
           >
             Reject
           </button>
@@ -110,6 +109,7 @@ export default function LeaveDetailsPage() {
   const [showCancel, setShowCancel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [showCommentTooltip, setShowCommentTooltip] = useState(false);
   const leaveId = Number.parseInt(id || "0", 10);
 
   const load = async () => {
@@ -242,12 +242,20 @@ export default function LeaveDetailsPage() {
   };
 
   const STATUS_PREVIEW_LENGTH = 10;
+  const COMMENT_PREVIEW_LENGTH = 10;
+
   const rejectionReason = leave?.rejection_reason ?? "";
   const rejectionReasonPreview =
-    leave?.rejection_reason &&
-    leave.rejection_reason.length > STATUS_PREVIEW_LENGTH
-      ? `${leave.rejection_reason?.slice(0, STATUS_PREVIEW_LENGTH)}...`
-      : leave?.rejection_reason;
+    rejectionReason.length > STATUS_PREVIEW_LENGTH
+      ? `${rejectionReason.slice(0, STATUS_PREVIEW_LENGTH)}...`
+      : rejectionReason;
+
+  const commentText = leave?.comments || leave?.reason || "";
+  const commentPreview =
+    commentText.length > COMMENT_PREVIEW_LENGTH
+      ? `${commentText.slice(0, COMMENT_PREVIEW_LENGTH)}...`
+      : commentText;
+  const hasLongComment = commentText.length > COMMENT_PREVIEW_LENGTH;
 
   return (
     <LeaveLayout>
@@ -258,7 +266,7 @@ export default function LeaveDetailsPage() {
           message="Are you sure you want to approve this leave request?"
           confirmLabel="Yes, Approve"
           cancelLabel="No, Keep Pending"
-          confirmButtonClassName="bg-green-600 hover:bg-green-700"
+          confirmButtonClassName="leave-details-confirm-button--approve"
           loading={actionLoading}
           onConfirm={handleApproveConfirm}
           onClose={handleCloseApproveModal}
@@ -276,46 +284,45 @@ export default function LeaveDetailsPage() {
           message="Are you sure you want to cancel this leave request?"
           confirmLabel="Yes, Cancel"
           cancelLabel="No, Keep It"
-          confirmButtonClassName="bg-red-600 hover:bg-red-700"
+          confirmButtonClassName="leave-details-confirm-button--cancel"
           loading={actionLoading}
           onConfirm={handleCancelConfirm}
           onClose={handleCloseCancelModal}
         />
       )}
 
-      <button
-        onClick={handleBackClick}
-        className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-700 mb-4 cursor-pointer bg-transparent border-none transition"
-      >
+      <button onClick={handleBackClick} className="leave-details-back-button">
         <ArrowLeft
           size={14}
           aria-hidden="true"
-          style={{ position: "relative", top: "1px" }}
+          className="leave-details-back-icon"
         />{" "}
         Back
       </button>
 
       {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="w-8 h-8 border-2 border-blue-900 border-t-transparent rounded-full animate-spin" />
+        <div className="leave-details-loading">
+          <div className="leave-details-loading-spinner" />
         </div>
       ) : !leave ? (
-        <div className="text-center py-24 text-slate-400">
-          <div className="text-4xl mb-3">📋</div>
-          <p className="text-sm">Leave request not found.</p>
+        <div className="leave-details-empty-state">
+          <div className="leave-details-empty-icon">📋</div>
+          <p className="leave-details-empty-message">
+            Leave request not found.
+          </p>
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-4">
-            <div className="flex items-start gap-4">
+          <div className="leave-details-profile-card">
+            <div className="leave-details-profile-content">
               {user && leave.user_id === user.id ? (
-                <UserAvatar size={48} className="flex-shrink-0" />
+                <UserAvatar size={48} className="leave-details-avatar" />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-900 to-teal-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                <div className="leave-details-avatar-fallback">
                   {leave.avatar ? (
                     <img
                       src={leave.avatar}
-                      className="w-full h-full object-cover"
+                      className="leave-details-avatar-image"
                       alt=""
                     />
                   ) : (
@@ -324,18 +331,16 @@ export default function LeaveDetailsPage() {
                 </div>
               )}
 
-              <div className="flex-1 min-w-0">
-                <h2 className="text-base font-bold text-slate-900 mb-0.5">
+              <div className="leave-details-flex-content">
+                <h2 className="leave-details-employee-name">
                   {leave.employee_name || "—"}
                 </h2>
                 {leave.job_title && (
-                  <p className="text-xs text-slate-500 mb-2">
-                    {leave.job_title}
-                  </p>
+                  <p className="leave-details-job-title">{leave.job_title}</p>
                 )}
-                <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600">
+                <div className="leave-details-meta">
                   <span>
-                    <span className="font-medium text-slate-500">
+                    <span className="leave-details-meta-label">
                       Requested for:{" "}
                     </span>
                     {leave.start_date}
@@ -343,14 +348,14 @@ export default function LeaveDetailsPage() {
                       ` to ${leave.end_date}`}
                   </span>
                   <span>
-                    <span className="font-medium text-slate-500">
+                    <span className="leave-details-meta-label">
                       Applied on:{" "}
                     </span>
                     {leave.applied_on ? leave.applied_on.substring(0, 10) : "—"}
                   </span>
                   {leave.employee_id && (
                     <span>
-                      <span className="font-medium text-slate-500">
+                      <span className="leave-details-meta-label">
                         Employee ID:{" "}
                       </span>
                       {leave.employee_id}
@@ -358,17 +363,26 @@ export default function LeaveDetailsPage() {
                   )}
                 </div>
               </div>
-              <div className="flex-shrink-0 font-medium text-slate-500">
+              <div className="leave-details-header-status">
                 <StatusBadge status={leave.status} />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-4 overflow-visible">
-            <div className="overflow-visible">
-              <table className="w-full border-collapse text-sm">
+          <div className="leave-details-table-card">
+            <div className="leave-details-table-wrapper">
+              <table className="leave-details-table">
+                <colgroup>
+                  <col className="leave-details-column leave-details-column--date" />
+                  <col className="leave-details-column leave-details-column--type" />
+                  <col className="leave-details-column leave-details-column--balance" />
+                  <col className="leave-details-column leave-details-column--duration" />
+                  <col className="leave-details-column leave-details-column--status" />
+                  <col className="leave-details-column leave-details-column--comments" />
+                  <col className="leave-details-column leave-details-column--actions" />
+                </colgroup>
                 <thead>
-                  <tr className="bg-slate-50 border-b-2 border-slate-100">
+                  <tr className="leave-details-table-head-row">
                     {[
                       "Date",
                       "Leave Type",
@@ -378,61 +392,121 @@ export default function LeaveDetailsPage() {
                       "Comments",
                       "Actions",
                     ].map((heading) => (
-                      <th
-                        key={heading}
-                        className="px-4 py-3 text-left text-xs font-bold text-slate-600 whitespace-nowrap"
-                      >
+                      <th key={heading} className="leave-details-table-heading">
                         {heading}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">
+                  <tr className="leave-details-table-row">
+                    <td className="leave-details-table-cell leave-details-table-cell--nowrap">
                       {leave.start_date}
                       {leave.start_date !== leave.end_date && (
-                        <span className="text-slate-400">
+                        <span className="leave-details-muted">
                           {" "}
                           → {leave.end_date}
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-700">
+                    <td className="leave-details-table-cell">
                       {leave.leave_type}
                     </td>
-                    <td className="px-4 py-3 text-xs">
-                      <span className="text-blue-700 font-semibold">
+                    <td className="leave-details-table-cell leave-details-table-cell--compact">
+                      <span className="leave-details-balance-value">
                         {Number(leave.net_leave_balance ?? 0).toFixed(2)}
                       </span>
-                      <span className="text-slate-400 ml-1">day(s)</span>
+                      <span className="leave-details-balance-unit">day(s)</span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-700">
+                    <td className="leave-details-table-cell">
                       {Number(leave.requested_days).toFixed(2)} day(s)
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="leave-details-table-cell leave-details-table-cell--plain">
                       <StatusBadge status={leave.status} />
                       <br></br>
                       {rejectionReason && (
-                        <div className="relative inline-block group">
+                        <div className="leave-details-rejection-group">
                           <p>
-                            <span className="text-xs text-red-500 mt-1 max-w-40 break-words cursor-pointer">
+                            <span className="leave-details-rejection-label">
                               Reason:
                             </span>{" "}
                             {rejectionReasonPreview}
                           </p>
-                          <p className="absolute left-0 top-full z-50 mt-2 hidden min-w-[250px] max-w-sm rounded-lg border border-slate-200 bg-white p-3 text-[13px] text-slate-700 shadow-lg whitespace-normal break-words group-hover:block">
+                          <p className="leave-details-rejection-tooltip">
                             {rejectionReason}
                           </p>
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600 max-w-40">
-                      {leave.comments || leave.reason || (
-                        <span className="text-slate-300">—</span>
+                    <td className="leave-details-table-cell leave-details-comments-cell">
+                      {commentText ? (
+                        <div
+                          tabIndex={hasLongComment ? 0 : undefined}
+                          onMouseEnter={() =>
+                            hasLongComment && setShowCommentTooltip(true)
+                          }
+                          onMouseLeave={() => setShowCommentTooltip(false)}
+                          onFocus={() =>
+                            hasLongComment && setShowCommentTooltip(true)
+                          }
+                          onBlur={() => setShowCommentTooltip(false)}
+                          style={{
+                            position: "relative",
+                            display: "inline-block",
+                            maxWidth: "100%",
+                            outline: "none",
+                            cursor: hasLongComment ? "pointer" : "default",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "block",
+                              maxWidth: "100%",
+                              color: "#475569",
+                              whiteSpace: "normal",
+                              overflowWrap: "anywhere",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {commentPreview}
+                          </span>
+
+                          {hasLongComment && (
+                            <p
+                              role="tooltip"
+                              style={{
+                                position: "absolute",
+                                top: "calc(100% + 0.5rem)",
+                                right: 0,
+                                zIndex: 60,
+                                display: showCommentTooltip ? "block" : "none",
+                                width: "max-content",
+                                minWidth: "250px",
+                                maxWidth: "min(24rem, 70vw)",
+                                margin: 0,
+                                padding: "0.75rem",
+                                color: "#334155",
+                                fontSize: "13px",
+                                lineHeight: 1.4,
+                                whiteSpace: "normal",
+                                overflowWrap: "anywhere",
+                                wordBreak: "break-word",
+                                backgroundColor: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "0.5rem",
+                                boxShadow:
+                                  "0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%)",
+                              }}
+                            >
+                              {commentText}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="leave-details-placeholder">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="leave-details-table-cell leave-details-table-cell--plain leave-details-actions-cell">
                       <LeaveActionDropdown
                         canApproveReject={canApproveReject}
                         canCancel={canCancel}
@@ -446,30 +520,27 @@ export default function LeaveDetailsPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
-              <button className="text-xs text-teal-600 hover:underline cursor-pointer bg-transparent border-none">
-                View Leave Request Comments
-              </button>
-            </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-            <h3 className="text-sm font-bold text-slate-700 mb-4">
-              Attachment
-            </h3>
+          <div className="leave-details-attachment-card">
+            <h3 className="leave-details-attachment-title">Attachment</h3>
             {leave.attachment_path ? (
-              <div className="flex items-center gap-3 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="flex-1 min-w-0">
+              <div className="leave-details-attachment-item">
+                <div className="leave-details-flex-content">
                   <a
                     href={`/${leave.attachment_path}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-sm text-blue-700 hover:underline font-medium truncate block"
+                    className="leave-details-attachment-name"
                   >
                     {leave.attachment_path.split("/").pop()}
                   </a>
                   <span
-                    className={`text-xs mt-0.5 inline-block px-2 py-0.5 rounded-full font-medium ${leave.attachment_status === "Available" ? "bg-green-50 text-green-600" : "bg-amber-50 text-amber-600"}`}
+                    className={`leave-details-attachment-status ${
+                      leave.attachment_status === "Available"
+                        ? "leave-details-attachment-status--available"
+                        : "leave-details-attachment-status--unavailable"
+                    }`}
                   >
                     {leave.attachment_status || "Available"}
                   </span>
@@ -478,13 +549,13 @@ export default function LeaveDetailsPage() {
                   href={`/${leave.attachment_path}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-blue-700 hover:text-blue-900 px-3 py-1.5 border border-blue-200 rounded-lg no-underline transition"
+                  className="leave-details-download-link"
                 >
                   Download
                 </a>
               </div>
             ) : (
-              <p className="text-xs text-slate-400 mb-4">
+              <p className="leave-details-no-attachment">
                 No attachment uploaded yet.
               </p>
             )}
@@ -492,17 +563,17 @@ export default function LeaveDetailsPage() {
               ref={fileInputRef}
               type="file"
               accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xlsx,.xls"
-              className="hidden"
+              className="leave-details-file-input"
               onChange={handleFileChange}
             />
             <button
               onClick={handleOpenFilePicker}
               disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-xs font-semibold rounded-lg cursor-pointer hover:opacity-90 transition disabled:opacity-60"
+              className="leave-details-upload-button"
             >
               {uploading ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="leave-details-upload-spinner" />
                   Uploading…
                 </>
               ) : (
@@ -510,14 +581,14 @@ export default function LeaveDetailsPage() {
                   <Paperclip
                     size={14}
                     strokeWidth={2.5}
-                    className="text-white"
+                    className="leave-details-attachment-icon"
                     aria-hidden="true"
                   />
                   FILE ATTACHMENT
                 </>
               )}
             </button>
-            <p className="text-xs text-slate-400 mt-2">Accepts up to 5 MB</p>
+            <p className="leave-details-upload-note">Accepts up to 5 MB</p>
           </div>
         </>
       )}

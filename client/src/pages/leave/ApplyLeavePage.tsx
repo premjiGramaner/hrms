@@ -16,6 +16,7 @@ import UserAvatar from "../../components/UserAvatar";
 import { PAGE_PATHS } from "../../config/roles";
 import { PartialDays, DayHalf } from "./components/leave";
 import HalfDaySelect from "./components/HalfDaySelect";
+import "./Style/ApplyLeavePage.css";
 
 // Helper function to calculate working days (excluding weekends)
 function calculateWorkingDays(fromDate: string, toDate: string): number {
@@ -301,34 +302,30 @@ export default function ApplyLeavePage() {
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
 
-      <div className="max-w-6xl  mx-auto">
-        <h2 className="text-base font-bold text-slate-800 mb-5">Apply Leave</h2>
+      <div className="apply-leave-page">
+        <h2 className="apply-leave-page__title">Apply Leave</h2>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-4">
-          <div className="flex items-start gap-5 mb-6">
+        <div className="apply-leave-card">
+          <div className="employee-summary">
             {/* Reusable UserAvatar component */}
-            <UserAvatar size={64} className="border-2 border-white shadow" />
+            <UserAvatar size={64} className="employee-summary__avatar" />
             <div>
-              <p className="font-bold text-slate-900 text-sm">
+              <p className="employee-summary__name">
                 {user?.name || "Employee"}
               </p>
-              <p className="text-xs text-slate-500 capitalize">
-                {user?.role || ""}
-              </p>
+              <p className="employee-summary__role">{user?.role || ""}</p>
             </div>
           </div>
 
           {loadingTypes ? (
-            <div className="flex items-center gap-3 py-4">
-              <div className="w-5 h-5 border-2 border-blue-900 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm text-slate-400">
-                Loading leave types…
-              </span>
+            <div className="leave-loading">
+              <div className="leave-loading__spinner" />
+              <span className="leave-loading__text">Loading leave types…</span>
             </div>
           ) : filteredLeaveTypes.length === 0 ? (
-            <div className="flex items-center gap-2 text-slate-400 text-sm mb-5 px-1 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <div className="leave-empty-state">
               <svg
-                className="w-4 h-4 flex-shrink-0"
+                className="leave-icon"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -341,12 +338,8 @@ export default function ApplyLeavePage() {
               No leave types available.
             </div>
           ) : (
-            <div className="relative mb-6">
-              <div
-                ref={scrollRef}
-                className="flex gap-3 overflow-x-auto pb-1 scroll-smooth "
-                style={{ scrollbarWidth: "none" }}
-              >
+            <div className="leave-types">
+              <div ref={scrollRef} className="leave-type-scroll">
                 {filteredLeaveTypes.map((leaveType) => {
                   const balance = getBalance(leaveType.id);
                   const active = selectedTypeId === leaveType.id;
@@ -357,57 +350,30 @@ export default function ApplyLeavePage() {
                       onClick={() =>
                         setSelectedTypeId(active ? null : leaveType.id)
                       }
-                      className={`flex-shrink-0 w-36 rounded-xl border-2 px-3 py-3 text-left cursor-pointer transition text-center
-                        ${
-                          active
-                            ? "border-blue-700 bg-blue-950 shadow-md"
-                            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                        }`}
+                      className={`leave-type-card ${
+                        active
+                          ? "leave-type-card--active"
+                          : "leave-type-card--inactive"
+                      }`}
                     >
-                      <p
-                        className={`text-sm font-bold  leading-tight mb-1 ${active ? "text-white" : "text-slate-700"}`}
-                      >
-                        {leaveType.name}
-                      </p>
-                      <p
-                        className={`text-2xl font-bold leading-none ${active ? "text-white" : "text-slate-800"}`}
-                      >
+                      <p className="leave-type-card__name">{leaveType.name}</p>
+                      <p className="leave-type-card__balance">
                         {balance.toFixed(2)}
                       </p>
-                      <p className="text-xs text-white mt-0.5">
-                        Balance Day(s)
-                      </p>
+                      <p className="leave-type-card__label">Balance Day(s)</p>
                     </button>
                   );
                 })}
               </div>
-
-              {filteredLeaveTypes.length > 4 && (
-                <button
-                  type="button"
-                  onClick={() => scrollCards("right")}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 bg-white border border-slate-200 rounded-full shadow flex items-center justify-center cursor-pointer hover:bg-slate-50 transition z-10"
-                >
-                  <svg
-                    className="w-3.5 h-3.5 text-slate-600"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <polyline points="9 6 15 12 9 18" />
-                  </svg>
-                </button>
-              )}
             </div>
           )}
 
           {!selectedTypeId &&
             !loadingTypes &&
             filteredLeaveTypes.length > 0 && (
-              <div className="flex items-center gap-2 text-slate-400 text-sm mb-5 px-1">
+              <div className="leave-selection-hint">
                 <svg
-                  className="w-4 h-4 flex-shrink-0"
+                  className="leave-icon"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -422,11 +388,12 @@ export default function ApplyLeavePage() {
               </div>
             )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="apply-leave-form">
+            <div className="apply-leave-form__date-grid">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  From Date <span className="text-red-500">*</span>
+                <label className="apply-leave-form__label">
+                  From Date{" "}
+                  <span className="apply-leave-form__required">*</span>
                 </label>
                 <input
                   type="date"
@@ -438,20 +405,18 @@ export default function ApplyLeavePage() {
                     }
                   }}
                   placeholder="yyyy-mm-dd"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition"
+                  className="apply-leave-form__control"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  To Date
-                </label>
+                <label className="apply-leave-form__label">To Date</label>
                 <input
                   type="date"
                   value={endDate}
                   min={startDate}
                   onChange={(event) => setEndDate(event.target.value)}
                   placeholder="yyyy-mm-dd"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition"
+                  className="apply-leave-form__control"
                 />
               </div>
             </div>
@@ -459,26 +424,26 @@ export default function ApplyLeavePage() {
             {startDate && (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-2">
+                  <label className="apply-leave-form__label apply-leave-form__label--spaced">
                     Partial Days
                   </label>
-                  <div className="flex flex-wrap gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                  <div className="partial-day-options">
+                    <label className="partial-day-option">
                       <input
                         type="radio"
                         name="partialDays"
                         value={PartialDays.None}
                         checked={partialDays === PartialDays.None}
                         onChange={() => setPartialDays(PartialDays.None)}
-                        className="w-4 h-4 text-blue-600 cursor-pointer"
+                        className="partial-day-option__radio"
                       />
-                      <span className="text-sm text-slate-700">None</span>
+                      <span className="partial-day-option__text">None</span>
                     </label>
                     <label
-                      className={`flex items-center gap-2 ${
+                      className={`partial-day-option ${
                         !isMultipleDayRange
-                          ? "opacity-50 cursor-not-allowed"
-                          : "cursor-pointer"
+                          ? "partial-day-option--disabled"
+                          : ""
                       }`}
                     >
                       <input
@@ -488,11 +453,11 @@ export default function ApplyLeavePage() {
                         checked={partialDays === PartialDays.AllDays}
                         onChange={() => setPartialDays(PartialDays.AllDays)}
                         disabled={!isMultipleDayRange}
-                        className="w-4 h-4 text-blue-600 cursor-pointer disabled:cursor-not-allowed"
+                        className="partial-day-option__radio"
                       />
-                      <span className="text-sm text-slate-700">All Days</span>
+                      <span className="partial-day-option__text">All Days</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="partial-day-option">
                       <input
                         type="radio"
                         name="partialDays"
@@ -501,30 +466,30 @@ export default function ApplyLeavePage() {
                         onChange={() =>
                           setPartialDays(PartialDays.StartDayOnly)
                         }
-                        className="w-4 h-4 text-blue-600 cursor-pointer"
+                        className="partial-day-option__radio"
                       />
-                      <span className="text-sm text-slate-700">
+                      <span className="partial-day-option__text">
                         Start Day Only
                       </span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="partial-day-option">
                       <input
                         type="radio"
                         name="partialDays"
                         value={PartialDays.EndDayOnly}
                         checked={partialDays === PartialDays.EndDayOnly}
                         onChange={() => setPartialDays(PartialDays.EndDayOnly)}
-                        className="w-4 h-4 text-blue-600 cursor-pointer"
+                        className="partial-day-option__radio"
                       />
-                      <span className="text-sm text-slate-700">
+                      <span className="partial-day-option__text">
                         End Day Only
                       </span>
                     </label>
                     <label
-                      className={`flex items-center gap-2 ${
+                      className={`partial-day-option ${
                         !isMultipleDayRange
-                          ? "opacity-50 cursor-not-allowed"
-                          : "cursor-pointer"
+                          ? "partial-day-option--disabled"
+                          : ""
                       }`}
                     >
                       <input
@@ -536,9 +501,9 @@ export default function ApplyLeavePage() {
                           setPartialDays(PartialDays.StartAndEndDay)
                         }
                         disabled={!isMultipleDayRange}
-                        className="w-4 h-4 text-blue-600 cursor-pointer disabled:cursor-not-allowed"
+                        className="partial-day-option__radio"
                       />
-                      <span className="text-sm text-slate-700">
+                      <span className="partial-day-option__text">
                         Start and End Day
                       </span>
                     </label>
@@ -548,8 +513,9 @@ export default function ApplyLeavePage() {
                 {(partialDays === PartialDays.StartDayOnly ||
                   partialDays === PartialDays.StartAndEndDay) && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Start Day <span className="text-red-500">*</span>
+                    <label className="apply-leave-form__label">
+                      Start Day{" "}
+                      <span className="apply-leave-form__required">*</span>
                     </label>
                     <HalfDaySelect
                       value={startDayHalf}
@@ -561,8 +527,9 @@ export default function ApplyLeavePage() {
                 {(partialDays === PartialDays.EndDayOnly ||
                   partialDays === PartialDays.StartAndEndDay) && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      End Day <span className="text-red-500">*</span>
+                    <label className="apply-leave-form__label">
+                      End Day{" "}
+                      <span className="apply-leave-form__required">*</span>
                     </label>
                     <HalfDaySelect
                       value={endDayHalf}
@@ -572,16 +539,16 @@ export default function ApplyLeavePage() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  <label className="apply-leave-form__label">
                     Total Duration
                   </label>
-                  <div className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-700">
+                  <div className="apply-leave-form__duration">
                     {totalDuration.toFixed(2)} Day(s)
                   </div>
                   {totalDuration === 0 &&
                     workingDaysInRange === 0 &&
                     startDate && (
-                      <p className="text-xs text-red-600 mt-1">
+                      <p className="apply-leave-form__validation">
                         The selected date range does not contain any working
                         days.
                       </p>
@@ -592,23 +559,21 @@ export default function ApplyLeavePage() {
 
             {startDate && (
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Comments
-                </label>
+                <label className="apply-leave-form__label">Comments</label>
                 <textarea
                   value={comments}
                   onChange={(event) => setComments(event.target.value)}
                   rows={4}
                   placeholder="Add your comments here"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition resize-none"
+                  className="apply-leave-form__control apply-leave-form__textarea"
                 />
               </div>
             )}
 
             {hasDateOverlap && (
-              <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="date-overlap-alert">
                 <svg
-                  className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5"
+                  className="date-overlap-alert__icon"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -618,27 +583,29 @@ export default function ApplyLeavePage() {
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                <p className="text-xs text-red-700">
+                <p className="date-overlap-alert__text">
                   A leave request already exists for the selected date(s).
                 </p>
               </div>
             )}
 
             {startDate && (
-              <p className="text-xs text-slate-400">* Required field</p>
+              <p className="apply-leave-form__required-note">
+                * Required field
+              </p>
             )}
 
-            <div className="flex items-center justify-between mt-2">
+            <div className="apply-leave-actions">
               {latestLeave ? (
                 <button
                   type="button"
                   onClick={() =>
                     navigate(PAGE_PATHS.myLeaveDetail(latestLeave.id))
                   }
-                  className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-left hover:bg-slate-100 transition cursor-pointer"
+                  className="latest-leave-button"
                 >
                   <svg
-                    className="w-4 h-4 text-slate-400 flex-shrink-0"
+                    className="latest-leave-button__icon"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -650,10 +617,10 @@ export default function ApplyLeavePage() {
                     <line x1="3" y1="10" x2="21" y2="10" />
                   </svg>
                   <div>
-                    <p className="text-xs font-medium text-slate-700">
+                    <p className="latest-leave-button__title">
                       Last leave taken on {latestLeave.start_date}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="latest-leave-button__meta">
                       {latestLeave.leave_type} ·{" "}
                       {Number(latestLeave.requested_days).toFixed(2)} day(s)
                     </p>
@@ -666,11 +633,9 @@ export default function ApplyLeavePage() {
               <button
                 type="submit"
                 disabled={submitting || !isFormComplete || hasDateOverlap}
-                className="px-8 py-2.5 rounded-lg bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-bold cursor-pointer hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="apply-leave-submit"
               >
-                {submitting && (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
+                {submitting && <div className="apply-leave-submit__spinner" />}
                 Apply
               </button>
             </div>

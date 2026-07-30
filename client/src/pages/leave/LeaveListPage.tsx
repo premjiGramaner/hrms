@@ -1,4 +1,11 @@
-﻿import { useEffect, useRef, useState, useCallback } from "react";
+﻿import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  type FocusEvent,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchLeaves, setFilters } from "../../store/leaveSlice";
@@ -27,8 +34,10 @@ import {
   SUPERVISOR_ROLES,
   type UserRole,
 } from "../../config/roles";
+import "./Style/LeaveListPage.css";
 
 const ATTACH_STATUSES = ["Available", "Pending"];
+const COMMENT_PREVIEW_LENGTH = 10;
 const STATUS_OPTIONS = [
   "Cancelled",
   "Pending Approval",
@@ -59,8 +68,14 @@ interface ConfirmationTarget {
   action: ConfirmationAction;
 }
 
-const ButtonStyles =
-  "px-6 py-2 rounded-lg bg-gradient-to-r from-[#1b2a6b] to-[#16a085] text-white text-sm font-semibold cursor-pointer border-none hover:opacity-90 shadow-md";
+interface CommentTooltipState {
+  leaveId: number;
+  top: number;
+  left: number;
+  showAbove: boolean;
+}
+
+const ButtonStyles = "leave-list-action-button";
 const today = new Date();
 const fromDate = new Date(today.getFullYear(), today.getMonth(), 21);
 const toDate = new Date(today.getFullYear(), today.getMonth() + 1, 20);
@@ -125,32 +140,27 @@ function RejectModal({
 }) {
   const [reason, setReason] = useState("");
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-        <h3 className="text-base font-bold text-slate-800 mb-4">
-          Reject Leave #{leaveId}
-        </h3>
-        <label className="block text-sm text-slate-600 mb-1">
-          Rejection Reason <span className="text-red-500">*</span>
+    <div className="leave-list-modal-overlay">
+      <div className="leave-list-modal">
+        <h3 className="leave-list-modal-title">Reject Leave #{leaveId}</h3>
+        <label className="leave-list-modal-label">
+          Rejection Reason <span className="leave-list-required">*</span>
         </label>
         <textarea
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           rows={4}
           placeholder="Enter reason…"
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-blue-400 transition"
+          className="leave-list-modal-textarea"
         />
-        <div className="flex justify-end gap-2 mt-4">
-          <button
-            onClick={onCancel}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 cursor-pointer transition"
-          >
+        <div className="leave-list-modal-actions">
+          <button onClick={onCancel} className="leave-list-modal-cancel-button">
             Cancel
           </button>
           <button
             disabled={!reason.trim()}
             onClick={() => reason.trim() && onConfirm(reason.trim())}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer transition disabled:opacity-50"
+            className="leave-list-modal-reject-button"
           >
             Reject
           </button>
@@ -205,17 +215,17 @@ function EmployeeAutocomplete({
   }, []);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="leave-list-relative">
       <input
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Type name, ID or username…"
-        className="w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition"
+        className="leave-list-form-control"
         onFocus={() => suggestions.length > 0 && setOpen(true)}
       />
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto">
+        <div className="leave-list-autocomplete-menu">
           {suggestions.map((emp) => (
             <button
               key={emp.id}
@@ -225,12 +235,12 @@ function EmployeeAutocomplete({
                 setOpen(false);
                 onChange(emp.name);
               }}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 cursor-pointer transition flex items-center gap-2"
+              className="leave-list-autocomplete-option"
             >
-              <span className="font-mono text-xs text-slate-400 w-20 flex-shrink-0">
+              <span className="leave-list-autocomplete-code">
                 {emp.employee_id || emp.username}
               </span>
-              <span className="text-slate-700">{emp.name}</span>
+              <span className="leave-list-autocomplete-name">{emp.name}</span>
             </button>
           ))}
         </div>
@@ -343,6 +353,8 @@ export default function LeaveListPage() {
     useState<ConfirmationTarget | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [searchTriggered, setSearchTriggered] = useState(false);
+  const [commentTooltip, setCommentTooltip] =
+    useState<CommentTooltipState | null>(null);
 
   const handleOpenApproveConfirmation = (leaveId: number) => {
     setConfirmationTarget({
@@ -505,10 +517,8 @@ export default function LeaveListPage() {
     }
   };
 
-  const inputCls =
-    "w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition";
-  const selectCls =
-    "w-full border border-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-blue-400 bg-white transition appearance-none cursor-pointer";
+  const inputCls = "leave-list-form-control";
+  const selectCls = "leave-list-form-control leave-list-select";
 
   const handleFromDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newFromDate = event.target.value;
@@ -718,6 +728,34 @@ export default function LeaveListPage() {
       page: 1,
     }));
   };
+
+  const handleCommentTooltipShow = (
+    event: ReactMouseEvent<HTMLDivElement> | FocusEvent<HTMLDivElement>,
+    leaveId: number,
+  ) => {
+    const triggerRect = event.currentTarget.getBoundingClientRect();
+    const tooltipWidth = 320;
+    const viewportPadding = 12;
+    const estimatedTooltipHeight = 160;
+    const showAbove =
+      triggerRect.bottom + estimatedTooltipHeight > window.innerHeight;
+
+    const left = Math.min(
+      Math.max(viewportPadding, triggerRect.left),
+      window.innerWidth - tooltipWidth - viewportPadding,
+    );
+
+    setCommentTooltip({
+      leaveId,
+      top: showAbove ? triggerRect.top - 8 : triggerRect.bottom + 8,
+      left,
+      showAbove,
+    });
+  };
+
+  const handleCommentTooltipHide = () => {
+    setCommentTooltip(null);
+  };
   return (
     <LeaveLayout>
       <Toast toasts={toasts} onRemove={removeToast} />
@@ -745,8 +783,8 @@ export default function LeaveListPage() {
           }
           confirmButtonClassName={
             confirmationTarget.action === ConfirmationAction.Approve
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-red-600 hover:bg-red-700"
+              ? "leave-list-confirm-button--approve"
+              : "leave-list-confirm-button--cancel"
           }
           loading={actionLoading === confirmationTarget.leaveId}
           onConfirm={handleConfirmAction}
@@ -775,28 +813,26 @@ export default function LeaveListPage() {
       )}
 
       {isAdmin && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-5">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
-            <span className="text-sm font-semibold text-slate-700">
+        <div className="leave-list-search-panel">
+          <div className="leave-list-section-header">
+            <span className="leave-list-section-title">
               Search{" "}
-              <span className="text-xs text-slate-400 font-normal ml-1">
+              <span className="leave-list-search-hint">
                 (Please specify your search)
               </span>
             </span>
             <button
               onClick={handleToggleSearchPanel}
-              className="text-slate-400 hover:text-slate-600 text-base leading-none cursor-pointer bg-transparent border-none select-none"
+              className="leave-list-search-toggle"
             >
               {panelOpen ? "▲" : "▼"}
             </button>
           </div>
           {panelOpen && (
-            <div className="p-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div className="leave-list-search-body">
+              <div className="leave-list-filter-grid leave-list-filter-grid--three">
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    From
-                  </label>
+                  <label className="leave-list-filter-label">From</label>
                   <input
                     type="date"
                     value={form.from_date || ""}
@@ -805,9 +841,7 @@ export default function LeaveListPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    To
-                  </label>
+                  <label className="leave-list-filter-label">To</label>
                   <input
                     type="date"
                     value={form.to_date || ""}
@@ -817,9 +851,7 @@ export default function LeaveListPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    Employee
-                  </label>
+                  <label className="leave-list-filter-label">Employee</label>
                   <EmployeeAutocomplete
                     value={form.employee_name || ""}
                     onChange={handleEmployeeNameChange}
@@ -827,12 +859,10 @@ export default function LeaveListPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div className="leave-list-filter-grid leave-list-filter-grid--three">
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    Sub Unit
-                  </label>
-                  <div className="relative">
+                  <label className="leave-list-filter-label">Sub Unit</label>
+                  <div className="leave-list-relative">
                     <select
                       value={form.sub_unit || ""}
                       onChange={handleSubUnitChange}
@@ -848,15 +878,13 @@ export default function LeaveListPage() {
                     <ChevronDown
                       size={14}
                       aria-hidden="true"
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                      className="leave-list-select-chevron"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    Location
-                  </label>
-                  <div className="relative">
+                  <label className="leave-list-filter-label">Location</label>
+                  <div className="leave-list-relative">
                     <select
                       value={form.location || ""}
                       onChange={handleLocationChange}
@@ -872,15 +900,13 @@ export default function LeaveListPage() {
                     <ChevronDown
                       size={14}
                       aria-hidden="true"
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                      className="leave-list-select-chevron"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    Leave Type
-                  </label>
-                  <div className="relative">
+                  <label className="leave-list-filter-label">Leave Type</label>
+                  <div className="leave-list-relative">
                     <select
                       value={form.leave_type_id || ""}
                       onChange={handleLeaveTypeChange}
@@ -896,17 +922,15 @@ export default function LeaveListPage() {
                     <ChevronDown
                       size={14}
                       aria-hidden="true"
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                      className="leave-list-select-chevron"
                     />
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div className="leave-list-filter-grid leave-list-filter-grid--three">
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
-                    Job Title
-                  </label>
-                  <div className="relative">
+                  <label className="leave-list-filter-label">Job Title</label>
+                  <div className="leave-list-relative">
                     <select
                       value={form.job_title || ""}
                       onChange={handleJobTitleChange}
@@ -922,15 +946,15 @@ export default function LeaveListPage() {
                     <ChevronDown
                       size={14}
                       aria-hidden="true"
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                      className="leave-list-select-chevron"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
+                  <label className="leave-list-filter-label">
                     Employment Status
                   </label>
-                  <div className="relative">
+                  <div className="leave-list-relative">
                     <select
                       value={form.employment_status || ""}
                       onChange={handleEmploymentStatusChange}
@@ -951,15 +975,15 @@ export default function LeaveListPage() {
                     <ChevronDown
                       size={14}
                       aria-hidden="true"
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                      className="leave-list-select-chevron"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
+                  <label className="leave-list-filter-label">
                     Job Category
                   </label>
-                  <div className="relative">
+                  <div className="leave-list-relative">
                     <select
                       value={form.job_category || ""}
                       onChange={handleJobCategoryChange}
@@ -975,17 +999,17 @@ export default function LeaveListPage() {
                     <ChevronDown
                       size={14}
                       aria-hidden="true"
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                      className="leave-list-select-chevron"
                     />
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div className="leave-list-filter-grid leave-list-filter-grid--two">
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">
+                  <label className="leave-list-filter-label">
                     Attachment Status
                   </label>
-                  <div className="relative">
+                  <div className="leave-list-relative">
                     <select
                       value={form.attachment_status || ""}
                       onChange={handleAttachmentStatusChange}
@@ -1001,65 +1025,65 @@ export default function LeaveListPage() {
                     <ChevronDown
                       size={14}
                       aria-hidden="true"
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"
+                      className="leave-list-select-chevron"
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-5 mb-4">
-                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              <div className="leave-list-checkbox-row">
+                <label className="leave-list-checkbox-label">
                   <input
                     type="checkbox"
                     checked={form.include_past || false}
                     onChange={handleIncludePastChange}
-                    className="w-4 h-4 accent-blue-900"
+                    className="leave-list-checkbox"
                   />
                   Include Past Employees
                 </label>
-                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                <label className="leave-list-checkbox-label">
                   <input
                     type="checkbox"
                     checked={form.only_subordinates || false}
                     onChange={handleOnlySubordinatesChange}
-                    className="w-4 h-4 accent-blue-900"
+                    className="leave-list-checkbox"
                   />
                   Only Show My Subordinate's Leave
                 </label>
               </div>
-              <div className="mb-5">
-                <p className="text-xs font-semibold text-slate-700 mb-2">
+              <div className="leave-list-status-filter">
+                <p className="leave-list-status-title">
                   Show Leave with Status
                 </p>
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                <div className="leave-list-status-options">
+                  <label className="leave-list-checkbox-label">
                     <input
                       type="checkbox"
                       checked={isAllChecked}
                       value={LeaveStatus.All}
                       ref={allStatusesCheckboxRef}
                       onChange={handleStatusOptionChange}
-                      className="w-4 h-4 accent-blue-900"
+                      className="leave-list-checkbox"
                     />
                     All
                   </label>
                   {STATUS_OPTIONS.map((statusOption) => (
                     <label
                       key={statusOption}
-                      className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer"
+                      className="leave-list-checkbox-label"
                     >
                       <input
                         type="checkbox"
                         value={statusOption}
                         checked={(form.statuses || []).includes(statusOption)}
                         onChange={handleStatusOptionChange}
-                        className="w-4 h-4 accent-blue-900"
+                        className="leave-list-checkbox"
                       />
                       {statusOption}
                     </label>
                   ))}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 justify-end">
+              <div className="leave-list-filter-actions">
                 <button onClick={handleReset} className={ButtonStyles}>
                   Reset
                 </button>
@@ -1079,18 +1103,18 @@ export default function LeaveListPage() {
       )}
 
       {/* Results Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-700">
+      <div className="leave-list-results-card">
+        <div className="leave-list-section-header">
+          <span className="leave-list-section-title">
             {data
               ? `${data.total} record${data.total !== 1 ? "s" : ""}`
               : "Results"}
           </span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
+        <div className="leave-list-table-scroll">
+          <table className="leave-list-results-table">
             <thead>
-              <tr className="bg-slate-50 border-b-2 border-slate-100">
+              <tr className="leave-list-table-head-row">
                 {[
                   "Employee ID",
                   "Employee Name",
@@ -1100,12 +1124,10 @@ export default function LeaveListPage() {
                   "Net Leave Balance",
                   "Requested Duration",
                   "Status",
+                  "Comments",
                   "Actions",
                 ].map((header) => (
-                  <th
-                    key={header}
-                    className="px-3 py-2.5 text-left text-xs font-bold text-slate-600 whitespace-nowrap"
-                  >
+                  <th key={header} className="leave-list-table-heading">
                     {header}
                   </th>
                 ))}
@@ -1114,10 +1136,10 @@ export default function LeaveListPage() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={9} className="text-center py-16 text-slate-400">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 border-2 border-blue-900 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm">Loading…</span>
+                  <td colSpan={10} className="leave-list-table-state">
+                    <div className="leave-list-loading-content">
+                      <div className="leave-list-spinner" />
+                      <span className="leave-list-state-text">Loading…</span>
                     </div>
                   </td>
                 </tr>
@@ -1126,65 +1148,155 @@ export default function LeaveListPage() {
                 searchTriggered &&
                 (!data || data.data.length === 0) && (
                   <tr>
-                    <td
-                      colSpan={9}
-                      className="text-center py-16 text-slate-400"
-                    >
-                      <div className="text-sm">No leave records found</div>
+                    <td colSpan={10} className="leave-list-table-state">
+                      <div className="leave-list-state-text">
+                        No leave records found
+                      </div>
                     </td>
                   </tr>
                 )}
               {!loading &&
                 data?.data.map((row: LeaveRequest, rowIndex: number) => {
+                  const commentText = row.comments || row.reason || "";
+                  const hasLongComment =
+                    commentText.length > COMMENT_PREVIEW_LENGTH;
+                  const commentPreview = hasLongComment
+                    ? `${commentText.slice(0, COMMENT_PREVIEW_LENGTH)}...`
+                    : commentText;
+
                   return (
                     <tr
                       key={row.id}
                       onClick={(event) => {
                         if (
                           (event.target as HTMLElement).closest(
-                            "[data-action-cell]",
+                            "[data-action-cell], [data-comment-cell]",
                           )
                         )
                           return;
                         navigate(PAGE_PATHS.leaveDetails(row.id));
                       }}
-                      className={`border-b border-slate-100 hover:bg-emerald-50 transition-colors cursor-pointer ${rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
+                      className={`leave-list-results-row ${
+                        rowIndex % 2 === 0
+                          ? "leave-list-results-row--even"
+                          : "leave-list-results-row--odd"
+                      }`}
                     >
-                      <td className="px-3 py-2.5 text-xs font-mono text-slate-700">
+                      <td className="leave-list-table-cell leave-list-employee-id">
                         {row.employee_id || "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-sm text-slate-800 font-medium whitespace-nowrap">
+                      <td className="leave-list-table-cell leave-list-employee-name">
                         {row.employee_name || "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      <td className="leave-list-table-cell leave-list-nowrap-cell">
                         {row.start_date}
                         {row.start_date !== row.end_date && (
                           <span> to {row.end_date}</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      <td className="leave-list-table-cell leave-list-nowrap-cell">
                         {row.applied_on ? row.applied_on.substring(0, 10) : "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-700">
+                      <td className="leave-list-table-cell leave-list-text-cell">
                         {row.leave_type}
                       </td>
-                      <td className="px-3 py-2.5 text-xs">
-                        <span className="text-blue-700 font-semibold">
+                      <td className="leave-list-table-cell leave-list-balance-cell">
+                        <span className="leave-list-balance-value">
                           {Number(row.net_leave_balance ?? 0).toFixed(2)} day(s)
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-700">
+                      <td className="leave-list-table-cell leave-list-text-cell">
                         {Number(row.requested_days).toFixed(2)} day(s)
                       </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex flex-col gap-1">
+                      <td className="leave-list-table-cell">
+                        <div className="leave-list-status-content">
                           <StatusBadge status={row.status} />
-                          <span className="text-xs text-slate-400">
+                          <span className="leave-list-muted-text">
                             ({Number(row.requested_days).toFixed(2)} day(s))
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5" data-action-cell="true">
+                      <td
+                        className="leave-list-table-cell leave-list-comments-cell"
+                        data-comment-cell="true"
+                      >
+                        {commentText ? (
+                          <div
+                            tabIndex={hasLongComment ? 0 : undefined}
+                            onMouseEnter={(event) =>
+                              hasLongComment &&
+                              handleCommentTooltipShow(event, row.id)
+                            }
+                            onMouseLeave={handleCommentTooltipHide}
+                            onFocus={(event) =>
+                              hasLongComment &&
+                              handleCommentTooltipShow(event, row.id)
+                            }
+                            onBlur={handleCommentTooltipHide}
+                            style={{
+                              position: "relative",
+                              display: "inline-block",
+                              width: "100%",
+                              maxWidth: "180px",
+                              outline: "none",
+                              cursor: hasLongComment ? "pointer" : "default",
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: "block",
+                                width: "100%",
+                                overflow: "hidden",
+                                color: "#475569",
+                                whiteSpace: "nowrap",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {commentPreview}
+                            </span>
+
+                            {hasLongComment &&
+                              commentTooltip?.leaveId === row.id && (
+                                <p
+                                  role="tooltip"
+                                  style={{
+                                    position: "fixed",
+                                    top: commentTooltip.top,
+                                    left: commentTooltip.left,
+                                    zIndex: 1000,
+                                    width: "320px",
+                                    maxWidth: "calc(100vw - 24px)",
+                                    margin: 0,
+                                    padding: "0.75rem",
+                                    color: "#334155",
+                                    fontSize: "13px",
+                                    lineHeight: 1.4,
+                                    whiteSpace: "normal",
+                                    overflowWrap: "anywhere",
+                                    wordBreak: "break-word",
+                                    pointerEvents: "none",
+                                    backgroundColor: "#ffffff",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "0.5rem",
+                                    boxShadow:
+                                      "0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%)",
+                                    transform: commentTooltip.showAbove
+                                      ? "translateY(-100%)"
+                                      : "none",
+                                  }}
+                                >
+                                  {commentText}
+                                </p>
+                              )}
+                          </div>
+                        ) : (
+                          <span className="leave-list-placeholder">—</span>
+                        )}
+                      </td>
+                      <td
+                        className="leave-list-table-cell leave-list-actions-cell"
+                        data-action-cell="true"
+                      >
                         <LeaveRowActions
                           leaveRequest={row}
                           currentUserId={user?.id}
