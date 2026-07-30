@@ -10,7 +10,7 @@ import {
   UpdateHRUserPayload,
 } from "../../api/hradmin.api";
 import useDebounce from "../../hooks/useDebounce";
-import { EMAIL_REGEX } from "../../validations/employee.validation";
+import { EMAIL_PATTERN } from "../../constants/validationPatterns";
 import Button, { ActionButton } from "../../components/common/Button";
 import { PAGE_PATHS, ROLES } from "../../config/roles";
 import { IconAlertCircle, IconEdit, IconX } from "../../components/Icons";
@@ -242,9 +242,8 @@ export default function HRUsersPage() {
               userList.map((user, rowIndex) => (
                 <tr
                   key={user.id}
-                  className={`border-b border-slate-50 transition-colors hover:bg-sky-50 ${
-                    rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafbff]"
-                  }`}
+                  className={`border-b border-slate-50 transition-colors hover:bg-sky-50 ${rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafbff]"
+                    }`}
                 >
                   <td className="p-3 px-4">
                     <input
@@ -438,12 +437,11 @@ function NavBtn({
       className={`
         min-w-[32px] h-8 px-[7px] rounded-md inline-flex items-center justify-center
         text-[13px] leading-none transition-all
-        ${
-          active
-            ? "border-[1.5px] border-[#1b2a6b] bg-[#1b2a6b] text-white font-bold"
-            : disabled
-              ? "border-[1.5px] border-slate-200 bg-transparent text-gray-300 cursor-not-allowed"
-              : "border-[1.5px] border-slate-200 bg-white text-gray-700 cursor-pointer hover:border-slate-400 hover:text-[#1b2a6b]"
+        ${active
+          ? "border-[1.5px] border-[#1b2a6b] bg-[#1b2a6b] text-white font-bold"
+          : disabled
+            ? "border-[1.5px] border-slate-200 bg-transparent text-gray-300 cursor-not-allowed"
+            : "border-[1.5px] border-slate-200 bg-white text-gray-700 cursor-pointer hover:border-slate-400 hover:text-[#1b2a6b]"
         }
       `}
     >
@@ -485,7 +483,7 @@ function UserFormModal({
       setFormError("Employee name is required.");
       return;
     }
-    if (!formData.email.trim() || !EMAIL_REGEX.test(formData.email)) {
+    if (!formData.email.trim() || !EMAIL_PATTERN.test(formData.email)) {
       setFormError("A valid email address is required.");
       return;
     }
