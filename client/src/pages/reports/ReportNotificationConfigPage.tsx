@@ -96,14 +96,14 @@ export default function ReportNotificationConfigPage() {
   const [saveMessage, setSaveMessage] = useState("");
 
   const [birthdayDaysBefore, setBirthdayDaysBefore] = useState(2);
-  const [birthdayActive, setBirthdayActive] = useState(true);
+  const [birthdayActive, setBirthdayActive] = useState(false);
   const [birthdayExternalEmails, setBirthdayExternalEmails] = useState<
     string[]
   >([]);
   const [birthdayEmailInput, setBirthdayEmailInput] = useState("");
 
   const [anniversaryDaysBefore, setAnniversaryDaysBefore] = useState(2);
-  const [anniversaryActive, setAnniversaryActive] = useState(true);
+  const [anniversaryActive, setAnniversaryActive] = useState(false);
   const [anniversaryExternalEmails, setAnniversaryExternalEmails] = useState<
     string[]
   >([]);
@@ -116,7 +116,7 @@ export default function ReportNotificationConfigPage() {
 
       if (config.birthday) {
         setBirthdayDaysBefore(
-          config.birthday.days_before ||
+          config.birthday.days_before ??
             NOTIFICATION_CONFIG.DEFAULT_DAYS_BEFORE,
         );
         setBirthdayActive(config.birthday.is_active !== false);
@@ -133,7 +133,7 @@ export default function ReportNotificationConfigPage() {
 
       if (config.work_anniversary) {
         setAnniversaryDaysBefore(
-          config.work_anniversary.days_before ||
+          config.work_anniversary.days_before ??
             NOTIFICATION_CONFIG.DEFAULT_DAYS_BEFORE,
         );
         setAnniversaryActive(config.work_anniversary.is_active !== false);

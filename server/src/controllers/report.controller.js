@@ -742,12 +742,21 @@ const updateNotificationConfig = async (req, res, next) => {
       return error(res, "recipient_user_ids must be an array", 400);
     }
 
+    const normalizedDaysBefore = Number(days_before);
+    if (
+      !Number.isInteger(normalizedDaysBefore) ||
+      normalizedDaysBefore < 0 ||
+      normalizedDaysBefore > 30
+    ) {
+      return error(res, "days_before must be an integer from 0 to 30", 400);
+    }
+
     const userId = req.user?.id || null;
 
     const updatedConfig = await ReportModel.updateNotificationConfig(
       notification_type,
       recipient_user_ids,
-      days_before || 2,
+      normalizedDaysBefore,
       is_active !== false,
       userId,
       external_emails || "",

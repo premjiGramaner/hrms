@@ -3,7 +3,6 @@ import pool from "../config/db.js";
 import ReportModel from "../models/report.model.js";
 import { smtpUser, smtpPass, mailFrom } from "../config/env.js";
 import {
-  logInfo,
   logError,
   logNotification,
   logEmail,
@@ -28,7 +27,7 @@ const transporter = nodemailer.createTransport({
 
 async function getGlobalAdminRecipients() {
   const { rows } = await pool.query(
-    `SELECT email FROM tbl_appusers 
+    `SELECT id, email FROM tbl_appusers
      WHERE (role IN (${ADMIN_ROLES_SQL})) 
      AND is_deleted = FALSE 
      AND is_active = TRUE 
@@ -52,10 +51,33 @@ function parseExternalEmails(externalEmailsString) {
 
 function appendExternalRecipients(recipientEmails, notificationConfig) {
   const externalEmails = parseExternalEmails(notificationConfig.external_emails);
-  if (externalEmails.length > 0) {
-    return [...recipientEmails, ...externalEmails];
+  return [
+    ...new Set(
+      [...recipientEmails, ...externalEmails].map((email) =>
+        String(email).trim().toLowerCase(),
+      ),
+    ),
+  ].filter(Boolean);
+}
+
+function isNotificationEnabled(notificationConfig) {
+  return Boolean(notificationConfig?.is_active);
+}
+
+async function getUnsentEvents(notificationType, employees, force = false) {
+  if (force) return employees;
+
+  const unsentEvents = [];
+  for (const employee of employees) {
+    if (!employee.notification_event_date) continue;
+    const alreadySent = await ReportModel.checkNotificationAlreadySent(
+      notificationType,
+      employee.id,
+      employee.notification_event_date,
+    );
+    if (!alreadySent) unsentEvents.push(employee);
   }
-  return recipientEmails;
+  return unsentEvents;
 }
 
 // ─── Email Senders ───────────────────────────────────────────────────────────
@@ -111,20 +133,26 @@ async function sendBirthdayAlertEmail(upcomingBirthdaysData, recipientEmails) {
   });
 
   try {
-    await transporter.sendMail({
+    const delivery = await transporter.sendMail({
       from: mailFrom,
       to: recipientEmails.join(", "),
       subject,
       html,
     });
+    const acceptedCount = Array.isArray(delivery.accepted)
+      ? delivery.accepted.length
+      : 0;
+    if (acceptedCount === 0) {
+      throw new Error("The mail server did not accept any recipients");
+    }
     logEmail(
       "Birthday notification sent successfully",
       recipientEmails.join(", "),
       {
-        recipientCount: recipientEmails.length,
+        recipientCount: acceptedCount,
       },
     );
-    return notificationMessages.emailSent("Birthday", recipientEmails.length);
+    return notificationMessages.emailSent("Birthday", acceptedCount);
   } catch (err) {
     logError("Birthday notification email send failed", err, {
       recipients: recipientEmails.join(", "),
@@ -193,22 +221,28 @@ async function sendWorkAnniversaryAlertEmail(
   );
 
   try {
-    await transporter.sendMail({
+    const delivery = await transporter.sendMail({
       from: mailFrom,
       to: recipientEmails.join(", "),
       subject,
       html,
     });
+    const acceptedCount = Array.isArray(delivery.accepted)
+      ? delivery.accepted.length
+      : 0;
+    if (acceptedCount === 0) {
+      throw new Error("The mail server did not accept any recipients");
+    }
     logEmail(
       "Work anniversary notification sent successfully",
       recipientEmails.join(", "),
       {
-        recipientCount: recipientEmails.length,
+        recipientCount: acceptedCount,
       },
     );
     return notificationMessages.emailSent(
       "Work anniversary",
-      recipientEmails.length,
+      acceptedCount,
     );
   } catch (err) {
     logError("Work anniversary notification email send failed", err, {
@@ -220,19 +254,22 @@ async function sendWorkAnniversaryAlertEmail(
 
 // ─── Notification Processors ─────────────────────────────────────────────────
 
-async function processBirthdayNotifications() {
+async function processBirthdayNotifications({ force = false } = {}) {
   try {
     logNotification("Starting birthday notifications processing");
 
     const notificationConfig =
       await ReportModel.getNotificationConfig("birthday");
 
-    if (!notificationConfig || !notificationConfig.is_active) {
+    if (!isNotificationEnabled(notificationConfig)) {
       logNotification("Birthday notifications are disabled");
       return notificationMessages.disabled("Birthday");
     }
 
-    const daysBefore = notificationConfig.days_before || 0;
+    const daysBefore = Math.min(
+      30,
+      Math.max(0, Number(notificationConfig.days_before) || 0),
+    );
     logNotification("Checking for upcoming birthdays", {
       daysBefore,
       range: `TODAY to ${daysBefore} day(s) ahead`,
@@ -240,14 +277,22 @@ async function processBirthdayNotifications() {
 
     const upcomingBirthdays =
       await ReportModel.getUpcomingBirthdays(daysBefore);
+    const pendingBirthdays = await getUnsentEvents(
+      "birthday",
+      upcomingBirthdays,
+      force,
+    );
 
     logNotification("Found upcoming birthdays", {
       count: upcomingBirthdays.length,
+      pendingCount: pendingBirthdays.length,
     });
 
-    if (upcomingBirthdays.length === 0) {
+    if (pendingBirthdays.length === 0) {
       return successMessage(
-        `No birthdays found from today to ${daysBefore} day(s) ahead`,
+        upcomingBirthdays.length === 0
+          ? `No birthdays found from today to ${daysBefore} day(s) ahead`
+          : "Birthday notifications have already been sent for all upcoming events",
       );
     }
 
@@ -258,14 +303,10 @@ async function processBirthdayNotifications() {
       emails: adminEmails.join(", "),
     });
 
-    let recipientEmails = adminEmails;
-    if (notificationConfig.external_emails) {
-      const externalEmails = parseExternalEmails(notificationConfig.external_emails);
-      recipientEmails = [...recipientEmails, ...externalEmails];
-      logNotification("Added external emails", {
-        externalCount: externalEmails.length,
-      });
-    }
+    const recipientEmails = appendExternalRecipients(
+      adminEmails,
+      notificationConfig,
+    );
 
     if (recipientEmails.length === 0) {
       logNotification("No recipient emails configured");
@@ -273,26 +314,19 @@ async function processBirthdayNotifications() {
     }
 
     const emailResult = await sendBirthdayAlertEmail(
-      upcomingBirthdays,
+      pendingBirthdays,
       recipientEmails,
     );
 
-    for (const employee of upcomingBirthdays) {
-      const alreadySent = await ReportModel.checkNotificationAlreadySent(
+    for (const employee of pendingBirthdays) {
+      await ReportModel.logNotificationSent(
         "birthday",
         employee.id,
-        employee.birthday_date,
+        employee.notification_event_date,
+        recipientUserIds,
+        emailResult.success ? "sent" : "failed",
+        emailResult.success ? null : emailResult.message,
       );
-      if (!alreadySent) {
-        await ReportModel.logNotificationSent(
-          "birthday",
-          employee.id,
-          employee.birthday_date,
-          recipientUserIds,
-          emailResult.success ? "sent" : "failed",
-          emailResult.success ? null : emailResult.message,
-        );
-      }
     }
 
     return emailResult;
@@ -302,17 +336,20 @@ async function processBirthdayNotifications() {
   }
 }
 
-async function processWorkAnniversaryNotifications() {
+async function processWorkAnniversaryNotifications({ force = false } = {}) {
   try {
     const notificationConfig =
       await ReportModel.getNotificationConfig("work_anniversary");
 
-    if (!notificationConfig || !notificationConfig.is_active) {
+    if (!isNotificationEnabled(notificationConfig)) {
       logNotification("Work anniversary notifications are disabled");
       return notificationMessages.disabled("Work anniversary");
     }
 
-    const daysBefore = notificationConfig.days_before || 0;
+    const daysBefore = Math.min(
+      30,
+      Math.max(0, Number(notificationConfig.days_before) || 0),
+    );
     logNotification("Checking for upcoming work anniversaries", {
       daysBefore,
       range: `TODAY to ${daysBefore} day(s) ahead`,
@@ -320,14 +357,22 @@ async function processWorkAnniversaryNotifications() {
 
     const upcomingAnniversaries =
       await ReportModel.getUpcomingWorkAnniversaries(daysBefore);
+    const pendingAnniversaries = await getUnsentEvents(
+      "work_anniversary",
+      upcomingAnniversaries,
+      force,
+    );
 
     logNotification("Found upcoming work anniversaries", {
       count: upcomingAnniversaries.length,
+      pendingCount: pendingAnniversaries.length,
     });
 
-    if (upcomingAnniversaries.length === 0) {
+    if (pendingAnniversaries.length === 0) {
       return successMessage(
-        `No work anniversaries found from today to ${daysBefore} day(s) ahead`,
+        upcomingAnniversaries.length === 0
+          ? `No work anniversaries found from today to ${daysBefore} day(s) ahead`
+          : "Work anniversary notifications have already been sent for all upcoming events",
       );
     }
 
@@ -342,26 +387,19 @@ async function processWorkAnniversaryNotifications() {
     }
 
     const emailResult = await sendWorkAnniversaryAlertEmail(
-      upcomingAnniversaries,
+      pendingAnniversaries,
       recipientEmails,
     );
 
-    for (const employee of upcomingAnniversaries) {
-      const alreadySent = await ReportModel.checkNotificationAlreadySent(
+    for (const employee of pendingAnniversaries) {
+      await ReportModel.logNotificationSent(
         "work_anniversary",
         employee.id,
-        employee.date_of_joining,
+        employee.notification_event_date,
+        recipientUserIds,
+        emailResult.success ? "sent" : "failed",
+        emailResult.success ? null : emailResult.message,
       );
-      if (!alreadySent) {
-        await ReportModel.logNotificationSent(
-          "work_anniversary",
-          employee.id,
-          employee.date_of_joining,
-          recipientUserIds,
-          emailResult.success ? "sent" : "failed",
-          emailResult.success ? null : emailResult.message,
-        );
-      }
     }
 
     return emailResult;
@@ -371,136 +409,9 @@ async function processWorkAnniversaryNotifications() {
   }
 }
 
-async function checkAndSendImmediateNotifications(employeeId) {
-  try {
-    logNotification("Checking immediate notifications for new employee", {
-      employeeId,
-    });
-
-    const birthdayConfig = await ReportModel.getNotificationConfig("birthday");
-    if (birthdayConfig && birthdayConfig.is_active) {
-      const daysBefore = birthdayConfig.days_before || 0;
-
-      const { rows: birthdayCheck } = await pool.query(
-        `SELECT 
-          u.id,
-          u.employee_id,
-          u.email,
-          COALESCE(u.name, CONCAT_WS(' ', u.first_name, u.last_name)) AS employee_name,
-          u.real_dob::text AS birthday_date,
-          TO_CHAR(u.real_dob, 'Month DD') AS formatted_birthday,
-          CASE 
-            WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') THEN 'Today'
-            WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '1 day', 'MM-DD') THEN 'Tomorrow'
-            WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '2 days', 'MM-DD') THEN 'In 2 days'
-            ELSE 'Upcoming'
-          END AS when_is_birthday,
-          u.job_title,
-          u.sub_unit,
-          u.location
-        FROM tbl_appusers u
-        WHERE u.id = $1
-          AND u.is_deleted = FALSE 
-          AND u.is_active = TRUE 
-          AND u.real_dob IS NOT NULL
-          AND (${Array.from(
-          { length: daysBefore + 1 },
-          (_, i) =>
-            `TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '${i} days', 'MM-DD')`,
-        ).join(" OR ")})`,
-        [employeeId],
-      );
-
-      if (birthdayCheck.length > 0) {
-        logNotification("Employee birthday within notification range", {
-          employeeId,
-          daysBefore,
-        });
-
-        const { recipientEmails: adminEmails } = await getGlobalAdminRecipients();
-        const recipientEmails = appendExternalRecipients(adminEmails, birthdayConfig);
-
-        if (recipientEmails.length > 0) {
-          await sendBirthdayAlertEmail(birthdayCheck, recipientEmails);
-          logNotification("Immediate birthday notification sent", {
-            employeeId,
-          });
-        }
-      } else {
-        logInfo(`Employee birthday not within ${daysBefore} days range`, {
-          employeeId,
-        });
-      }
-    }
-
-    const anniversaryConfig =
-      await ReportModel.getNotificationConfig("work_anniversary");
-    if (anniversaryConfig && anniversaryConfig.is_active) {
-      const daysBefore = anniversaryConfig.days_before || 0;
-
-      const { rows: anniversaryCheck } = await pool.query(
-        `SELECT 
-          u.id,
-          u.employee_id,
-          u.email,
-          COALESCE(u.name, CONCAT_WS(' ', u.first_name, u.last_name)) AS employee_name,
-          u.joined_date::text AS date_of_joining,
-          TO_CHAR(u.joined_date, 'Month DD') AS formatted_anniversary,
-          EXTRACT(YEAR FROM AGE(CURRENT_DATE, u.joined_date))::int AS years_completing,
-          CASE 
-            WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') THEN 'Today'
-            WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '1 day', 'MM-DD') THEN 'Tomorrow'
-            WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '2 days', 'MM-DD') THEN 'In 2 days'
-            ELSE 'Upcoming'
-          END AS when_is_anniversary,
-          u.job_title,
-          u.sub_unit,
-          u.location
-        FROM tbl_appusers u
-        WHERE u.id = $1
-          AND u.is_deleted = FALSE 
-          AND u.is_active = TRUE 
-          AND u.joined_date IS NOT NULL
-          AND (${Array.from(
-          { length: daysBefore + 1 },
-          (_, i) =>
-            `TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE + INTERVAL '${i} days', 'MM-DD')`,
-        ).join(" OR ")})
-          AND EXTRACT(YEAR FROM AGE(CURRENT_DATE, u.joined_date)) >= 1`,
-        [employeeId],
-      );
-
-      if (anniversaryCheck.length > 0) {
-        const { recipientEmails: adminEmails } = await getGlobalAdminRecipients();
-        const recipientEmails = appendExternalRecipients(adminEmails, anniversaryConfig);
-
-        if (recipientEmails.length > 0) {
-          await sendWorkAnniversaryAlertEmail(
-            anniversaryCheck,
-            recipientEmails,
-          );
-          logNotification("Immediate work anniversary notification sent", {
-            employeeId,
-          });
-        }
-      } else {
-        logInfo(
-          `Employee work anniversary not within ${daysBefore} days range`,
-          {
-            employeeId,
-          },
-        );
-      }
-    }
-  } catch (err) {
-    logError("Immediate notification check failed", err, { employeeId });
-  }
-}
-
 export {
   sendBirthdayAlertEmail,
   sendWorkAnniversaryAlertEmail,
   processBirthdayNotifications,
   processWorkAnniversaryNotifications,
-  checkAndSendImmediateNotifications,
 };

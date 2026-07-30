@@ -436,6 +436,13 @@ async function getUpcomingBirthdays(daysAhead = 2) {
       u.email,
       COALESCE(u.name, CONCAT_WS(' ', u.first_name, u.last_name)) AS employee_name,
       u.real_dob::text AS birthday_date,
+      (
+        SELECT (CURRENT_DATE + offsets.day_offset)::date
+        FROM generate_series(0, ${daysAhead}) AS offsets(day_offset)
+        WHERE TO_CHAR(CURRENT_DATE + offsets.day_offset, 'MM-DD') =
+              TO_CHAR(u.real_dob, 'MM-DD')
+        LIMIT 1
+      )::text AS notification_event_date,
       TO_CHAR(u.real_dob, 'Month DD') AS formatted_birthday,
       CASE 
         WHEN TO_CHAR(u.real_dob, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') THEN 'Today'
@@ -486,6 +493,13 @@ async function getUpcomingWorkAnniversaries(daysAhead = 2) {
       u.email,
       COALESCE(u.name, CONCAT_WS(' ', u.first_name, u.last_name)) AS employee_name,
       u.joined_date::text AS date_of_joining,
+      (
+        SELECT (CURRENT_DATE + offsets.day_offset)::date
+        FROM generate_series(0, ${daysAhead}) AS offsets(day_offset)
+        WHERE TO_CHAR(CURRENT_DATE + offsets.day_offset, 'MM-DD') =
+              TO_CHAR(u.joined_date, 'MM-DD')
+        LIMIT 1
+      )::text AS notification_event_date,
       TO_CHAR(u.joined_date, 'Month DD') AS formatted_anniversary,
       CASE 
         WHEN TO_CHAR(u.joined_date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') THEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, u.joined_date))::int
@@ -524,7 +538,7 @@ async function getUpcomingWorkAnniversaries(daysAhead = 2) {
 
 async function getNotificationConfig(notificationType) {
   const { rows } = await pool.query(
-    `SELECT id, notification_type, recipient_user_ids, days_before, is_active, external_emails, created_at, updated_at
+    `SELECT id, notification_type, recipient_user_ids, days_before, is_active, external_emails, updated_by, created_at, updated_at
      FROM tbl_report_notification_config
      WHERE notification_type = $1`,
     [notificationType],
@@ -541,9 +555,16 @@ async function updateNotificationConfig(
   externalEmails = "",
 ) {
   const { rows } = await pool.query(
-    `UPDATE tbl_report_notification_config
-     SET recipient_user_ids = $2, days_before = $3, is_active = $4, updated_by = $5, external_emails = $6, updated_at = NOW()
-     WHERE notification_type = $1
+    `INSERT INTO tbl_report_notification_config
+       (notification_type, recipient_user_ids, days_before, is_active, updated_by, external_emails)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (notification_type) DO UPDATE
+     SET recipient_user_ids = EXCLUDED.recipient_user_ids,
+         days_before = EXCLUDED.days_before,
+         is_active = EXCLUDED.is_active,
+         updated_by = EXCLUDED.updated_by,
+         external_emails = EXCLUDED.external_emails,
+         updated_at = NOW()
      RETURNING *`,
     [
       notificationType,
@@ -589,7 +610,15 @@ async function checkNotificationAlreadySent(
     `SELECT id FROM tbl_report_notification_log
      WHERE notification_type = $1 
        AND employee_id = $2 
-       AND event_date = $3 
+       AND (
+         event_date = $3::date
+         OR (
+           EXTRACT(MONTH FROM event_date) = EXTRACT(MONTH FROM $3::date)
+           AND EXTRACT(DAY FROM event_date) = EXTRACT(DAY FROM $3::date)
+           AND sent_date >= $3::date - INTERVAL '30 days'
+           AND sent_date < $3::date + INTERVAL '1 day'
+         )
+       )
        AND email_status = 'sent'
      LIMIT 1`,
     [notificationType, employeeId, eventDate],

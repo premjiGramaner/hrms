@@ -180,21 +180,6 @@ const createEmployee = async (req, res, next) => {
         "Employee created, but welcome email could not be sent. Check SMTP configuration.";
     }
 
-    try {
-      const { checkAndSendImmediateNotifications } =
-        await import("../services/reportNotification.service.js");
-      await checkAndSendImmediateNotifications(emp.id);
-      logInfo("Checked immediate birthday/anniversary notifications", {
-        employeeId: emp.id,
-        employeeName: emp.name,
-      });
-    } catch (notifErr) {
-      logError("Failed to check immediate notifications", notifErr, {
-        employeeId: emp.id,
-        employeeName: emp.name,
-      });
-    }
-
     return created(res, {
       message: "Employee created successfully",
       id: emp.id,
