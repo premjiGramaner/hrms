@@ -34,16 +34,7 @@ function roleValue(role: string) {
   return role;
 }
 
-function getRoleStyle(role: string) {
-  return (
-    ROLE_OPTIONS.find((r) => r.value === roleValue(role)) ?? {
-      color: "#64748b",
-      bg: "#f1f5f9",
-      border: "#e2e8f0",
-      label: role,
-    }
-  );
-}
+
 
 function getInitials(name: string): string {
   return (name || "?")
@@ -62,7 +53,6 @@ function RoleDropdown({
   onRoleChange: (userId: number, newRole: string) => void;
 }) {
   const [saving, setSaving] = useState(false);
-  const rs = getRoleStyle(user.role);
 
   const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRole = e.target.value;
