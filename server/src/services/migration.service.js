@@ -126,11 +126,14 @@ async function uniqueUsername(client, record) {
 
 function baseRecord(row, actor) {
   const mapping = mappingByEntity(row.entity_type);
-  const data = { ...row.normalized_data };
+  const data = Object.fromEntries(
+    Object.keys(mapping.fields)
+      .filter((field) => Object.hasOwn(row.normalized_data, field))
+      .map((field) => [field, row.normalized_data[field]]),
+  );
   if (mapping.kind === "employee") {
     data.name = data.name || [data.first_name, data.middle_name, data.last_name]
       .filter(Boolean).join(" ").trim().slice(0, 200);
-    data.work_email = data.work_email || data.email;
     if (data.dob !== undefined) data.real_dob = data.dob;
     data.role = data.role || "employee";
     data.status = data.status || "Active";
@@ -269,7 +272,6 @@ async function processRow(client, row, overwriteExisting, actor) {
       .digest("hex")
       .slice(0, 20);
     data.email = `legacy.${legacyKey}@migration.invalid`;
-    data.work_email = data.email;
     data.role = data.role || "employee";
     data.must_change_password = false;
     data.created_by = actor?.id ?? null;

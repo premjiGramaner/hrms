@@ -74,7 +74,6 @@ export const MIGRATION_MAPPINGS = Object.freeze({
       middle_name: stringField(["middle name", "employee middle name", "middle_name", "middlename"], { maxLength: 100 }),
       last_name: stringField(["last name", "employee last name", "last_name", "lastname", "surname"], { required: true, maxLength: 100 }),
       email: stringField(["email", "work email", "work_email", "official email"], { required: true, unique: true, format: "email", maxLength: 200 }),
-      work_email: stringField(["work email", "work_email", "official email"], { format: "email", maxLength: 200 }),
       other_email: stringField(["other email", "personal email", "other_email"], { format: "email", maxLength: 200 }),
       mobile: stringField(["mobile", "phone", "mobile number", "phone number"], { format: "phone", maxLength: 30 }),
       home_tel: stringField(["home telephone", "home phone", "home_tel"], { format: "phone", maxLength: 30 }),
@@ -100,7 +99,6 @@ export const MIGRATION_MAPPINGS = Object.freeze({
       date_of_permanence: dateField(["date of permanency", "date of permanence", "date_of_permanence"]),
       contract_start_date: dateField(["contract start date", "contract_start_date"]),
       contract_end_date: dateField(["contract end date", "contract_end_date"]),
-      supervisor_names: stringField(["supervisor name", "supervisor names"], { maxLength: 5000 }),
       attendance_calc: stringField(["work schedule", "attendance calculation", "attendance_calc"], { maxLength: 100 }),
       termination_reason: stringField(["termination reason"], { maxLength: 500 }),
       termination_notes: stringField(["termination note", "termination notes"], { maxLength: 10000 }),
@@ -178,7 +176,6 @@ export const MIGRATION_MAPPINGS = Object.freeze({
       joined_date: dateField(["joined date", "date of joining"]),
       sub_unit: stringField(["sub unit"], { lookupEntity: "sub_units" }),
       location: stringField(["location"], { maxLength: 100 }),
-      supervisor_names: stringField(["supervisor name"], { maxLength: 5000 }),
     },
   },
   leave_requests: {

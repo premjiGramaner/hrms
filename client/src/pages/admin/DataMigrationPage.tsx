@@ -11,7 +11,6 @@ import {
   Search,
   ShieldCheck,
   Timer,
-  UploadCloud,
   XCircle,
 } from "lucide-react";
 import Layout from "../../components/Layout";
@@ -252,7 +251,7 @@ export default function DataMigrationPage() {
             <p className="mt-1 text-sm text-slate-500">Import legacy HRMS employee and master data into the new HRMS database.</p>
           </div>
           {canStart ? (
-            <Button icon={<UploadCloud size={17} />} onClick={() => setShowConfirmation(true)}>Start Migration</Button>
+            <Button icon={<Database size={17} />} onClick={() => setShowConfirmation(true)}>Start Database Insertion</Button>
           ) : null}
         </div>
 
@@ -264,6 +263,16 @@ export default function DataMigrationPage() {
           onFile={handleFile}
           onRemove={removeFile}
         />
+
+        {status?.status === "READY" ? (
+          <div className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 text-blue-900 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-bold">Validation complete — records are not inserted yet</p>
+              <p className="mt-1 text-xs text-blue-700">{status.valid_records} records are ready. Start database insertion to write them to PostgreSQL.</p>
+            </div>
+            <Button icon={<Database size={16} />} onClick={() => setShowConfirmation(true)}>Start Database Insertion</Button>
+          </div>
+        ) : null}
 
         {validation ? (
           <section>
@@ -326,7 +335,14 @@ export default function DataMigrationPage() {
             getRowId={(item) => String(item.id)}
             actions={(item) => (
               <div className="flex min-w-[210px] gap-1.5">
-                <button type="button" title="View status" onClick={() => { setInitialStatus(item); setStatus(item); }} className="rounded-lg bg-blue-50 p-2 text-blue-700 hover:bg-blue-100"><Eye size={14} /></button>
+                <button type="button" title="View status" onClick={() => {
+                  setFile(null);
+                  setUploadResult(null);
+                  setOverwriteExisting(false);
+                  setShowConfirmation(false);
+                  setInitialStatus(item);
+                  setStatus(item);
+                }} className="rounded-lg bg-blue-50 p-2 text-blue-700 hover:bg-blue-100"><Eye size={14} /></button>
                 <button type="button" title="Download Excel report" onClick={() => download(item.id, "all", "xlsx")} className="rounded-lg bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100"><Download size={14} /></button>
                 <button type="button" title="Download CSV log" onClick={() => download(item.id, "all", "csv")} className="rounded-lg bg-slate-100 px-2 text-[11px] font-bold text-slate-700 hover:bg-slate-200">LOG</button>
               </div>
@@ -337,7 +353,7 @@ export default function DataMigrationPage() {
         </Card>
       </div>
 
-      {showConfirmation && status && uploadResult ? (
+      {showConfirmation && status ? (
         <Modal
           title="Confirm Data Migration"
           onClose={() => setShowConfirmation(false)}
@@ -348,7 +364,7 @@ export default function DataMigrationPage() {
               <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs text-slate-500">Total Records</p><p className="text-2xl font-black text-slate-800">{status.total_records}</p></div>
               <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs text-slate-500">Valid for Processing</p><p className="text-2xl font-black text-emerald-700">{status.valid_records}</p></div>
             </div>
-            <div><p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Tables affected</p><div className="flex flex-wrap gap-2">{uploadResult.tablesAffected.map((table) => <code key={table} className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs text-blue-800">{table}</code>)}</div></div>
+            {uploadResult?.tablesAffected.length ? <div><p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Tables affected</p><div className="flex flex-wrap gap-2">{uploadResult.tablesAffected.map((table) => <code key={table} className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs text-blue-800">{table}</code>)}</div></div> : null}
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4"><input type="checkbox" checked={overwriteExisting} onChange={(event) => setOverwriteExisting(event.target.checked)} className="mt-1 h-4 w-4 accent-amber-600" /><span><strong className="block text-sm text-amber-900">Overwrite matching records</strong><span className="text-xs leading-5 text-amber-700">When enabled, existing records with the same unique key are updated. Otherwise they are safely skipped.</span></span></label>
             {status.invalid_records ? <p className="flex gap-2 rounded-xl bg-rose-50 p-3 text-xs text-rose-700"><AlertTriangle size={16} className="shrink-0" />{status.invalid_records} invalid records will be skipped and included in the report.</p> : null}
           </div>
