@@ -195,6 +195,16 @@ export async function listMigrations({ page, limit, search }) {
 }
 
 export async function getReportRows(id, type) {
+  if (type === "leave-errors") {
+    const { rows } = await pool.query(
+      `SELECT * FROM tbl_data_migration_rows
+       WHERE migration_id=$1 AND entity_type='leave_requests'
+         AND (jsonb_array_length(validation_errors)>0 OR status IN ('INVALID','FAILED','SKIPPED'))
+       ORDER BY sheet_order, source_row`,
+      [id],
+    );
+    return rows;
+  }
   const statusMap = {
     errors: ["INVALID", "FAILED"], validation: ["INVALID", "WARNING"],
     skipped: ["SKIPPED", "INVALID"], failed: ["FAILED"],
@@ -213,21 +223,29 @@ export async function getReportRows(id, type) {
 export default pool;
 
 export async function getMigrationReferenceValues() {
-  const [employees, leaveTypes] = await Promise.all([
+  const [employees, leaveTypes, locations] = await Promise.all([
     pool.query(
-      `SELECT employee_id, email, username, name
+      `SELECT employee_id, email, username, name, first_name, middle_name, last_name
        FROM tbl_appusers`,
     ),
     pool.query(
       `SELECT name, code FROM tbl_leave_types
        WHERE is_deleted=FALSE AND is_active=TRUE`,
     ),
+    pool.query(
+      `SELECT DISTINCT location FROM tbl_appusers
+       WHERE NULLIF(TRIM(location), '') IS NOT NULL`,
+    ),
   ]);
   return {
-    employees: employees.rows.flatMap((row) =>
-      [row.employee_id, row.email, row.username, row.name].filter(Boolean)
-    ),
+    employees: employees.rows.flatMap((row) => {
+      const compositeName = [row.first_name, row.middle_name, row.last_name]
+        .filter((part) => part && !/^-+$/.test(String(part).trim()))
+        .join(" ");
+      return [row.username, row.name, compositeName].filter(Boolean);
+    }),
     leave_types: leaveTypes.rows.flatMap((row) => [row.name, row.code].filter(Boolean)),
+    locations: locations.rows.map((row) => row.location),
   };
 }
 
@@ -255,42 +273,4 @@ export async function getExistingUniqueValues(mappings, candidates = {}) {
     }
   }
   return values;
-}
-
-export async function resolveEmployeeReference(client, value) {
-  const { rows } = await client.query(
-    `SELECT id FROM tbl_appusers
-     WHERE LOWER(TRIM(COALESCE(employee_id, ''))) = LOWER(TRIM($1))
-        OR LOWER(TRIM(email)) = LOWER(TRIM($1))
-        OR LOWER(TRIM(username)) = LOWER(TRIM($1))
-        OR LOWER(TRIM(name)) = LOWER(TRIM($1))
-     LIMIT 2`,
-    [String(value)],
-  );
-  if (!rows.length) throw new Error(`Employee '${value}' was not found`);
-  if (rows.length > 1) throw new Error(`Employee reference '${value}' is ambiguous`);
-  return rows[0].id;
-}
-
-export async function resolveLeaveTypeReference(client, value) {
-  const { rows } = await client.query(
-    `SELECT id FROM tbl_leave_types
-     WHERE is_deleted=FALSE
-       AND (LOWER(TRIM(name))=LOWER(TRIM($1)) OR LOWER(TRIM(code))=LOWER(TRIM($1)))
-     LIMIT 2`,
-    [String(value)],
-  );
-  if (!rows.length) throw new Error(`Leave type '${value}' was not found`);
-  if (rows.length > 1) throw new Error(`Leave type reference '${value}' is ambiguous`);
-  return rows[0].id;
-}
-
-export async function findLeaveRequestDuplicate(client, data) {
-  const { rows } = await client.query(
-    `SELECT id FROM tbl_leave_requests
-     WHERE employee_id=$1 AND leave_type_id=$2 AND start_date=$3 AND end_date=$4
-       AND is_deleted=FALSE LIMIT 1`,
-    [data.employee_id, data.leave_type_id, data.start_date, data.end_date],
-  );
-  return rows[0] || null;
 }

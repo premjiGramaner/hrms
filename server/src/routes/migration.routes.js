@@ -3,6 +3,7 @@ import { authenticate } from "../middleware/auth.middleware.js";
 import { ROLES } from "../constants/roles.js";
 import AppError from "../utils/AppError.js";
 import { uploadMigrationFile } from "../middleware/migrationUpload.middleware.js";
+import { downloadLeaveMigrationErrors } from "../controllers/leaveMigration.controller.js";
 import {
   uploadMigration,
   startMigration,
@@ -26,6 +27,7 @@ router.post("/upload", uploadMigrationFile, uploadMigration);
 router.get("/history", getMigrationHistory);
 router.get("/:id/status", getMigrationStatus);
 router.get("/:id/errors", getMigrationErrors);
+router.get("/:id/leave-report", downloadLeaveMigrationErrors);
 router.post("/:id/start", startMigration);
 router.get("/:id/report", downloadMigrationReport);
 

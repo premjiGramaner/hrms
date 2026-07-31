@@ -8,6 +8,11 @@ const dateField = (headers, options = {}) => ({
   type: "date",
   ...options,
 });
+const timestampField = (headers, options = {}) => ({
+  headers,
+  type: "timestamp",
+  ...options,
+});
 
 export const MIGRATION_MAPPINGS = Object.freeze({
   job_titles: {
@@ -185,27 +190,50 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     table: "tbl_leave_requests",
     priority: 300,
     fields: {
-      employee_reference: stringField(["employee name", "employee id", "work email"], {
+      employee_reference: stringField(["employee name"], {
         required: true,
         maxLength: 255,
         referenceEntity: "employees",
         stripTrailingParenthetical: true,
+        suggestedFix: "Add the employee to tbl_appusers or correct Employee Name.",
       }),
-      leave_type_reference: stringField(["leave type", "leave type code"], {
+      job_title_reference: stringField(["job title"], {
+        required: true,
+        maxLength: 150,
+        referenceEntity: "job_titles",
+        suggestedFix: "Use an active title from tbl_job_titles.",
+      }),
+      sub_unit_reference: stringField(["sub unit"], {
+        required: true,
+        maxLength: 150,
+        referenceEntity: "sub_units",
+        suggestedFix: "Use an active sub unit from tbl_sub_units.",
+      }),
+      location_reference: stringField(["location"], {
+        required: true,
+        maxLength: 150,
+        referenceEntity: "locations",
+        suggestedFix: "Use a location already assigned in the HRMS.",
+      }),
+      leave_type_reference: stringField(["leave type"], {
         required: true,
         maxLength: 150,
         referenceEntity: "leave_types",
+        suggestedFix: "Use an active leave type name from tbl_leave_types.",
         valueAliases: {
           "privilege leave": "Privileged Leave",
           "carry forward privilege leave": "Carry Forward - Privileged Leave",
           "comp off": "Comp Off",
         },
       }),
-      start_date: dateField(["leave date", "start date"], { required: true }),
-      end_date: dateField(["end date", "leave date"], { required: true }),
-      requested_days: { headers: ["leave duration (hours)", "requested days", "leave duration"], type: "numeric", transform: "hoursToDays" },
-      applied_on: dateField(["leave applied on", "applied on"]),
-      reason: stringField(["reason", "comment"], { maxLength: 10000 }),
+      leave_date: dateField(["leave date"], { required: true }),
+      requested_hours: {
+        headers: ["leave duration (hours)"],
+        type: "numeric",
+        required: true,
+        minExclusive: 0,
+      },
+      applied_on: timestampField(["leave applied on"], { required: true }),
     },
   },
   dashboard_report: {

@@ -5,6 +5,7 @@ import { LOOKUP_COLUMNS, MIGRATION_MAPPINGS } from "../config/migrationMappings.
 import { MIGRATION_LIMITS, MIGRATION_STATUS, ROW_STATUS } from "../constants/migration.js";
 import { parseWorkbook } from "./excelParser.service.js";
 import { validateWorkbook } from "./migrationValidation.service.js";
+import { LeaveMigrationService } from "./leaveMigration.service.js";
 import { collectUniqueCandidates, mappingByEntity, tablesAffected } from "./migrationMapping.service.js";
 import { buildInsertQuery, buildUpdateQuery } from "../utils/migrationQueryBuilder.js";
 import { generateTemporaryPassword } from "../utils/userHelpers.js";
@@ -221,34 +222,13 @@ async function ensureReferencedMasters(migrationId) {
   }
 }
 
-async function processLeaveRequest(client, row) {
-  const source = { ...row.normalized_data };
-  const data = {
-    employee_id: await MigrationModel.resolveEmployeeReference(client, source.employee_reference),
-    leave_type_id: await MigrationModel.resolveLeaveTypeReference(client, source.leave_type_reference),
-    start_date: source.start_date,
-    end_date: source.end_date,
-    requested_days: source.requested_days || 1,
-    applied_on: source.applied_on || undefined,
-    reason: source.reason || undefined,
-    status: new Date(source.end_date) < new Date() ? "Taken" : "Scheduled",
-    attachment_status: "Not Required",
-  };
-  const duplicate = await MigrationModel.findLeaveRequestDuplicate(client, data);
-  if (duplicate) {
-    await MigrationModel.markRow(client, row.id, ROW_STATUS.SKIPPED, "Matching leave request already exists", duplicate.id);
-    return "skipped";
-  }
-  const query = buildInsertQuery("tbl_leave_requests", data);
-  const { rows } = await client.query(query.text, query.values);
-  await MigrationModel.markRow(client, row.id, ROW_STATUS.INSERTED, "Leave request inserted", rows[0]?.id || null);
-  return "inserted";
-}
-
-async function processRow(client, row, overwriteExisting, actor) {
+async function processRow(client, row, overwriteExisting, actor, leaveMigration) {
   const mapping = mappingByEntity(row.entity_type);
   if (!mapping) throw new Error(`Missing mapping for ${row.entity_type}`);
-  if (mapping.kind === "leave_request") return processLeaveRequest(client, row);
+  if (mapping.kind === "leave_request") {
+    if (!leaveMigration) throw new Error("Leave migration context is not initialized");
+    return leaveMigration.processRow(client, row);
+  }
   if (mapping.unsupportedReason) throw new Error(mapping.unsupportedReason);
   const data = baseRecord(row, actor);
   const keyValue = data[mapping.keyColumn];
@@ -311,7 +291,11 @@ async function executeMigration(id, overwriteExisting, actor) {
     const orderedEntities = Object.values(MIGRATION_MAPPINGS)
       .sort((first, second) => first.priority - second.priority)
       .map((mapping) => mapping.entity);
+    let leaveMigration = null;
     for (const entity of orderedEntities) {
+      if (entity === "leave_requests" && !leaveMigration) {
+        leaveMigration = await LeaveMigrationService.create(pool, id);
+      }
       let afterId = 0;
       while (true) {
         const batch = await MigrationModel.getProcessRows(id, entity, afterId, MIGRATION_LIMITS.BATCH_SIZE);
@@ -325,7 +309,13 @@ async function executeMigration(id, overwriteExisting, actor) {
             progress.currentRow = row.source_row;
             await client.query("SAVEPOINT migration_row");
             try {
-              const outcome = await processRow(client, row, overwriteExisting, actor);
+              const outcome = await processRow(
+                client,
+                row,
+                overwriteExisting,
+                actor,
+                leaveMigration,
+              );
               progress[outcome] += 1;
               await client.query("RELEASE SAVEPOINT migration_row");
             } catch (rowError) {
@@ -336,6 +326,7 @@ async function executeMigration(id, overwriteExisting, actor) {
                 ROW_STATUS.FAILED,
                 String(rowError.message).slice(0, 1000),
               );
+              await client.query("RELEASE SAVEPOINT migration_row");
               progress.failed += 1;
               logError("Migration row failed", rowError, {
                 migrationId: id,
@@ -391,6 +382,7 @@ export async function getErrors(id, query) {
       column: entry.column || "",
       invalidValue: entry.invalidValue ?? "",
       reason: entry.reason || row.result_message || "Processing failed",
+      suggestedFix: entry.suggestedFix || "Correct the source value and retry the migration.",
       severity: entry.severity || "ERROR",
       status: row.status,
     }));

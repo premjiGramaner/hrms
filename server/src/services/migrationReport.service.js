@@ -8,6 +8,13 @@ const safeCsv = (value) => {
   return `"${text.replace(/"/g, '""')}"`;
 };
 
+const sourceValue = (rawData, header) => {
+  const found = Object.entries(rawData || {}).find(
+    ([key]) => key.trim().toLowerCase() === header.toLowerCase(),
+  );
+  return found?.[1] ?? "";
+};
+
 function addSheet(workbook, name, columns, rows) {
   const worksheet = workbook.addWorksheet(name.slice(0, 31));
   worksheet.columns = columns.map((column) => ({
@@ -39,20 +46,26 @@ export async function buildMigrationReport(id, type = "all", format = "xlsx") {
       sheet: row.sheet_name,
       row: row.source_row,
       status: row.status,
+      employee: sourceValue(row.raw_data, "Employee Name"),
+      leaveType: sourceValue(row.raw_data, "Leave Type"),
       column: entry?.column || "",
-      invalidValue: entry?.invalidValue || "",
+      invalidValue: entry?.invalidValue ?? "",
       severity: entry?.severity || "",
       reason: entry?.reason || row.result_message || "",
+      suggestedFix: entry?.suggestedFix || (row.status === "FAILED" ? "Correct the source lookup/data and retry the migration." : ""),
     }));
   });
   const columns = [
     { header: "Sheet", key: "sheet" },
     { header: "Row", key: "row", width: 12 },
     { header: "Status", key: "status", width: 16 },
+    { header: "Employee", key: "employee", width: 28 },
+    { header: "Leave Type", key: "leaveType", width: 24 },
     { header: "Column", key: "column" },
     { header: "Invalid Value", key: "invalidValue", width: 28 },
     { header: "Severity", key: "severity", width: 14 },
     { header: "Reason", key: "reason", width: 45 },
+    { header: "Suggested Fix", key: "suggestedFix", width: 45 },
   ];
   if (format === "csv") {
     const csv = [columns.map((column) => safeCsv(column.header)).join(",")];

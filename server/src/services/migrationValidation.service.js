@@ -1,4 +1,5 @@
 import { ROW_STATUS } from "../constants/migration.js";
+import { toPostgresDate, toPostgresTimestamp } from "../utils/migrationDateConverter.js";
 import {
   canonicalUniqueValue,
   getMappingForSheet,
@@ -12,8 +13,8 @@ const TRUE_VALUES = new Set(["true", "yes", "y", "1", "active"]);
 const FALSE_VALUES = new Set(["false", "no", "n", "0", "inactive"]);
 const EMPTY_MARKERS = new Set(["", "-", "n/a", "na", "null", "not available", "not applicable"]);
 
-function issue(column, invalidValue, reason, severity = "ERROR", code = "VALIDATION") {
-  return { column, invalidValue: invalidValue ?? "", reason, severity, code };
+function issue(column, invalidValue, reason, severity = "ERROR", code = "VALIDATION", suggestedFix = "Correct the source value and upload the workbook again.") {
+  return { column, invalidValue: invalidValue ?? "", reason, severity, code, suggestedFix };
 }
 
 function isEmpty(value) {
@@ -21,12 +22,13 @@ function isEmpty(value) {
 }
 
 function normalizeDate(value) {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
-  }
   if (isEmpty(value)) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString().slice(0, 10);
+  return toPostgresDate(value, process.env.LEAVE_MIGRATION_DATE_ORDER || "DMY");
+}
+
+function normalizeTimestamp(value) {
+  if (isEmpty(value)) return null;
+  return toPostgresTimestamp(value, process.env.LEAVE_MIGRATION_DATE_ORDER || "DMY");
 }
 
 function normalizeBoolean(value) {
@@ -44,7 +46,12 @@ function normalizeField(value, definition, field, issues) {
   }
   if (definition.type === "date") {
     const normalized = normalizeDate(value);
-    if (normalized === undefined) issues.push(issue(field, value, "Invalid date value", "ERROR", "DATATYPE"));
+    if (normalized === undefined) issues.push(issue(field, value, "Invalid date value", "ERROR", "DATATYPE", "Use a valid Excel date or configured date format."));
+    return normalized ?? null;
+  }
+  if (definition.type === "timestamp") {
+    const normalized = normalizeTimestamp(value);
+    if (normalized === undefined) issues.push(issue(field, value, "Invalid timestamp value", "ERROR", "DATATYPE", "Use a valid Excel date/time or configured date format."));
     return normalized ?? null;
   }
   if (definition.type === "boolean") {
@@ -56,7 +63,9 @@ function normalizeField(value, definition, field, issues) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) issues.push(issue(field, value, "Expected a numeric value", "ERROR", "DATATYPE"));
     if (!Number.isFinite(numeric)) return null;
-    if (definition.transform === "hoursToDays") return Math.round((numeric / 8) * 10) / 10;
+    if (definition.minExclusive !== undefined && numeric <= definition.minExclusive) {
+      issues.push(issue(field, value, `Value must be greater than ${definition.minExclusive}`, "ERROR", "RANGE", "Provide a positive numeric value."));
+    }
     return numeric;
   }
   let normalized = String(value).trim();
@@ -86,6 +95,7 @@ function incomingLookups(sheets) {
     job_titles: new Set(),
     job_categories: new Set(),
     sub_units: new Set(),
+    locations: new Set(),
     employees: new Set(),
     leave_types: new Set(),
   };
@@ -104,9 +114,10 @@ function incomingLookups(sheets) {
         }
       }
       if (mapping.createEmployee) {
-        [mapped.employee_id, mapped.email, mapped.work_email, mapped.name]
+        [mapped.employee_id, mapped.email, mapped.name]
           .filter((value) => !isEmpty(value))
           .forEach((value) => lookups.employees.add(normalizeName(value)));
+        if (!isEmpty(mapped.location)) lookups.locations.add(normalizeName(mapped.location));
         const composedName = [mapped.first_name, mapped.middle_name, mapped.last_name]
           .filter((value) => !isEmpty(value))
           .join(" ");
@@ -160,7 +171,14 @@ export function validateWorkbook(parsedWorkbook, databaseLookups = {}, databaseU
             const reason = definition.referenceEntity
               ? "Referenced record does not exist in the workbook or database"
               : "Referenced master value does not exist";
-            rowIssues.push(issue(field, value, reason, "ERROR", "FOREIGN_KEY"));
+            rowIssues.push(issue(
+              field,
+              value,
+              reason,
+              "ERROR",
+              "FOREIGN_KEY",
+              definition.suggestedFix || "Create or correct the referenced record before migrating.",
+            ));
           }
         }
         const uniqueFields = Object.entries(mapping.fields).filter(([, definition]) => definition.unique);

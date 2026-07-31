@@ -52,6 +52,7 @@ const migrations = [
   "015_add_password_expiry_columns.sql",
   "016_add_description_to_entitlement_history.sql",
   "017_create_data_migration_tables.sql",
+  "018_add_leave_request_idempotency.sql",
 ];
 
 async function ensureMigrationsTable(client) {
