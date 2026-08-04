@@ -1,8 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  getMigrationStatus,
-  MigrationStatus,
-} from "../api/migration.api";
+import { getMigrationStatus, MigrationStatus } from "../api/migration.api";
 
 const ACTIVE_STATUSES = new Set(["QUEUED", "RUNNING"]);
 
@@ -26,7 +23,8 @@ export default function useMigrationProgress(
           setPollError("");
         }
       } catch {
-        if (!cancelled) setPollError("Live progress is temporarily unavailable. Retrying…");
+        if (!cancelled)
+          setPollError("Live progress is temporarily unavailable. Retrying…");
       }
     };
     void poll();

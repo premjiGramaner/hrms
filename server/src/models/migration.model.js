@@ -143,6 +143,7 @@ export async function failMigration(id, message) {
     [id, String(message).slice(0, 2000)],
   );
 }
+
 export async function getErrors(id, { page, limit, search, severity, status }) {
   const conditions = ["migration_id=$1"];
   const values = [id];

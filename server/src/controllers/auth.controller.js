@@ -161,13 +161,13 @@ const login = async (req, res, next) => {
     const passwordAge = user.password_changed_at
       ? PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
         ? Math.floor(
-          (Date.now() - new Date(user.password_changed_at).getTime()) /
-          (1000 * 60),
-        )
+            (Date.now() - new Date(user.password_changed_at).getTime()) /
+              (1000 * 60),
+          )
         : Math.floor(
-          (Date.now() - new Date(user.password_changed_at).getTime()) /
-          (1000 * 60 * 60 * 24),
-        )
+            (Date.now() - new Date(user.password_changed_at).getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
       : null;
 
     const expiryThreshold = PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
@@ -269,8 +269,8 @@ const login = async (req, res, next) => {
         ? PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
           ? Math.floor((Date.now() - lastReminder.getTime()) / (1000 * 60))
           : Math.floor(
-            (Date.now() - lastReminder.getTime()) / (1000 * 60 * 60 * 24),
-          )
+              (Date.now() - lastReminder.getTime()) / (1000 * 60 * 60 * 24),
+            )
         : 999;
 
       if (

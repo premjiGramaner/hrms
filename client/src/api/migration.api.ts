@@ -98,47 +98,57 @@ export interface PaginatedMigrationHistory {
   totalPages: number;
 }
 
-export async function uploadMigration(file: File): Promise<MigrationUploadResult> {
+export async function uploadMigration(
+  file: File,
+): Promise<MigrationUploadResult> {
   const formData = new FormData();
   formData.append("fileExcel", file);
-  const response = await api.post<{ success: boolean; data: MigrationUploadResult }>(
-    MIGRATION_PATHS.UPLOAD,
-    formData,
-    { timeout: 120000 },
-  );
+  const response = await api.post<{
+    success: boolean;
+    data: MigrationUploadResult;
+  }>(MIGRATION_PATHS.UPLOAD, formData, { timeout: 120000 });
   return response.data.data;
 }
 
 export async function startMigration(id: number, overwriteExisting: boolean) {
-  const response = await api.post<{ success: boolean; data: { migrationId: number; status: string } }>(
-    MIGRATION_PATHS.start(id),
-    { overwriteExisting },
-  );
+  const response = await api.post<{
+    success: boolean;
+    data: { migrationId: number; status: string };
+  }>(MIGRATION_PATHS.start(id), { overwriteExisting });
   return response.data.data;
 }
 
 export async function getMigrationStatus(id: number): Promise<MigrationStatus> {
-  const response = await api.get<{ success: boolean; data: MigrationStatus }>(MIGRATION_PATHS.status(id));
+  const response = await api.get<{ success: boolean; data: MigrationStatus }>(
+    MIGRATION_PATHS.status(id),
+  );
   return response.data.data;
 }
+
 export async function getMigrationErrors(
   id: number,
-  params: { page?: number; limit?: number; search?: string; severity?: string; status?: string } = {},
+  params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    severity?: string;
+    status?: string;
+  } = {},
 ): Promise<PaginatedMigrationErrors> {
-  const response = await api.get<{ success: boolean; data: PaginatedMigrationErrors }>(
-    MIGRATION_PATHS.errors(id),
-    { params },
-  );
+  const response = await api.get<{
+    success: boolean;
+    data: PaginatedMigrationErrors;
+  }>(MIGRATION_PATHS.errors(id), { params });
   return response.data.data;
 }
 
 export async function getMigrationHistory(
   params: { page?: number; limit?: number; search?: string } = {},
 ): Promise<PaginatedMigrationHistory> {
-  const response = await api.get<{ success: boolean; data: PaginatedMigrationHistory }>(
-    MIGRATION_PATHS.HISTORY,
-    { params },
-  );
+  const response = await api.get<{
+    success: boolean;
+    data: PaginatedMigrationHistory;
+  }>(MIGRATION_PATHS.HISTORY, { params });
   return response.data.data;
 }
 
@@ -147,16 +157,24 @@ export async function downloadMigrationReport(
   type: "all" | "errors" | "validation" | "skipped" | "failed" = "all",
   format: "xlsx" | "csv" = "xlsx",
 ) {
+
   const response = await api.get(MIGRATION_PATHS.report(id), {
     params: { type, format },
     responseType: "blob",
     timeout: 120000,
   });
-  const mime = format === "csv"
-    ? "text/csv;charset=utf-8"
-    : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-  const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: mime }));
+
+  const mime =
+    format === "csv"
+      ? "text/csv;charset=utf-8"
+      : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+  const blobUrl = window.URL.createObjectURL(
+    new Blob([response.data], { type: mime }),
+  );
+
   const link = document.createElement("a");
+  
   link.href = blobUrl;
   link.download = `migration-${id}-${type}.${format}`;
   document.body.appendChild(link);

@@ -32,6 +32,7 @@ function addSheet(workbook, name, columns, rows) {
   worksheet.views = [{ state: "frozen", ySplit: 1 }];
   worksheet.autoFilter = { from: "A1", to: `${String.fromCharCode(64 + Math.min(columns.length, 26))}1` };
 }
+
 export async function buildMigrationReport(id, type = "all", format = "xlsx") {
   const job = await MigrationModel.getMigration(id);
   if (!job) {
@@ -55,6 +56,7 @@ export async function buildMigrationReport(id, type = "all", format = "xlsx") {
       suggestedFix: entry?.suggestedFix || (row.status === "FAILED" ? "Correct the source lookup/data and retry the migration." : ""),
     }));
   });
+
   const columns = [
     { header: "Sheet", key: "sheet" },
     { header: "Row", key: "row", width: 12 },
@@ -67,6 +69,7 @@ export async function buildMigrationReport(id, type = "all", format = "xlsx") {
     { header: "Reason", key: "reason", width: 45 },
     { header: "Suggested Fix", key: "suggestedFix", width: 45 },
   ];
+
   if (format === "csv") {
     const csv = [columns.map((column) => safeCsv(column.header)).join(",")];
     reportRows.forEach((row) => csv.push(columns.map((column) => safeCsv(row[column.key])).join(",")));
@@ -76,7 +79,8 @@ export async function buildMigrationReport(id, type = "all", format = "xlsx") {
       fileName: `migration-${id}-${type}.csv`,
     };
   }
-  const workbook = new ExcelJS.Workbook();
+
+  const workbook = new ExcelJS.Workbook();  
   workbook.creator = "HRMS Data Migration";
   addSheet(workbook, "Summary", [
     { header: "Metric", key: "metric", width: 28 },

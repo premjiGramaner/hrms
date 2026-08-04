@@ -28,7 +28,10 @@ export const MIGRATION_MAPPINGS = Object.freeze({
         maxLength: 150,
       }),
       description: stringField(["description"], { maxLength: 5000 }),
-      is_active: { headers: ["is active", "is_active", "active"], type: "boolean" },
+      is_active: {
+        headers: ["is active", "is_active", "active"],
+        type: "boolean",
+      },
     },
   },
   job_categories: {
@@ -44,7 +47,10 @@ export const MIGRATION_MAPPINGS = Object.freeze({
         maxLength: 150,
       }),
       description: stringField(["description"], { maxLength: 5000 }),
-      is_active: { headers: ["is active", "is_active", "active"], type: "boolean" },
+      is_active: {
+        headers: ["is active", "is_active", "active"],
+        type: "boolean",
+      },
     },
   },
   sub_units: {
@@ -54,59 +60,150 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     priority: 30,
     keyColumn: "sub_unit_name",
     fields: {
-      sub_unit_name: stringField(["sub unit", "sub_unit", "sub unit name", "department"], {
-        required: true,
-        unique: true,
-        maxLength: 150,
-      }),
-      supervisor_name: stringField(["supervisor", "supervisor name", "supervisor_name"], { maxLength: 150 }),
+      sub_unit_name: stringField(
+        ["sub unit", "sub_unit", "sub unit name", "department"],
+        {
+          required: true,
+          unique: true,
+          maxLength: 150,
+        },
+      ),
+      supervisor_name: stringField(
+        ["supervisor", "supervisor name", "supervisor_name"],
+        { maxLength: 150 },
+      ),
       description: stringField(["description"], { maxLength: 5000 }),
-      is_active: { headers: ["is active", "is_active", "active"], type: "boolean" },
+      is_active: {
+        headers: ["is active", "is_active", "active"],
+        type: "boolean",
+      },
     },
   },
   employees: {
     entity: "employees",
     kind: "employee",
     createEmployee: true,
-    sheetNames: ["employees", "employee", "employee data", "employee details", "staff", "master directory"],
+    sheetNames: [
+      "employees",
+      "employee",
+      "employee data",
+      "employee details",
+      "staff",
+      "master directory",
+    ],
     table: "tbl_appusers",
     priority: 100,
     keyColumn: "email",
     fields: {
-      employee_id: stringField(["employee id", "employee_id", "emp id", "emp_id"], { required: true, unique: true, maxLength: 50 }),
+      employee_id: stringField(
+        ["employee id", "employee_id", "emp id", "emp_id"],
+        { required: true, unique: true, maxLength: 50 },
+      ),
       name: stringField(["full name", "employee name"], { maxLength: 200 }),
-      first_name: stringField(["first name", "employee first name", "first_name", "firstname"], { required: true, maxLength: 100 }),
-      middle_name: stringField(["middle name", "employee middle name", "middle_name", "middlename"], { maxLength: 100 }),
-      last_name: stringField(["last name", "employee last name", "last_name", "lastname", "surname"], { required: true, maxLength: 100 }),
-      email: stringField(["email", "work email", "work_email", "official email"], { required: true, unique: true, format: "email", maxLength: 200 }),
-      other_email: stringField(["other email", "personal email", "other_email"], { format: "email", maxLength: 200 }),
-      mobile: stringField(["mobile", "phone", "mobile number", "phone number"], { format: "phone", maxLength: 30 }),
-      home_tel: stringField(["home telephone", "home phone", "home_tel"], { format: "phone", maxLength: 30 }),
-      work_tel: stringField(["work telephone", "work phone", "work_tel"], { format: "phone", maxLength: 30 }),
+      first_name: stringField(
+        ["first name", "employee first name", "first_name", "firstname"],
+        { required: true, maxLength: 100 },
+      ),
+      middle_name: stringField(
+        ["middle name", "employee middle name", "middle_name", "middlename"],
+        { maxLength: 100 },
+      ),
+      last_name: stringField(
+        ["last name", "employee last name", "last_name", "lastname", "surname"],
+        { required: true, maxLength: 100 },
+      ),
+      email: stringField(
+        ["email", "work email", "work_email", "official email"],
+        { required: true, unique: true, format: "email", maxLength: 200 },
+      ),
+      other_email: stringField(
+        ["other email", "personal email", "other_email"],
+        { format: "email", maxLength: 200 },
+      ),
+      mobile: stringField(
+        ["mobile", "phone", "mobile number", "phone number"],
+        { format: "phone", maxLength: 30 },
+      ),
+      home_tel: stringField(["home telephone", "home phone", "home_tel"], {
+        format: "phone",
+        maxLength: 30,
+      }),
+      work_tel: stringField(["work telephone", "work phone", "work_tel"], {
+        format: "phone",
+        maxLength: 30,
+      }),
       dob: dateField(["date of birth", "dob", "birth date"]),
-      joined_date: dateField(["joined date", "joining date", "joined_date", "date of joining"]),
+      joined_date: dateField([
+        "joined date",
+        "joining date",
+        "joined_date",
+        "date of joining",
+      ]),
       gender: stringField(["gender"], { lookup: ["male", "female", "other"] }),
       nationality: stringField(["nationality"], { maxLength: 100 }),
-      marital_status: stringField(["marital status", "marital_status"], { maxLength: 50 }),
-      job_title: stringField(["job title", "job_title", "designation"], { lookupEntity: "job_titles" }),
-      job_category: stringField(["job category", "job_category"], { lookupEntity: "job_categories" }),
-      sub_unit: stringField(["sub unit", "sub_unit", "department"], { lookupEntity: "sub_units" }),
+      marital_status: stringField(["marital status", "marital_status"], {
+        maxLength: 50,
+      }),
+      job_title: stringField(["job title", "job_title", "designation"], {
+        lookupEntity: "job_titles",
+      }),
+      job_category: stringField(["job category", "job_category"], {
+        lookupEntity: "job_categories",
+      }),
+      sub_unit: stringField(["sub unit", "sub_unit", "department"], {
+        lookupEntity: "sub_units",
+      }),
       location: stringField(["location", "work location"], { maxLength: 100 }),
-      role: stringField(["role", "system role"], { lookup: ["employee", "empmanager", "hradmin", "supervisor", "manager", "line_manager", "reporting_manager"] }),
-      employment_status: stringField(["employment status", "employment_status"], { maxLength: 100 }),
-      address1: stringField(["address", "address1", "address line 1"], { maxLength: 255 }),
-      address2: stringField(["street1", "address2", "address line 2"], { maxLength: 255 }),
+      role: stringField(["role", "system role"], {
+        lookup: [
+          "employee",
+          "empmanager",
+          "hradmin",
+          "supervisor",
+          "manager",
+          "line_manager",
+          "reporting_manager",
+        ],
+      }),
+      employment_status: stringField(
+        ["employment status", "employment_status"],
+        { maxLength: 100 },
+      ),
+      address1: stringField(["address", "address1", "address line 1"], {
+        maxLength: 255,
+      }),
+      address2: stringField(["street1", "address2", "address line 2"], {
+        maxLength: 255,
+      }),
       city: stringField(["city"], { maxLength: 100 }),
       state: stringField(["state", "province"], { maxLength: 100 }),
       country: stringField(["country"], { maxLength: 100 }),
       zip: stringField(["zip", "postal code", "postcode"], { maxLength: 20 }),
-      probation_end_date: dateField(["probation end date", "probation_end_date"]),
-      date_of_permanence: dateField(["date of permanency", "date of permanence", "date_of_permanence"]),
-      contract_start_date: dateField(["contract start date", "contract_start_date"]),
+      probation_end_date: dateField([
+        "probation end date",
+        "probation_end_date",
+      ]),
+      date_of_permanence: dateField([
+        "date of permanency",
+        "date of permanence",
+        "date_of_permanence",
+      ]),
+      contract_start_date: dateField([
+        "contract start date",
+        "contract_start_date",
+      ]),
       contract_end_date: dateField(["contract end date", "contract_end_date"]),
-      attendance_calc: stringField(["work schedule", "attendance calculation", "attendance_calc"], { maxLength: 100 }),
-      termination_reason: stringField(["termination reason"], { maxLength: 500 }),
-      termination_notes: stringField(["termination note", "termination notes"], { maxLength: 10000 }),
+      attendance_calc: stringField(
+        ["work schedule", "attendance calculation", "attendance_calc"],
+        { maxLength: 100 },
+      ),
+      termination_reason: stringField(["termination reason"], {
+        maxLength: 500,
+      }),
+      termination_notes: stringField(
+        ["termination note", "termination notes"],
+        { maxLength: 10000 },
+      ),
       comments: stringField(["comments", "notes"], { maxLength: 10000 }),
     },
   },
@@ -119,7 +216,10 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     priority: 120,
     keyColumn: "employee_id",
     fields: {
-      employee_id: stringField(["employee id"], { required: true, maxLength: 50 }),
+      employee_id: stringField(["employee id"], {
+        required: true,
+        maxLength: 50,
+      }),
       first_name: stringField(["employee first name"], { maxLength: 100 }),
       middle_name: stringField(["employee middle name"], { maxLength: 100 }),
       last_name: stringField(["employee last name"], { maxLength: 100 }),
@@ -127,7 +227,9 @@ export const MIGRATION_MAPPINGS = Object.freeze({
       contract_end_date: dateField(["contract end date"]),
       job_title: stringField(["job title"], { lookupEntity: "job_titles" }),
       employment_status: stringField(["employment status"], { maxLength: 100 }),
-      job_category: stringField(["job category"], { lookupEntity: "job_categories" }),
+      job_category: stringField(["job category"], {
+        lookupEntity: "job_categories",
+      }),
       joined_date: dateField(["joined date", "date of joining"]),
       sub_unit: stringField(["sub unit"], { lookupEntity: "sub_units" }),
       location: stringField(["location"], { maxLength: 100 }),
@@ -141,12 +243,19 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     entity: "emergency_contacts_report",
     kind: "employee_enrichment",
     updateOnly: true,
-    sheetNames: ["emergency contacts & dependents", "emergency contacts and dependents", "emergency contacts"],
+    sheetNames: [
+      "emergency contacts & dependents",
+      "emergency contacts and dependents",
+      "emergency contacts",
+    ],
     table: "tbl_appusers",
     priority: 130,
     keyColumn: "employee_id",
     fields: {
-      employee_id: stringField(["employee id"], { required: true, maxLength: 50 }),
+      employee_id: stringField(["employee id"], {
+        required: true,
+        maxLength: 50,
+      }),
       dob: dateField(["date of birth"]),
       gender: stringField(["gender"], { lookup: ["male", "female", "other"] }),
       marital_status: stringField(["marital status"], { maxLength: 50 }),
@@ -156,7 +265,10 @@ export const MIGRATION_MAPPINGS = Object.freeze({
       state: stringField(["state/province", "state"], { maxLength: 100 }),
       zip: stringField(["zip/postal code", "zip"], { maxLength: 20 }),
       country: stringField(["country"], { maxLength: 100 }),
-      other_email: stringField(["other email"], { format: "email", maxLength: 200 }),
+      other_email: stringField(["other email"], {
+        format: "email",
+        maxLength: 200,
+      }),
       job_title: stringField(["job title"], { lookupEntity: "job_titles" }),
       employment_status: stringField(["employment status"], { maxLength: 100 }),
       sub_unit: stringField(["sub unit"], { lookupEntity: "sub_units" }),
@@ -172,7 +284,10 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     priority: 140,
     keyColumn: "employee_id",
     fields: {
-      employee_id: stringField(["employee id"], { required: true, maxLength: 50 }),
+      employee_id: stringField(["employee id"], {
+        required: true,
+        maxLength: 50,
+      }),
       first_name: stringField(["employee first name"], { maxLength: 100 }),
       middle_name: stringField(["employee middle name"], { maxLength: 100 }),
       last_name: stringField(["employee last name"], { maxLength: 100 }),
@@ -195,7 +310,8 @@ export const MIGRATION_MAPPINGS = Object.freeze({
         maxLength: 255,
         referenceEntity: "employees",
         stripTrailingParenthetical: true,
-        suggestedFix: "Add the employee to tbl_appusers or correct Employee Name.",
+        suggestedFix:
+          "Add the employee to tbl_appusers or correct Employee Name.",
       }),
       job_title_reference: stringField(["job title"], {
         required: true,
@@ -242,7 +358,8 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     sheetNames: ["dashboard"],
     table: null,
     priority: 700,
-    ignoreReason: "Dashboard summary rows are informational and do not represent database records.",
+    ignoreReason:
+      "Dashboard summary rows are informational and do not represent database records.",
     headerHints: ["metric", "value"],
     fields: {},
   },
@@ -252,8 +369,14 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     sheetNames: ["leave summary"],
     table: null,
     priority: 710,
-    ignoreReason: "Leave Summary contains aggregates; individual requests are imported from All Leave Requests.",
-    headerHints: ["employee name", "total leave records", "total leave hours", "leave types used"],
+    ignoreReason:
+      "Leave Summary contains aggregates; individual requests are imported from All Leave Requests.",
+    headerHints: [
+      "employee name",
+      "total leave records",
+      "total leave hours",
+      "leave types used",
+    ],
     fields: {},
   },
   hiring_turnover_report: {
@@ -262,7 +385,8 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     sheetNames: ["hiring & turnover", "hiring and turnover"],
     table: null,
     priority: 720,
-    ignoreReason: "Hiring and turnover rows are derived report data; employees are imported from Master Directory.",
+    ignoreReason:
+      "Hiring and turnover rows are derived report data; employees are imported from Master Directory.",
     headerHints: ["employee name", "sub unit", "hired date", "job title"],
     fields: {},
   },
@@ -272,8 +396,15 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     sheetNames: ["employee performance trackers", "performance trackers"],
     table: null,
     priority: 800,
-    ignoreReason: "Performance tracker rows cannot be imported without cycle, template, KPI question and reviewer-type identifiers.",
-    headerHints: ["employee id", "employee name", "tracker name", "reviewer", "performance"],
+    ignoreReason:
+      "Performance tracker rows cannot be imported without cycle, template, KPI question and reviewer-type identifiers.",
+    headerHints: [
+      "employee id",
+      "employee name",
+      "tracker name",
+      "reviewer",
+      "performance",
+    ],
     fields: {},
   },
   terminated_employees: {
@@ -287,7 +418,10 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     priority: 190,
     keyColumn: "employee_id",
     fields: {
-      employee_id: stringField(["employee id"], { required: true, maxLength: 50 }),
+      employee_id: stringField(["employee id"], {
+        required: true,
+        maxLength: 50,
+      }),
       first_name: stringField(["employee first name"], { maxLength: 100 }),
       middle_name: stringField(["employee middle name"], { maxLength: 100 }),
       last_name: stringField(["employee last name"], { maxLength: 100 }),
@@ -295,14 +429,22 @@ export const MIGRATION_MAPPINGS = Object.freeze({
       contract_end_date: dateField(["contract end date"]),
       job_title: stringField(["job title"], { lookupEntity: "job_titles" }),
       employment_status: stringField(["employment status"], { maxLength: 100 }),
-      job_category: stringField(["job category"], { lookupEntity: "job_categories" }),
+      job_category: stringField(["job category"], {
+        lookupEntity: "job_categories",
+      }),
       joined_date: dateField(["joined date", "date of joining"]),
       sub_unit: stringField(["sub unit"], { lookupEntity: "sub_units" }),
       location: stringField(["location"], { maxLength: 100 }),
       attendance_calc: stringField(["work schedule"], { maxLength: 100 }),
       termination_date: dateField(["termination date"], { required: true }),
-      termination_reason: stringField(["termination reason"], { required: true, maxLength: 500 }),
-      termination_notes: stringField(["termination note", "termination notes"], { maxLength: 10000 }),
+      termination_reason: stringField(["termination reason"], {
+        required: true,
+        maxLength: 500,
+      }),
+      termination_notes: stringField(
+        ["termination note", "termination notes"],
+        { maxLength: 10000 },
+      ),
       probation_end_date: dateField(["probation end date"]),
       date_of_permanence: dateField(["date of permanency"]),
       comments: stringField(["comment"], { maxLength: 10000 }),

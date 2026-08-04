@@ -142,6 +142,5 @@ export const REPORT_PATHS = {
   LEAVE_BY_DEPARTMENT: "/reports/leave-by-department",
   LEAVE_BY_DEPARTMENT_FILTER_OPTIONS:
     "/reports/leave-by-department/filter-options",
-  LEAVE_BY_DEPARTMENT_EXPORT_PDF:
-    "/reports/leave-by-department/export/pdf",
+  LEAVE_BY_DEPARTMENT_EXPORT_PDF: "/reports/leave-by-department/export/pdf",
 } as const;

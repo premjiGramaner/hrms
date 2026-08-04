@@ -1,13 +1,27 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import pool from "../config/db.js";
-import { LOOKUP_COLUMNS, MIGRATION_MAPPINGS } from "../config/migrationMappings.js";
-import { MIGRATION_LIMITS, MIGRATION_STATUS, ROW_STATUS } from "../constants/migration.js";
+import {
+  LOOKUP_COLUMNS,
+  MIGRATION_MAPPINGS,
+} from "../config/migrationMappings.js";
+import {
+  MIGRATION_LIMITS,
+  MIGRATION_STATUS,
+  ROW_STATUS,
+} from "../constants/migration.js";
 import { parseWorkbook } from "./excelParser.service.js";
 import { validateWorkbook } from "./migrationValidation.service.js";
 import { LeaveMigrationService } from "./leaveMigration.service.js";
-import { collectUniqueCandidates, mappingByEntity, tablesAffected } from "./migrationMapping.service.js";
-import { buildInsertQuery, buildUpdateQuery } from "../utils/migrationQueryBuilder.js";
+import {
+  collectUniqueCandidates,
+  mappingByEntity,
+  tablesAffected,
+} from "./migrationMapping.service.js";
+import {
+  buildInsertQuery,
+  buildUpdateQuery,
+} from "../utils/migrationQueryBuilder.js";
 import { generateTemporaryPassword } from "../utils/userHelpers.js";
 import { logError, logInfo } from "../utils/logger.js";
 import { writeAuditLog } from "./audit.service.js";
@@ -39,36 +53,55 @@ export async function uploadAndValidate(file, actor) {
       existingUniqueValues,
     );
     await MigrationModel.insertStagedRows(job.id, validation.stagedRows);
-    const updated = await MigrationModel.completeValidation(job.id, validation.summary);
-    logInfo("Migration file validated", { migrationId: job.id, ...validation.summary });
+    const updated = await MigrationModel.completeValidation(
+      job.id,
+      validation.summary,
+    );
+    logInfo("Migration file validated", {
+      migrationId: job.id,
+      ...validation.summary,
+    });
     return {
       migration: decorateStatus(updated),
-      file: { name: file.originalname, size: file.size, uploadedAt: job.created_at },
+      file: {
+        name: file.originalname,
+        size: file.size,
+        uploadedAt: job.created_at,
+      },
       sheets: parsed.sheets.map((sheet) => {
-        const sheetRows = validation.stagedRows.filter((row) => row.sheetName === sheet.name);
-        const status = sheetRows.length && sheetRows.every((row) => row.status === ROW_STATUS.SKIPPED)
-          ? "SKIPPED"
-          : sheetRows.some((row) => row.status === ROW_STATUS.INVALID)
-            ? "INVALID"
-            : "VALID";
+        const sheetRows = validation.stagedRows.filter(
+          (row) => row.sheetName === sheet.name,
+        );
+        const status =
+          sheetRows.length &&
+          sheetRows.every((row) => row.status === ROW_STATUS.SKIPPED)
+            ? "SKIPPED"
+            : sheetRows.some((row) => row.status === ROW_STATUS.INVALID)
+              ? "INVALID"
+              : "VALID";
         return {
           name: sheet.name,
           recordCount: sheet.rows.length,
           totalColumns: sheet.headers.length,
           headers: sheet.headers,
-          preview: sheet.rows.slice(0, MIGRATION_LIMITS.PREVIEW_ROWS).map((row) => row.values),
+          preview: sheet.rows
+            .slice(0, MIGRATION_LIMITS.PREVIEW_ROWS)
+            .map((row) => row.values),
           status,
         };
       }),
       validation: validation.summary,
       errors: validation.errors.slice(0, 100),
-      tablesAffected: tablesAffected(validation.stagedRows.map((row) => row.entityType).filter(Boolean)),
+      tablesAffected: tablesAffected(
+        validation.stagedRows.map((row) => row.entityType).filter(Boolean),
+      ),
     };
   } catch (error) {
     await MigrationModel.failMigration(job.id, error.message);
     throw error;
   }
 }
+
 function decorateStatus(job) {
   if (!job) return null;
   const total = Number(job.total_records) || 0;
@@ -76,16 +109,24 @@ function decorateStatus(job) {
   const elapsedSeconds = job.started_at
     ? Math.max(0, (Date.now() - new Date(job.started_at).getTime()) / 1000)
     : 0;
-  const rate = processed > 0 && elapsedSeconds > 0 ? processed / elapsedSeconds : 0;
+  const rate =
+    processed > 0 && elapsedSeconds > 0 ? processed / elapsedSeconds : 0;
   const remaining = Math.max(0, total - processed);
   return {
     ...job,
-    percentage: total ? Math.min(100, Math.round((processed / total) * 100)) : 0,
+    percentage: total
+      ? Math.min(100, Math.round((processed / total) * 100))
+      : 0,
     remaining_records: remaining,
     estimated_remaining_seconds: rate ? Math.ceil(remaining / rate) : null,
-    execution_time_seconds: job.completed_at && job.started_at
-      ? Math.ceil((new Date(job.completed_at).getTime() - new Date(job.started_at).getTime()) / 1000)
-      : Math.ceil(elapsedSeconds),
+    execution_time_seconds:
+      job.completed_at && job.started_at
+        ? Math.ceil(
+            (new Date(job.completed_at).getTime() -
+              new Date(job.started_at).getTime()) /
+              1000,
+          )
+        : Math.ceil(elapsedSeconds),
   };
 }
 
@@ -99,7 +140,9 @@ export async function queueMigration(id, overwriteExisting, actor) {
   const existing = await MigrationModel.getMigration(id);
   if (!existing) throw notFound();
   if (existing.status !== MIGRATION_STATUS.READY) {
-    const error = new Error(`Migration cannot start while status is ${existing.status}`);
+    const error = new Error(
+      `Migration cannot start while status is ${existing.status}`,
+    );
     error.statusCode = 409;
     throw error;
   }
@@ -114,12 +157,18 @@ export async function queueMigration(id, overwriteExisting, actor) {
 }
 
 async function uniqueUsername(client, record) {
-  const source = `${record.first_name || "employee"}.${record.last_name || record.employee_id || "user"}`
-    .toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 120) || "employee";
+  const source =
+    `${record.first_name || "employee"}.${record.last_name || record.employee_id || "user"}`
+      .toLowerCase()
+      .replace(/[^a-z0-9._]/g, "")
+      .slice(0, 120) || "employee";
   let username = source;
   let suffix = 1;
   while (true) {
-    const { rowCount } = await client.query("SELECT 1 FROM tbl_appusers WHERE username=$1", [username]);
+    const { rowCount } = await client.query(
+      "SELECT 1 FROM tbl_appusers WHERE username=$1",
+      [username],
+    );
     if (!rowCount) return username;
     username = `${source.slice(0, 135)}_${suffix++}`;
   }
@@ -133,8 +182,13 @@ function baseRecord(row, actor) {
       .map((field) => [field, row.normalized_data[field]]),
   );
   if (mapping.kind === "employee") {
-    data.name = data.name || [data.first_name, data.middle_name, data.last_name]
-      .filter(Boolean).join(" ").trim().slice(0, 200);
+    data.name =
+      data.name ||
+      [data.first_name, data.middle_name, data.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim()
+        .slice(0, 200);
     if (data.dob !== undefined) data.real_dob = data.dob;
     data.role = data.role || "employee";
     data.status = data.status || "Active";
@@ -148,7 +202,10 @@ function baseRecord(row, actor) {
   if (mapping.kind === "employee_enrichment") {
     if (!data.name && data.first_name && data.last_name) {
       data.name = [data.first_name, data.middle_name, data.last_name]
-        .filter(Boolean).join(" ").trim().slice(0, 200);
+        .filter(Boolean)
+        .join(" ")
+        .trim()
+        .slice(0, 200);
     }
     data.updated_by = actor?.id || null;
     if (mapping.operation === "terminate") {
@@ -162,7 +219,8 @@ function baseRecord(row, actor) {
     }
     return data;
   }
-  if (data.is_active === null || data.is_active === undefined) data.is_active = true;
+  if (data.is_active === null || data.is_active === undefined)
+    data.is_active = true;
   return data;
 }
 
@@ -193,7 +251,11 @@ async function ensureReferencedMasters(migrationId) {
           field,
         );
         for (const value of values) {
-          const existing = await MigrationModel.findExisting(client, masterMapping, value);
+          const existing = await MigrationModel.findExisting(
+            client,
+            masterMapping,
+            value,
+          );
           if (existing) {
             const query = buildUpdateQuery(
               masterMapping.table,
@@ -213,7 +275,8 @@ async function ensureReferencedMasters(migrationId) {
       }
     }
     await client.query("COMMIT");
-    if (inserted) logInfo("Migration master values inserted", { migrationId, inserted });
+    if (inserted)
+      logInfo("Migration master values inserted", { migrationId, inserted });
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     throw error;
@@ -222,11 +285,18 @@ async function ensureReferencedMasters(migrationId) {
   }
 }
 
-async function processRow(client, row, overwriteExisting, actor, leaveMigration) {
+async function processRow(
+  client,
+  row,
+  overwriteExisting,
+  actor,
+  leaveMigration,
+) {
   const mapping = mappingByEntity(row.entity_type);
   if (!mapping) throw new Error(`Missing mapping for ${row.entity_type}`);
   if (mapping.kind === "leave_request") {
-    if (!leaveMigration) throw new Error("Leave migration context is not initialized");
+    if (!leaveMigration)
+      throw new Error("Leave migration context is not initialized");
     return leaveMigration.processRow(client, row);
   }
   if (mapping.unsupportedReason) throw new Error(mapping.unsupportedReason);
@@ -243,11 +313,17 @@ async function processRow(client, row, overwriteExisting, actor, leaveMigration)
     );
   }
   if (!existing && mapping.updateOnly) {
-    await MigrationModel.markRow(client, row.id, ROW_STATUS.SKIPPED, `No existing employee matches ${mapping.keyColumn} '${keyValue}'`);
+    await MigrationModel.markRow(
+      client,
+      row.id,
+      ROW_STATUS.SKIPPED,
+      `No existing employee matches ${mapping.keyColumn} '${keyValue}'`,
+    );
     return "skipped";
   }
   if (!existing && mapping.syntheticEmailForMissing) {
-    const legacyKey = crypto.createHash("sha256")
+    const legacyKey = crypto
+      .createHash("sha256")
       .update(String(data.employee_id || data.name || row.id))
       .digest("hex")
       .slice(0, 20);
@@ -256,21 +332,49 @@ async function processRow(client, row, overwriteExisting, actor, leaveMigration)
     data.must_change_password = false;
     data.created_by = actor?.id ?? null;
   }
-  if (existing && !overwriteExisting && mapping.kind !== "employee_enrichment") {
-    await MigrationModel.markRow(client, row.id, ROW_STATUS.SKIPPED, "Record already exists; enable overwrite to update it", existing.id);
+  if (
+    existing &&
+    !overwriteExisting &&
+    mapping.kind !== "employee_enrichment"
+  ) {
+    await MigrationModel.markRow(
+      client,
+      row.id,
+      ROW_STATUS.SKIPPED,
+      "Record already exists; enable overwrite to update it",
+      existing.id,
+    );
     return "skipped";
   }
   if (existing) {
     delete data.created_by;
-    const query = buildUpdateQuery(mapping.table, data, matchColumn, data[matchColumn]);
+    const query = buildUpdateQuery(
+      mapping.table,
+      data,
+      matchColumn,
+      data[matchColumn],
+    );
     if (query) await client.query(query.text, query.values);
-    await MigrationModel.markRow(client, row.id, ROW_STATUS.UPDATED, "Existing record updated", existing.id);
+    await MigrationModel.markRow(
+      client,
+      row.id,
+      ROW_STATUS.UPDATED,
+      "Existing record updated",
+      existing.id,
+    );
     return "updated";
   }
   const targetId = await insertRecord(client, mapping, data);
-  await MigrationModel.markRow(client, row.id, ROW_STATUS.INSERTED, "Record inserted", targetId);
+  await MigrationModel.markRow(
+    client,
+    row.id,
+    ROW_STATUS.INSERTED,
+    "Record inserted",
+    targetId,
+  );
   return "inserted";
 }
+
 async function executeMigration(id, overwriteExisting, actor) {
   const executionStartedAt = Date.now();
   const job = await MigrationModel.getMigration(id);
@@ -285,7 +389,10 @@ async function executeMigration(id, overwriteExisting, actor) {
     currentRow: null,
   };
   await MigrationModel.markRunning(id);
-  logInfo("Migration started", { migrationId: id, totalRecords: job.total_records });
+  logInfo("Migration started", {
+    migrationId: id,
+    totalRecords: job.total_records,
+  });
   try {
     await ensureReferencedMasters(id);
     const orderedEntities = Object.values(MIGRATION_MAPPINGS)
@@ -298,7 +405,12 @@ async function executeMigration(id, overwriteExisting, actor) {
       }
       let afterId = 0;
       while (true) {
-        const batch = await MigrationModel.getProcessRows(id, entity, afterId, MIGRATION_LIMITS.BATCH_SIZE);
+        const batch = await MigrationModel.getProcessRows(
+          id,
+          entity,
+          afterId,
+          MIGRATION_LIMITS.BATCH_SIZE,
+        );
         if (!batch.length) break;
         const client = await pool.connect();
         try {
@@ -366,7 +478,10 @@ async function executeMigration(id, overwriteExisting, actor) {
     });
   } catch (error) {
     await MigrationModel.failMigration(id, error.message);
-    logError("Migration failed", error, { migrationId: id, processed: progress.processed });
+    logError("Migration failed", error, {
+      migrationId: id,
+      processed: progress.processed,
+    });
   }
 }
 
@@ -374,7 +489,9 @@ export async function getErrors(id, query) {
   if (!(await MigrationModel.getMigration(id))) throw notFound();
   const result = await MigrationModel.getErrors(id, query);
   const flattened = result.rows.flatMap((row) => {
-    const issues = row.validation_errors?.length ? row.validation_errors : [{ reason: row.result_message }];
+    const issues = row.validation_errors?.length
+      ? row.validation_errors
+      : [{ reason: row.result_message }];
     return issues.map((entry, index) => ({
       id: `${row.id}-${index}`,
       sheet: row.sheet_name,
@@ -382,7 +499,9 @@ export async function getErrors(id, query) {
       column: entry.column || "",
       invalidValue: entry.invalidValue ?? "",
       reason: entry.reason || row.result_message || "Processing failed",
-      suggestedFix: entry.suggestedFix || "Correct the source value and retry the migration.",
+      suggestedFix:
+        entry.suggestedFix ||
+        "Correct the source value and retry the migration.",
       severity: entry.severity || "ERROR",
       status: row.status,
     }));

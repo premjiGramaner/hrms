@@ -113,9 +113,7 @@ export default function App() {
       }
     };
 
-    if (token || isCookieExist)
-      checkCookieAuth();
-
+    if (token || isCookieExist) checkCookieAuth();
   }, [dispatch, token]);
 
   if (isCheckingAuth) {
@@ -534,7 +532,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
       </Routes>
     </BrowserRouter>
   );
