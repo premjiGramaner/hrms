@@ -18,6 +18,9 @@ import {
   IconUsers,
   IconUser,
   IconSettings,
+  IconClock,
+  IconChevronDown,
+  IconUserShield,
 } from "../../components/Icons";
 
 const TABS: TabItem[] = [
@@ -34,17 +37,6 @@ function roleValue(role: string) {
   return role;
 }
 
-function getRoleStyle(role: string) {
-  return (
-    ROLE_OPTIONS.find((r) => r.value === roleValue(role)) ?? {
-      color: "#64748b",
-      bg: "#f1f5f9",
-      border: "#e2e8f0",
-      label: role,
-    }
-  );
-}
-
 function getInitials(name: string): string {
   return (name || "?")
     .split(" ")
@@ -57,50 +49,58 @@ function getInitials(name: string): string {
 function RoleDropdown({
   user,
   onRoleChange,
+  isAnyRoleChanging,
+  setIsAnyRoleChanging,
 }: {
   user: RoleAccessUser;
   onRoleChange: (userId: number, newRole: string) => void;
+  isAnyRoleChanging: boolean;
+  setIsAnyRoleChanging: (value: boolean) => void;
 }) {
   const [saving, setSaving] = useState(false);
-  const rs = getRoleStyle(user.role);
 
   const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRole = e.target.value;
-    if (newRole === user.role) return;
+    const currentRoleValue = roleValue(user.role);
+    
+    if (newRole === currentRoleValue) return;
+
+    setIsAnyRoleChanging(true);
 
     const newRoleLabel =
       ROLE_OPTIONS.find((role) => role.value === newRole)?.label || newRole;
     const currentRoleLabel =
-      ROLE_OPTIONS.find((role) => role.value === roleValue(user.role))?.label ||
+      ROLE_OPTIONS.find((role) => role.value === currentRoleValue)?.label ||
       user.role;
 
-    const confirmed = await Alert.confirm({
-      title: "Change User Role",
-      message: `Are you sure you want to change ${user.name}'s role from ${currentRoleLabel} to ${newRoleLabel}?`,
-      confirmText: "Yes, Change Role",
-      cancelText: "Cancel",
-      type: "warning",
-    });
-
-    if (!confirmed) {
-      e.target.value = roleValue(user.role);
-      return;
-    }
-
-    setSaving(true);
     try {
+      const confirmed = await Alert.confirm({
+        title: "Change User Role",
+        message: `Are you sure you want to change ${user.name}'s role from ${currentRoleLabel} to ${newRoleLabel}?`,
+        confirmText: "Yes, Change Role",
+        cancelText: "Cancel",
+        type: "warning",
+      });
+
+      if (!confirmed) {
+        e.target.value = currentRoleValue;
+        setIsAnyRoleChanging(false);
+        return;
+      }
+
+      setSaving(true);
       await updateUserRole(user.id, newRole);
       onRoleChange(user.id, newRole);
       Toast.success(`Role updated to ${newRoleLabel}`);
     } catch {
       Toast.error("Failed to update user role");
-      e.target.value = roleValue(user.role);
+      e.target.value = currentRoleValue;
     } finally {
       setSaving(false);
+      setIsAnyRoleChanging(false);
     }
   };
 
-  // Get border color class based on role
   const getBorderClass = (role: string) => {
     const val = roleValue(role);
     if (val === "employee") return "border-[#bbf7d0]";
@@ -109,7 +109,6 @@ function RoleDropdown({
     return "border-slate-200";
   };
 
-  // Get background color class based on role
   const getBgClass = (role: string) => {
     const val = roleValue(role);
     if (val === "employee") return "bg-[#dcfce7]";
@@ -118,7 +117,6 @@ function RoleDropdown({
     return "bg-slate-100";
   };
 
-  // Get text color class based on role
   const getTextClass = (role: string) => {
     const val = roleValue(role);
     if (val === "employee") return "text-[#16a34a]";
@@ -127,15 +125,23 @@ function RoleDropdown({
     return "text-slate-600";
   };
 
+  const isDisabled = saving || isAnyRoleChanging;
+
   return (
     <div className="relative inline-block">
       <select
         value={roleValue(user.role)}
         onChange={handleChange}
-        disabled={saving}
+        disabled={isDisabled}
         className={`py-1 pr-7 pl-2.5 rounded-lg text-xs font-bold outline-none appearance-none transition-all border-[1.5px] ${getBorderClass(user.role)} ${getBgClass(user.role)} ${getTextClass(user.role)} ${
-          saving ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+          isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
         }`}
+        onClick={(e) => {
+          if (isAnyRoleChanging && !saving) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
       >
         {ROLE_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -144,9 +150,15 @@ function RoleDropdown({
         ))}
       </select>
       <span
-        className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] ${getTextClass(user.role)}`}
+        className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${getTextClass(user.role)}`}
       >
-        {saving ? "…" : "▼"}
+        {saving ? (
+          <IconClock size={10} />
+        ) : isAnyRoleChanging ? (
+          <IconClock size={10} />
+        ) : (
+          <IconChevronDown size={10} />
+        )}
       </span>
     </div>
   );
@@ -201,6 +213,7 @@ export default function RoleAccessPage() {
   const [pageSize, setPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState("");
+  const [isAnyRoleChanging, setIsAnyRoleChanging] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -417,7 +430,12 @@ export default function RoleAccessPage() {
       header: "Role",
       width: 160,
       render: (row) => (
-        <RoleDropdown user={row} onRoleChange={handleRoleChange} />
+        <RoleDropdown 
+          user={row} 
+          onRoleChange={handleRoleChange}
+          isAnyRoleChanging={isAnyRoleChanging}
+          setIsAnyRoleChanging={setIsAnyRoleChanging}
+        />
       ),
     },
   ];
@@ -488,13 +506,13 @@ export default function RoleAccessPage() {
       <DataTable<RoleAccessUser>
         title="Role Access Management"
         subtitle="View and manage user roles across the system"
-        icon="🛡️"
+        icon={<IconUserShield size={20} />}
         rows={users}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row) => row.id}
-        emptyIcon="👥"
+        emptyIcon={<IconUsers size={48} />}
         emptyTitle={
           hasFilters ? "No users match the current filters" : "No users found"
         }
