@@ -113,7 +113,7 @@ export default function Layout({
           },
         ]
       : []),
-    ...(role === ROLES.HR_ADMIN || user?.id === 0 || user?.username === "admin"
+    ...(role === ROLES.HR_ADMIN
       ? [
           {
             to: PAGE_PATHS.dataMigration,
@@ -137,7 +137,7 @@ export default function Layout({
       label: "Performance",
       icon: <IconBriefcase />,
     },
-    ...(role === ROLES.HR_ADMIN || user?.id === 0 || user?.username === "admin"
+    ...(role === ROLES.HR_ADMIN || user?.id === 0
       ? [
           {
             to: PAGE_PATHS.reports,

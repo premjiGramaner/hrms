@@ -16,8 +16,7 @@ import {
 const router = express.Router();
 
 const requireMigrationAdmin = (req, _res, next) => {
-  const isBuiltInAdmin = req.user?.id === 0 || req.user?.username === "admin";
-  if (isBuiltInAdmin || req.user?.role === ROLES.HR_ADMIN) return next();
+  if (req.user?.role === ROLES.HR_ADMIN) return next();
   return next(new AppError("Forbidden", 403));
 };
 

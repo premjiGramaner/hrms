@@ -42,11 +42,7 @@ export default function NavigationSearch() {
 
   useEffect(() => {
     if (query.trim().length >= 2) {
-      const isBuiltInAdmin = user?.id === 0 || user?.username === "admin";
-      const searchResults = searchNavigation(
-        query,
-        isBuiltInAdmin ? ROLES.HR_ADMIN : user?.role,
-      );
+      const searchResults = searchNavigation(query, user?.role);
       setResults(searchResults);
       setIsOpen(searchResults.length > 0);
       setSelectedIndex(-1);

