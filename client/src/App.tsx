@@ -21,6 +21,7 @@ import JobTitlesPage from "./pages/hradmin/JobTitlesPage";
 import JobCategoriesPage from "./pages/hradmin/JobCategoriesPage";
 import SubUnitsPage from "./pages/hradmin/SubUnitsPage";
 import RoleAccessPage from "./pages/hradmin/RoleAccessPage";
+import DataMigrationPage from "./pages/admin/DataMigrationPage";
 import AuditTrailPage from "./pages/hradmin/AuditTrailPage";
 
 import LeaveListPage from "./pages/leave/LeaveListPage";
@@ -112,9 +113,7 @@ export default function App() {
       }
     };
 
-    if (token || isCookieExist)
-      checkCookieAuth();
-
+    if (token || isCookieExist) checkCookieAuth();
   }, [dispatch, token]);
 
   if (isCheckingAuth) {
@@ -251,6 +250,15 @@ export default function App() {
           element={
             <ProtectedRoute roles={ADMIN_ROLES}>
               <RoleAccessPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path={PAGE_PATHS.dataMigration}
+          element={
+            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
+              <DataMigrationPage />
             </ProtectedRoute>
           }
         />
@@ -524,7 +532,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
       </Routes>
     </BrowserRouter>
   );

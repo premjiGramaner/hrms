@@ -42,7 +42,6 @@ import {
   MAX_FILE_SIZE_MB,
 } from "../../config/constants";
 import { IconChevronDown, IconUser, IconX } from "../../components/Icons";
-import { EMAIL_REGEX } from "../../constants/validation";
 
 const PREDEFINED_LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"];
 
@@ -223,7 +222,7 @@ export default function AddEmployeeModal({
   const validateWorkEmailExists = async (): Promise<boolean> => {
     const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim().toLowerCase();
 
-    if (!workEmail || !EMAIL_REGEX.test(workEmail)) {
+    if (!workEmail || !EMAIL_PATTERN.test(workEmail)) {
       return false;
     }
 
@@ -280,7 +279,7 @@ export default function AddEmployeeModal({
 
       if (
         workEmail &&
-        EMAIL_REGEX.test(workEmail) &&
+        EMAIL_PATTERN.test(workEmail) &&
         validatedWorkEmailRef.current !== workEmail
       ) {
         validateWorkEmailExists();
@@ -570,7 +569,7 @@ export default function AddEmployeeModal({
         return;
       }
 
-      if (!EMAIL_REGEX.test(email)) {
+      if (!EMAIL_PATTERN.test(email)) {
         setErrors((prev) => ({
           ...prev,
           [fieldName]: "Enter a valid email",

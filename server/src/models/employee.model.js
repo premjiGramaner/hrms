@@ -2,12 +2,15 @@ import pool from "../config/db.js";
 import bcrypt from "bcryptjs";
 import { logError } from "../utils/logger.js";
 import AppError from "../utils/AppError.js";
-import crypto from "crypto";
 import {
   ROLES,
   ADMIN_ROLES,
   BASIC_SUPERVISOR_ROLES,
 } from "../constants/roles.js";
+import {
+  generateUniqueUsername,
+  generateTemporaryPassword,
+} from "../utils/userHelpers.js";
 
 const toSqlList = (roles) => roles.map((role) => `'${role}'`).join(", ");
 const ADMIN_ROLES_SQL = toSqlList(ADMIN_ROLES);
@@ -16,32 +19,6 @@ const SUPERIOR_ROLES_SQL = toSqlList([
   ...BASIC_SUPERVISOR_ROLES,
   ...ADMIN_ROLES,
 ]);
-
-const SPACE_REGEX = /\s+/g;
-const INVALID_CHAR_REGEX = /[^a-z0-9_]/g;
-const TRIM_UNDERSCORE_REGEX = /^_+|_+$/g;
-
-async function createUniqueUsername(email, name) {
-  let base = name
-    ? name
-        .toLowerCase()
-        .replace(SPACE_REGEX, "_")
-        .replace(INVALID_CHAR_REGEX, "")
-    : email.split("@")[0];
-  base = base.replace(TRIM_UNDERSCORE_REGEX, "") || email.split("@")[0];
-
-  let username = base;
-  let counter = 1;
-  while (true) {
-    const { rows } = await pool.query(
-      "SELECT id FROM tbl_appusers WHERE username=$1",
-      [username],
-    );
-    if (rows.length === 0) break;
-    username = `${base}_${counter++}`;
-  }
-  return username;
-}
 
 async function findAllEmployees(page, limit = 10, search = "") {
   const offset = (page - 1) * limit;
@@ -281,7 +258,7 @@ async function convertSupervisorIdsToNames(supervisors, employeeId = null) {
 
 async function createEmployee(data, avatarPath) {
   const name = `${data.first_name} ${data.last_name}`.trim();
-  const username = await createUniqueUsername(data.email, name);
+  const username = await generateUniqueUsername(data.email, name);
   const plainPassword = generateTemporaryPassword();
   const password = await bcrypt.hash(plainPassword, 10);
 
@@ -363,26 +340,6 @@ async function createEmployee(data, avatarPath) {
     ],
   );
   return { ...rows[0], temporaryPassword: plainPassword };
-}
-
-function generateTemporaryPassword() {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghijkmnopqrstuvwxyz";
-  const digits = "23456789";
-  const special = "!@#$%^&*";
-  const all = `${upper}${lower}${digits}${special}`;
-  const required = [upper, lower, digits, special].map(
-    (chars) => chars[crypto.randomInt(chars.length)],
-  );
-  while (required.length < 12) required.push(all[crypto.randomInt(all.length)]);
-  for (let index = required.length - 1; index > 0; index -= 1) {
-    const swapIndex = crypto.randomInt(index + 1);
-    [required[index], required[swapIndex]] = [
-      required[swapIndex],
-      required[index],
-    ];
-  }
-  return required.join("");
 }
 
 async function updateEmployee(id, data, avatarPath, updatedBy) {

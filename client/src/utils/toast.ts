@@ -40,6 +40,8 @@ const commonStyle = {
   maxWidth: "500px",
 };
 
+export { commonStyle as TOAST_COMMON_STYLE };
+
 export const Toast = {
   success: (message: string, duration = 3000) =>
     toast.success(message, {

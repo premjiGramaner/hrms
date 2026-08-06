@@ -1,4 +1,4 @@
-import { ADMIN_ROLES, PAGE_PATHS, type UserRole } from "./roles";
+import { ADMIN_ROLES, PAGE_PATHS, ROLES, type UserRole } from "./roles";
 
 export type { UserRole } from "./roles";
 
@@ -79,6 +79,15 @@ export const searchableNavigation: SearchableItem[] = [
     keywords: ["audit", "trail", "logs", "history", "tracking"],
     category: "tab",
     roles: ADMIN_ROLES,
+  },
+  {
+    id: "hr-data-migration",
+    label: "Data Migration",
+    path: PAGE_PATHS.dataMigration,
+    module: "HR Administration",
+    keywords: ["excel", "xlsx", "import", "migration", "legacy", "upload"],
+    category: "page",
+    roles: [ROLES.HR_ADMIN],
   },
 
   {

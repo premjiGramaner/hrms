@@ -118,6 +118,16 @@ export const PERFORMANCE_PATHS = {
 } as const;
 
 /** Report endpoints */
+/** Excel data migration endpoints */
+export const MIGRATION_PATHS = {
+  UPLOAD: "/migration/upload",
+  HISTORY: "/migration/history",
+  start: (id: number | string) => `/migration/${id}/start`,
+  status: (id: number | string) => `/migration/${id}/status`,
+  errors: (id: number | string) => `/migration/${id}/errors`,
+  report: (id: number | string) => `/migration/${id}/report`,
+} as const;
+
 export const REPORT_PATHS = {
   TERMINATION: "/reports/termination",
   TERMINATION_EXPORT_EXCEL: "/reports/termination/export/excel",
@@ -132,6 +142,5 @@ export const REPORT_PATHS = {
   LEAVE_BY_DEPARTMENT: "/reports/leave-by-department",
   LEAVE_BY_DEPARTMENT_FILTER_OPTIONS:
     "/reports/leave-by-department/filter-options",
-  LEAVE_BY_DEPARTMENT_EXPORT_PDF:
-    "/reports/leave-by-department/export/pdf",
+  LEAVE_BY_DEPARTMENT_EXPORT_PDF: "/reports/leave-by-department/export/pdf",
 } as const;

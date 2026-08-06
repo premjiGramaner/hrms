@@ -9,6 +9,7 @@ import {
 import { IconGift } from "../../components/Icons";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
+import { MONTH_OPTIONS } from "../../config/uiConstants";
 
 const REPORT_CONFIG = {
   TITLE: "Birthday Report",
@@ -24,20 +25,7 @@ const REPORT_CONFIG = {
 } as const;
 
 const FILTER_OPTIONS = {
-  MONTHS: [
-    { value: "01", label: "January" },
-    { value: "02", label: "February" },
-    { value: "03", label: "March" },
-    { value: "04", label: "April" },
-    { value: "05", label: "May" },
-    { value: "06", label: "June" },
-    { value: "07", label: "July" },
-    { value: "08", label: "August" },
-    { value: "09", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
-  ],
+  MONTHS: MONTH_OPTIONS,
   GENDERS: [
     { value: "", label: "All Genders" },
     { value: "Male", label: "Male" },
