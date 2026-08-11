@@ -35,7 +35,7 @@ interface Supervisor {
 }
 
 const LABEL_CLASSES = "text-xs text-slate-600";
-const VALUE_CLASSES = "text-sm text-slate-800";
+const VALUE_CLASSES = "text-sm text-slate-600";
 
 interface InfoFieldProps {
   label: string;
@@ -301,7 +301,7 @@ export default function EmployeeProfileCard({
               <InfoField
                 label="Full Name"
                 value={fullName}
-                valueClassName={`${VALUE_CLASSES} font-medium`}
+                valueClassName={`${VALUE_CLASSES}`}
               />
               <InfoField
                 label="Designation"

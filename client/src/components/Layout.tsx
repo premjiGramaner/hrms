@@ -106,21 +106,21 @@ export default function Layout({
   const navItems = [
     ...(isAdmin
       ? [
-          {
-            to: PAGE_PATHS.hradmin,
-            label: "HR Administration",
-            icon: <IconBuilding />,
-          },
-        ]
+        {
+          to: PAGE_PATHS.hradmin,
+          label: "HR Administration",
+          icon: <IconBuilding />,
+        },
+      ]
       : []),
-    ...(role === ROLES.HR_ADMIN || user?.id === 0 || user?.username === "admin"
+    ...(role === ROLES.HR_ADMIN
       ? [
-          {
-            to: PAGE_PATHS.dataMigration,
-            label: "Data Migration",
-            icon: <IconGear />,
-          },
-        ]
+        {
+          to: PAGE_PATHS.dataMigration,
+          label: "Data Migration",
+          icon: <IconGear />,
+        },
+      ]
       : []),
     {
       to: PAGE_PATHS.employees,
@@ -137,14 +137,14 @@ export default function Layout({
       label: "Performance",
       icon: <IconBriefcase />,
     },
-    ...(role === ROLES.HR_ADMIN || user?.id === 0 || user?.username === "admin"
+    ...(role === ROLES.HR_ADMIN
       ? [
-          {
-            to: PAGE_PATHS.reports,
-            label: "Reports and Analytics",
-            icon: <IconChart />,
-          },
-        ]
+        {
+          to: PAGE_PATHS.reports,
+          label: "Reports and Analytics",
+          icon: <IconChart />,
+        },
+      ]
       : []),
   ];
 
@@ -158,29 +158,25 @@ export default function Layout({
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
       <div
-        className={`relative flex-shrink-0 transition-[width] duration-[250ms] ease-in-out ${
-          collapsed ? "w-[60px]" : "w-[230px]"
-        }`}
+        className={`relative flex-shrink-0 transition-[width] duration-[250ms] ease-in-out ${collapsed ? "w-[60px]" : "w-[230px]"
+          }`}
       >
         <aside
-          className={`flex flex-col bg-white shadow-lg z-10 h-screen select-none overflow-hidden transition-[width] duration-[250ms] ease-in-out ${
-            collapsed ? "w-[60px]" : "w-[230px]"
-          }`}
+          className={`flex flex-col bg-white shadow-lg z-10 h-screen select-none overflow-hidden transition-[width] duration-[250ms] ease-in-out ${collapsed ? "w-[60px]" : "w-[230px]"
+            }`}
         >
           <div className="flex items-center justify-center border-b border-slate-100 flex-shrink-0 h-16 px-2">
             <img
               src={cannyforeLogo}
               alt="Cannyfore"
-              className={`object-contain transition-all duration-200 ease-in-out ${
-                collapsed ? "h-[32px] w-[40px]" : "h-[38px] max-w-[140px]"
-              }`}
+              className={`object-contain transition-all duration-200 ease-in-out ${collapsed ? "h-[32px] w-[40px]" : "h-[38px] max-w-[140px]"
+                }`}
             />
           </div>
 
           <div
-            className={`flex flex-col items-center text-center border-b border-slate-100 flex-shrink-0 pt-5 px-4 pb-3.5 overflow-hidden transition-all duration-[250ms] ease-in-out ${
-              collapsed ? "max-h-0 opacity-0" : "max-h-[200px] opacity-100"
-            }`}
+            className={`flex flex-col items-center text-center border-b border-slate-100 flex-shrink-0 pt-5 px-4 pb-3.5 overflow-hidden transition-all duration-[250ms] ease-in-out ${collapsed ? "max-h-0 opacity-0" : "max-h-[200px] opacity-100"
+              }`}
           >
             <div className="relative flex-shrink-0 mb-2">
               {/* Reusable UserAvatar component */}
@@ -203,9 +199,8 @@ export default function Layout({
             </p>
           </div>
           <div
-            className={`flex-shrink-0 pt-3 px-3 pb-2.5 overflow-hidden transition-all duration-[250ms] ease-in-out ${
-              collapsed ? "max-h-0 opacity-0" : "max-h-[60px] opacity-100"
-            }`}
+            className={`flex-shrink-0 pt-3 px-3 pb-2.5 overflow-hidden transition-all duration-[250ms] ease-in-out ${collapsed ? "max-h-0 opacity-0" : "max-h-[60px] opacity-100"
+              }`}
           >
             <NavigationSearch />
           </div>
@@ -242,9 +237,8 @@ export default function Layout({
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <span
-            className={`inline-flex items-center justify-center leading-[0] transition-transform duration-[250ms] ease-in-out ${
-              collapsed ? "rotate-180" : "rotate-0"
-            }`}
+            className={`inline-flex items-center justify-center leading-[0] transition-transform duration-[250ms] ease-in-out ${collapsed ? "rotate-180" : "rotate-0"
+              }`}
           >
             <IconChevronLeft size={14} color="white" />
           </span>
@@ -294,11 +288,10 @@ export default function Layout({
                   <Link
                     key={tab.label}
                     to={tab.path}
-                    className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${
-                      isActiveTab
+                    className={`px-4 py-2.5 text-sm whitespace-nowrap no-underline flex-shrink-0 transition border-b-2 ${isActiveTab
                         ? "border-orange-500 text-orange-700 font-semibold bg-orange-50"
                         : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium"
-                    }`}
+                      }`}
                   >
                     {tab.label}
                   </Link>
@@ -357,37 +350,33 @@ function SidebarNavItem({
   const content = (
     <>
       <span
-        className={`flex items-center flex-shrink-0 transition-colors duration-[180ms] ${
-          active ? "text-white" : "text-[#6B7BA4]"
-        }`}
+        className={`flex items-center flex-shrink-0 transition-colors duration-[180ms] ${active ? "text-white" : "text-[#6B7BA4]"
+          }`}
       >
         {icon}
       </span>
       <span
-        className={`text-[13.5px] whitespace-nowrap overflow-hidden text-ellipsis tracking-[0.01em] transition-all duration-200 ease-in-out ${
-          active
+        className={`text-[13.5px] whitespace-nowrap overflow-hidden text-ellipsis tracking-[0.01em] transition-all duration-200 ease-in-out ${active
             ? "font-semibold text-white"
             : hovered
               ? "font-medium text-slate-800"
               : "font-medium text-[#6B7BA4]"
-        } ${collapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-[160px]"}`}
+          } ${collapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-[160px]"}`}
       >
         {label}
       </span>
     </>
   );
 
-  const linkClasses = `flex items-center mb-1 no-underline cursor-pointer select-none transition-all duration-[180ms] ease ${
-    collapsed
+  const linkClasses = `flex items-center mb-1 no-underline cursor-pointer select-none transition-all duration-[180ms] ease ${collapsed
       ? "gap-0 p-2.5 justify-center rounded-full"
       : "gap-3 py-2.5 px-3 justify-start rounded-[28px]"
-  } ${
-    active
+    } ${active
       ? "bg-gradient-to-r from-[#233B86] to-[#12C7A5] shadow-[0_2px_10px_rgba(35,59,134,0.20)]"
       : hovered
         ? "bg-slate-100"
         : "bg-transparent"
-  }`;
+    }`;
 
   if (to === "#") {
     return (
