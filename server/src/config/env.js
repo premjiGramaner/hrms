@@ -40,3 +40,5 @@ export default {
   smtpPass,
   mailFrom,
 };
+
+export const defaultPassword = process.env.DEFAULT_PASSWORD
