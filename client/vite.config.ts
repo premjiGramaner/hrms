@@ -21,12 +21,15 @@ export default defineConfig({
         target: 'https://f79f-2402-3a80-1821-96ab-ad27-3ae2-7962-7bec.ngrok-free.app',
         changeOrigin: true,
         headers: {
-      'ngrok-skip-browser-warning': 'true',
-    },
+          'ngrok-skip-browser-warning': 'true',
+        },
       },
       '/uploads': {
         target: 'https://f79f-2402-3a80-1821-96ab-ad27-3ae2-7962-7bec.ngrok-free.app',
         changeOrigin: true,
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
       },
     },
   },
