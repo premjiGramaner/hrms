@@ -1,6 +1,6 @@
 import pg from "pg";
 import bcrypt from "bcryptjs";
-import { ROLES } from "./src/constants/roles.js"
+import { ROLES } from "./src/constants/roles.js";
 import { defaultPassword } from "./src/config/env.js";
 
 const { Pool } = pg;
@@ -28,6 +28,7 @@ async function createDefaultUser() {
     }
 
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
+    console.log(defaultPassword);
 
     await client.query(
       `

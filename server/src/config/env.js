@@ -41,4 +41,4 @@ export default {
   mailFrom,
 };
 
-export const defaultPassword = process.env.DEFAULT_PASSWORD || "admin!@123";
+export const defaultPassword = process.env.DEFAULT_PASSWORD
