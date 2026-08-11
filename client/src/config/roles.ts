@@ -85,7 +85,6 @@ export const PAGE_PATHS = {
   employees: "/employees",
   employeesSuperior: "/employees/superior-section",
   employeeProfile: (id: string | number = ":id") => `/employees/${id}/profile`,
-
   myInfo: "/my-info",
 
   // Roles
