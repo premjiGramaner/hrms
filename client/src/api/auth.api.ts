@@ -32,7 +32,12 @@ export const logout = async () => {
   return response.data;
 };
 
-export const self = () => api.get<AuthUser>(AUTH_PATHS.PROFILE);
+export const self = async () => {
+  const response = await api.get<{ success: boolean; data: AuthUser }>(
+    AUTH_PATHS.PROFILE,
+  );
+  return { data: response.data.data };
+};
 
 export const forgotPassword = async (email: string) => {
   const response = await api.post<{

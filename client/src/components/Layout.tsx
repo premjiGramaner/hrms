@@ -20,6 +20,7 @@ import {
   IconLogout,
   IconHome,
   IconChevronLeft,
+  IconUser,
 } from "./Icons";
 import { fetchEmployeesWithLimit } from "../store/employeeSlice";
 import NavigationSearch from "./NavigationSearch";
@@ -64,6 +65,8 @@ export default function Layout({
   const role = user?.role || ROLES.EMPLOYEE;
   const isAdmin = isAdminRole(role);
   const roleLabel = getRoleLabel(role);
+  const allowedNavigation = new Set(user?.navigation_permissions || []);
+  const canShow = (key: string) => isAdmin || allowedNavigation.has(key);
 
   useEffect(() => {
     const reminder = sessionStorage.getItem(STORAGE_KEYS.passwordReminder);
@@ -114,32 +117,40 @@ export default function Layout({
         ]
       : []),
     {
+      key: "my_info",
+      to: PAGE_PATHS.myInfo,
+      label: "My Info",
+      icon: <IconUser />,
+    },
+    {
+      key: "employee_management",
       to: PAGE_PATHS.employees,
       label: "Employee Management",
       icon: <IconPeople />,
     },
     {
+      key: "leave",
       to: isAdmin ? PAGE_PATHS.leaveList : PAGE_PATHS.leaveApply,
       label: "Leave",
       icon: <IconCalendar />,
     },
     {
+      key: "performance",
       to: PAGE_PATHS.performance,
       label: "Performance",
       icon: <IconBriefcase />,
     },
-    ...(role === ROLES.HR_ADMIN || user?.id === 0 || user?.username === "admin"
-      ? [
-          {
-            to: PAGE_PATHS.reports,
-            label: "Reports and Analytics",
-            icon: <IconChart />,
-          },
-        ]
-      : []),
-  ];
+    {
+      key: "reports_analytics",
+      to: PAGE_PATHS.reports,
+      label: "Reports and Analytics",
+      icon: <IconChart />,
+    },
+  ].filter((item) => !item.key || canShow(item.key));
 
-  const homeRoute = isAdmin ? PAGE_PATHS.employees : PAGE_PATHS.myInfo;
+  const homeRoute = isAdmin
+    ? PAGE_PATHS.employees
+    : navItems.find((item) => "key" in item)?.to || PAGE_PATHS.myInfo;
   useEffect(() => {
     if (user?.name) {
       setUserName(user.name);
@@ -207,8 +218,7 @@ export default function Layout({
               if (item.to === PAGE_PATHS.leaveList) {
                 active = isActive(PAGE_PATHS.leave);
               } else if (item.label === "Employee Management") {
-                active =
-                  isActive(PAGE_PATHS.employees) || isActive(PAGE_PATHS.myInfo);
+                active = isActive(PAGE_PATHS.employees);
               } else {
                 active = isActive(item.to);
               }

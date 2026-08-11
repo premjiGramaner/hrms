@@ -52,6 +52,7 @@ const migrations = [
   "015_add_password_expiry_columns.sql",
   "016_add_description_to_entitlement_history.sql",
   "017_disable_unconfigured_report_notifications.sql",
+  "020_add_navigation_permissions.sql",
 ];
 
 async function ensureMigrationsTable(client) {

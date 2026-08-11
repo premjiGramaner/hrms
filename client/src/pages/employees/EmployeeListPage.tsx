@@ -9,6 +9,7 @@ import {
 import Layout, { TabItem } from "../../components/Layout";
 import { Employee } from "../../types";
 import AddEmployeeModal from "./AddEmployeeModal";
+import NavigationAccessModal from "./NavigationAccessModal";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   fetchEmployees,
@@ -20,6 +21,7 @@ import DataTable, { ColumnDef, StatCard } from "../../components/DataTable";
 import Toast from "../../utils/toast";
 import {
   BASIC_SUPERVISOR_ROLES,
+  ADMIN_ROLES,
   PAGE_PATHS,
   ROLES,
   type UserRole,
@@ -115,9 +117,14 @@ export default function EmployeeListPage() {
   const { data, loading, page, limit, search } = useAppSelector(
     (state) => state.employees,
   );
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const canManageNavigation =
+    currentUser?.id === 0 ||
+    ADMIN_ROLES.includes((currentUser?.role || "") as UserRole);
 
   const [showModal, setShowModal] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
+  const [accessEmployee, setAccessEmployee] = useState<Employee | null>(null);
 
   useEffect(() => {
     dispatch(fetchEmployees({ page, limit, search }));
@@ -285,6 +292,18 @@ export default function EmployeeListPage() {
         isLoading={loading}
         columns={columns}
         actions={[
+          ...(canManageNavigation
+            ? [{
+                label: "Navigation Access",
+                color: THEME_COLORS.navy.primary,
+                bg: THEME_COLORS.blue[50],
+                bgHover: THEME_COLORS.blue[100],
+                borderColor: THEME_COLORS.blue[200],
+                borderColorHover: THEME_COLORS.blue[300],
+                onClick: setAccessEmployee,
+                title: "Manage navigation access",
+              }]
+            : []),
           {
             label: "View",
             color: THEME_COLORS.navy.primary,
@@ -337,6 +356,12 @@ export default function EmployeeListPage() {
           onSaved={() => {
             dispatch(fetchEmployees({ page, limit, search }));
           }}
+        />
+      )}
+      {accessEmployee && (
+        <NavigationAccessModal
+          employee={accessEmployee}
+          onClose={() => setAccessEmployee(null)}
         />
       )}
     </Layout>

@@ -46,6 +46,7 @@ export interface Employee {
   supervisors?: string[];
   supervisor_names?: string[];
   is_active?: boolean;
+  navigation_permissions?: string[];
 }
 
 export interface UpdateUserNamePayload {
@@ -74,6 +75,7 @@ export interface AuthUser {
   avatar?: string;
   first_name?: string;
   last_name?: string;
+  navigation_permissions?: string[];
 }
 
 export interface UserRole {

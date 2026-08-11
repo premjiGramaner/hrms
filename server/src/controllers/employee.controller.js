@@ -5,7 +5,8 @@ import { deleteExistingProfileImage } from "../services/fileDelete.service.js";
 import { sendWelcomeEmail } from "../../email.service.js";
 import { logInfo, logError } from "../utils/logger.js";
 import { getClientUrl } from "../utils/getClientUrl.js";
-import { ROLES } from "../constants/roles.js";
+import { ROLES, ADMIN_ROLES } from "../constants/roles.js";
+import pool from "../config/db.js";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,6 +14,38 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROFILE_UPLOAD_DIR = path.join(__dirname, "../../uploads/profile");
+
+const ALLOWED_NAVIGATION_KEYS = new Set([
+  "my_info",
+  "leave",
+  "performance",
+  "reports_analytics",
+  "employee_management",
+]);
+
+const updateNavigationPermissions = async (req, res, next) => {
+  try {
+    if (!ADMIN_ROLES.includes(req.user?.role)) return error(res, "Forbidden", 403);
+    if (!Array.isArray(req.body.navigation_permissions)) {
+      return error(res, "Navigation permissions must be an array", 400);
+    }
+    const navigationPermissions = [...new Set(req.body.navigation_permissions)]
+      .filter((key) => ALLOWED_NAVIGATION_KEYS.has(key));
+    const { rows } = await pool.query(
+      `UPDATE tbl_appusers SET navigation_permissions = $1, updated_at = NOW()
+       WHERE id = $2 AND is_deleted = FALSE
+       RETURNING id, navigation_permissions`,
+      [navigationPermissions, req.params.id],
+    );
+    if (!rows[0]) return error(res, "Employee not found", 404);
+    return success(res, {
+      message: "Navigation access saved successfully",
+      ...rows[0],
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 const listEmployees = async (req, res, next) => {
   try {
@@ -493,4 +526,5 @@ export {
   checkEmployeeIdExists,
   getLastEmployeeId,
   terminateEmployee,
+  updateNavigationPermissions,
 };

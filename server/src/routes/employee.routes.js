@@ -19,6 +19,7 @@ import {
   checkEmployeeIdExists,
   getLastEmployeeId,
   terminateEmployee,
+  updateNavigationPermissions,
 } from "../controllers/employee.controller.js";
 
 const router = Router();
@@ -32,6 +33,7 @@ router.get("/last-employee-id", getLastEmployeeId);
 router.post("/check-email", checkEmailExists);
 router.post("/check-employee-id", checkEmployeeIdExists);
 router.get("/superiors", listSuperiorUsers);
+router.put("/:id/navigation-permissions", updateNavigationPermissions);
 router.get("/", listEmployees);
 router.get("/:id", getEmployee);
 router.post(

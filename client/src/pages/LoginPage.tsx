@@ -15,6 +15,18 @@ import rightPanelImage from "../assets/login_intelligent.png";
 
 const PASSWORD_EXPIRY_REDIRECT_DELAY = 2000;
 
+const firstAllowedPage = (permissions: string[] = [], isAdmin = false) => {
+  if (isAdmin) return PAGE_PATHS.employees;
+  const pages: Array<[string, string]> = [
+    ["my_info", PAGE_PATHS.myInfo],
+    ["leave", PAGE_PATHS.leave],
+    ["performance", PAGE_PATHS.performance],
+    ["reports_analytics", PAGE_PATHS.reports],
+    ["employee_management", PAGE_PATHS.employees],
+  ];
+  return pages.find(([key]) => permissions.includes(key))?.[1] || PAGE_PATHS.myInfo;
+};
+
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -127,7 +139,12 @@ export default function LoginPage() {
         );
       }
 
-      navigate(PAGE_PATHS.employees);
+      navigate(
+        firstAllowedPage(
+          user.navigation_permissions,
+          user.role === "hradmin" || user.role === "empmanager" || user.id === 0,
+        ),
+      );
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, UI_MESSAGES.LOGIN.INVALID_CREDENTIALS));
     } finally {

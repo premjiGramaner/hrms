@@ -127,12 +127,20 @@ const login = async (req, res, next) => {
           name: "Global Admin",
           first_name: "Global",
           last_name: "Admin",
+          navigation_permissions: [
+            "my_info",
+            "leave",
+            "performance",
+            "reports_analytics",
+            "employee_management",
+          ],
         },
       });
     }
 
     const { rows } = await pool.query(
-      `SELECT id, username, email, password, role, name, avatar, is_active, 
+      `SELECT id, username, email, password, role, name, avatar, is_active,
+              navigation_permissions,
               must_change_password, password_changed_at, password_reminder_count, 
               last_password_reminder_at
        FROM tbl_appusers
@@ -361,6 +369,7 @@ const login = async (req, res, next) => {
         first_name: user.first_name,
         last_name: user.last_name,
         avatar: user.avatar,
+        navigation_permissions: user.navigation_permissions || [],
       },
       passwordReminderMessage,
       passwordSetupToken,
@@ -376,7 +385,8 @@ const self = async (req, res, next) => {
 
     const { rows } = await pool.query(
       `SELECT id, username, email, role, name, first_name, last_name,
-              avatar, job_title, joined_date, sub_unit, status, mobile
+              avatar, job_title, joined_date, sub_unit, status, mobile,
+              navigation_permissions
        FROM tbl_appusers WHERE id = $1`,
       [req.user.id],
     );

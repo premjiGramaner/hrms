@@ -159,7 +159,7 @@ export default function App() {
         <Route
           path={PAGE_PATHS.employees}
           element={
-            <ProtectedRoute roles={ADMIN_ROLES}>
+            <ProtectedRoute>
               <EmployeeListPage />
             </ProtectedRoute>
           }
@@ -167,7 +167,7 @@ export default function App() {
         <Route
           path={PAGE_PATHS.employeesSuperior}
           element={
-            <ProtectedRoute roles={ADMIN_ROLES}>
+            <ProtectedRoute>
               <SuperiorSectionPage />
             </ProtectedRoute>
           }
@@ -349,7 +349,7 @@ export default function App() {
         <Route
           path={PAGE_PATHS.reports}
           element={
-            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
+            <ProtectedRoute>
               <Navigate to={PAGE_PATHS.reportsBirthday} replace />
             </ProtectedRoute>
           }
@@ -389,7 +389,7 @@ export default function App() {
         <Route
           path={PAGE_PATHS.reportsBirthday}
           element={
-            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
+            <ProtectedRoute>
               <BirthdayReportPage />
             </ProtectedRoute>
           }
@@ -409,7 +409,7 @@ export default function App() {
         <Route
           path={PAGE_PATHS.reportsWorkAnniversary}
           element={
-            <ProtectedRoute roles={[ROLES.HR_ADMIN]}>
+            <ProtectedRoute>
               <WorkAnniversaryReportPage />
             </ProtectedRoute>
           }

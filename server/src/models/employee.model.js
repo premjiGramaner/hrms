@@ -182,7 +182,7 @@ async function findEmployeeById(id) {
               ELSE supervisors::json
             END AS supervisors,
             address1, address2, city, country, state, zip,
-            is_active, created_at, updated_at
+            is_active, navigation_permissions, created_at, updated_at
      FROM tbl_appusers
      WHERE id = $1::bigint AND is_deleted = false`,
     [id],

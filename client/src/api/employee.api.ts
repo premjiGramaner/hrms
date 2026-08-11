@@ -188,3 +188,16 @@ export const getLastEmployeeId = async () => {
   }>(EMPLOYEE_PATHS.LAST_EMPLOYEE_ID);
   return { data: response.data.data };
 };
+
+export const saveNavigationPermissions = async (
+  id: number,
+  navigationPermissions: string[],
+) => {
+  const response = await api.put<{
+    success: boolean;
+    data: { message: string; navigation_permissions: string[] };
+  }>(`/employees/${id}/navigation-permissions`, {
+    navigation_permissions: navigationPermissions,
+  });
+  return response.data.data;
+};
