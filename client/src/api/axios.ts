@@ -6,6 +6,9 @@ const api = axios.create({
   baseURL: env.apiBaseUrl,
   timeout: 15000,
   withCredentials: true,
+   headers: {
+    'ngrok-skip-browser-warning': 'true'
+  }
 });
 
 api.interceptors.request.use((config) => {
