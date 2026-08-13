@@ -144,7 +144,7 @@ export default function DataTable<RowType>({
                 <IconSearch size={15} />
               </span>
               <input
-                type="search"
+                type="text"
                 aria-label={searchPlaceholder}
                 placeholder={searchPlaceholder}
                 value={searchQuery}

@@ -91,7 +91,6 @@ function MetricCard({
 }
 
 export default function DataMigrationPage() {
-
   const [file, setFile] = useState<File | null>(null);
   const [uploadResult, setUploadResult] =
     useState<MigrationUploadResult | null>(null);
@@ -124,7 +123,7 @@ export default function DataMigrationPage() {
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historySearch, setHistorySearch] = useState("");
   const [historyLoading, setHistoryLoading] = useState(false);
-  
+
   const loadHistory = async () => {
     setHistoryLoading(true);
     try {
@@ -407,14 +406,6 @@ export default function DataMigrationPage() {
               database.
             </p>
           </div>
-          {canStart ? (
-            <Button
-              icon={<Database size={17} />}
-              onClick={() => setShowConfirmation(true)}
-            >
-              Start Database Insertion
-            </Button>
-          ) : null}
         </div>
 
         <FileUploadCard
@@ -768,17 +759,15 @@ export default function DataMigrationPage() {
           title="Migration Completed"
           onClose={() => setShowSuccess(false)}
           footer={
-            <>
-              <Button variant="secondary" onClick={() => setShowSuccess(false)}>
-                Close
-              </Button>
-              <Button
-                icon={<Download size={16} />}
-                onClick={() => download(status.id, "all", "xlsx")}
-              >
-                Download Report
-              </Button>
-            </>
+            <Button
+              icon={<Download size={16} />}
+              onClick={() => {
+                download(status.id, "all", "xlsx");
+                setShowSuccess(false);
+              }}
+            >
+              Download Report
+            </Button>
           }
         >
           <div className="text-center">

@@ -174,6 +174,57 @@ async function uniqueUsername(client, record) {
   }
 }
 
+async function createTerminationHistoryRecord(client, employeeId, data, actor) {
+  const terminatedByName = actor?.id
+    ? (await client.query(
+      "SELECT COALESCE(name, CONCAT_WS(' ', first_name, last_name)) AS n FROM tbl_appusers WHERE id=$1",
+      [actor.id],
+    )).rows[0]?.n || "System"
+    : "System";
+  await client.query(
+    `INSERT INTO tbl_employee_terminations (
+       employee_id, employee_code, employee_name, employee_email,
+       job_title, department, sub_unit, location, date_of_joining,
+       termination_date, termination_reason, termination_type,
+       last_working_day, notice_period_days,
+       exit_interview_completed, rehire_eligible,
+       termination_notes, comments,
+       terminated_by_user_id, terminated_by_name,
+       created_at, updated_at, is_deleted
+     ) VALUES (
+       $1, $2, $3, $4,
+       $5, $6, $6, $7, $8,
+       $9, $10, $11,
+       $12, COALESCE($13, 0),
+       COALESCE($14, FALSE), COALESCE($15, FALSE),
+       $16, $17,
+       $18, $19,
+       NOW(), NOW(), FALSE
+     )`,
+    [
+      employeeId,
+      data.employee_id || null,
+      data.name || [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(" ") || "Unknown",
+      data.email || null,
+      data.job_title || null,
+      data.sub_unit || null,
+      data.location || null,
+      data.joined_date || null,
+      data.termination_date || null,
+      data.termination_reason || "Employee Terminated",
+      data.termination_type || "Involuntary",
+      data.last_working_day || data.termination_date || null,
+      data.notice_period_days,
+      data.exit_interview_completed,
+      data.rehire_eligible,
+      data.termination_notes || null,
+      data.comments || null,
+      actor?.id || null,
+      terminatedByName,
+    ],
+  );
+}
+
 function baseRecord(row, actor) {
   const mapping = mappingByEntity(row.entity_type);
   const data = Object.fromEntries(
@@ -278,7 +329,7 @@ async function ensureReferencedMasters(migrationId) {
     if (inserted)
       logInfo("Migration master values inserted", { migrationId, inserted });
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => {});
+    await client.query("ROLLBACK").catch(() => { });
     throw error;
   } finally {
     client.release();
@@ -365,13 +416,10 @@ async function processRow(
     return "updated";
   }
   const targetId = await insertRecord(client, mapping, data);
-  await MigrationModel.markRow(
-    client,
-    row.id,
-    ROW_STATUS.INSERTED,
-    "Record inserted",
-    targetId,
-  );
+  if (mapping.operation === "terminate" && targetId) {
+    await createTerminationHistoryRecord(client, targetId, data, actor);
+  }
+  await MigrationModel.markRow(client, row.id, ROW_STATUS.INSERTED, "Record inserted", targetId);
   return "inserted";
 }
 
@@ -451,7 +499,7 @@ async function executeMigration(id, overwriteExisting, actor) {
           await MigrationModel.updateProgress(client, id, progress);
           await client.query("COMMIT");
         } catch (batchError) {
-          await client.query("ROLLBACK").catch(() => {});
+          await client.query("ROLLBACK").catch(() => { });
           throw batchError;
         } finally {
           client.release();

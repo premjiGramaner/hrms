@@ -53,6 +53,7 @@ const migrations = [
   "016_add_description_to_entitlement_history.sql",
   "017_create_data_migration_tables.sql",
   "018_add_leave_request_idempotency.sql",
+  "019_backfill_missing_termination_history.sql",
 ];
 
 async function ensureMigrationsTable(client) {
@@ -122,7 +123,7 @@ export async function runMigrations(options = {}) {
       applied.push(fileName);
       log(`✓ applied ${fileName}`);
     } catch (error) {
-      await client.query("ROLLBACK").catch(() => {});
+      await client.query("ROLLBACK").catch(() => { });
       logError(`failed  ${fileName}: ${error.message}`);
       throw error;
     } finally {
