@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../components/common/Button";
 import DateInput from "../../components/common/DateInput";
 import SelectInput from "../../components/common/SelectInput";
@@ -47,6 +47,10 @@ export default function EditCycleModal({
   onSave,
 }: EditCycleModalProps) {
   const [formData, setFormData] = useState<CycleFormData>(initialData);
+
+  useEffect(() => {
+    setFormData(initialData);
+  }, [initialData]);
 
   if (!isOpen) return null;
 
