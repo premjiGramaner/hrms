@@ -12,7 +12,7 @@ import {
   fetchReportFilterOptions,
 } from "../../api/report.api";
 import { IconAward } from "../../components/Icons";
-import { PartyPopper } from "lucide-react";
+import { Award } from "lucide-react";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
 import { MONTH_OPTIONS, YEARS_OF_SERVICE_OPTIONS } from "../../config/uiConstants";
@@ -305,7 +305,7 @@ export default function WorkAnniversaryReportPage() {
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
           itemLabel={REPORT_CONFIG.ITEM_LABEL}
-          emptyIcon={<PartyPopper size={48} className="text-slate-400" />}
+          emptyIcon={<Award size={48} className="text-slate-400" />}
           emptyTitle={REPORT_CONFIG.EMPTY_TITLE}
           emptySubtitle={REPORT_CONFIG.EMPTY_SUBTITLE}
         />

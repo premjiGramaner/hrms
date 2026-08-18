@@ -80,9 +80,9 @@ const listLeaves = async (req, res, next) => {
       filters.statuses = Array.isArray(rawStatuses)
         ? rawStatuses
         : String(rawStatuses)
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
     }
 
     if (role === "employee") {
@@ -253,8 +253,7 @@ const approveLeave = async (req, res, next) => {
       );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot approve your own leave request", 403);
-    
-    // Check if status has already been changed from its original state
+
     if (leave.status !== "Pending Approval") {
       return error(
         res,
@@ -263,10 +262,8 @@ const approveLeave = async (req, res, next) => {
       );
     }
 
-    // Pass current status for optimistic locking
     const approved = await LeaveModel.approveLeave(id, actorId, leave.status);
-    
-    // If no rows returned, status was changed by another user between our check and update
+
     if (!approved) {
       return error(
         res,
@@ -299,8 +296,7 @@ const rejectLeave = async (req, res, next) => {
       );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot reject your own leave request", 403);
-    
-    // Check if status has already been changed
+
     if (["Cancelled", "Rejected", "Approved"].includes(leave.status)) {
       return error(
         res,
@@ -309,10 +305,13 @@ const rejectLeave = async (req, res, next) => {
       );
     }
 
-    // Pass current status for optimistic locking
-    const rejected = await LeaveModel.rejectLeave(id, actorId, rejection_reason, leave.status);
-    
-    // If no rows returned, status was changed by another user between our check and update
+    const rejected = await LeaveModel.rejectLeave(
+      id,
+      actorId,
+      rejection_reason,
+      leave.status,
+    );
+
     if (!rejected) {
       return error(
         res,
@@ -372,10 +371,10 @@ const cancelLeave = async (req, res, next) => {
       starting_date.getMonth() >= 3
         ? starting_date.getFullYear() + 1
         : starting_date.getFullYear();
-    
+
     // Pass current status for optimistic locking
     const cancelled = await LeaveModel.cancelLeave(id, actorId, originalStatus);
-    
+
     // If no rows returned, status was changed by another user between our check and update
     if (!cancelled) {
       return error(
@@ -415,9 +414,9 @@ function buildExportFilters(query, userId, role) {
     filters.statuses = Array.isArray(query.statuses)
       ? query.statuses
       : String(query.statuses)
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
   }
   if (role === "employee") filters.own_employee_id = userId;
   return filters;
