@@ -341,15 +341,12 @@ const cancelLeave = async (req, res, next) => {
       return error(res, "Forbidden", 403);
     }
 
-    // Store the original status for checks
     const originalStatus = leave.status;
 
-    // Check if already cancelled
     if (originalStatus === "Cancelled") {
       return error(res, "This leave has already been cancelled", 409);
     }
 
-    // Check if status has been changed to Rejected or Approved
     if (["Rejected", "Approved"].includes(originalStatus)) {
       return error(
         res,
@@ -372,10 +369,8 @@ const cancelLeave = async (req, res, next) => {
         ? starting_date.getFullYear() + 1
         : starting_date.getFullYear();
 
-    // Pass current status for optimistic locking
     const cancelled = await LeaveModel.cancelLeave(id, actorId, originalStatus);
 
-    // If no rows returned, status was changed by another user between our check and update
     if (!cancelled) {
       return error(
         res,
