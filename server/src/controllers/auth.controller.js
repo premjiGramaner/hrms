@@ -16,6 +16,14 @@ import {
   PASSWORD_CONFIG,
 } from "../constants/authMessages.js";
 import { logError, logAuth, logEmail } from "../utils/logger.js";
+import {
+  getMicrosoftAuthUrl,
+  completeMicrosoftAuth,
+} from "../services/azureAd.service.js";
+import {
+  validateUsernameInAzureAd,
+  isAzureAdConfigured,
+} from "../services/azureAdPassword.service.js";
 
 const signToken = (payload, expiresIn = jwtExpiresIn) =>
   jwt.sign(payload, jwtSecret, {
@@ -91,28 +99,92 @@ const login = async (req, res, next) => {
 
     const tokenExpiry = rememberMe ? rememberMeDuration : jwtExpiresIn;
 
+    // HYBRID MODE: Validate username in Azure AD, but check password locally
+    // EXCEPTION: Skip Azure AD validation for admin users (for testing/administration)
+    let azureUserValidated = false;
+    let azureUserEmail = null;
+    const isAdminUser = username.toLowerCase() === 'admin' || username.toLowerCase() === 'administrator';
+
+    if (isAzureAdConfigured() && !isAdminUser) {
+      logAuth("Validating username in Azure AD (hybrid mode)", username, {
+        method: "username_validation",
+        ip: req.ip,
+      });
+
+      const azureValidation = await validateUsernameInAzureAd(username);
+
+      if (azureValidation.exists) {
+        azureUserValidated = true;
+        azureUserEmail = azureValidation.email;
+
+        logAuth("Username validated in Azure AD", username, {
+          email: azureUserEmail,
+          method: "hybrid_mode",
+          ip: req.ip,
+        });
+      } else {
+        logAuth("Username not found in Azure AD - login denied", username, {
+          reason: azureValidation.error,
+          ip: req.ip,
+        });
+        return error(
+          res,
+          "Authentication failed. Only @cannyfore.com users can access this system.",
+          401,
+        );
+      }
+    } else {
+      // If Azure AD is not configured OR user is admin, allow fallback to local authentication
+      if (isAdminUser) {
+        logAuth("Admin user detected - skipping Azure AD validation", username, {
+          ip: req.ip,
+        });
+      } else {
+        logAuth("Azure AD not configured - using local authentication only", username, {
+          ip: req.ip,
+        });
+      }
+    }
+
+    // Step 2: Query database to get user record
     const { rows } = await pool.query(
       `SELECT id, username, email, password, role, name, avatar, is_active, 
               must_change_password, password_changed_at, password_reminder_count, 
               last_password_reminder_at
        FROM tbl_appusers
-       WHERE (username = $1 OR email = $1) AND is_deleted = false`,
-      [username],
+       WHERE (username = $1 OR email = $1 ${azureUserEmail ? "OR email = $2" : ""}) 
+       AND is_deleted = false`,
+      azureUserEmail ? [username, azureUserEmail] : [username],
     );
     const user = rows[0];
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      logAuth("Failed login attempt", username, {
-        reason: "Invalid credentials",
+    // Step 3: Validate user existence
+    if (!user) {
+      logAuth("Failed login attempt - user not found in database", username, {
+        azureValidated: azureUserValidated,
         ip: req.ip,
       });
       return error(res, AUTH_MESSAGES.INVALID_CREDENTIALS, 401);
     }
 
+    // Step 4: Validate local password (always check database password)
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      logAuth("Failed login attempt - invalid password", username, {
+        reason: "Invalid local password",
+        userId: user.id,
+        azureValidated: azureUserValidated,
+        ip: req.ip,
+      });
+      return error(res, AUTH_MESSAGES.INVALID_CREDENTIALS, 401);
+    }
+
+    // Step 5: Check if account is active
     if (!user.is_active) {
       logAuth("Login blocked - inactive account", user.username, {
         userId: user.id,
         email: user.email,
+        authenticated: azureUserValidated ? "Hybrid (Azure AD + Local)" : "Local only",
         ip: req.ip,
       });
       return error(res, AUTH_MESSAGES.ACCOUNT_DEACTIVATED, 403);
@@ -304,6 +376,13 @@ const login = async (req, res, next) => {
       rememberMe,
       passwordAge: passwordAge || "N/A",
       reminderShown: !!passwordReminderMessage,
+      authMethod: isAdminUser
+        ? "Local only (admin exception)"
+        : azureUserValidated 
+        ? "Hybrid (Azure AD username + Local password)" 
+        : "Local only",
+      azureValidated: azureUserValidated,
+      adminException: isAdminUser,
       ip: req.ip,
     });
 
@@ -324,6 +403,11 @@ const login = async (req, res, next) => {
       },
       passwordReminderMessage,
       passwordSetupToken,
+      authMethod: isAdminUser 
+        ? "Local (admin)" 
+        : azureUserValidated 
+        ? "Hybrid (Azure AD + Local)" 
+        : "Local",
     });
   } catch (err) {
     next(err);
@@ -562,4 +646,118 @@ const logout = async (req, res, next) => {
   }
 };
 
-export { login, self, forgotPassword, resetPassword, logout };
+const microsoftLogin = async (req, res, next) => {
+  try {
+    const stateParameter = crypto.randomBytes(16).toString("hex");
+    req.session = req.session || {};
+    req.session.oauthState = stateParameter;
+
+    const authorizationUrl = await getMicrosoftAuthUrl(stateParameter);
+    return success(res, { authUrl: authorizationUrl });
+  } catch (error) {
+    logError("Failed to initiate Microsoft login", error);
+    next(error);
+  }
+};
+
+const microsoftCallback = async (req, res, next) => {
+  try {
+    const { code, state, error: oauthError } = req.query;
+
+    if (oauthError) {
+      logAuth("Microsoft OAuth error", "unknown", { error: oauthError });
+      return res.redirect(
+        `${getClientUrl(req)}/login?error=microsoft_auth_failed`,
+      );
+    }
+
+    if (!code) {
+      return res.redirect(
+        `${getClientUrl(req)}/login?error=no_authorization_code`,
+      );
+    }
+
+    const userProfileData = await completeMicrosoftAuth(code);
+
+    const { rows: existingUsers } = await pool.query(
+      `SELECT id, username, email, role, name, avatar, is_active, 
+              must_change_password, password_changed_at
+       FROM tbl_appusers
+       WHERE LOWER(email) = $1 AND is_deleted = false`,
+      [userProfileData.email.toLowerCase()],
+    );
+
+    let authenticatedUser = existingUsers[0];
+
+    if (!authenticatedUser) {
+      logAuth(
+        "Microsoft login - User not found in system",
+        userProfileData.email,
+        {
+          microsoftId: userProfileData.microsoftId,
+          email: userProfileData.email,
+        },
+      );
+      return res.redirect(
+        `${getClientUrl(req)}/login?error=user_not_found&email=${encodeURIComponent(userProfileData.email)}`,
+      );
+    }
+
+    if (!authenticatedUser.is_active) {
+      logAuth(
+        "Microsoft login blocked - inactive account",
+        authenticatedUser.username,
+        {
+          userId: authenticatedUser.id,
+          email: authenticatedUser.email,
+        },
+      );
+      return res.redirect(
+        `${getClientUrl(req)}/login?error=account_inactive`,
+      );
+    }
+
+    const jwtToken = signToken(
+      {
+        id: authenticatedUser.id,
+        role: authenticatedUser.role,
+        username: authenticatedUser.username,
+      },
+      jwtExpiresIn,
+    );
+
+    const cookieMaxAge = parseDuration(jwtExpiresIn);
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: cookieMaxAge,
+    };
+
+    res.cookie("auth_token", jwtToken, cookieOptions);
+
+    logAuth("Successful Microsoft login", authenticatedUser.username, {
+      userId: authenticatedUser.id,
+      role: authenticatedUser.role,
+      email: authenticatedUser.email,
+      microsoftId: userProfileData.microsoftId,
+    });
+
+    return res.redirect(`${getClientUrl(req)}/employees?sso=success`);
+  } catch (error) {
+    logError("Microsoft callback error", error);
+    return res.redirect(
+      `${getClientUrl(req)}/login?error=authentication_failed`,
+    );
+  }
+};
+
+export {
+  login,
+  self,
+  forgotPassword,
+  resetPassword,
+  logout,
+  microsoftLogin,
+  microsoftCallback,
+};

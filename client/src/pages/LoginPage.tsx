@@ -1,8 +1,13 @@
 import { FormEvent, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, Eye, EyeOff, LogIn } from "lucide-react";
-import { IconLinkedIn, IconFacebook, IconTwitterX } from "../components/Icons";
-import { login as loginApi } from "../api/auth.api";
+import {
+  IconLinkedIn,
+  IconFacebook,
+  IconTwitterX,
+  IconMicrosoft,
+} from "../components/Icons";
+import { login as loginApi, getMicrosoftAuthUrl } from "../api/auth.api";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { loginSuccess } from "../store/authSlice";
 import { getApiErrorMessage } from "../utils/errors";
@@ -15,6 +20,17 @@ import rightPanelImage from "../assets/login_intelligent.png";
 
 const PASSWORD_EXPIRY_REDIRECT_DELAY = 2000;
 
+const microsoftButtonStyles = `
+  flex h-11 w-full items-center justify-center gap-3 rounded-full 
+  bg-white border-2 border-slate-200 px-5 text-base font-semibold 
+  text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300 
+  hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70
+`;
+
+const dividerStyles = `
+  flex items-center gap-4 my-5 text-sm text-slate-400
+`;
+
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +39,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
@@ -32,6 +49,45 @@ export default function LoginPage() {
     if (token && token !== "cookie_auth") {
       navigate(PAGE_PATHS.myInfo, { replace: true });
     }
+
+    // Handle Microsoft SSO errors from callback redirect
+    const searchParams = new URLSearchParams(window.location.search);
+    const errorType = searchParams.get("error");
+    const emailParam = searchParams.get("email");
+
+    if (errorType) {
+      switch (errorType) {
+        case "microsoft_auth_failed":
+          setError("Microsoft authentication failed. Please try again.");
+          break;
+        case "no_authorization_code":
+          setError("Authentication was cancelled or failed. Please try again.");
+          break;
+        case "user_not_found":
+          setError(
+            emailParam
+              ? `No account found for ${emailParam}. Please contact your administrator.`
+              : "No account found. Please contact your administrator.",
+          );
+          break;
+        case "account_inactive":
+          setError("Your account is inactive. Please contact your administrator.");
+          break;
+        case "authentication_failed":
+          setError("Authentication failed. Please try again or use username/password login.");
+          break;
+        default:
+          setError("An error occurred during login. Please try again.");
+      }
+      // Clear error from URL without reloading
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Handle successful SSO
+    const ssoParam = searchParams.get("sso");
+    if (ssoParam === "success") {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, [token, navigate]);
 
   const handlePasswordVisibilityToggle = () => {
@@ -40,6 +96,23 @@ export default function LoginPage() {
 
   const handleForgotPassword = () => {
     navigate(PAGE_PATHS.forgotPassword);
+  };
+
+  const handleMicrosoftLogin = async () => {
+    setError("");
+    setMicrosoftLoading(true);
+    try {
+      const microsoftAuthUrl = await getMicrosoftAuthUrl();
+      window.location.href = microsoftAuthUrl;
+    } catch (err: unknown) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "Failed to initiate Microsoft login. Please try again.",
+        ),
+      );
+      setMicrosoftLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -235,6 +308,26 @@ export default function LoginPage() {
                 <LogIn size={19} />
               </button>
             </form>
+
+            <div className={dividerStyles}>
+              <span className="flex-1 h-px bg-slate-200"></span>
+              <span>or</span>
+              <span className="flex-1 h-px bg-slate-200"></span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleMicrosoftLogin}
+              disabled={microsoftLoading || loading}
+              className={microsoftButtonStyles}
+            >
+              <IconMicrosoft size={20} />
+              <span>
+                {microsoftLoading
+                  ? "Connecting to Microsoft..."
+                  : "Sign in with Microsoft"}
+              </span>
+            </button>
 
             <p className="mt-4 text-sm text-slate-500">
               <button

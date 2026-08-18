@@ -12,6 +12,10 @@ interface LoginData {
   passwordReminderMessage?: string;
 }
 
+interface MicrosoftAuthData {
+  authUrl: string;
+}
+
 export const login = async (
   username: string,
   password: string,
@@ -22,6 +26,14 @@ export const login = async (
     data: LoginData;
   }>(AUTH_PATHS.LOGIN, { username, password, rememberMe });
   return response.data.data;
+};
+
+export const getMicrosoftAuthUrl = async () => {
+  const response = await api.get<{
+    success: boolean;
+    data: MicrosoftAuthData;
+  }>(AUTH_PATHS.MICROSOFT_LOGIN);
+  return response.data.data.authUrl;
 };
 
 export const logout = async () => {

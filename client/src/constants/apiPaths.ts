@@ -21,6 +21,8 @@ export const AUTH_PATHS = {
   RESET_PASSWORD: "/auth/reset-password",
   VERIFY_TOKEN: "/auth/verify-token",
   SET_PASSWORD: "/auth/set-password",
+  MICROSOFT_LOGIN: "/auth/microsoft",
+  MICROSOFT_CALLBACK: "/auth/microsoft/callback",
 } as const;
 
 /** Employee endpoints */
