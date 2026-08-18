@@ -152,8 +152,13 @@ export default function LeaveDetailsPage() {
       await approveLeave(leaveId);
       addToast("Leave approved successfully.", "success");
       await load();
-    } catch (err) {
-      addToast(getApiErrorMessage(err, "Failed to approve leave."), "error");
+    } catch (err: any) {
+      const errorMessage = getApiErrorMessage(err, "Failed to approve leave.");
+      addToast(errorMessage, "error");
+      // If conflict error (409), refresh to show current status
+      if (err?.response?.status === 409) {
+        await load();
+      }
     } finally {
       setActionLoading(false);
     }
@@ -166,8 +171,13 @@ export default function LeaveDetailsPage() {
       await rejectLeave(leaveId, reason);
       addToast("Leave rejected.", "success");
       await load();
-    } catch (err) {
-      addToast(getApiErrorMessage(err, "Failed to reject leave."), "error");
+    } catch (err: any) {
+      const errorMessage = getApiErrorMessage(err, "Failed to reject leave.");
+      addToast(errorMessage, "error");
+      // If conflict error (409), refresh to show current status
+      if (err?.response?.status === 409) {
+        await load();
+      }
     } finally {
       setActionLoading(false);
     }
@@ -180,8 +190,13 @@ export default function LeaveDetailsPage() {
       await cancelLeave(leaveId);
       addToast("Leave cancelled.", "success");
       await load();
-    } catch (err) {
-      addToast(getApiErrorMessage(err, "Failed to cancel leave."), "error");
+    } catch (err: any) {
+      const errorMessage = getApiErrorMessage(err, "Failed to cancel leave.");
+      addToast(errorMessage, "error");
+      // If conflict error (409), refresh to show current status
+      if (err?.response?.status === 409) {
+        await load();
+      }
     } finally {
       setActionLoading(false);
     }

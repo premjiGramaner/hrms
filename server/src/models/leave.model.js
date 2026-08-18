@@ -400,38 +400,38 @@ function toActorId(id) {
   return isNaN(n) || n <= 0 ? null : n;
 }
 
-async function approveLeave(id, approverId) {
+async function approveLeave(id, approverId, currentStatus) {
   const { rows } = await pool.query(
     `UPDATE tbl_leave_requests
      SET status = 'Approved', approved_by = $1, approved_on = NOW(), updated_at = NOW()
-     WHERE id = $2 AND is_deleted = FALSE
+     WHERE id = $2 AND is_deleted = FALSE AND status = $3
      RETURNING employee_id, leave_type_id, requested_days,
-               EXTRACT(YEAR FROM start_date)::int AS leave_year`,
-    [toActorId(approverId), id],
+               EXTRACT(YEAR FROM start_date)::int AS leave_year, status`,
+    [toActorId(approverId), id, currentStatus],
   );
   return rows[0] || null;
 }
 
-async function rejectLeave(id, rejectorId, rejectionReason) {
+async function rejectLeave(id, rejectorId, rejectionReason, currentStatus) {
   const { rows } = await pool.query(
     `UPDATE tbl_leave_requests
      SET status = 'Rejected', rejected_by = $1, rejected_on = NOW(),
          rejection_reason = $2, updated_at = NOW()
-     WHERE id = $3 AND is_deleted = FALSE
-     RETURNING id`,
-    [toActorId(rejectorId), rejectionReason, id],
+     WHERE id = $3 AND is_deleted = FALSE AND status = $4
+     RETURNING id, status`,
+    [toActorId(rejectorId), rejectionReason, id, currentStatus],
   );
   return rows[0] || null;
 }
 
-async function cancelLeave(id, cancelledById) {
+async function cancelLeave(id, cancelledById, currentStatus) {
   const { rows } = await pool.query(
     `UPDATE tbl_leave_requests
      SET status = 'Cancelled', cancelled_by = $1, cancelled_on = NOW(), updated_at = NOW()
-     WHERE id = $2 AND is_deleted = FALSE
+     WHERE id = $2 AND is_deleted = FALSE AND status = $3
      RETURNING employee_id, leave_type_id, requested_days,
-               EXTRACT(YEAR FROM start_date)::int AS leave_year, status AS old_status`,
-    [toActorId(cancelledById), id],
+               EXTRACT(YEAR FROM start_date)::int AS leave_year, status`,
+    [toActorId(cancelledById), id, currentStatus],
   );
   return rows[0] || null;
 }

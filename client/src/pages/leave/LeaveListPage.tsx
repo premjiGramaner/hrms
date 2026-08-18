@@ -465,13 +465,18 @@ export default function LeaveListPage() {
 
       setConfirmationTarget(null);
       dispatch(fetchLeaves({ ...filters }));
-    } catch (error: unknown) {
+    } catch (error: any) {
       const fallbackMessage =
         action === ConfirmationAction.Approve
           ? "Failed to approve."
           : "Failed to cancel.";
 
       addToast(getApiErrorMessage(error, fallbackMessage), "error");
+      
+      // If conflict error (409), refresh to show current status
+      if (error?.response?.status === 409) {
+        dispatch(fetchLeaves({ ...filters }));
+      }
     } finally {
       setActionLoading(null);
     }
@@ -486,8 +491,12 @@ export default function LeaveListPage() {
         await rejectLeave(rejectTarget, reason);
         addToast("Leave rejected.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (event) {
+      } catch (event: any) {
         addToast(getApiErrorMessage(event, "Failed to reject."), "error");
+        // If conflict error (409), refresh to show current status
+        if (event?.response?.status === 409) {
+          dispatch(fetchLeaves({ ...filters }));
+        }
       } finally {
         setActionLoading(null);
       }

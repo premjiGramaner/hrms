@@ -253,11 +253,27 @@ const approveLeave = async (req, res, next) => {
       );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot approve your own leave request", 403);
-    if (leave.status === "Cancelled")
-      return error(res, "Cannot approve a cancelled leave", 400);
+    
+    // Check if status has already been changed from its original state
+    if (leave.status !== "Pending Approval") {
+      return error(
+        res,
+        `This leave request has already been ${leave.status.toLowerCase()} by another user. Current status: ${leave.status}`,
+        409,
+      );
+    }
 
-    const approved = await LeaveModel.approveLeave(id, actorId);
-    if (!approved) return error(res, "Failed to approve leave", 500);
+    // Pass current status for optimistic locking
+    const approved = await LeaveModel.approveLeave(id, actorId, leave.status);
+    
+    // If no rows returned, status was changed by another user between our check and update
+    if (!approved) {
+      return error(
+        res,
+        "This leave request status was just changed by another user. Please refresh and try again.",
+        409,
+      );
+    }
 
     return success(res, { message: "Leave approved successfully" });
   } catch (err) {
@@ -278,20 +294,33 @@ const rejectLeave = async (req, res, next) => {
     if (!PRIVILEGED_LEAVE_ROLES.includes(actorRole))
       return error(
         res,
-        "You do not have permission to approve leave requests",
+        "You do not have permission to reject leave requests",
         403,
       );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot reject your own leave request", 403);
-    if (["Cancelled", "Rejected"].includes(leave.status)) {
+    
+    // Check if status has already been changed
+    if (["Cancelled", "Rejected", "Approved"].includes(leave.status)) {
       return error(
         res,
-        `Cannot reject a leave that is already ${leave.status.toLowerCase()}`,
-        400,
+        `This leave request has already been ${leave.status.toLowerCase()} by another user. Current status: ${leave.status}`,
+        409,
       );
     }
 
-    await LeaveModel.rejectLeave(id, actorId, rejection_reason);
+    // Pass current status for optimistic locking
+    const rejected = await LeaveModel.rejectLeave(id, actorId, rejection_reason, leave.status);
+    
+    // If no rows returned, status was changed by another user between our check and update
+    if (!rejected) {
+      return error(
+        res,
+        "This leave request status was just changed by another user. Please refresh and try again.",
+        409,
+      );
+    }
+
     return success(res, { message: "Leave rejected successfully" });
   } catch (err) {
     next(err);
@@ -313,11 +342,24 @@ const cancelLeave = async (req, res, next) => {
       return error(res, "Forbidden", 403);
     }
 
-    if (leave.status === "Cancelled") {
-      return error(res, "Leave is already cancelled", 400);
+    // Store the original status for checks
+    const originalStatus = leave.status;
+
+    // Check if already cancelled
+    if (originalStatus === "Cancelled") {
+      return error(res, "This leave has already been cancelled", 409);
     }
 
-    if (isOwner && !isPrivileged && leave.status !== "Pending Approval") {
+    // Check if status has been changed to Rejected or Approved
+    if (["Rejected", "Approved"].includes(originalStatus)) {
+      return error(
+        res,
+        `This leave request has already been ${originalStatus.toLowerCase()} by another user. Current status: ${originalStatus}`,
+        409,
+      );
+    }
+
+    if (isOwner && !isPrivileged && originalStatus !== "Pending Approval") {
       return error(
         res,
         "This leave request has already been processed and cannot be cancelled.",
@@ -330,15 +372,25 @@ const cancelLeave = async (req, res, next) => {
       starting_date.getMonth() >= 3
         ? starting_date.getFullYear() + 1
         : starting_date.getFullYear();
+    
+    // Pass current status for optimistic locking
+    const cancelled = await LeaveModel.cancelLeave(id, actorId, originalStatus);
+    
+    // If no rows returned, status was changed by another user between our check and update
+    if (!cancelled) {
+      return error(
+        res,
+        "This leave request status was just changed by another user. Please refresh and try again.",
+        409,
+      );
+    }
+
     await LeaveModel.restoreLeaveBalance(
       leave.employee_id,
       leave.leave_type_id,
       year,
       leave.requested_days,
     );
-
-    const cancelled = await LeaveModel.cancelLeave(id, actorId);
-    if (!cancelled) return error(res, "Failed to cancel leave", 500);
 
     return success(res, { message: "Leave cancelled successfully" });
   } catch (err) {
