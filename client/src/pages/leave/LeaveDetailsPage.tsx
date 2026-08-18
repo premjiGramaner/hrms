@@ -155,7 +155,6 @@ export default function LeaveDetailsPage() {
     } catch (err: any) {
       const errorMessage = getApiErrorMessage(err, "Failed to approve leave.");
       addToast(errorMessage, "error");
-      // If conflict error (409), refresh to show current status
       if (err?.response?.status === 409) {
         await load();
       }
@@ -174,7 +173,6 @@ export default function LeaveDetailsPage() {
     } catch (err: any) {
       const errorMessage = getApiErrorMessage(err, "Failed to reject leave.");
       addToast(errorMessage, "error");
-      // If conflict error (409), refresh to show current status
       if (err?.response?.status === 409) {
         await load();
       }
@@ -193,7 +191,6 @@ export default function LeaveDetailsPage() {
     } catch (err: any) {
       const errorMessage = getApiErrorMessage(err, "Failed to cancel leave.");
       addToast(errorMessage, "error");
-      // If conflict error (409), refresh to show current status
       if (err?.response?.status === 409) {
         await load();
       }

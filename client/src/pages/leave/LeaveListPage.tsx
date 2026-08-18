@@ -472,8 +472,6 @@ export default function LeaveListPage() {
           : "Failed to cancel.";
 
       addToast(getApiErrorMessage(error, fallbackMessage), "error");
-      
-      // If conflict error (409), refresh to show current status
       if (error?.response?.status === 409) {
         dispatch(fetchLeaves({ ...filters }));
       }
@@ -493,7 +491,6 @@ export default function LeaveListPage() {
         dispatch(fetchLeaves({ ...filters }));
       } catch (event: any) {
         addToast(getApiErrorMessage(event, "Failed to reject."), "error");
-        // If conflict error (409), refresh to show current status
         if (event?.response?.status === 409) {
           dispatch(fetchLeaves({ ...filters }));
         }

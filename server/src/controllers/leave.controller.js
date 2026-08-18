@@ -81,7 +81,7 @@ const listLeaves = async (req, res, next) => {
         ? rawStatuses
         : String(rawStatuses)
             .split(",")
-            .map((s) => s.trim())
+            .map((string) => string.trim())
             .filter(Boolean);
     }
 
@@ -410,7 +410,7 @@ function buildExportFilters(query, userId, role) {
       ? query.statuses
       : String(query.statuses)
           .split(",")
-          .map((s) => s.trim())
+          .map((string) => string.trim())
           .filter(Boolean);
   }
   if (role === "employee") filters.own_employee_id = userId;
