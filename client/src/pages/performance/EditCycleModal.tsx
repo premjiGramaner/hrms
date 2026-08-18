@@ -5,6 +5,23 @@ import DateInput from "../../components/common/DateInput";
 import SelectInput from "../../components/common/SelectInput";
 import { AppraisalTemplate } from "../../types/performance.types";
 
+const MODAL_CONFIG = {
+  TITLE: "Edit Cycle Details",
+  BUTTON_LABELS: {
+    CANCEL: "Cancel",
+    SAVE: "Save Changes",
+  },
+  FIELD_LABELS: {
+    TEMPLATE: "Template",
+    FROM_DATE: "From Date",
+    TO_DATE: "To Date",
+    DUE_DATE: "Due Date",
+  },
+  ARIA_LABELS: {
+    CLOSE: "Close modal",
+  },
+} as const;
+
 interface CycleFormData {
   templateId: string;
   fromDate: string;
@@ -66,14 +83,14 @@ export default function EditCycleModal({
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-8 py-5">
           <h2 className="text-lg font-bold text-slate-800">
-            Edit Cycle Details
+            {MODAL_CONFIG.TITLE}
           </h2>
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
             className="text-slate-400 transition-colors hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Close modal"
+            aria-label={MODAL_CONFIG.ARIA_LABELS.CLOSE}
           >
             <X size={20} />
           </button>
@@ -81,7 +98,7 @@ export default function EditCycleModal({
 
         <div className="space-y-5 px-8 py-6">
           <SelectInput
-            label="Template"
+            label={MODAL_CONFIG.FIELD_LABELS.TEMPLATE}
             required
             value={formData.templateId}
             onChange={(value) => handleFieldChange("templateId", value)}
@@ -90,19 +107,19 @@ export default function EditCycleModal({
 
           <div className="grid gap-5 md:grid-cols-3">
             <DateInput
-              label="From Date"
+              label={MODAL_CONFIG.FIELD_LABELS.FROM_DATE}
               required
               value={formData.fromDate}
               onChange={(value) => handleFieldChange("fromDate", value)}
             />
             <DateInput
-              label="To Date"
+              label={MODAL_CONFIG.FIELD_LABELS.TO_DATE}
               required
               value={formData.toDate}
               onChange={(value) => handleFieldChange("toDate", value)}
             />
             <DateInput
-              label="Due Date"
+              label={MODAL_CONFIG.FIELD_LABELS.DUE_DATE}
               required
               value={formData.dueDate}
               onChange={(value) => handleFieldChange("dueDate", value)}
@@ -112,10 +129,10 @@ export default function EditCycleModal({
 
         <div className="flex justify-end gap-3 border-t border-slate-100 px-8 py-4">
           <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
-            Cancel
+            {MODAL_CONFIG.BUTTON_LABELS.CANCEL}
           </Button>
           <Button onClick={handleSubmit} loading={isSubmitting}>
-            Save Changes
+            {MODAL_CONFIG.BUTTON_LABELS.SAVE}
           </Button>
         </div>
       </div>

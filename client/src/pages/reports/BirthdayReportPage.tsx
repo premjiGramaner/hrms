@@ -7,7 +7,7 @@ import {
   downloadBirthdayReportExcel,
 } from "../../api/report.api";
 import { IconGift } from "../../components/Icons";
-import { Cake } from "lucide-react";
+import { Cake, Gift } from "lucide-react";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
 import { MONTH_OPTIONS } from "../../config/uiConstants";
@@ -246,7 +246,7 @@ export default function BirthdayReportPage() {
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
           itemLabel={REPORT_CONFIG.ITEM_LABEL}
-          emptyIcon={<Cake size={48} className="text-slate-400" />}
+          emptyIcon={<Gift size={48} className="text-slate-400" />}
           emptyTitle={REPORT_CONFIG.EMPTY_TITLE}
           emptySubtitle={REPORT_CONFIG.EMPTY_SUBTITLE}
         />

@@ -1,6 +1,7 @@
 import { Edit, Trash2, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { AxiosError } from "axios";
 import {
   createCycleAppraisals,
   getAppraisalCycle,
@@ -30,6 +31,20 @@ import {
   showPerformanceError,
 } from "./performanceNotifications";
 import EditCycleModal, { CycleFormData } from "./EditCycleModal";
+
+const HTTP_STATUS = {
+  CONFLICT: 409,
+} as const;
+
+const ERROR_MESSAGES = {
+  RATINGS_SUBMITTED:
+    "Cannot edit cycle. Ratings have already been submitted by supervisors or employees.",
+  UPDATE_FAILED: "Unable to update cycle.",
+} as const;
+
+const SUCCESS_MESSAGES = {
+  CYCLE_UPDATED: "Cycle updated successfully.",
+} as const;
 
 export default function AppraisalCycleDetails() {
   const { id: cycleId } = useParams();
@@ -234,12 +249,14 @@ export default function AppraisalCycleDetails() {
       );
       setCurrentCycle(updatedCycle);
       setIsEditModalOpen(false);
-      Toast.success("Cycle updated successfully.");
-    } catch (error: any) {
-      const isConflictError = error?.response?.status === 409;
+      Toast.success(SUCCESS_MESSAGES.CYCLE_UPDATED);
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      const isConflictError =
+        axiosError?.response?.status === HTTP_STATUS.CONFLICT;
       const errorMessage = isConflictError
-        ? "Cannot edit cycle. Ratings have already been submitted by supervisors or employees."
-        : "Unable to update cycle.";
+        ? ERROR_MESSAGES.RATINGS_SUBMITTED
+        : ERROR_MESSAGES.UPDATE_FAILED;
 
       if (isConflictError) {
         Toast.error(errorMessage);

@@ -13,7 +13,7 @@ import {
   fetchReportFilterOptions,
 } from "../../api/report.api";
 import { IconClipboardList } from "../../components/Icons";
-import { UserX } from "lucide-react";
+import { FileText } from "lucide-react";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
 
@@ -411,7 +411,7 @@ export default function TerminationReportPage() {
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
           itemLabel={REPORT_CONFIG.ITEM_LABEL}
-          emptyIcon={<UserX size={48} className="text-slate-400" />}
+          emptyIcon={<FileText size={48} className="text-slate-400" />}
           emptyTitle={REPORT_CONFIG.EMPTY_TITLE}
           emptySubtitle={REPORT_CONFIG.EMPTY_SUBTITLE}
         />
