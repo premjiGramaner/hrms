@@ -7,6 +7,7 @@ import {
   downloadBirthdayReportExcel,
 } from "../../api/report.api";
 import { IconGift } from "../../components/Icons";
+import { Cake } from "lucide-react";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
 import { MONTH_OPTIONS } from "../../config/uiConstants";
@@ -16,7 +17,6 @@ const REPORT_CONFIG = {
   SUBTITLE: "View all employee birthdays",
   SEARCH_PLACEHOLDER: "Search by employee name...",
   ITEM_LABEL: "employees",
-  EMPTY_ICON_TEXT: "🎂",
   EMPTY_TITLE: "No Birthdays Found",
   EMPTY_SUBTITLE: "No employee birthdays match your current filters",
   EXPORT_BUTTON_LABEL: "Export Excel",
@@ -246,7 +246,7 @@ export default function BirthdayReportPage() {
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
           itemLabel={REPORT_CONFIG.ITEM_LABEL}
-          emptyIcon={REPORT_CONFIG.EMPTY_ICON_TEXT}
+          emptyIcon={<Cake size={48} className="text-slate-400" />}
           emptyTitle={REPORT_CONFIG.EMPTY_TITLE}
           emptySubtitle={REPORT_CONFIG.EMPTY_SUBTITLE}
         />

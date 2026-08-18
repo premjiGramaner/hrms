@@ -13,6 +13,7 @@ import {
   fetchReportFilterOptions,
 } from "../../api/report.api";
 import { IconClipboardList } from "../../components/Icons";
+import { UserX } from "lucide-react";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
 
@@ -22,7 +23,6 @@ const REPORT_CONFIG = {
     "Comprehensive termination history with exit details and rehire eligibility",
   SEARCH_PLACEHOLDER: "Search by employee name...",
   ITEM_LABEL: "terminated employees",
-  EMPTY_ICON_TEXT: "📋",
   EMPTY_TITLE: "No Terminated Employees",
   EMPTY_SUBTITLE: "No records match your current filters",
   EXPORT_EXCEL_LABEL: "Export Excel",
@@ -411,7 +411,7 @@ export default function TerminationReportPage() {
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
           itemLabel={REPORT_CONFIG.ITEM_LABEL}
-          emptyIcon={REPORT_CONFIG.EMPTY_ICON_TEXT}
+          emptyIcon={<UserX size={48} className="text-slate-400" />}
           emptyTitle={REPORT_CONFIG.EMPTY_TITLE}
           emptySubtitle={REPORT_CONFIG.EMPTY_SUBTITLE}
         />
