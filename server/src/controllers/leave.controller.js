@@ -293,9 +293,11 @@ const approveLeave = async (req, res, next) => {
       return error(res, "You cannot approve your own leave request", 403);
 
     if (leave.status !== LEAVE_STATUSES.PENDING) {
-      if (!validateLeaveStatus(res, leave.status, [], "approve")) {
-        return;
-      }
+      return error(
+        res,
+        LEAVE_STATUS_MESSAGES.ALREADY_PROCESSED(leave.status),
+        409,
+      );
     }
 
     const approved = await LeaveModel.approveLeave(id, actorId, leave.status);
