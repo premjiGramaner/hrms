@@ -25,6 +25,10 @@ export const ERROR_MESSAGES = {
   REQUIRED_FIELD: (field: string) => `${field} is required.`,
   INVALID_EMAIL: "A valid email address is required.",
   INVALID_FORMAT: (field: string) => `Invalid ${field} format.`,
+
+  RATINGS_SUBMITTED:
+    "Cannot edit cycle. Ratings have already been submitted by supervisors or employees.",
+  CYCLE_UPDATE_FAILED: "Unable to update cycle.",
 } as const;
 
 export const SUCCESS_MESSAGES = {
@@ -33,6 +37,8 @@ export const SUCCESS_MESSAGES = {
   DELETED: (resource: string) => `${resource} deleted successfully.`,
   SAVED: "Changes saved successfully.",
   PROFILE_UPDATED: "Profile updated successfully",
+
+  CYCLE_UPDATED: "Cycle updated successfully.",
 } as const;
 
 export const CONFIRMATION_MESSAGES = {

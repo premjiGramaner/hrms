@@ -1,10 +1,13 @@
-import { Trash2, Users } from "lucide-react";
+import { Edit, Trash2, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { AxiosError } from "axios";
 import {
   createCycleAppraisals,
   getAppraisalCycle,
+  getPerformanceTemplates,
   removeEmployeeFromCycle,
+  updateAppraisalCycle,
 } from "../../api/performance.api";
 import Button from "../../components/common/Button";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
@@ -14,6 +17,7 @@ import StatusBadge from "../../components/common/StatusBadge";
 import PerformanceLayout from "../../components/layout/PerformanceLayout";
 import {
   AppraisalCycle,
+  AppraisalTemplate,
   PerformanceEmployee,
 } from "../../types/performance.types";
 import { DataTableColumn } from "../../types/table.types";
@@ -26,33 +30,64 @@ import {
   isClosedCycleStatus,
   showPerformanceError,
 } from "./performanceNotifications";
+import EditCycleModal, { CycleFormData } from "./EditCycleModal";
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../../constants/messages";
+
+const HTTP_STATUS = {
+  CONFLICT: 409,
+} as const;
 
 export default function AppraisalCycleDetails() {
-  const { id } = useParams();
+  const { id: cycleId } = useParams();
   const navigate = useNavigate();
 
-  const [cycle, setCycle] = useState<AppraisalCycle | null>(null);
-  const [query, setQuery] = useState("");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [creatingAppraisals, setCreatingAppraisals] = useState(false);
+  const [currentCycle, setCurrentCycle] = useState<AppraisalCycle | null>(null);
+  const [availableTemplates, setAvailableTemplates] = useState<
+    AppraisalTemplate[]
+  >([]);
+  const [employeeSearchQuery, setEmployeeSearchQuery] = useState("");
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [isCreatingAppraisals, setIsCreatingAppraisals] = useState(false);
   const [isRemovingEmployee, setIsRemovingEmployee] = useState(false);
   const [employeePendingRemoval, setEmployeePendingRemoval] =
     useState<PerformanceEmployee | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [cycleFormData, setCycleFormData] = useState<CycleFormData>({
+    templateId: "",
+    fromDate: "",
+    toDate: "",
+    dueDate: "",
+  });
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!cycleId) return;
 
-    getAppraisalCycle(id)
-      .then(setCycle)
-      .catch(() => setCycle(null));
-  }, [id]);
+    Promise.all([getAppraisalCycle(cycleId), getPerformanceTemplates()])
+      .then(([cycleData, templatesData]) => {
+        setCurrentCycle(cycleData);
+        setAvailableTemplates(templatesData);
+        setCycleFormData({
+          templateId: cycleData.templateId,
+          fromDate: cycleData.fromDate,
+          toDate: cycleData.toDate,
+          dueDate: cycleData.dueDate,
+        });
+      })
+      .catch(() => {
+        setCurrentCycle(null);
+        setAvailableTemplates([]);
+      });
+  }, [cycleId]);
 
-  const rows = useMemo(
+  const filteredEmployees = useMemo(
     () =>
-      (cycle?.employees || []).filter((employee) =>
-        employee.name.toLowerCase().includes(query.trim().toLowerCase()),
+      (currentCycle?.employees || []).filter((employee) =>
+        employee.name
+          .toLowerCase()
+          .includes(employeeSearchQuery.trim().toLowerCase()),
       ),
-    [cycle?.employees, query],
+    [currentCycle?.employees, employeeSearchQuery],
   );
 
   const columns: DataTableColumn<PerformanceEmployee>[] = [
@@ -114,7 +149,7 @@ export default function AppraisalCycleDetails() {
   ];
 
   const toggleEmployeeSelection = (employeeId: string) => {
-    setSelectedIds((currentSelectedIds) =>
+    setSelectedEmployeeIds((currentSelectedIds) =>
       currentSelectedIds.includes(employeeId)
         ? currentSelectedIds.filter(
             (selectedEmployeeId) => selectedEmployeeId !== employeeId,
@@ -124,9 +159,9 @@ export default function AppraisalCycleDetails() {
   };
 
   const removeEmployee = async (employeeId: string) => {
-    if (!cycle || isRemovingEmployee) return;
+    if (!currentCycle || isRemovingEmployee) return;
 
-    if (isClosedCycleStatus(cycle.status)) {
+    if (isClosedCycleStatus(currentCycle.status)) {
       Toast.warning(CLOSED_CYCLE_MESSAGE);
       setEmployeePendingRemoval(null);
       return;
@@ -135,11 +170,14 @@ export default function AppraisalCycleDetails() {
     setIsRemovingEmployee(true);
 
     try {
-      const updatedCycle = await removeEmployeeFromCycle(cycle.id, employeeId);
+      const updatedCycle = await removeEmployeeFromCycle(
+        currentCycle.id,
+        employeeId,
+      );
 
-      setCycle(updatedCycle);
+      setCurrentCycle(updatedCycle);
 
-      setSelectedIds((currentSelectedIds) =>
+      setSelectedEmployeeIds((currentSelectedIds) =>
         currentSelectedIds.filter(
           (selectedEmployeeId) => selectedEmployeeId !== employeeId,
         ),
@@ -155,13 +193,13 @@ export default function AppraisalCycleDetails() {
   };
 
   const createAppraisals = async () => {
-    if (!cycle || creatingAppraisals) return;
+    if (!currentCycle || isCreatingAppraisals) return;
 
-    setCreatingAppraisals(true);
+    setIsCreatingAppraisals(true);
     try {
-      await createCycleAppraisals(cycle.id);
-      const next = await getAppraisalCycle(cycle.id);
-      setCycle(next);
+      await createCycleAppraisals(currentCycle.id);
+      const updatedCycle = await getAppraisalCycle(currentCycle.id);
+      setCurrentCycle(updatedCycle);
       Toast.success("Appraisals created successfully.");
       navigate(PAGE_PATHS.performanceAppraisalsList);
     } catch (error) {
@@ -171,11 +209,57 @@ export default function AppraisalCycleDetails() {
         APPRAISAL_VALIDATION_TOAST_DURATION_MS,
       );
     } finally {
-      setCreatingAppraisals(false);
+      setIsCreatingAppraisals(false);
     }
   };
 
-  if (!cycle) {
+  const openEditCycleModal = () => {
+    if (!currentCycle) return;
+
+    setCycleFormData({
+      templateId: currentCycle.templateId,
+      fromDate: currentCycle.fromDate,
+      toDate: currentCycle.toDate,
+      dueDate: currentCycle.dueDate,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditCycleModal = () => {
+    setIsEditModalOpen(false);
+  };
+
+  const handleSaveCycleChanges = async (updatedFormData: CycleFormData) => {
+    if (!currentCycle || isSubmittingEdit) return;
+
+    setIsSubmittingEdit(true);
+    try {
+      const updatedCycle = await updateAppraisalCycle(
+        currentCycle.id,
+        updatedFormData,
+      );
+      setCurrentCycle(updatedCycle);
+      setIsEditModalOpen(false);
+      Toast.success(SUCCESS_MESSAGES.CYCLE_UPDATED);
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      const isConflictError =
+        axiosError?.response?.status === HTTP_STATUS.CONFLICT;
+      const errorMessage = isConflictError
+        ? ERROR_MESSAGES.RATINGS_SUBMITTED
+        : ERROR_MESSAGES.CYCLE_UPDATE_FAILED;
+
+      if (isConflictError) {
+        Toast.error(errorMessage);
+      } else {
+        showPerformanceError(error, errorMessage);
+      }
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
+  if (!currentCycle) {
     return (
       <PerformanceLayout
         title="Performance / Appraisals / Appraisal Cycles"
@@ -188,7 +272,7 @@ export default function AppraisalCycleDetails() {
     );
   }
 
-  const isCycleClosed = isClosedCycleStatus(cycle.status);
+  const isCycleClosed = isClosedCycleStatus(currentCycle.status);
 
   return (
     <PerformanceLayout
@@ -201,12 +285,15 @@ export default function AppraisalCycleDetails() {
             Appraisal Cycle Status
           </p>
 
-          <p className="font-bold text-slate-600">{cycle.status}</p>
+          <p className="font-bold text-slate-600">{currentCycle.status}</p>
         </div>
 
         <Button
-          disabled={rows.length === 0 || isClosedCycleStatus(cycle.status)}
-          loading={creatingAppraisals}
+          disabled={
+            filteredEmployees.length === 0 ||
+            isClosedCycleStatus(currentCycle.status)
+          }
+          loading={isCreatingAppraisals}
           onClick={createAppraisals}
         >
           Create Appraisals
@@ -222,7 +309,7 @@ export default function AppraisalCycleDetails() {
       <div className="grid gap-6 rounded-[8px] bg-white p-6 xl:grid-cols-[330px_1fr]">
         <aside className="border-r border-slate-100 pr-6">
           <div className="mb-8 rounded-[8px] bg-[#fbf9ff] px-4 py-4 text-lg font-bold text-slate-600">
-            {cycle.name}
+            {currentCycle.name}
           </div>
 
           <Button
@@ -231,7 +318,7 @@ export default function AppraisalCycleDetails() {
             disabled={isCycleClosed}
             onClick={() =>
               navigate(
-                `/performance/appraisal_cycles/${cycle.id}/add-employees`,
+                `/performance/appraisal_cycles/${currentCycle.id}/add-employees`,
               )
             }
           >
@@ -240,13 +327,17 @@ export default function AppraisalCycleDetails() {
           </Button>
 
           <div className="space-y-5 border-t border-slate-100 pt-6">
-            <h3 className="text-sm font-bold text-slate-500">Cycle Details</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-500">
+                Cycle Details
+              </h3>
+            </div>
 
             {[
-              ["Location", cycle.location],
-              ["From Date", cycle.fromDate],
-              ["To Date", cycle.toDate],
-              ["Due Date", cycle.dueDate],
+              ["Location", currentCycle.location],
+              ["From Date", currentCycle.fromDate],
+              ["To Date", currentCycle.toDate],
+              ["Due Date", currentCycle.dueDate],
             ].map(([label, value]) => (
               <div key={label} className="rounded-[8px] bg-[#fbf9ff] p-4">
                 <p className="text-xs font-semibold text-slate-400">{label}</p>
@@ -256,18 +347,28 @@ export default function AppraisalCycleDetails() {
                 </p>
               </div>
             ))}
+
+            <Button
+              variant="primary"
+              className="w-full"
+              disabled={isCycleClosed}
+              onClick={openEditCycleModal}
+            >
+              <Edit size={17} />
+              Edit Cycle Details
+            </Button>
           </div>
         </aside>
 
         <section>
           <div className="mb-4 flex items-center justify-between gap-4">
             <h2 className="text-lg font-bold text-slate-500">
-              ({rows.length}) Employees in this Cycle
+              ({filteredEmployees.length}) Employees in this Cycle
             </h2>
 
             <SearchInput
-              value={query}
-              onChange={setQuery}
+              value={employeeSearchQuery}
+              onChange={setEmployeeSearchQuery}
               placeholder="Search"
               className="w-96"
             />
@@ -275,18 +376,18 @@ export default function AppraisalCycleDetails() {
 
           <DataTable
             columns={columns}
-            data={rows}
-            selectedIds={selectedIds}
+            data={filteredEmployees}
+            selectedIds={selectedEmployeeIds}
             getRowId={(row) => row.id}
             onSelectRow={isCycleClosed ? undefined : toggleEmployeeSelection}
             onSelectAll={
               isCycleClosed
                 ? undefined
                 : () =>
-                    setSelectedIds(
-                      selectedIds.length === rows.length
+                    setSelectedEmployeeIds(
+                      selectedEmployeeIds.length === filteredEmployees.length
                         ? []
-                        : rows.map((row) => row.id),
+                        : filteredEmployees.map((row) => row.id),
                     )
             }
             actions={(row) => (
@@ -297,7 +398,7 @@ export default function AppraisalCycleDetails() {
                     : "Remove employee"
                 }
                 disabled={
-                  isClosedCycleStatus(cycle.status) || isRemovingEmployee
+                  isClosedCycleStatus(currentCycle.status) || isRemovingEmployee
                 }
                 onClick={() => setEmployeePendingRemoval(row)}
               >
@@ -319,6 +420,15 @@ export default function AppraisalCycleDetails() {
           onConfirm={() => removeEmployee(employeePendingRemoval.id)}
         />
       ) : null}
+
+      <EditCycleModal
+        isOpen={isEditModalOpen}
+        initialData={cycleFormData}
+        templates={availableTemplates}
+        isSubmitting={isSubmittingEdit}
+        onClose={closeEditCycleModal}
+        onSave={handleSaveCycleChanges}
+      />
     </PerformanceLayout>
   );
 }
