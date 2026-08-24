@@ -155,17 +155,13 @@ export default function EmployeeProfilePage() {
         const { data } = await getEmployee(parseInt(id));
         setEmployee(data);
 
-        const supervisorNames = Array.isArray(data.supervisors)
+        const supervisorIds = Array.isArray(data.supervisors)
           ? data.supervisors
           : [];
         let supervisorId = "";
 
-        if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
-          const supervisorName = supervisorNames[0];
-          const foundSupervisor = supervisorOptions.find(
-            (supervisorOption) => supervisorOption.name === supervisorName,
-          );
-          supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
+        if (supervisorIds.length > 0) {
+          supervisorId = String(supervisorIds[0]);
         }
 
         const initialForm = employeeToEditableProfileForm(data);
@@ -357,17 +353,13 @@ export default function EmployeeProfilePage() {
       const { data } = await getEmployee(employee.id);
       setEmployee(data);
 
-      const supervisorNames = Array.isArray(data.supervisors)
+      const supervisorIds = Array.isArray(data.supervisors)
         ? data.supervisors
         : [];
       let supervisorId = "";
 
-      if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
-        const supervisorName = supervisorNames[0];
-        const foundSupervisor = supervisorOptions.find(
-          (supervisorOption) => supervisorOption.name === supervisorName,
-        );
-        supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
+      if (supervisorIds.length > 0) {
+        supervisorId = String(supervisorIds[0]);
       }
 
       const updatedForm = employeeToEditableProfileForm(data);

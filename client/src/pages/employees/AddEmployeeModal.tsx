@@ -1302,7 +1302,28 @@ export default function AddEmployeeModal({
                       (availableSupervisor) =>
                         availableSupervisor.id === supervisorId,
                     );
-                    const name = supervisor?.name || String(supervisorId);
+
+                    let name = supervisor?.name;
+
+                    if (
+                      !name &&
+                      employee?.supervisor_names &&
+                      Array.isArray(employee.supervisor_names)
+                    ) {
+                      const supervisorIndex =
+                        employee.supervisors?.indexOf(supervisorId);
+                      if (
+                        supervisorIndex !== undefined &&
+                        supervisorIndex !== -1
+                      ) {
+                        name = employee.supervisor_names[supervisorIndex];
+                      }
+                    }
+
+                    if (!name) {
+                      name = String(supervisorId);
+                    }
+
                     return (
                       <span
                         key={supervisorId}

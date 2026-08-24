@@ -91,20 +91,11 @@ const getInitials = (employee: Employee) => {
 };
 
 const getSupervisor = (employee: Employee): string => {
-  if (employee.supervisor_names) {
-    const names = Array.isArray(employee.supervisor_names)
-      ? employee.supervisor_names
-      : [];
-    return names.length > 0 ? names.join(", ") : "—";
+  if (employee.supervisor_names && Array.isArray(employee.supervisor_names)) {
+    return employee.supervisor_names.length > 0
+      ? employee.supervisor_names.join(", ")
+      : "—";
   }
-
-  if (employee.supervisors) {
-    const names = Array.isArray(employee.supervisors)
-      ? employee.supervisors
-      : [];
-    return names.length > 0 ? names.join(", ") : "—";
-  }
-
   return "—";
 };
 

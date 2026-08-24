@@ -185,6 +185,14 @@ export default function EmployeeProfileCard({
   const avatarUrl = getAvatarSrc(employee.avatar);
 
   const getSupervisorNames = () => {
+    if (
+      employee.supervisor_names &&
+      Array.isArray(employee.supervisor_names) &&
+      employee.supervisor_names.length > 0
+    ) {
+      return employee.supervisor_names.filter((name) => name).join(", ");
+    }
+
     let supervisorsData: unknown = employee.supervisors;
 
     if (typeof supervisorsData === "string") {
@@ -202,11 +210,11 @@ export default function EmployeeProfileCard({
             return (
               supervisorMap.get(supervisor) ??
               supervisorMap.get(supervisor.toString()) ??
-              supervisor.toString()
+              ""
             );
           }
           if (typeof supervisor === "string") {
-            return supervisorMap.get(supervisor) || supervisor;
+            return supervisorMap.get(supervisor) || "";
           }
           return supervisor.name || "";
         })

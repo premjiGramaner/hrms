@@ -201,6 +201,13 @@ const updateEmployee = async (req, res, next) => {
     const existing = await EmployeeModel.findEmployeeById(employeeId);
     if (!existing) return error(res, "Employee not found", 404);
 
+    logInfo("Update employee request received", {
+      employeeId,
+      supervisorsValue: req.body.supervisors,
+      supervisorsType: typeof req.body.supervisors,
+      hasSupervisorsField: "supervisors" in req.body,
+    });
+
     const workEmail = (req.body.work_email || req.body.email || "")
       .trim()
       .toLowerCase();

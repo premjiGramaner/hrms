@@ -570,6 +570,11 @@ export default function MyInfoPage() {
             label="Supervisor"
             name="supervisor_id"
             value={form.supervisor_id}
+            displayValue={
+              form.supervisor_id
+                ? supervisorLabels.get(form.supervisor_id) || form.supervisor_id
+                : ""
+            }
             onChange={handleFieldChange}
             options={supervisorIds}
             optionLabels={supervisorLabels}
