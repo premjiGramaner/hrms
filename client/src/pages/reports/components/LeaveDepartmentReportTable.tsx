@@ -127,7 +127,7 @@ export default function LeaveDepartmentReportTable({
         pageSizeOptions={[10, 20, 50, 100]}
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
-        itemLabel="employees"
+        itemLabel="leave records"
       />
     </section>
   );
