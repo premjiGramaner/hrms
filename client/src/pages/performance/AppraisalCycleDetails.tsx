@@ -31,19 +31,10 @@ import {
   showPerformanceError,
 } from "./performanceNotifications";
 import EditCycleModal, { CycleFormData } from "./EditCycleModal";
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../../constants/messages";
 
 const HTTP_STATUS = {
   CONFLICT: 409,
-} as const;
-
-const ERROR_MESSAGES = {
-  RATINGS_SUBMITTED:
-    "Cannot edit cycle. Ratings have already been submitted by supervisors or employees.",
-  UPDATE_FAILED: "Unable to update cycle.",
-} as const;
-
-const SUCCESS_MESSAGES = {
-  CYCLE_UPDATED: "Cycle updated successfully.",
 } as const;
 
 export default function AppraisalCycleDetails() {
@@ -256,7 +247,7 @@ export default function AppraisalCycleDetails() {
         axiosError?.response?.status === HTTP_STATUS.CONFLICT;
       const errorMessage = isConflictError
         ? ERROR_MESSAGES.RATINGS_SUBMITTED
-        : ERROR_MESSAGES.UPDATE_FAILED;
+        : ERROR_MESSAGES.CYCLE_UPDATE_FAILED;
 
       if (isConflictError) {
         Toast.error(errorMessage);

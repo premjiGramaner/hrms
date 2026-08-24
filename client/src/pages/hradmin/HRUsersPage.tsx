@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { AxiosError } from "axios";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getHRUsers,
@@ -242,8 +243,9 @@ export default function HRUsersPage() {
               userList.map((user, rowIndex) => (
                 <tr
                   key={user.id}
-                  className={`border-b border-slate-50 transition-colors hover:bg-sky-50 ${rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafbff]"
-                    }`}
+                  className={`border-b border-slate-50 transition-colors hover:bg-sky-50 ${
+                    rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafbff]"
+                  }`}
                 >
                   <td className="p-3 px-4">
                     <input
@@ -437,11 +439,12 @@ function NavBtn({
       className={`
         min-w-[32px] h-8 px-[7px] rounded-md inline-flex items-center justify-center
         text-[13px] leading-none transition-all
-        ${active
-          ? "border-[1.5px] border-[#1b2a6b] bg-[#1b2a6b] text-white font-bold"
-          : disabled
-            ? "border-[1.5px] border-slate-200 bg-transparent text-gray-300 cursor-not-allowed"
-            : "border-[1.5px] border-slate-200 bg-white text-gray-700 cursor-pointer hover:border-slate-400 hover:text-[#1b2a6b]"
+        ${
+          active
+            ? "border-[1.5px] border-[#1b2a6b] bg-[#1b2a6b] text-white font-bold"
+            : disabled
+              ? "border-[1.5px] border-slate-200 bg-transparent text-gray-300 cursor-not-allowed"
+              : "border-[1.5px] border-slate-200 bg-white text-gray-700 cursor-pointer hover:border-slate-400 hover:text-[#1b2a6b]"
         }
       `}
     >
@@ -506,9 +509,10 @@ function UserFormModal({
         await updateHRUser(user.id, payload);
       }
       onSaved();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ message?: string }>;
       const message =
-        err?.response?.data?.message ||
+        axiosError?.response?.data?.message ||
         `Failed to ${mode === "add" ? "create" : "update"} user. Please try again.`;
       setFormError(message);
       onError(message);
