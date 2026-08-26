@@ -55,7 +55,7 @@ export const PLACEHOLDER_TEXT = {
   SEARCH_BY_NAME: "Search by name...",
   SEARCH_BY_NAME_EMAIL: "Search by name or email...",
   SEARCH_BY_NAME_USERNAME_EMAIL: "Search by name, username or email…",
-  SEARCH_EMPLOYEES: "Search by name, ID, email, job title…",
+  SEARCH_EMPLOYEES: "Search by name, ID, email,",
   SEARCH_JOB_TITLES: "Search job titles or description…",
   SEARCH_JOB_CATEGORIES: "Search categories or description…",
   SEARCH_SUB_UNITS: "Search by name or supervisor…",
