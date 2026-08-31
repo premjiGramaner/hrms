@@ -46,15 +46,29 @@ function getInitials(name: string): string {
 function RoleDropdown({
   user,
   onRoleChange,
+  onUpdateStart,
+  onUpdateCancel,
+  isAnyUserUpdating,
+  isThisUserUpdating,
 }: {
   user: RoleAccessUser;
   onRoleChange: (userId: number, newRole: string) => void;
+  onUpdateStart: (userId: number) => void;
+  onUpdateCancel: () => void;
+  isAnyUserUpdating: boolean;
+  isThisUserUpdating: boolean;
 }) {
   const [saving, setSaving] = useState(false);
+  const [confirmationPending, setConfirmationPending] = useState(false);
 
-  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRole = e.target.value;
+  const handleChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newRole = event.target.value;
     if (newRole === user.role) return;
+
+    if (confirmationPending || saving || isAnyUserUpdating) {
+      event.target.value = roleValue(user.role);
+      return;
+    }
 
     const newRoleLabel =
       ROLE_OPTIONS.find((role) => role.value === newRole)?.label || newRole;
@@ -62,6 +76,8 @@ function RoleDropdown({
       ROLE_OPTIONS.find((role) => role.value === roleValue(user.role))?.label ||
       user.role;
 
+    onUpdateStart(user.id);
+    setConfirmationPending(true);
     const confirmed = await Alert.confirm({
       title: "Change User Role",
       message: `Are you sure you want to change ${user.name}'s role from ${currentRoleLabel} to ${newRoleLabel}?`,
@@ -69,10 +85,11 @@ function RoleDropdown({
       cancelText: "Cancel",
       type: "warning",
     });
+    setConfirmationPending(false);
 
     if (!confirmed) {
-      e.target.value = roleValue(user.role);
-      return;
+      event.target.value = roleValue(user.role);
+      onUpdateCancel();
     }
 
     setSaving(true);
@@ -82,13 +99,13 @@ function RoleDropdown({
       Toast.success(`Role updated to ${newRoleLabel}`);
     } catch {
       Toast.error("Failed to update user role");
-      e.target.value = roleValue(user.role);
+      event.target.value = roleValue(user.role);
+      onUpdateCancel();
     } finally {
       setSaving(false);
     }
   };
 
-  // Get border color class based on role
   const getBorderClass = (role: string) => {
     const val = roleValue(role);
     if (val === "employee") return "border-[#bbf7d0]";
@@ -97,7 +114,6 @@ function RoleDropdown({
     return "border-slate-200";
   };
 
-  // Get background color class based on role
   const getBgClass = (role: string) => {
     const val = roleValue(role);
     if (val === "employee") return "bg-[#dcfce7]";
@@ -106,7 +122,6 @@ function RoleDropdown({
     return "bg-slate-100";
   };
 
-  // Get text color class based on role
   const getTextClass = (role: string) => {
     const val = roleValue(role);
     if (val === "employee") return "text-[#16a34a]";
@@ -115,14 +130,17 @@ function RoleDropdown({
     return "text-slate-600";
   };
 
+  const isDisabled =
+    saving || confirmationPending || (isAnyUserUpdating && !isThisUserUpdating);
+
   return (
     <div className="relative inline-block">
       <select
         value={roleValue(user.role)}
         onChange={handleChange}
-        disabled={saving}
+        disabled={isDisabled}
         className={`py-1 pr-7 pl-2.5 rounded-lg text-xs font-bold outline-none appearance-none transition-all border-[1.5px] ${getBorderClass(user.role)} ${getBgClass(user.role)} ${getTextClass(user.role)} ${
-          saving ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+          isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
         }`}
       >
         {ROLE_OPTIONS.map((option) => (
@@ -134,7 +152,7 @@ function RoleDropdown({
       <span
         className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] ${getTextClass(user.role)}`}
       >
-        {saving ? "…" : "▼"}
+        {isDisabled ? "…" : "▼"}
       </span>
     </div>
   );
@@ -148,7 +166,7 @@ function FilterSelect({
   minWidth = 130,
 }: {
   value: string;
-  onChange: (v: string) => void;
+  onChange: (value: string) => void;
   options: { value: string; label: string }[];
   placeholder: string;
   minWidth?: number;
@@ -164,7 +182,7 @@ function FilterSelect({
     <div className="relative">
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         className={`py-2.5 pr-8 pl-3 border-[1.5px] border-slate-200 rounded-[10px] text-[13px] outline-none appearance-none bg-white cursor-pointer shadow-sm ${widthClass}`}
       >
         <option value="">{placeholder}</option>
@@ -189,6 +207,7 @@ export default function RoleAccessPage() {
   const [pageSize, setPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState("");
+  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -266,6 +285,15 @@ export default function RoleAccessPage() {
         user.id === userId ? { ...user, role: newRole } : user,
       ),
     );
+    setUpdatingUserId(null);
+  };
+
+  const handleRoleUpdateStart = (userId: number) => {
+    setUpdatingUserId(userId);
+  };
+
+  const handleRoleUpdateCancel = () => {
+    setUpdatingUserId(null);
   };
 
   const clearFilters = () => {
@@ -405,7 +433,14 @@ export default function RoleAccessPage() {
       header: "Role",
       width: 160,
       render: (row) => (
-        <RoleDropdown user={row} onRoleChange={handleRoleChange} />
+        <RoleDropdown
+          user={row}
+          onRoleChange={handleRoleChange}
+          onUpdateStart={handleRoleUpdateStart}
+          onUpdateCancel={handleRoleUpdateCancel}
+          isAnyUserUpdating={updatingUserId !== null}
+          isThisUserUpdating={updatingUserId === row.id}
+        />
       ),
     },
   ];
@@ -476,13 +511,13 @@ export default function RoleAccessPage() {
       <DataTable<RoleAccessUser>
         title="Role Access Management"
         subtitle="View and manage user roles across the system"
-        icon="🛡️"
+        icon={<IconUsers size={20} />}
         rows={users}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row) => row.id}
-        emptyIcon="👥"
+        emptyIcon={<IconUsers size={20} />}
         emptyTitle={
           hasFilters ? "No users match the current filters" : "No users found"
         }

@@ -60,7 +60,7 @@ async function findAllEmployees(page, limit = 10, search = "") {
               CASE
                 WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' THEN '[]'::json
                 ELSE u.supervisors::json
-              END AS supervisor_names
+              END AS supervisor_names_stored
        FROM tbl_appusers u
        WHERE ${whereClause}
        ORDER BY u.created_at DESC
@@ -70,19 +70,43 @@ async function findAllEmployees(page, limit = 10, search = "") {
 
     const employeesWithSupervisors = await Promise.all(
       rows.map(async (employee) => {
-        const supervisorNames = employee.supervisor_names || [];
+        const supervisorNamesStored = employee.supervisor_names_stored || [];
         let supervisorIds = [];
+        let supervisorNames = [];
 
-        if (Array.isArray(supervisorNames) && supervisorNames.length > 0) {
-          const { rows: supervisorRows } = await pool.query(
-            `SELECT id::int 
-             FROM tbl_appusers 
-             WHERE name = ANY($1::text[]) 
-               AND is_deleted = false 
-               AND role = ANY($2::text[])`,
-            [supervisorNames, [...BASIC_SUPERVISOR_ROLES]],
-          );
-          supervisorIds = supervisorRows.map((row) => row.id);
+        if (
+          Array.isArray(supervisorNamesStored) &&
+          supervisorNamesStored.length > 0
+        ) {
+          const firstItem = supervisorNamesStored[0];
+          const isNumericId =
+            !isNaN(firstItem) && Number.isInteger(Number(firstItem));
+
+          if (isNumericId) {
+            supervisorIds = supervisorNamesStored.map((id) => Number(id));
+          } else {
+            const { rows: supervisorRows } = await pool.query(
+              `SELECT id::int 
+               FROM tbl_appusers 
+               WHERE name = ANY($1::text[]) 
+                 AND is_deleted = false 
+                 AND role = ANY($2::text[])`,
+              [supervisorNamesStored, [...BASIC_SUPERVISOR_ROLES]],
+            );
+            supervisorIds = supervisorRows.map((row) => row.id);
+          }
+
+          if (supervisorIds.length > 0) {
+            const { rows: currentNameRows } = await pool.query(
+              `SELECT name 
+               FROM tbl_appusers 
+               WHERE id = ANY($1::int[]) 
+                 AND is_deleted = false
+               ORDER BY name ASC`,
+              [supervisorIds],
+            );
+            supervisorNames = currentNameRows.map((row) => row.name);
+          }
         }
 
         return {
@@ -207,18 +231,45 @@ async function findEmployeeById(id) {
   if (!rows[0]) return null;
 
   const employee = rows[0];
-  const supervisorNames = employee.supervisor_names || [];
+  const supervisorNamesStored = employee.supervisor_names || [];
+  let supervisorNames = [];
 
-  if (Array.isArray(supervisorNames) && supervisorNames.length > 0) {
-    const { rows: supervisorRows } = await pool.query(
-      `SELECT id::int 
-       FROM tbl_appusers 
-       WHERE name = ANY($1::text[]) 
-         AND is_deleted = false 
-         AND role = ANY($2::text[])`,
-      [supervisorNames, [...BASIC_SUPERVISOR_ROLES]],
-    );
-    employee.supervisors = supervisorRows.map((row) => row.id);
+  if (
+    Array.isArray(supervisorNamesStored) &&
+    supervisorNamesStored.length > 0
+  ) {
+    const firstItem = supervisorNamesStored[0];
+    const isNumericId =
+      !isNaN(firstItem) && Number.isInteger(Number(firstItem));
+
+    let supervisorIds = [];
+    if (isNumericId) {
+      supervisorIds = supervisorNamesStored.map((id) => Number(id));
+    } else {
+      const { rows: supervisorRows } = await pool.query(
+        `SELECT id::int 
+         FROM tbl_appusers 
+         WHERE name = ANY($1::text[]) 
+           AND is_deleted = false 
+           AND role = ANY($2::text[])`,
+        [supervisorNamesStored, [...BASIC_SUPERVISOR_ROLES]],
+      );
+      supervisorIds = supervisorRows.map((row) => row.id);
+    }
+
+    employee.supervisors = supervisorIds;
+
+    if (supervisorIds.length > 0) {
+      const { rows: currentNameRows } = await pool.query(
+        `SELECT name 
+         FROM tbl_appusers 
+         WHERE id = ANY($1::int[]) 
+           AND is_deleted = false
+         ORDER BY name ASC`,
+        [supervisorIds],
+      );
+      supervisorNames = currentNameRows.map((row) => row.name);
+    }
   } else {
     employee.supervisors = [];
   }
@@ -228,7 +279,7 @@ async function findEmployeeById(id) {
   return employee;
 }
 
-async function convertSupervisorIdsToNames(supervisors, employeeId = null) {
+async function validateAndStoreSupervisorIds(supervisors, employeeId = null) {
   if (!supervisors) return null;
 
   try {
@@ -283,13 +334,7 @@ async function convertSupervisorIdsToNames(supervisors, employeeId = null) {
       throw new AppError("Select only valid, active supervisors.", 422);
     }
 
-    const supervisorNamesById = new Map(
-      rows.map((supervisor) => [supervisor.id, supervisor.name]),
-    );
-    const names = supervisorIds.map((supervisorId) =>
-      supervisorNamesById.get(supervisorId),
-    );
-    return JSON.stringify(names);
+    return JSON.stringify(supervisorIds);
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError("Invalid supervisors value.", 422);
@@ -304,8 +349,7 @@ async function createEmployee(data, avatarPath) {
 
   const realDob = data.real_dob || data.dob || null;
 
-  // Convert supervisor IDs to names and store names
-  const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
+  const supervisorIds = await validateAndStoreSupervisorIds(data.supervisors);
 
   const { rows } = await pool.query(
     `INSERT INTO tbl_appusers (
@@ -375,7 +419,7 @@ async function createEmployee(data, avatarPath) {
       data.contract_start_date || null,
       data.contract_end_date || null,
       data.comments || null,
-      supervisorNames,
+      supervisorIds,
       data.created_by || null,
     ],
   );
@@ -396,16 +440,16 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
   const realDob =
     normalizeNullableDate(data.real_dob) || normalizeNullableDate(data.dob);
 
-  let supervisorNames;
+  let supervisorIds;
   if (
     data.supervisors !== undefined &&
     data.supervisors !== null &&
     data.supervisors !== "" &&
     data.supervisors !== "[]"
   ) {
-    supervisorNames = await convertSupervisorIdsToNames(data.supervisors, id);
+    supervisorIds = await validateAndStoreSupervisorIds(data.supervisors, id);
   } else {
-    supervisorNames = undefined;
+    supervisorIds = undefined;
   }
 
   const result = await pool.query(
@@ -491,7 +535,7 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       normalizeNullableDate(data.contract_start_date),
       normalizeNullableDate(data.contract_end_date),
       normalizeNullableText(data.comments),
-      supervisorNames !== undefined ? supervisorNames : null,
+      supervisorIds !== undefined ? supervisorIds : null,
       updatedBy || null,
       id,
     ],

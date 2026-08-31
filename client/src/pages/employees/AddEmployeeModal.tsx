@@ -42,6 +42,10 @@ import {
   MAX_FILE_SIZE_MB,
 } from "../../config/constants";
 import { IconChevronDown, IconUser, IconX } from "../../components/Icons";
+import {
+  onSupervisorUpdated,
+  dispatchSupervisorUpdated,
+} from "../../utils/supervisorEvents";
 
 const PREDEFINED_LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"];
 
@@ -104,16 +108,47 @@ export default function AddEmployeeModal({
   const [apiError, setApiError] = useState("");
 
   useEffect(() => {
-    getSupervisors()
-      .then((response) =>
-        setSupervisors(
-          response.data.filter(
+    const fetchSupervisors = () => {
+      getSupervisors()
+        .then((response) => {
+          const filteredSupervisors = response.data.filter(
             (supervisor) =>
               !employee?.id || String(supervisor.id) !== String(employee.id),
-          ),
-        ),
-      )
-      .catch(() => setApiError("Failed to load supervisors"));
+          );
+          setSupervisors(filteredSupervisors);
+          setSelectedSupervisors((currentSelection) => {
+            if (currentSelection.length === 0) return currentSelection;
+
+            const validSupervisorIds = filteredSupervisors
+              .map((supervisor) => supervisor.id)
+              .filter(Boolean);
+            return currentSelection.filter((id) =>
+              validSupervisorIds.includes(id),
+            );
+          });
+        })
+        .catch(() => setApiError("Failed to load supervisors"));
+    };
+
+    fetchSupervisors();
+
+    const handleFocus = () => {
+      fetchSupervisors();
+    };
+
+    const unsubscribe = onSupervisorUpdated(() => {
+      fetchSupervisors();
+    });
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      unsubscribe();
+    };
+  }, [employee?.id]);
+
+  useEffect(() => {
     getJobTitles()
       .then((response) =>
         setJobTitleOptions(response.data.map((jobTitle) => jobTitle.title)),
@@ -409,9 +444,11 @@ export default function AddEmployeeModal({
       if (employee?.id) {
         await updateEmployee(employee.id, formData);
         Toast.updated("Employee");
+        dispatchSupervisorUpdated();
       } else {
         await createEmployee(formData);
         Toast.created("Employee");
+        dispatchSupervisorUpdated();
       }
       onSaved();
       onClose();

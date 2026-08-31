@@ -93,6 +93,9 @@ export function EditableProfileField({
           className={controlClass}
         >
           <option value="">-- Select --</option>
+          {value && !options?.includes(value) && (
+            <option value={value}>{optionLabels?.get(value) || value}</option>
+          )}
           {options?.map((option) => (
             <option key={option} value={option}>
               {optionLabels?.get(option) || option}

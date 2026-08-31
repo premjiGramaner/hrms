@@ -224,6 +224,13 @@ const createLeave = async (req, res, next) => {
       id: leave.id,
     });
   } catch (err) {
+    if (err.code === '23505' && err.constraint === 'uq_leave_requests_active_business_key') {
+      return error(
+        res,
+        "A leave request with the same details already exists. Please check your pending requests.",
+        409,
+      );
+    }
     next(err);
   }
 };

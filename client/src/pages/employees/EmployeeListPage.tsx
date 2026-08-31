@@ -24,6 +24,7 @@ import {
   ROLES,
   type UserRole,
 } from "../../config/roles";
+import { onSupervisorUpdated } from "../../utils/supervisorEvents";
 
 const THEME_COLORS = {
   navy: {
@@ -112,6 +113,14 @@ export default function EmployeeListPage() {
 
   useEffect(() => {
     dispatch(fetchEmployees({ page, limit, search }));
+  }, [dispatch, page, limit, search]);
+
+  useEffect(() => {
+    const cleanup = onSupervisorUpdated(() => {
+      dispatch(fetchEmployees({ page, limit, search }));
+    });
+
+    return cleanup;
   }, [dispatch, page, limit, search]);
 
   useEffect(() => {

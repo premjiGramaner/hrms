@@ -147,8 +147,6 @@ export interface LeaveFilters {
   employment_status?: string;
   job_category?: string;
   attachment_status?: string;
-  include_past?: boolean;
-  only_subordinates?: boolean;
   own_employee_id?: number;
   statuses?: string[];
   page?: number;
