@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { AxiosError } from "axios";
 import UserAvatar from "../../components/UserAvatar";
 import {
   getLeaveDetails,
@@ -152,10 +153,11 @@ export default function LeaveDetailsPage() {
       await approveLeave(leaveId);
       addToast("Leave approved successfully.", "success");
       await load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage = getApiErrorMessage(err, "Failed to approve leave.");
       addToast(errorMessage, "error");
-      if (err?.response?.status === 409) {
+      const axiosError = err as AxiosError;
+      if (axiosError?.response?.status === 409) {
         await load();
       }
     } finally {
@@ -170,10 +172,11 @@ export default function LeaveDetailsPage() {
       await rejectLeave(leaveId, reason);
       addToast("Leave rejected.", "success");
       await load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage = getApiErrorMessage(err, "Failed to reject leave.");
       addToast(errorMessage, "error");
-      if (err?.response?.status === 409) {
+      const axiosError = err as AxiosError;
+      if (axiosError?.response?.status === 409) {
         await load();
       }
     } finally {
@@ -188,10 +191,11 @@ export default function LeaveDetailsPage() {
       await cancelLeave(leaveId);
       addToast("Leave cancelled.", "success");
       await load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage = getApiErrorMessage(err, "Failed to cancel leave.");
       addToast(errorMessage, "error");
-      if (err?.response?.status === 409) {
+      const axiosError = err as AxiosError;
+      if (axiosError?.response?.status === 409) {
         await load();
       }
     } finally {
