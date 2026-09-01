@@ -60,20 +60,24 @@ function RoleDropdown({
 }) {
   const [saving, setSaving] = useState(false);
   const [confirmationPending, setConfirmationPending] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(roleValue(user.role));
+  useEffect(() => {
+    setSelectedRole(roleValue(user.role));
+  }, [user.role]);
 
   const handleChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newRole = event.target.value;
-    if (newRole === user.role) return;
+    const currentRoleValue = roleValue(user.role);
+    if (newRole === currentRoleValue) return;
 
     if (confirmationPending || saving || isAnyUserUpdating) {
-      event.target.value = roleValue(user.role);
       return;
     }
 
     const newRoleLabel =
       ROLE_OPTIONS.find((role) => role.value === newRole)?.label || newRole;
     const currentRoleLabel =
-      ROLE_OPTIONS.find((role) => role.value === roleValue(user.role))?.label ||
+      ROLE_OPTIONS.find((role) => role.value === currentRoleValue)?.label ||
       user.role;
 
     onUpdateStart(user.id);
@@ -88,18 +92,20 @@ function RoleDropdown({
     setConfirmationPending(false);
 
     if (!confirmed) {
-      event.target.value = roleValue(user.role);
+      setSelectedRole(currentRoleValue);
       onUpdateCancel();
+      return;
     }
 
     setSaving(true);
+    setSelectedRole(newRole);
     try {
       await updateUserRole(user.id, newRole);
       onRoleChange(user.id, newRole);
       Toast.success(`Role updated to ${newRoleLabel}`);
     } catch {
       Toast.error("Failed to update user role");
-      event.target.value = roleValue(user.role);
+      setSelectedRole(currentRoleValue);
       onUpdateCancel();
     } finally {
       setSaving(false);
@@ -107,26 +113,23 @@ function RoleDropdown({
   };
 
   const getBorderClass = (role: string) => {
-    const val = roleValue(role);
-    if (val === "employee") return "border-[#bbf7d0]";
-    if (val === "supervisor") return "border-[#bae6fd]";
-    if (val === "hradmin") return "border-[#c4b5fd]";
+    if (role === "employee") return "border-[#bbf7d0]";
+    if (role === "supervisor") return "border-[#bae6fd]";
+    if (role === "hradmin") return "border-[#c4b5fd]";
     return "border-slate-200";
   };
 
   const getBgClass = (role: string) => {
-    const val = roleValue(role);
-    if (val === "employee") return "bg-[#dcfce7]";
-    if (val === "supervisor") return "bg-[#e0f2fe]";
-    if (val === "hradmin") return "bg-[#ede9fe]";
+    if (role === "employee") return "bg-[#dcfce7]";
+    if (role === "supervisor") return "bg-[#e0f2fe]";
+    if (role === "hradmin") return "bg-[#ede9fe]";
     return "bg-slate-100";
   };
 
   const getTextClass = (role: string) => {
-    const val = roleValue(role);
-    if (val === "employee") return "text-[#16a34a]";
-    if (val === "supervisor") return "text-[#075985]";
-    if (val === "hradmin") return "text-[#7c3aed]";
+    if (role === "employee") return "text-[#16a34a]";
+    if (role === "supervisor") return "text-[#075985]";
+    if (role === "hradmin") return "text-[#7c3aed]";
     return "text-slate-600";
   };
 
@@ -136,10 +139,10 @@ function RoleDropdown({
   return (
     <div className="relative inline-block">
       <select
-        value={roleValue(user.role)}
+        value={selectedRole}
         onChange={handleChange}
         disabled={isDisabled}
-        className={`py-1 pr-7 pl-2.5 rounded-lg text-xs font-bold outline-none appearance-none transition-all border-[1.5px] ${getBorderClass(user.role)} ${getBgClass(user.role)} ${getTextClass(user.role)} ${
+        className={`py-1 pr-7 pl-2.5 rounded-lg text-xs font-bold outline-none appearance-none transition-all border-[1.5px] ${getBorderClass(selectedRole)} ${getBgClass(selectedRole)} ${getTextClass(selectedRole)} ${
           isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
         }`}
       >
@@ -150,7 +153,7 @@ function RoleDropdown({
         ))}
       </select>
       <span
-        className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] ${getTextClass(user.role)}`}
+        className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] ${getTextClass(selectedRole)}`}
       >
         {isDisabled ? "…" : "▼"}
       </span>
