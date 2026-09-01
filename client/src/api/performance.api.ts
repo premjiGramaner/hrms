@@ -146,6 +146,22 @@ export const getAppraisalCycle = async (id: string) => {
   return response.data.data;
 };
 
+export const updateAppraisalCycle = async (
+  id: string,
+  payload: {
+    templateId?: string;
+    fromDate?: string;
+    toDate?: string;
+    dueDate?: string;
+  },
+) => {
+  const response = await api.put<ApiResponse<AppraisalCycle>>(
+    PERFORMANCE_PATHS.cycleById(id),
+    payload,
+  );
+  return response.data.data;
+};
+
 export const updateAppraisalCycleStatus = async (
   id: string,
   status: string,

@@ -14,6 +14,7 @@ import { EMAIL_PATTERN } from "../../constants/validationPatterns";
 import Button, { ActionButton } from "../../components/common/Button";
 import { PAGE_PATHS, ROLES } from "../../config/roles";
 import { IconAlertCircle, IconEdit, IconX } from "../../components/Icons";
+import { dispatchSupervisorUpdated } from "../../utils/supervisorEvents";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
 const DEFAULT_PAGE_SIZE = 10;
@@ -109,6 +110,7 @@ export default function HRUsersPage() {
     setShowAddModal(false);
     setUserToEdit(null);
     fetchUsers(currentPage, pageSize, searchQuery);
+    dispatchSupervisorUpdated();
   };
   const firstRowIndex =
     totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;

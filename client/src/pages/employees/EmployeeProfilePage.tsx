@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState, useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Layout, { TabItem } from "../../components/Layout";
 import {
@@ -52,6 +52,10 @@ import {
   toSupervisorOptions,
 } from "../../utils/employeeOptions";
 import { IconAlertCircle, IconUserMinus } from "../../components/Icons";
+import {
+  onSupervisorUpdated,
+  dispatchSupervisorUpdated,
+} from "../../utils/supervisorEvents";
 
 const TABS: TabItem[] = [
   { label: "Employee List", path: PAGE_PATHS.employees },
@@ -92,6 +96,59 @@ export default function EmployeeProfilePage() {
     useState<EditableEmployeeProfileForm | null>(null);
 
   useEffect(() => {
+    const fetchSupervisors = () => {
+      getSupervisors()
+        .then((response) => {
+          const allOptions = toSupervisorOptions(response.data || []);
+          const filteredOptions = allOptions.filter(
+            (supervisor) => String(supervisor.id) !== String(id),
+          );
+          setSupervisorOptions(filteredOptions);
+        })
+        .catch(() => {
+          setError("Failed to load supervisors.");
+        });
+    };
+
+    fetchSupervisors();
+
+    const unsubscribe = onSupervisorUpdated(() => {
+      fetchSupervisors();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [id]);
+
+  const effectiveSupervisorOptions = useMemo(() => {
+    if (!form || !form.supervisor_id) {
+      return supervisorOptions;
+    }
+
+    const currentSupervisorId = String(form.supervisor_id).trim();
+    const hasCurrentSupervisor = supervisorOptions.some(
+      (opt) => String(opt.id).trim() === currentSupervisorId,
+    );
+
+    if (!hasCurrentSupervisor && currentSupervisorId) {
+      if (
+        employee &&
+        employee.supervisor_names &&
+        employee.supervisor_names.length > 0
+      ) {
+        const currentSupervisorName = employee.supervisor_names[0];
+        return [
+          ...supervisorOptions,
+          { id: parseInt(currentSupervisorId), name: currentSupervisorName },
+        ];
+      }
+    }
+
+    return supervisorOptions;
+  }, [supervisorOptions, form, employee]);
+
+  useEffect(() => {
     getJobTitles()
       .then((response) =>
         setJobTitleOptions(response.data.map((jobTitle) => jobTitle.title)),
@@ -130,18 +187,6 @@ export default function EmployeeProfilePage() {
       .catch(() => {
         setError("Failed to load locations.");
       });
-
-    getSupervisors()
-      .then((response) =>
-        setSupervisorOptions(
-          toSupervisorOptions(response.data || []).filter(
-            (supervisor) => String(supervisor.id) !== String(id),
-          ),
-        ),
-      )
-      .catch(() => {
-        setError("Failed to load supervisors.");
-      });
   }, [id]);
 
   useEffect(() => {
@@ -155,17 +200,13 @@ export default function EmployeeProfilePage() {
         const { data } = await getEmployee(parseInt(id));
         setEmployee(data);
 
-        const supervisorNames = Array.isArray(data.supervisors)
+        const supervisorIds = Array.isArray(data.supervisors)
           ? data.supervisors
           : [];
         let supervisorId = "";
 
-        if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
-          const supervisorName = supervisorNames[0];
-          const foundSupervisor = supervisorOptions.find(
-            (supervisorOption) => supervisorOption.name === supervisorName,
-          );
-          supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
+        if (supervisorIds.length > 0) {
+          supervisorId = String(supervisorIds[0]);
         }
 
         const initialForm = employeeToEditableProfileForm(data);
@@ -181,7 +222,7 @@ export default function EmployeeProfilePage() {
     };
 
     fetchEmployee();
-  }, [id, supervisorOptions]);
+  }, [id]);
 
   if (loading) {
     return (
@@ -354,20 +395,18 @@ export default function EmployeeProfilePage() {
       formData.append("supervisors", JSON.stringify(supervisorsArray));
       await updateEmployee(employee.id, formData);
 
+      dispatchSupervisorUpdated();
+
       const { data } = await getEmployee(employee.id);
       setEmployee(data);
 
-      const supervisorNames = Array.isArray(data.supervisors)
+      const supervisorIds = Array.isArray(data.supervisors)
         ? data.supervisors
         : [];
       let supervisorId = "";
 
-      if (supervisorNames.length > 0 && supervisorOptions.length > 0) {
-        const supervisorName = supervisorNames[0];
-        const foundSupervisor = supervisorOptions.find(
-          (supervisorOption) => supervisorOption.name === supervisorName,
-        );
-        supervisorId = foundSupervisor ? String(foundSupervisor.id) : "";
+      if (supervisorIds.length > 0) {
+        supervisorId = String(supervisorIds[0]);
       }
 
       const updatedForm = employeeToEditableProfileForm(data);
@@ -588,7 +627,7 @@ export default function EmployeeProfilePage() {
             onChange={handleFieldChange}
             options={subUnitOptions}
           />
-          {supervisorOptions.length === 0 ? (
+          {effectiveSupervisorOptions.length === 0 ? (
             <EditableProfileField
               label="Supervisor"
               name="supervisor_id"
@@ -600,15 +639,17 @@ export default function EmployeeProfilePage() {
             <EditableProfileField
               label="Supervisor"
               name="supervisor_id"
-              value={form.supervisor_id}
+              value={
+                form.supervisor_id ? String(form.supervisor_id).trim() : ""
+              }
               onChange={handleFieldChange}
-              options={supervisorOptions.map((supervisor) =>
-                supervisor.id.toString(),
+              options={effectiveSupervisorOptions.map((supervisor) =>
+                String(supervisor.id).trim(),
               )}
               optionLabels={
                 new Map(
-                  supervisorOptions.map((supervisor) => [
-                    supervisor.id.toString(),
+                  effectiveSupervisorOptions.map((supervisor) => [
+                    String(supervisor.id).trim(),
                     supervisor.name,
                   ]),
                 )

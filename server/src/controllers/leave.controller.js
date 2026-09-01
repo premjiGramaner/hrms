@@ -80,9 +80,9 @@ const listLeaves = async (req, res, next) => {
       filters.statuses = Array.isArray(rawStatuses)
         ? rawStatuses
         : String(rawStatuses)
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
+            .split(",")
+            .map((string) => string.trim())
+            .filter(Boolean);
     }
 
     if (role === "employee") {
@@ -224,6 +224,13 @@ const createLeave = async (req, res, next) => {
       id: leave.id,
     });
   } catch (err) {
+    if (err.code === '23505' && err.constraint === 'uq_leave_requests_active_business_key') {
+      return error(
+        res,
+        "A leave request with the same details already exists. Please check your pending requests.",
+        409,
+      );
+    }
     next(err);
   }
 };
@@ -253,11 +260,24 @@ const approveLeave = async (req, res, next) => {
       );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot approve your own leave request", 403);
-    if (leave.status === "Cancelled")
-      return error(res, "Cannot approve a cancelled leave", 400);
 
-    const approved = await LeaveModel.approveLeave(id, actorId);
-    if (!approved) return error(res, "Failed to approve leave", 500);
+    if (leave.status !== "Pending Approval") {
+      return error(
+        res,
+        `This leave request has already been ${leave.status.toLowerCase()} by another user. Current status: ${leave.status}`,
+        409,
+      );
+    }
+
+    const approved = await LeaveModel.approveLeave(id, actorId, leave.status);
+
+    if (!approved) {
+      return error(
+        res,
+        "This leave request status was just changed by another user. Please refresh and try again.",
+        409,
+      );
+    }
 
     return success(res, { message: "Leave approved successfully" });
   } catch (err) {
@@ -278,20 +298,35 @@ const rejectLeave = async (req, res, next) => {
     if (!PRIVILEGED_LEAVE_ROLES.includes(actorRole))
       return error(
         res,
-        "You do not have permission to approve leave requests",
+        "You do not have permission to reject leave requests",
         403,
       );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot reject your own leave request", 403);
-    if (["Cancelled", "Rejected"].includes(leave.status)) {
+
+    if (["Cancelled", "Rejected", "Approved"].includes(leave.status)) {
       return error(
         res,
-        `Cannot reject a leave that is already ${leave.status.toLowerCase()}`,
-        400,
+        `This leave request has already been ${leave.status.toLowerCase()} by another user. Current status: ${leave.status}`,
+        409,
       );
     }
 
-    await LeaveModel.rejectLeave(id, actorId, rejection_reason);
+    const rejected = await LeaveModel.rejectLeave(
+      id,
+      actorId,
+      rejection_reason,
+      leave.status,
+    );
+
+    if (!rejected) {
+      return error(
+        res,
+        "This leave request status was just changed by another user. Please refresh and try again.",
+        409,
+      );
+    }
+
     return success(res, { message: "Leave rejected successfully" });
   } catch (err) {
     next(err);
@@ -313,11 +348,21 @@ const cancelLeave = async (req, res, next) => {
       return error(res, "Forbidden", 403);
     }
 
-    if (leave.status === "Cancelled") {
-      return error(res, "Leave is already cancelled", 400);
+    const originalStatus = leave.status;
+
+    if (originalStatus === "Cancelled") {
+      return error(res, "This leave has already been cancelled", 409);
     }
 
-    if (isOwner && !isPrivileged && leave.status !== "Pending Approval") {
+    if (["Rejected", "Approved"].includes(originalStatus)) {
+      return error(
+        res,
+        `This leave request has already been ${originalStatus.toLowerCase()} by another user. Current status: ${originalStatus}`,
+        409,
+      );
+    }
+
+    if (isOwner && !isPrivileged && originalStatus !== "Pending Approval") {
       return error(
         res,
         "This leave request has already been processed and cannot be cancelled.",
@@ -330,15 +375,23 @@ const cancelLeave = async (req, res, next) => {
       starting_date.getMonth() >= 3
         ? starting_date.getFullYear() + 1
         : starting_date.getFullYear();
+
+    const cancelled = await LeaveModel.cancelLeave(id, actorId, originalStatus);
+
+    if (!cancelled) {
+      return error(
+        res,
+        "This leave request status was just changed by another user. Please refresh and try again.",
+        409,
+      );
+    }
+
     await LeaveModel.restoreLeaveBalance(
       leave.employee_id,
       leave.leave_type_id,
       year,
       leave.requested_days,
     );
-
-    const cancelled = await LeaveModel.cancelLeave(id, actorId);
-    if (!cancelled) return error(res, "Failed to cancel leave", 500);
 
     return success(res, { message: "Leave cancelled successfully" });
   } catch (err) {
@@ -363,9 +416,9 @@ function buildExportFilters(query, userId, role) {
     filters.statuses = Array.isArray(query.statuses)
       ? query.statuses
       : String(query.statuses)
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+          .split(",")
+          .map((string) => string.trim())
+          .filter(Boolean);
   }
   if (role === "employee") filters.own_employee_id = userId;
   return filters;

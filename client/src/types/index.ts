@@ -43,7 +43,7 @@ export interface Employee {
   contract_start_date?: string;
   contract_end_date?: string;
   comments?: string;
-  supervisors?: string[];
+  supervisors?: number[];
   supervisor_names?: string[];
   is_active?: boolean;
 }
@@ -147,8 +147,6 @@ export interface LeaveFilters {
   employment_status?: string;
   job_category?: string;
   attachment_status?: string;
-  include_past?: boolean;
-  only_subordinates?: boolean;
   own_employee_id?: number;
   statuses?: string[];
   page?: number;
@@ -280,8 +278,7 @@ export interface LeaveDepartmentSummary {
   departmentTotals: DepartmentLeaveTotal[];
 }
 
-export interface LeaveDepartmentReportResponse
-  extends ReportPaginatedResponse<LeaveByDepartmentRecord> {
+export interface LeaveDepartmentReportResponse extends ReportPaginatedResponse<LeaveByDepartmentRecord> {
   summary: LeaveDepartmentSummary;
 }
 

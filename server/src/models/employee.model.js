@@ -60,11 +60,7 @@ async function findAllEmployees(page, limit = 10, search = "") {
               CASE
                 WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' THEN '[]'::json
                 ELSE u.supervisors::json
-              END AS supervisors,
-              CASE
-                WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' THEN '[]'::json
-                ELSE u.supervisors::json
-              END AS supervisor_names
+              END AS supervisor_names_stored
        FROM tbl_appusers u
        WHERE ${whereClause}
        ORDER BY u.created_at DESC
@@ -72,10 +68,54 @@ async function findAllEmployees(page, limit = 10, search = "") {
       values,
     );
 
-    const employeesWithSupervisors = rows.map((employee) => ({
-      ...employee,
-      supervisor_names: employee.supervisor_names || [],
-    }));
+    const employeesWithSupervisors = await Promise.all(
+      rows.map(async (employee) => {
+        const supervisorNamesStored = employee.supervisor_names_stored || [];
+        let supervisorIds = [];
+        let supervisorNames = [];
+
+        if (
+          Array.isArray(supervisorNamesStored) &&
+          supervisorNamesStored.length > 0
+        ) {
+          const firstItem = supervisorNamesStored[0];
+          const isNumericId =
+            !isNaN(firstItem) && Number.isInteger(Number(firstItem));
+
+          if (isNumericId) {
+            supervisorIds = supervisorNamesStored.map((id) => Number(id));
+          } else {
+            const { rows: supervisorRows } = await pool.query(
+              `SELECT id::int 
+               FROM tbl_appusers 
+               WHERE name = ANY($1::text[]) 
+                 AND is_deleted = false 
+                 AND role = ANY($2::text[])`,
+              [supervisorNamesStored, [...BASIC_SUPERVISOR_ROLES]],
+            );
+            supervisorIds = supervisorRows.map((row) => row.id);
+          }
+
+          if (supervisorIds.length > 0) {
+            const { rows: currentNameRows } = await pool.query(
+              `SELECT name 
+               FROM tbl_appusers 
+               WHERE id = ANY($1::int[]) 
+                 AND is_deleted = false
+               ORDER BY name ASC`,
+              [supervisorIds],
+            );
+            supervisorNames = currentNameRows.map((row) => row.name);
+          }
+        }
+
+        return {
+          ...employee,
+          supervisors: supervisorIds,
+          supervisor_names: supervisorNames,
+        };
+      }),
+    );
 
     const countValues = searchTerm ? [searchTerm] : [];
     const { rows: countRows } = await pool.query(
@@ -168,29 +208,78 @@ async function findSuperiorUsers({
 
 async function findEmployeeById(id) {
   const { rows } = await pool.query(
-    `SELECT id::int, employee_id, first_name, middle_name, last_name, name,
-            email, username, role, status, mobile, home_tel, work_tel, other_email,
-            avatar, joined_date::text, location, job_title, employment_status,
-            job_specification, job_category, sub_unit, attendance_calc,
-            dob::text, real_dob::text, nationality, marital_status, gender, blood_group,
-            license_number, license_expiry::text, probation_end_date::text,
-            date_of_permanence::text, contract_start_date::text, contract_end_date::text,
-            comments,
-            -- Parse supervisors from TEXT to JSON array; fall back to empty array
-            CASE
-              WHEN supervisors IS NULL OR TRIM(supervisors) = '' THEN '[]'::json
-              ELSE supervisors::json
-            END AS supervisors,
-            address1, address2, city, country, state, zip,
-            is_active, created_at, updated_at
-     FROM tbl_appusers
-     WHERE id = $1::bigint AND is_deleted = false`,
+    `SELECT 
+       u.id::int, u.employee_id, u.first_name, u.middle_name, u.last_name, u.name,
+       u.email, u.username, u.role, u.status, u.mobile, u.home_tel, u.work_tel, u.other_email,
+       u.avatar, u.joined_date::text, u.location, u.job_title, u.employment_status,
+       u.job_specification, u.job_category, u.sub_unit, u.attendance_calc,
+       u.dob::text, u.real_dob::text, u.nationality, u.marital_status, u.gender, u.blood_group,
+       u.license_number, u.license_expiry::text, u.probation_end_date::text,
+       u.date_of_permanence::text, u.contract_start_date::text, u.contract_end_date::text,
+       u.comments,
+       CASE
+         WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' THEN '[]'::json
+         ELSE u.supervisors::json
+       END AS supervisor_names,
+       u.address1, u.address2, u.city, u.country, u.state, u.zip,
+       u.is_active, u.created_at, u.updated_at
+     FROM tbl_appusers u
+     WHERE u.id = $1::bigint AND u.is_deleted = false`,
     [id],
   );
-  return rows[0] || null;
+
+  if (!rows[0]) return null;
+
+  const employee = rows[0];
+  const supervisorNamesStored = employee.supervisor_names || [];
+  let supervisorNames = [];
+
+  if (
+    Array.isArray(supervisorNamesStored) &&
+    supervisorNamesStored.length > 0
+  ) {
+    const firstItem = supervisorNamesStored[0];
+    const isNumericId =
+      !isNaN(firstItem) && Number.isInteger(Number(firstItem));
+
+    let supervisorIds = [];
+    if (isNumericId) {
+      supervisorIds = supervisorNamesStored.map((id) => Number(id));
+    } else {
+      const { rows: supervisorRows } = await pool.query(
+        `SELECT id::int 
+         FROM tbl_appusers 
+         WHERE name = ANY($1::text[]) 
+           AND is_deleted = false 
+           AND role = ANY($2::text[])`,
+        [supervisorNamesStored, [...BASIC_SUPERVISOR_ROLES]],
+      );
+      supervisorIds = supervisorRows.map((row) => row.id);
+    }
+
+    employee.supervisors = supervisorIds;
+
+    if (supervisorIds.length > 0) {
+      const { rows: currentNameRows } = await pool.query(
+        `SELECT name 
+         FROM tbl_appusers 
+         WHERE id = ANY($1::int[]) 
+           AND is_deleted = false
+         ORDER BY name ASC`,
+        [supervisorIds],
+      );
+      supervisorNames = currentNameRows.map((row) => row.name);
+    }
+  } else {
+    employee.supervisors = [];
+  }
+
+  employee.supervisor_names = supervisorNames;
+
+  return employee;
 }
 
-async function convertSupervisorIdsToNames(supervisors, employeeId = null) {
+async function validateAndStoreSupervisorIds(supervisors, employeeId = null) {
   if (!supervisors) return null;
 
   try {
@@ -205,23 +294,25 @@ async function convertSupervisorIdsToNames(supervisors, employeeId = null) {
       throw new AppError("Only one supervisor can be assigned.", 422);
     }
 
-    const supervisorIds = [
-      ...new Set(
-        parsed.map((supervisorId) => Number.parseInt(supervisorId, 10)),
-      ),
-    ];
+    const supervisorIds = parsed
+      .map((supervisorId) => {
+        const id = Number.parseInt(supervisorId, 10);
+        return Number.isInteger(id) && id > 0 ? id : null;
+      })
+      .filter((id) => id !== null);
+
+    if (supervisorIds.length === 0) {
+      return null;
+    }
+
     const hasInvalidSupervisorId = supervisorIds.some(
-      (supervisorId) =>
-        !Number.isInteger(supervisorId) || supervisorId <= 0,
+      (supervisorId) => !Number.isInteger(supervisorId) || supervisorId <= 0,
     );
     if (hasInvalidSupervisorId) {
       throw new AppError("Select only valid supervisors.", 422);
     }
 
-    if (
-      employeeId !== null &&
-      supervisorIds.includes(Number(employeeId))
-    ) {
+    if (employeeId !== null && supervisorIds.includes(Number(employeeId))) {
       throw new AppError(
         "An employee cannot be assigned as their own supervisor.",
         422,
@@ -243,13 +334,7 @@ async function convertSupervisorIdsToNames(supervisors, employeeId = null) {
       throw new AppError("Select only valid, active supervisors.", 422);
     }
 
-    const supervisorNamesById = new Map(
-      rows.map((supervisor) => [supervisor.id, supervisor.name]),
-    );
-    const names = supervisorIds.map((supervisorId) =>
-      supervisorNamesById.get(supervisorId),
-    );
-    return JSON.stringify(names);
+    return JSON.stringify(supervisorIds);
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError("Invalid supervisors value.", 422);
@@ -264,8 +349,7 @@ async function createEmployee(data, avatarPath) {
 
   const realDob = data.real_dob || data.dob || null;
 
-  // Convert supervisor IDs to names and store names
-  const supervisorNames = await convertSupervisorIdsToNames(data.supervisors);
+  const supervisorIds = await validateAndStoreSupervisorIds(data.supervisors);
 
   const { rows } = await pool.query(
     `INSERT INTO tbl_appusers (
@@ -335,7 +419,7 @@ async function createEmployee(data, avatarPath) {
       data.contract_start_date || null,
       data.contract_end_date || null,
       data.comments || null,
-      supervisorNames,
+      supervisorIds,
       data.created_by || null,
     ],
   );
@@ -356,11 +440,17 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
   const realDob =
     normalizeNullableDate(data.real_dob) || normalizeNullableDate(data.dob);
 
-  // Convert supervisor IDs to names and store names
-  const supervisorNames = await convertSupervisorIdsToNames(
-    data.supervisors,
-    id,
-  );
+  let supervisorIds;
+  if (
+    data.supervisors !== undefined &&
+    data.supervisors !== null &&
+    data.supervisors !== "" &&
+    data.supervisors !== "[]"
+  ) {
+    supervisorIds = await validateAndStoreSupervisorIds(data.supervisors, id);
+  } else {
+    supervisorIds = undefined;
+  }
 
   const result = await pool.query(
     `UPDATE tbl_appusers SET
@@ -402,7 +492,7 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       contract_start_date  = $36::date,
       contract_end_date    = $37::date,
       comments          = $38,
-      supervisors       = $39,
+      supervisors       = COALESCE($39::text, supervisors),
       updated_by        = $40,
       updated_at        = NOW()
      WHERE id = $41::bigint AND is_deleted = false`,
@@ -445,7 +535,7 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       normalizeNullableDate(data.contract_start_date),
       normalizeNullableDate(data.contract_end_date),
       normalizeNullableText(data.comments),
-      supervisorNames,
+      supervisorIds !== undefined ? supervisorIds : null,
       updatedBy || null,
       id,
     ],

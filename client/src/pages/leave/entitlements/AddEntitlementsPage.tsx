@@ -238,6 +238,8 @@ export default function AddEntitlementsPage() {
     const days = parseFloat(entitlementDays);
     if (!entitlementDays || isNaN(days) || days <= 0)
       newErrors.days = "Entitlement days must be > 0.";
+    else if (days > 50)
+      newErrors.days = "Entitlement days cannot exceed 50.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -408,6 +410,7 @@ export default function AddEntitlementsPage() {
                 <input
                   type="number"
                   min="0.5"
+                  max="50"
                   step="0.5"
                   onWheel={disableNumberInputScroll}
                   value={entitlementDays}
@@ -415,7 +418,7 @@ export default function AddEntitlementsPage() {
                     setEntitlementDays(event.target.value);
                     setErrors((prevErrors) => ({ ...prevErrors, days: "" }));
                   }}
-                  placeholder="e.g. 12"
+                  placeholder="e.g. 12 (max 50)"
                   className={inputCls(!!errors.days)}
                 />
                 {errors.days && (

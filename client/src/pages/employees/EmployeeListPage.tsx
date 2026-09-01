@@ -24,6 +24,7 @@ import {
   ROLES,
   type UserRole,
 } from "../../config/roles";
+import { onSupervisorUpdated } from "../../utils/supervisorEvents";
 
 const THEME_COLORS = {
   navy: {
@@ -91,20 +92,11 @@ const getInitials = (employee: Employee) => {
 };
 
 const getSupervisor = (employee: Employee): string => {
-  if (employee.supervisor_names) {
-    const names = Array.isArray(employee.supervisor_names)
-      ? employee.supervisor_names
-      : [];
-    return names.length > 0 ? names.join(", ") : "—";
+  if (employee.supervisor_names && Array.isArray(employee.supervisor_names)) {
+    return employee.supervisor_names.length > 0
+      ? employee.supervisor_names.join(", ")
+      : "—";
   }
-
-  if (employee.supervisors) {
-    const names = Array.isArray(employee.supervisors)
-      ? employee.supervisors
-      : [];
-    return names.length > 0 ? names.join(", ") : "—";
-  }
-
   return "—";
 };
 
@@ -121,6 +113,14 @@ export default function EmployeeListPage() {
 
   useEffect(() => {
     dispatch(fetchEmployees({ page, limit, search }));
+  }, [dispatch, page, limit, search]);
+
+  useEffect(() => {
+    const cleanup = onSupervisorUpdated(() => {
+      dispatch(fetchEmployees({ page, limit, search }));
+    });
+
+    return cleanup;
   }, [dispatch, page, limit, search]);
 
   useEffect(() => {
@@ -318,7 +318,7 @@ export default function EmployeeListPage() {
         onPageSizeChange={handlePageSizeChange}
         itemLabel="employees"
         searchQuery={search}
-        searchPlaceholder="Search by name, ID, email, job title…"
+        searchPlaceholder="Search by name, ID, email"
         onSearchChange={(value) => dispatch(setSearch(value))}
         addLabel="Add Employee"
         onAdd={() => {
