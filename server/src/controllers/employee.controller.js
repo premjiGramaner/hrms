@@ -26,6 +26,19 @@ const listEmployees = async (req, res, next) => {
   }
 };
 
+// Chatbot-only: search all employees including terminated
+const searchAllEmployees = async (req, res, next) => {
+  try {
+    const search = (req.query.search || "").trim();
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const rows = await EmployeeModel.searchAllEmployees(search, limit);
+    // Return rows directly in data (not nested) so chatbot can parse easily
+    return success(res, rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const listSuperiorUsers = async (req, res, next) => {
   try {
     const result = await EmployeeModel.findSuperiorUsers({
@@ -477,6 +490,7 @@ const getLastEmployeeId = async (req, res, next) => {
 
 export {
   listEmployees,
+  searchAllEmployees,
   listSuperiorUsers,
   getMyInfo,
   getEmployee,

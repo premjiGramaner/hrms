@@ -23,6 +23,7 @@ import {
 } from "./Icons";
 import { fetchEmployeesWithLimit } from "../store/employeeSlice";
 import NavigationSearch from "./NavigationSearch";
+import ChatWidget from "./ChatWidget";
 
 export interface TabItem {
   label: string;
@@ -327,6 +328,8 @@ export default function Layout({
             +
           </button>
         )}
+
+        <ChatWidget />
       </div>
     </div>
   );

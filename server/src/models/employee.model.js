@@ -644,8 +644,55 @@ async function getLocations() {
   return rows.map((locationRow) => locationRow.location);
 }
 
+async function searchAllEmployees(search = "", limit = 20) {
+  // Chatbot search: includes terminated AND soft-deleted employees
+  // so HR can query anyone who ever worked at the company
+  const searchTerm = search.trim();
+  const values = [];
+  // No is_deleted filter — include everyone
+  let whereClause = `1=1`;
+
+  if (searchTerm) {
+    values.push(searchTerm);
+    const idx = values.length;
+    whereClause += `
+      AND (
+        u.employee_id::text ILIKE '%' || $${idx}::text || '%'
+        OR u.first_name::text  ILIKE '%' || $${idx}::text || '%'
+        OR u.last_name::text   ILIKE '%' || $${idx}::text || '%'
+        OR u.name::text        ILIKE '%' || $${idx}::text || '%'
+        OR u.email::text       ILIKE '%' || $${idx}::text || '%'
+        OR CONCAT_WS(' ', u.first_name, u.middle_name, u.last_name)::text
+           ILIKE '%' || $${idx}::text || '%'
+      )
+    `;
+  }
+
+  values.push(Math.min(limit, 50));
+  const limitIdx = values.length;
+
+  const { rows } = await pool.query(
+    `SELECT u.id::int, u.employee_id, u.name, u.first_name, u.last_name,
+            u.email, u.mobile, u.job_title, u.role, u.joined_date::text,
+            u.is_active, u.employment_status, u.is_deleted, u.sub_unit, u.location,
+            CASE
+              WHEN u.supervisors IS NULL OR TRIM(u.supervisors) = '' THEN '[]'::json
+              ELSE u.supervisors::json
+            END AS supervisors
+     FROM tbl_appusers u
+     WHERE ${whereClause}
+     ORDER BY
+       CASE WHEN u.is_deleted THEN 1 ELSE 0 END,
+       u.name ASC
+     LIMIT $${limitIdx}`,
+    values,
+  );
+  return rows;
+}
+
 export {
   findAllEmployees,
+  searchAllEmployees,
   findSuperiorUsers,
   findEmployeeById,
   createEmployee,

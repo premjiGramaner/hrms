@@ -1,0 +1,27 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment secrets — never commit
+.env
+
+# Hugging Face model cache
+models/
+fine_tuned_model/
+*.bin
+*.safetensors
+
+# Test / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Editor
+.vscode/
+.idea/
