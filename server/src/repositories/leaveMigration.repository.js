@@ -24,7 +24,8 @@ export class LeaveMigrationRepository {
     const { rows } = await pool.query(
       `SELECT employee_id, leave_type_id,
               start_date::text AS start_date, end_date::text AS end_date
-       FROM tbl_leave_requests WHERE is_deleted=FALSE`,
+       FROM tbl_leave_requests
+       WHERE is_deleted=FALSE AND status NOT IN ('Rejected', 'Cancelled')`,
     );
     return new LeaveMigrationRepository(new Set(rows.map(duplicateKey)));
   }
@@ -58,6 +59,7 @@ export class LeaveMigrationRepository {
          SELECT lr.id FROM tbl_leave_requests lr, lock_guard
          WHERE lr.employee_id=$2 AND lr.leave_type_id=$3
            AND lr.start_date=$4 AND lr.end_date=$5 AND lr.is_deleted=FALSE
+           AND lr.status NOT IN ('Rejected', 'Cancelled')
          LIMIT 1
        ), inserted AS (
          INSERT INTO tbl_leave_requests
@@ -68,8 +70,6 @@ export class LeaveMigrationRepository {
          SELECT $2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,FALSE,
                 CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
          FROM lock_guard WHERE NOT EXISTS (SELECT 1 FROM existing)
-         ON CONFLICT (employee_id, leave_type_id, start_date, end_date)
-           WHERE is_deleted=FALSE DO NOTHING
          RETURNING id
        )
        SELECT id, TRUE AS inserted FROM inserted
