@@ -68,8 +68,6 @@ export class LeaveMigrationRepository {
          SELECT $2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,FALSE,
                 CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
          FROM lock_guard WHERE NOT EXISTS (SELECT 1 FROM existing)
-         ON CONFLICT (employee_id, leave_type_id, start_date, end_date)
-           WHERE is_deleted=FALSE DO NOTHING
          RETURNING id
        )
        SELECT id, TRUE AS inserted FROM inserted
