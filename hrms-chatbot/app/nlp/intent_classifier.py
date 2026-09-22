@@ -143,7 +143,7 @@ class IntentClassifier:
                 import joblib  # type: ignore[import-untyped]
                 self._model = joblib.load(model_path)
                 logger.info("scikit-learn intent model loaded from %s", model_path)
-            except Exception as exc:
+            except Exception as exc: 
                 logger.warning("sklearn model load failed: %s — using keyword-only mode", exc)
         else:
             logger.info("No SKLEARN_MODEL_PATH set — keyword rules only")
@@ -166,7 +166,7 @@ class IntentClassifier:
         if self._model is not None:
             try:
                 intent  = self._model.predict([text])[0]
-                conf    = float(self._model.predict_proba([text])[0].max())
+                conf    = float(self._model.predict_proba([text])[0].max())~
                 logger.debug("sklearn: %r → %s (%.2f)", text, intent, conf)
 
                 if conf < settings.intent_confidence_threshold:

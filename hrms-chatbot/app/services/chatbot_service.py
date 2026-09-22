@@ -2,8 +2,8 @@
 Chatbot orchestration service.
 
 Flow for every message:
-    1.  Classify intent       — keyword rules first, then Hugging Face NLP
-    2.  Extract entities      — Hugging Face NER + regex
+    1.  Classify intent       — keyword rules first, then sklearn NLP
+    2.  Extract entities      — spaCy NER + regex
     3.  Restore session ctx   — fills missing entities from prior turn
     4.  Route intent          — dispatch to self-service or employee handler
     5.  Call Node.js API      — forward user's own Bearer token
@@ -24,6 +24,32 @@ from app.services import hrms_client
 
 logger = logging.getLogger(__name__)
 
+# Roles that can view any employee's data
+_ADMIN_ROLES = {"hradmin", "empmanager"}
+_MANAGER_ROLES = {"supervisor", "manager", "line_manager", "reporting_manager"}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Help / greeting copy
+# ─────────────────────────────────────────────────────────────────────────────
+
+_HELP_TEXT = (
+    "I can help you with:\n"
+    "  • Your own profile, email, phone, department, designation,\n"
+    "    manager, joining date, location, status, or leave balance\n"
+    "  • The same details for any employee (admins / managers only\n"
+    "    for other people's leave balance)\n\n"
+    "Try asking:\n"
+    '  "Show my profile"\n'
+    '  "What is jon\'s email?"\n'
+    '  "How many leaves does mickel have?"\n'
+    '  "Who is my manager?"'
+)
+
+_GREETING_RE = __import__("re").compile(
+    r"^\s*(hi|hello|hey|good\s*(morning|afternoon|evening)|howdy|greetings)[!.,]?\s*$",
+    __import__("re").IGNORECASE,
+)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Public entry point
@@ -34,7 +60,31 @@ async def handle_message(
     session_id: str,
     current_user: CurrentUser,
 ) -> ChatResponse:
-    # 1. Intent classification (keyword rules → transformer)
+    # Handle greetings before NLP — avoids UNKNOWN for "hi"
+    if _GREETING_RE.match(message):
+        return ChatResponse(
+            intent="GREETING",
+            confidence=1.0,
+            entities={},
+            answer=(
+                "Hi there! I'm your HR assistant. "
+                + _HELP_TEXT
+            ),
+            session_id=session_id,
+        )
+
+    # Handle explicit help requests
+    msg_lower = message.strip().lower()
+    if msg_lower in ("help", "?", "what can you do", "what can you help with"):
+        return ChatResponse(
+            intent="HELP",
+            confidence=1.0,
+            entities={},
+            answer=_HELP_TEXT,
+            session_id=session_id,
+        )
+
+    # 1. Intent classification
     intent_result: IntentResult = await intent_service.classify_intent(message)
 
     # 2. Entity extraction
@@ -86,20 +136,21 @@ async def _route(
     # ── UNKNOWN ───────────────────────────────────────────────────────────────
     if intent == Intent.UNKNOWN:
         return (
-            "Sorry, I don't understand that HR request. "
-            "Try asking about an employee's email, department, profile, leave balance, or manager.",
+            "Sorry, I didn't quite get that.\n\n" + _HELP_TEXT,
             None,
         )
 
     # ── MY_LEAVE_BALANCE ──────────────────────────────────────────────────────
-    # If entities contain a name/id it means the user asked about someone else
-    # e.g. "How many leaves does Sakthi have?" → keyword matched MY but entity=Sakthi
+    # Keyword rules can match MY_LEAVE_BALANCE when a name is present
+    # (e.g. "how many leaves does Sakthi have?").
+    # If any employee entity was extracted we must treat it as
+    # EMPLOYEE_LEAVE_BALANCE instead.
     if intent == Intent.MY_LEAVE_BALANCE:
         has_target = bool(entities.employee_id or entities.email or entities.employee_name)
         if not has_target:
             balance = await hrms_client.get_my_leave_balance(token)
             return _format_leave_balance(balance, owner="You", possessive="Your"), None
-        # Fall through — treat as EMPLOYEE_LEAVE_BALANCE
+        # Entity present → re-route as employee query
         intent = Intent.EMPLOYEE_LEAVE_BALANCE
 
     # ── Other self-service intents ─────────────────────────────────────────────
@@ -113,6 +164,18 @@ async def _route(
             return "I couldn't load your profile. Please make sure you're logged in.", None
         return _format_my_field(me, intent), None
 
+    # ── EMPLOYEE_SALARY short-circuit ─────────────────────────────────────────
+    # Salary queries about oneself ("how much do I earn?") have no entity and
+    # must be answered before reaching the employee-resolution block.
+    if intent == Intent.EMPLOYEE_SALARY:
+        has_target = bool(entities.employee_id or entities.email or entities.employee_name)
+        if not has_target:
+            return (
+                "Salary information is not available through this assistant. "
+                "Please contact HR directly or check the payroll module.",
+                None,
+            )
+
     # ── Employee-targeted intents ─────────────────────────────────────────────
     has_entity = bool(entities.employee_id or entities.email or entities.employee_name)
     has_session = bool(session_data.get("last_employee_db_id"))
@@ -124,7 +187,7 @@ async def _route(
             None,
         )
 
-    # Resolve employee via Node.js search
+    # Resolve employee via Node.js search or session
     if has_entity:
         resolve = await hrms_client.resolve_employee(
             token,
@@ -164,16 +227,32 @@ async def _route(
         return "You don't have permission to access that employee's information.", None
 
     # ── EMPLOYEE_LEAVE_BALANCE ────────────────────────────────────────────────
+    # Leave balance is sensitive — only admins, managers, and the employee
+    # themselves may view it.
     if intent == Intent.EMPLOYEE_LEAVE_BALANCE:
+        if not _can_view_leave(current_user, emp):
+            return (
+                "You don't have permission to view another employee's leave balance. "
+                "Only HR admins and managers can access this.",
+                None,
+            )
         emp_db_id = emp.get("id")
         balance = await hrms_client.get_employee_leave_balance(token, emp_db_id)
         emp_name = emp.get("name") or "The employee"
         return _format_leave_balance(balance, owner=emp_name, possessive=f"{emp_name}'s"), emp
 
+    # ── EMPLOYEE_SALARY ───────────────────────────────────────────────────────
+    if intent == Intent.EMPLOYEE_SALARY:
+        name = emp.get("name") or "That employee"
+        return (
+            f"Salary information for {name} is not available through this assistant. "
+            "Please contact HR directly or check the payroll module.",
+            emp,
+        )
+
     # ── Other employee field intents ──────────────────────────────────────────
     answer = _format_employee_field(emp, intent)
     return answer, emp
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Response templates  (deterministic — no AI generation)
@@ -185,15 +264,13 @@ def _format_my_field(me: dict, intent: str) -> str:
         manager = supervisors[0] if supervisors else None
         status = me.get("employment_status") or ("Active" if me.get("is_active") else "Inactive")
 
-        def row(label: str, value) -> str | None:
-            """Return a formatted row, or None if value is empty."""
+        def row(label: str, value) -> Optional[str]:
             if not value or str(value).strip().lower() in ("none", "null", "0", ""):
                 return None
             return f"  {label:<16} {value}"
 
         lines = [f"👤 {me.get('name', 'Unknown')}"]
         lines.append("")
-
         rows = [
             row("Employee ID",  me.get("employee_id")),
             row("Email",        me.get("email")),
@@ -226,7 +303,11 @@ def _format_my_field(me: dict, intent: str) -> str:
 
     if intent == Intent.MY_MANAGER:
         supervisors = _parse_supervisors(me.get("supervisors"))
-        return f"Your manager is {supervisors[0]}." if supervisors else "No manager is currently assigned to you."
+        return (
+            f"Your manager is {supervisors[0]}."
+            if supervisors
+            else "No manager is currently assigned to you."
+        )
 
     if intent == Intent.MY_JOINING_DATE:
         val = me.get("joined_date")
@@ -260,7 +341,6 @@ def _format_leave_balance(balance: Any, owner: str, possessive: str) -> str:
             "Leave entitlements may not have been assigned yet."
         )
 
-    # Get year from first record if available
     year = balance[0].get("year", datetime.now().year)
     lines = [f"{possessive} leave balance ({year}):"]
 
@@ -290,7 +370,7 @@ def _format_employee_field(emp: dict, intent: str) -> str:
         manager = supervisors[0] if supervisors else None
         status = emp.get("employment_status") or ("Active" if emp.get("is_active") else "Inactive")
 
-        def row(label: str, value) -> str | None:
+        def row(label: str, value) -> Optional[str]:
             if not value or str(value).strip().lower() in ("none", "null", "0", ""):
                 return None
             return f"  {label:<16} {value}"
@@ -329,7 +409,11 @@ def _format_employee_field(emp: dict, intent: str) -> str:
 
     if intent == Intent.EMPLOYEE_MANAGER:
         supervisors = _parse_supervisors(emp.get("supervisors"))
-        return f"{poss} manager is {supervisors[0]}." if supervisors else f"No manager is assigned to {name}."
+        return (
+            f"{poss} manager is {supervisors[0]}."
+            if supervisors
+            else f"No manager is assigned to {name}."
+        )
 
     if intent == Intent.EMPLOYEE_JOINING_DATE:
         val = emp.get("joined_date")
@@ -343,7 +427,6 @@ def _format_employee_field(emp: dict, intent: str) -> str:
         val = emp.get("location")
         return f"{name} works at {val}." if val else f"{poss} location is not set."
 
-    return f"I couldn't retrieve that information for {name}."
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -363,10 +446,23 @@ def _parse_supervisors(raw) -> list[str]:
 
 
 def _can_view(current_user: CurrentUser, emp: dict) -> bool:
-    admin_roles = {"hradmin", "empmanager"}
-    supervisor_roles = {"supervisor", "manager", "line_manager", "reporting_manager"}
-    if current_user.role in admin_roles:
+    """True if current_user is allowed to view any field of emp."""
+    if current_user.role in _ADMIN_ROLES:
         return True
-    if current_user.role in supervisor_roles:
+    if current_user.role in _MANAGER_ROLES:
         return True
     return current_user.user_id == emp.get("id")
+
+
+def _can_view_leave(current_user: CurrentUser, emp: dict) -> bool:
+    """
+    Leave balance is more sensitive than basic profile info.
+    Only admins, managers, and the employee themselves may view it.
+    """
+    if current_user.role in _ADMIN_ROLES:
+        return True
+    if current_user.role in _MANAGER_ROLES:
+        return True
+    return current_user.user_id == emp.get("id")
+
+

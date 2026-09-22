@@ -139,13 +139,29 @@ class EntityExtractor:
     def _spacy_extract(self, text: str) -> str | None:
         """
         Extract person name using spaCy.
-        Returns the full entity span from the original text — no subword issues.
+
+        After finding the PERSON entity span, extend it rightward to absorb
+        any immediately following single uppercase-letter initials
+        (e.g. spaCy tags "Prashanth" but the user wrote "Prashanth V").
         """
         try:
             doc = self._nlp(text)
             for ent in doc.ents:
                 if ent.label_ == "PERSON":
-                    name = self._clean(ent.text)
+                    # Try to extend the span with trailing initials
+                    tokens = list(ent)
+                    end_idx = ent.end
+                    while end_idx < len(doc):
+                        tok = doc[end_idx]
+                        # Accept single uppercase letter (initial) optionally
+                        # followed by a period, surrounded by whitespace
+                        if len(tok.text.rstrip(".")) == 1 and tok.text[0].isupper():
+                            tokens.append(tok)
+                            end_idx += 1
+                        else:
+                            break
+                    full_span = " ".join(t.text.rstrip(".") for t in tokens)
+                    name = self._clean(full_span)
                     if self._valid(name):
                         return name.title()
         except Exception as exc:

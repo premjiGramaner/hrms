@@ -20,10 +20,8 @@ router = APIRouter(prefix="/chat", tags=["Chatbot"])
     response_model=ChatResponse,
     summary="Send a message to the HRMS chatbot",
     description="""
-Natural-language HR queries. The pipeline:
-
-1. **Intent classification** — Hugging Face transformer (no DB access)
-2. **Entity extraction** — HF NER + regex (no DB access)
+1.**NLP chatbot layer for the HRMS system
+4.**Intent classification via sklearn TF-IDF + LogisticRegression
 3. **Employee data** — fetched from the existing HRMS Node.js API using your Bearer token
 4. **Permission check** — enforced by the Node.js server + an extra guard here
 5. **Response** — deterministic template, never AI-generated employee data

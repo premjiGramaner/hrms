@@ -19,7 +19,7 @@ class Intent(StrEnum):
     EMPLOYEE_JOINING_DATE = "EMPLOYEE_JOINING_DATE"
     EMPLOYEE_STATUS       = "EMPLOYEE_STATUS"
     EMPLOYEE_LOCATION     = "EMPLOYEE_LOCATION"
-    EMPLOYEE_LEAVE_BALANCE = "EMPLOYEE_LEAVE_BALANCE"  # ← NEW
+    EMPLOYEE_LEAVE_BALANCE = "EMPLOYEE_LEAVE_BALANCE"
 
     # ── Self-service queries ──────────────────────────────────────────────────
     MY_PROFILE      = "MY_PROFILE"
@@ -32,6 +32,9 @@ class Intent(StrEnum):
     MY_LEAVE_BALANCE = "MY_LEAVE_BALANCE"
     MY_STATUS        = "MY_STATUS"
     MY_LOCATION      = "MY_LOCATION"
+
+    # ── Salary / compensation ─────────────────────────────────────────────────
+    EMPLOYEE_SALARY = "EMPLOYEE_SALARY"
 
     # ── Fallback ──────────────────────────────────────────────────────────────
     UNKNOWN = "UNKNOWN"
@@ -61,5 +64,6 @@ INTENT_DISPLAY: dict[str, str] = {
     Intent.MY_LEAVE_BALANCE:       "My Leave Balance",
     Intent.MY_STATUS:              "My Status",
     Intent.MY_LOCATION:            "My Location",
+    Intent.EMPLOYEE_SALARY:        "Employee Salary",
     Intent.UNKNOWN:                "Unknown",
 }

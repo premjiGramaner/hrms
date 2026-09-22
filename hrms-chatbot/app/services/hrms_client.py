@@ -204,26 +204,66 @@ async def resolve_employee(
     clean = search_term.strip().lower()
     query_words = clean.split()
 
-    # ── Name lookup: use local cache exclusively (no search API partial match) ─
+    # ── Name lookup ───────────────────────────────────────────────────────────
+    # Strategy:
+    #   1. Try the in-process employee cache (includes terminated employees).
+    #      Matching requires ALL extracted words to appear in the name.
+    #   2. If the cache is empty (DB unreachable) OR returns no matches,
+    #      fall back to the Node.js chatbot-search API using the first word
+    #      of the name as the search term — this handles partial names like
+    #      "Prem" matching "Premkumar" and avoids dead-ends when the DB is down.
     if name and not employee_id and not email:
-        await get_all_employees(token)          # loads/refreshes cache
-        matches = find_in_cache(name)           # all-words exact match locally
+        from app.services import employee_cache as _ec
+        await get_all_employees(token)
+        cache_populated = bool(_ec._cache)
 
-        if not matches:
+        matches = find_in_cache(name) if cache_populated else []
+
+        if matches:
+            if len(matches) == 1:
+                logger.debug("cache resolved: %r → %s", name, matches[0].get("name"))
+                return {"status": "found", "employee": matches[0]}
+
+            # Multiple cache matches — try exact full name first
+            exact = [e for e in matches if (e.get("name") or "").lower() == clean]
+            if len(exact) == 1:
+                return {"status": "found", "employee": exact[0]}
+
+            return {
+                "status": "ambiguous",
+                "candidates": [e.get("name", "Unknown") for e in matches[:5]],
+            }
+
+        # Cache miss (empty cache or no matches) — fall back to search API.
+        # Use the first word so "Prem" finds "Premkumar", "Prashanth" finds
+        # "Prashanth V", etc.
+        first_word = query_words[0] if query_words else clean
+        logger.debug(
+            "cache miss for %r (cache_populated=%s) — trying search API with %r",
+            name, cache_populated, first_word,
+        )
+        api_results = await search_employees(token, first_word, limit=20)
+        if not api_results:
             return {"status": "not_found"}
 
-        if len(matches) == 1:
-            logger.debug("cache resolved: %r → %s", name, matches[0].get("name"))
-            return {"status": "found", "employee": matches[0]}
+        # Filter to results whose name contains all extracted words
+        filtered = [
+            e for e in api_results
+            if all(w in (e.get("name") or "").lower() for w in query_words)
+        ]
+        pool = filtered if filtered else api_results
 
-        # Multiple cache matches — try exact full name
-        exact = [e for e in matches if (e.get("name") or "").lower() == clean]
+        if len(pool) == 1:
+            return {"status": "found", "employee": pool[0]}
+
+        # Exact full-name match among the pool
+        exact = [e for e in pool if (e.get("name") or "").lower() == clean]
         if len(exact) == 1:
             return {"status": "found", "employee": exact[0]}
 
         return {
             "status": "ambiguous",
-            "candidates": [e.get("name", "Unknown") for e in matches[:5]],
+            "candidates": [e.get("name", "Unknown") for e in pool[:5]],
         }
 
     # ── employee_id / email lookup: use search API ────────────────────────────

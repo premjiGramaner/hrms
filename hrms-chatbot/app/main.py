@@ -57,7 +57,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api.routes import chatbot  # noqa: E402
+from app.api.routes import chatbot 
 app.include_router(chatbot.router, prefix=settings.api_v1_prefix)
 
 # Debug routes — only mounted when DEBUG=true
