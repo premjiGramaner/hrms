@@ -21,6 +21,7 @@ function toDateOnly(dateStr: string): string {
 function parseDate(dateStr: string): {
   day: string;
   month: string;
+  year: string;
   weekday: string;
   isWeekend: boolean;
 } {
@@ -30,6 +31,7 @@ function parseDate(dateStr: string): {
   return {
     day: String(d.getDate()).padStart(2, "0"),
     month: d.toLocaleString("en-IN", { month: "short" }),
+    year: String(year),
     weekday: d.toLocaleString("en-IN", { weekday: "long" }),
     isWeekend: dow === 0 || dow === 6,
   };
@@ -114,6 +116,10 @@ function HolidayOverlay({
   const filtered = applyFilter(allHolidays, filter);
   const isFiltered = filter !== "ALL";
 
+  // Derive year label from actual data rather than hardcoding
+  const years = [...new Set(allHolidays.map((h) => toDateOnly(h.holiday_date).slice(0, 4)))].sort();
+  const yearLabel = years.length === 0 ? "" : years.length === 1 ? years[0] : `${years[0]}–${years[years.length - 1]}`;
+
   return createPortal(
     <div
       ref={overlayRef}
@@ -127,7 +133,7 @@ function HolidayOverlay({
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div>
             <h2 className="text-base font-semibold text-slate-800">
-              Holiday Calendar 2026
+              Holiday Calendar {yearLabel}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               All company holidays across locations
@@ -298,7 +304,7 @@ function HolidayOverlay({
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filtered.map((h, idx) => {
-                  const { day, month, weekday, isWeekend } = parseDate(
+                  const { day, month, year, weekday, isWeekend } = parseDate(
                     h.holiday_date,
                   );
                   const isMyHoliday = isHolidayForLocation(h, employeeLocation);
@@ -316,7 +322,7 @@ function HolidayOverlay({
                         <span
                           className={`font-semibold ${isWeekend ? "text-red-600" : "text-slate-700"}`}
                         >
-                          {day} {month}
+                          {day} {month} {year}
                         </span>
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
@@ -408,10 +414,14 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
+  // Incremented on every fetch; responses from older fetches are discarded
+  const fetchGenRef = useRef(0);
 
   const fetchHolidays = () => {
+    const gen = ++fetchGenRef.current;
     getHolidayMatrix()
       .then((data) => {
+        if (gen !== fetchGenRef.current) return; // stale — a newer fetch completed
         setAllHolidays(data);
         const today = new Date();
         const todayStr = [
@@ -420,14 +430,18 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
           String(today.getDate()).padStart(2, "0"),
         ].join("-");
         setUpcoming(
-          data
-            .filter((h) => toDateOnly(h.holiday_date) >= todayStr)
-            .slice(0, 6),
+          data.filter((h) => toDateOnly(h.holiday_date) >= todayStr).slice(0, 6),
         );
         setError(false);
       })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (gen !== fetchGenRef.current) return;
+        setError(true);
+      })
+      .finally(() => {
+        if (gen !== fetchGenRef.current) return;
+        setLoading(false);
+      });
   };
 
   useEffect(() => {

@@ -18,25 +18,22 @@ import {
 const transporter =
   smtpUser && smtpPass
     ? smtpHost
-      ? // Custom SMTP host (corporate/internal relay) — use explicit host/port/TLS
+      ? // Custom SMTP host (corporate/internal relay)
         nodemailer.createTransport({
           host: smtpHost,
           port: smtpPort,
-          secure: smtpSecure, // true for port 465, false for 587/25
+          secure: smtpSecure,   // true = implicit TLS (port 465)
           auth: { user: smtpUser, pass: smtpPass },
-          tls: {
-            // Allow self-signed / internal CA certificates
-            rejectUnauthorized: false,
-          },
+          // For STARTTLS (port 587): require upgrade — reject if relay suppresses it
+          // so credentials never travel over plaintext
+          requireTLS: !smtpSecure,
+          tls: { rejectUnauthorized: false }, // accept internal/self-signed CA certs
         })
-      : // Gmail — use service shorthand (resolves to smtp.gmail.com:465)
+      : // Gmail — implicit TLS on port 465, no STARTTLS risk
         nodemailer.createTransport({
           service: "gmail",
           auth: { user: smtpUser, pass: smtpPass },
-          tls: {
-            // Corporate network may MITM Gmail's TLS with its own cert
-            rejectUnauthorized: false,
-          },
+          tls: { rejectUnauthorized: false }, // tolerate corporate TLS inspection
         })
     : null;
 
