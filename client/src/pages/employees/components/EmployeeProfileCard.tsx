@@ -14,7 +14,7 @@ import {
   IconX,
   IconMapPin,
 } from "../../../components/Icons";
-import {
+import { 
   AVATAR_PLACEHOLDER_SERVICE,
   MAX_FILE_SIZE_MB,
   MAX_FILE_SIZE_BYTES,
