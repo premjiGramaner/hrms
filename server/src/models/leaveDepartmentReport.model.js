@@ -80,9 +80,9 @@ function normalizeSummary(summaryRow, departmentRows) {
 }
 
 async function getLeaveByDepartmentReport(filterCriteria) {
-  const page = Math.max(1, Number(filterCriteria.page) || 1);
-  const limit = Math.max(1, Number(filterCriteria.limit) || 15);
-  const offset = (page - 1) * limit;
+  const currentPage = Math.max(1, Number(filterCriteria.page) || 1);
+  const recordsPerPage = Math.max(1, Number(filterCriteria.limit) || 15);
+  const recordOffset = (currentPage - 1) * recordsPerPage;
   const { whereClause, values } = buildReportFilters(filterCriteria);
 
   const baseJoins = `
@@ -90,17 +90,6 @@ async function getLeaveByDepartmentReport(filterCriteria) {
     INNER JOIN tbl_appusers u ON u.id = lr.employee_id
     INNER JOIN tbl_leave_types lt ON lt.id = lr.leave_type_id
     WHERE ${whereClause}`;
-
-  const employeePageResult = await pool.query(
-    `SELECT lr.employee_id, MAX(lr.start_date) AS latest_leave_date
-     ${baseJoins}
-     GROUP BY lr.employee_id
-     ORDER BY latest_leave_date DESC, lr.employee_id
-     LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-    [...values, limit, offset],
-  );
-  const employeeIds = employeePageResult.rows.map((row) => row.employee_id);
-  const employeeIdsParameter = `$${values.length + 1}`;
 
   const [dataResult, summaryResult, departmentResult] = await Promise.all([
     pool.query(
@@ -127,12 +116,9 @@ async function getLeaveByDepartmentReport(filterCriteria) {
            ELSE 'Current Employee'
        END AS employee_scope
        ${baseJoins}
-       AND lr.employee_id = ANY(${employeeIdsParameter}::bigint[])
-       ORDER BY
-         array_position(${employeeIdsParameter}::bigint[], lr.employee_id),
-         lr.start_date ASC,
-         lr.id ASC`,
-      [...values, employeeIds],
+       ORDER BY u.name ASC, lr.start_date ASC, lr.id ASC
+       LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+      [...values, recordsPerPage, recordOffset],
     ),
     pool.query(
       `SELECT
@@ -163,6 +149,12 @@ async function getLeaveByDepartmentReport(filterCriteria) {
     departmentResult.rows,
   );
 
+  const totalLeaveRecords = summary.totalRecords;
+  const totalPagesCount = Math.max(
+    1,
+    Math.ceil(totalLeaveRecords / recordsPerPage),
+  );
+
   return {
     reportData: dataResult.rows.map((reportRow) => ({
       ...reportRow,
@@ -170,9 +162,9 @@ async function getLeaveByDepartmentReport(filterCriteria) {
       leave_hours: Number(reportRow.leave_hours || 0),
     })),
     summary,
-    totalRecords: summary.totalEmployees,
-    totalPages: Math.max(1, Math.ceil(summary.totalEmployees / limit)),
-    currentPage: page,
+    totalRecords: totalLeaveRecords,
+    totalPages: totalPagesCount,
+    currentPage: currentPage,
   };
 }
 

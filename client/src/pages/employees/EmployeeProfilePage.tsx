@@ -588,23 +588,33 @@ export default function EmployeeProfilePage() {
             onChange={handleFieldChange}
             options={subUnitOptions}
           />
-          <EditableProfileField
-            label="Supervisor"
-            name="supervisor_id"
-            value={form.supervisor_id}
-            onChange={handleFieldChange}
-            options={supervisorOptions.map((supervisor) =>
-              supervisor.id.toString(),
-            )}
-            optionLabels={
-              new Map(
-                supervisorOptions.map((supervisor) => [
-                  supervisor.id.toString(),
-                  supervisor.name,
-                ]),
-              )
-            }
-          />
+          {supervisorOptions.length === 0 ? (
+            <EditableProfileField
+              label="Supervisor"
+              name="supervisor_id"
+              value="No Supervisor Available"
+              onChange={handleFieldChange}
+              readOnly
+            />
+          ) : (
+            <EditableProfileField
+              label="Supervisor"
+              name="supervisor_id"
+              value={form.supervisor_id}
+              onChange={handleFieldChange}
+              options={supervisorOptions.map((supervisor) =>
+                supervisor.id.toString(),
+              )}
+              optionLabels={
+                new Map(
+                  supervisorOptions.map((supervisor) => [
+                    supervisor.id.toString(),
+                    supervisor.name,
+                  ]),
+                )
+              }
+            />
+          )}
           <EditableProfileField
             label="Location"
             name="location"

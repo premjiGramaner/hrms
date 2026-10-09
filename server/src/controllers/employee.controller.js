@@ -45,23 +45,6 @@ const getMyInfo = async (req, res, next) => {
   try {
     if (!req.user) return error(res, "Unauthorized", 401);
 
-    if (req.user.id === 0) {
-      return success(res, {
-        id: 0,
-        username: "admin",
-        name: "Admin",
-        first_name: "Admin",
-        last_name: "",
-        email: "admin@hrms.local",
-        role: ROLES.EMP_MANAGER,
-        status: "Active",
-        is_active: true,
-        job_title: "System Administrator",
-        sub_unit: "IT",
-        location: "HQ",
-      });
-    }
-
     const employee = await EmployeeModel.findEmployeeById(req.user.id);
     if (!employee) return error(res, "Profile not found", 404);
     return success(res, employee);

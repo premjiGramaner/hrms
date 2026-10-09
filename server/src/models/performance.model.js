@@ -578,8 +578,7 @@ function validateTemplateKpiWeight(
     .flatMap((section) => section.questions)
     .filter((question) => question.id !== excludedQuestionId)
     .reduce(
-      (weightTotal, question) =>
-        weightTotal + Number(question.weight || 0),
+      (weightTotal, question) => weightTotal + Number(question.weight || 0),
       0,
     );
 
@@ -909,6 +908,52 @@ async function updateCycleStatus(cycleId, status) {
     [cycleId, status],
   );
   return findCycle(cycleId);
+}
+
+async function updateCycle(cycleId, data) {
+  const updates = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (data.templateId !== undefined) {
+    updates.push(`template_id = $${paramIndex++}`);
+    values.push(data.templateId);
+  }
+  if (data.fromDate !== undefined) {
+    updates.push(`from_date = $${paramIndex++}`);
+    values.push(data.fromDate);
+  }
+  if (data.toDate !== undefined) {
+    updates.push(`to_date = $${paramIndex++}`);
+    values.push(data.toDate);
+  }
+  if (data.dueDate !== undefined) {
+    updates.push(`due_date = $${paramIndex++}`);
+    values.push(data.dueDate);
+  }
+
+  if (updates.length === 0) return findCycle(cycleId);
+
+  updates.push(`updated_at = NOW()`);
+  values.push(cycleId);
+
+  await pool.query(
+    `UPDATE appraisal_cycles SET ${updates.join(", ")} WHERE id = $${paramIndex}`,
+    values,
+  );
+  return findCycle(cycleId);
+}
+
+async function checkCycleHasRatings(cycleId) {
+  const { rows } = await pool.query(
+    `SELECT EXISTS(
+       SELECT 1 FROM appraisals
+       WHERE cycle_id = $1
+       AND (self_submitted = TRUE OR supervisor_submitted = TRUE)
+     ) AS has_ratings`,
+    [cycleId],
+  );
+  return rows[0]?.has_ratings || false;
 }
 
 async function getCycleCompletionSummary(cycleId) {
@@ -1582,6 +1627,7 @@ async function listCompetencyProfiles() {
 export {
   addEmployeesToCycle,
   autoAssignEmployeesToCycle,
+  checkCycleHasRatings,
   cloneTemplate,
   createAppraisalsForCycle,
   createCycle,
@@ -1604,6 +1650,7 @@ export {
   removeEmployeeFromCycle,
   submitAppraisalReview,
   updateAppraisalRatings,
+  updateCycle,
   updateCycleStatus,
   updateTemplate,
   updateTemplateKpi,

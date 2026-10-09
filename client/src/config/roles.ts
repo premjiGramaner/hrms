@@ -98,6 +98,7 @@ export const PAGE_PATHS = {
   hradminJobCategories: "/hradmin/job-categories",
   hradminSubUnits: "/hradmin/sub-units",
   hradminRoleAccess: "/hradmin/role-access",
+  dataMigration: "/admin/data-migration",
 
   // Leave
   leave: "/leave",

@@ -50,7 +50,7 @@ export default function NavigationSearch() {
       setIsOpen(false);
       setSelectedIndex(-1);
     }
-  }, [query, user?.role]);
+  }, [query, user?.id, user?.role, user?.username]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
@@ -149,20 +149,18 @@ export default function NavigationSearch() {
                 type="button"
                 onClick={() => navigateToItem(item)}
                 onMouseEnter={() => setSelectedIndex(index)}
-                className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 transition-colors cursor-pointer block ${
-                  selectedIndex === index
+                className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 transition-colors cursor-pointer block ${selectedIndex === index
                     ? "bg-gradient-to-r from-blue-50 to-teal-50"
                     : "hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div
-                      className={`font-semibold truncate text-[13px] mb-0.5 ${
-                        selectedIndex === index
+                      className={`font-semibold truncate text-[13px] mb-0.5 ${selectedIndex === index
                           ? "text-slate-900"
                           : "text-slate-800"
-                      }`}
+                        }`}
                     >
                       {highlightMatch(item.label, query)}
                     </div>

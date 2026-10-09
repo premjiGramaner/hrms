@@ -230,7 +230,11 @@ function drawTableHeaderRow(doc, labels, positions, widths, y, height) {
 
 function drawEvaluatorTableHeader(doc, y) {
   const widths = [82, 150, 279];
-  const positions = [DIMS.LEFT, DIMS.LEFT + widths[0], DIMS.LEFT + widths[0] + widths[1]];
+  const positions = [
+    DIMS.LEFT,
+    DIMS.LEFT + widths[0],
+    DIMS.LEFT + widths[0] + widths[1],
+  ];
   return drawTableHeaderRow(
     doc,
     ["Code", "Evaluator Type", "Evaluator Name"],
@@ -286,15 +290,44 @@ function drawPageOne(doc, appraisal) {
 
   y = sectionTitle(doc, "Appraisal Information", y);
   y = fullInfoRow(doc, "Description", appraisal.description, DIMS.LEFT, y);
-  y = infoRow(doc, "Start Date", appraisal.from, "End Date", appraisal.to, DIMS.LEFT, y);
+  y = infoRow(
+    doc,
+    "Start Date",
+    appraisal.from,
+    "End Date",
+    appraisal.to,
+    DIMS.LEFT,
+    y,
+  );
   y = fullInfoRow(doc, "Cycle Name", appraisal.description, DIMS.LEFT, y);
-  y = infoRow(doc, "Final Rating", number(appraisal.finalRating, "--"), "", "", DIMS.LEFT, y);
+  y = infoRow(
+    doc,
+    "Final Rating",
+    number(appraisal.finalRating, "--"),
+    "",
+    "",
+    DIMS.LEFT,
+    y,
+  );
   y =
-    infoRow(doc, "Appraisal Status", appraisal.status, "Time Stamp", dateTime(), DIMS.LEFT, y) +
-    24;
+    infoRow(
+      doc,
+      "Appraisal Status",
+      appraisal.status,
+      "Time Stamp",
+      dateTime(),
+      DIMS.LEFT,
+      y,
+    ) + 24;
 
   y = sectionTitle(doc, "Reviewed Employee Information", y);
-  y = fullInfoRow(doc, "Reviewed Employee", appraisal.employee?.name, DIMS.LEFT, y);
+  y = fullInfoRow(
+    doc,
+    "Reviewed Employee",
+    appraisal.employee?.name,
+    DIMS.LEFT,
+    y,
+  );
   y = infoRow(
     doc,
     "Job Title",
@@ -304,7 +337,15 @@ function drawPageOne(doc, appraisal) {
     DIMS.LEFT,
     y,
   );
-  infoRow(doc, "Sub Unit", appraisal.employee?.subUnit, "Country", "INDIA", DIMS.LEFT, y);
+  infoRow(
+    doc,
+    "Sub Unit",
+    appraisal.employee?.subUnit,
+    "Country",
+    "INDIA",
+    DIMS.LEFT,
+    y,
+  );
 }
 
 function evaluatorRows(appraisal) {
@@ -415,7 +456,15 @@ function drawEvaluatorInfo(doc, appraisal, row, y) {
       : appraisal.selfRating;
 
   y = sectionTitle(doc, "Evaluator Details", y);
-  y = infoRow(doc, "Evaluator Name", reviewer?.name, "Evaluator Type", row.type, DIMS.LEFT, y);
+  y = infoRow(
+    doc,
+    "Evaluator Name",
+    reviewer?.name,
+    "Evaluator Type",
+    row.type,
+    DIMS.LEFT,
+    y,
+  );
   y = infoRow(
     doc,
     "Job Title",
@@ -434,7 +483,16 @@ function drawEvaluatorInfo(doc, appraisal, row, y) {
     DIMS.LEFT,
     y,
   );
-  y = infoRow(doc, "Overall Rating", number(overall, "--"), "", "", DIMS.LEFT, y) + 26;
+  y =
+    infoRow(
+      doc,
+      "Overall Rating",
+      number(overall, "--"),
+      "",
+      "",
+      DIMS.LEFT,
+      y,
+    ) + 26;
 
   return { y, overall };
 }
@@ -470,13 +528,29 @@ function drawDetailCompetencyTable(doc, appraisal, row, y, overall) {
     y = ensurePageSpace(doc, y, rowHeight + 32);
     cell(doc, "KPI's", positions[0], y, widths[0], rowHeight);
     cell(doc, questionText, positions[1], y, widths[1], rowHeight);
-    cell(doc, weightText(ratingWeight(appraisal, question)), positions[2], y, widths[2], rowHeight, {
-      align: "center",
-    });
-    cell(doc, number(reviewerScore(question, row.reviewerType), "--"), positions[3], y, widths[3], rowHeight, {
-      align: "center",
-      bold: true,
-    });
+    cell(
+      doc,
+      weightText(ratingWeight(appraisal, question)),
+      positions[2],
+      y,
+      widths[2],
+      rowHeight,
+      {
+        align: "center",
+      },
+    );
+    cell(
+      doc,
+      number(reviewerScore(question, row.reviewerType), "--"),
+      positions[3],
+      y,
+      widths[3],
+      rowHeight,
+      {
+        align: "center",
+        bold: true,
+      },
+    );
     cell(doc, comment || "", positions[4], y, widths[4], rowHeight);
     y += rowHeight;
   });
@@ -485,7 +559,6 @@ function drawDetailCompetencyTable(doc, appraisal, row, y, overall) {
 function drawEvaluatorDetailPage(doc, appraisal, row) {
   doc.addPage();
   let y = DIMS.PAGE_TOP;
-
   const { y: nextY, overall } = drawEvaluatorInfo(doc, appraisal, row, y);
   drawDetailCompetencyTable(doc, appraisal, row, nextY, overall);
 }
