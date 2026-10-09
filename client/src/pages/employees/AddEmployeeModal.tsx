@@ -42,7 +42,6 @@ import {
   MAX_FILE_SIZE_MB,
 } from "../../config/constants";
 import { IconChevronDown, IconUser, IconX } from "../../components/Icons";
-import { EMAIL_REGEX } from "../../constants/validation";
 
 const PREDEFINED_LOCATIONS = ["Bangalore", "Coimbatore", "Hyderabad"];
 
@@ -223,7 +222,7 @@ export default function AddEmployeeModal({
   const validateWorkEmailExists = async (): Promise<boolean> => {
     const workEmail = formRef.current[WORK_EMAIL_FIELD]?.trim().toLowerCase();
 
-    if (!workEmail || !EMAIL_REGEX.test(workEmail)) {
+    if (!workEmail || !EMAIL_PATTERN.test(workEmail)) {
       return false;
     }
 
@@ -280,7 +279,7 @@ export default function AddEmployeeModal({
 
       if (
         workEmail &&
-        EMAIL_REGEX.test(workEmail) &&
+        EMAIL_PATTERN.test(workEmail) &&
         validatedWorkEmailRef.current !== workEmail
       ) {
         validateWorkEmailExists();
@@ -290,29 +289,29 @@ export default function AddEmployeeModal({
 
   const handleFieldChange =
     (fieldName: keyof typeof initialForm) =>
-    (
-      event: ChangeEvent<
-        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-      >,
-    ) => {
-      const value = event.target.value;
-      formRef.current[fieldName] = value;
+      (
+        event: ChangeEvent<
+          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        >,
+      ) => {
+        const value = event.target.value;
+        formRef.current[fieldName] = value;
 
-      // Clear validated email cache when work email changes
-      if (fieldName === WORK_EMAIL_FIELD) {
-        const normalizedEmail = value.trim().toLowerCase();
-        if (validatedWorkEmailRef.current !== normalizedEmail) {
-          validatedWorkEmailRef.current = "";
+        // Clear validated email cache when work email changes
+        if (fieldName === WORK_EMAIL_FIELD) {
+          const normalizedEmail = value.trim().toLowerCase();
+          if (validatedWorkEmailRef.current !== normalizedEmail) {
+            validatedWorkEmailRef.current = "";
+          }
         }
-      }
 
-      if (errors[fieldName])
-        setErrors((prev) => {
-          const updatedErrors = { ...prev };
-          delete updatedErrors[fieldName];
-          return updatedErrors;
-        });
-    };
+        if (errors[fieldName])
+          setErrors((prev) => {
+            const updatedErrors = { ...prev };
+            delete updatedErrors[fieldName];
+            return updatedErrors;
+          });
+      };
 
   function validateCurrentStep(stepNumber: number) {
     const nextErrors = validateEmployeeStep(
@@ -570,7 +569,7 @@ export default function AddEmployeeModal({
         return;
       }
 
-      if (!EMAIL_REGEX.test(email)) {
+      if (!EMAIL_PATTERN.test(email)) {
         setErrors((prev) => ({
           ...prev,
           [fieldName]: "Enter a valid email",
@@ -705,11 +704,10 @@ export default function AddEmployeeModal({
         placeholder={placeholder}
         defaultValue={formRef.current[name]}
         onChange={handleFieldChange(name)}
-        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
-          errors[name]
-            ? "border-red-500 bg-red-50"
-            : "border-slate-200 bg-slate-50 focus:border-slate-300"
-        }`}
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${errors[name]
+          ? "border-red-500 bg-red-50"
+          : "border-slate-200 bg-slate-50 focus:border-slate-300"
+          }`}
       />
       {errors[name] && (
         <span className="text-xs text-red-600 mt-1 block">{errors[name]}</span>
@@ -728,13 +726,12 @@ export default function AddEmployeeModal({
         onBlur={(event) =>
           handleEmployeeIdBlur(event.target.value, event.target)
         }
-        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
-          errors.employee_id
-            ? "border-red-500 bg-red-50"
-            : checkingEmployeeId
-              ? "border-blue-500 bg-blue-50"
-              : "border-slate-200 bg-slate-50 focus:border-slate-300"
-        }`}
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${errors.employee_id
+          ? "border-red-500 bg-red-50"
+          : checkingEmployeeId
+            ? "border-blue-500 bg-blue-50"
+            : "border-slate-200 bg-slate-50 focus:border-slate-300"
+          }`}
       />
       {checkingEmployeeId && (
         <span className="text-xs text-blue-600 mt-1 block">
@@ -765,13 +762,12 @@ export default function AddEmployeeModal({
         onBlur={(event) => {
           handleEmailBlur(event.target.value, name, event.target);
         }}
-        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
-          errors[name]
-            ? "border-red-500 bg-red-50"
-            : checkingEmail[name]
-              ? "border-blue-500 bg-blue-50"
-              : "border-slate-200 bg-slate-50 focus:border-slate-300"
-        }`}
+        className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${errors[name]
+          ? "border-red-500 bg-red-50"
+          : checkingEmail[name]
+            ? "border-blue-500 bg-blue-50"
+            : "border-slate-200 bg-slate-50 focus:border-slate-300"
+          }`}
       />
       {checkingEmail[name] && (
         <span className="text-xs text-blue-600 mt-1 block">
@@ -794,11 +790,10 @@ export default function AddEmployeeModal({
         name={name}
         defaultValue={formRef.current[name]}
         onChange={(event) => handleSelectChange(name, event)}
-        className={`w-full px-3 py-2 pr-7 border-2 rounded-lg text-sm outline-none appearance-none transition-colors ${
-          errors[name]
-            ? "border-red-500 bg-red-50"
-            : "border-slate-200 bg-slate-50 focus:border-slate-300"
-        }`}
+        className={`w-full px-3 py-2 pr-7 border-2 rounded-lg text-sm outline-none appearance-none transition-colors ${errors[name]
+          ? "border-red-500 bg-red-50"
+          : "border-slate-200 bg-slate-50 focus:border-slate-300"
+          }`}
       >
         <option value="">{placeholder}</option>
         {opts.map((option) => (
@@ -866,11 +861,10 @@ export default function AddEmployeeModal({
           onChange={(event) =>
             handleMobileInput(event, formRef, field, errors, setErrors)
           }
-          className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${
-            errors[field]
-              ? "border-red-500 bg-red-50"
-              : "border-slate-200 bg-slate-50 focus:border-slate-300"
-          }`}
+          className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none transition-colors ${errors[field]
+            ? "border-red-500 bg-red-50"
+            : "border-slate-200 bg-slate-50 focus:border-slate-300"
+            }`}
         />
         {errors[field] && (
           <span className="text-xs text-red-600 mt-1 block">
@@ -912,24 +906,22 @@ export default function AddEmployeeModal({
                   />
                 )}
                 <div
-                  className={`w-7 h-7 rounded-full z-10 flex items-center justify-center text-xs font-bold border-2 ${
-                    done
-                      ? "bg-teal-600 border-teal-600 text-white"
-                      : active
-                        ? "bg-blue-900 border-blue-900 text-white"
-                        : "bg-white border-slate-200 text-slate-400"
-                  }`}
+                  className={`w-7 h-7 rounded-full z-10 flex items-center justify-center text-xs font-bold border-2 ${done
+                    ? "bg-teal-600 border-teal-600 text-white"
+                    : active
+                      ? "bg-blue-900 border-blue-900 text-white"
+                      : "bg-white border-slate-200 text-slate-400"
+                    }`}
                 >
                   {done ? "✓" : stepNumber}
                 </div>
                 <span
-                  className={`text-xs font-semibold mt-1.5 whitespace-nowrap ${
-                    active
-                      ? "text-blue-900"
-                      : done
-                        ? "text-teal-600"
-                        : "text-slate-400"
-                  }`}
+                  className={`text-xs font-semibold mt-1.5 whitespace-nowrap ${active
+                    ? "text-blue-900"
+                    : done
+                      ? "text-teal-600"
+                      : "text-slate-400"
+                    }`}
                 >
                   {label}
                 </span>
@@ -956,11 +948,10 @@ export default function AddEmployeeModal({
                 <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
                   <div
                     onClick={() => avatarRef.current?.click()}
-                    className={`w-20 h-20 rounded-full border-2 border-dashed cursor-pointer overflow-hidden flex items-center justify-center hover:bg-slate-100 transition ${
-                      errors.avatar
-                        ? "border-red-500 bg-red-50"
-                        : "border-slate-300 bg-slate-50"
-                    }`}
+                    className={`w-20 h-20 rounded-full border-2 border-dashed cursor-pointer overflow-hidden flex items-center justify-center hover:bg-slate-100 transition ${errors.avatar
+                      ? "border-red-500 bg-red-50"
+                      : "border-slate-300 bg-slate-50"
+                      }`}
                   >
                     {avatarPreview ? (
                       <img
@@ -1151,11 +1142,10 @@ export default function AddEmployeeModal({
                     defaultValue={formRef.current.comments}
                     onChange={handleFieldChange("comments")}
                     placeholder="Any notes…"
-                    className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none resize-none h-16 transition-colors ${
-                      errors.comments
-                        ? "border-red-500 bg-red-50"
-                        : "border-slate-200 bg-slate-50 focus:border-slate-300"
-                    }`}
+                    className={`w-full px-3 py-2 border-2 rounded-lg text-sm outline-none resize-none h-16 transition-colors ${errors.comments
+                      ? "border-red-500 bg-red-50"
+                      : "border-slate-200 bg-slate-50 focus:border-slate-300"
+                      }`}
                   />,
                 )}
               </div>
@@ -1230,13 +1220,12 @@ export default function AddEmployeeModal({
                     return (
                       <label
                         key={supervisor.id}
-                        className={`flex items-center gap-3 p-2.75 cursor-pointer transition-colors ${
-                          checked
-                            ? "bg-emerald-50"
-                            : supervisorIndex % 2 === 0
-                              ? "bg-white"
-                              : "bg-blue-50"
-                        } ${supervisorIndex < supervisors.length - 1 ? "border-b border-slate-100" : ""}`}
+                        className={`flex items-center gap-3 p-2.75 cursor-pointer transition-colors ${checked
+                          ? "bg-emerald-50"
+                          : supervisorIndex % 2 === 0
+                            ? "bg-white"
+                            : "bg-blue-50"
+                          } ${supervisorIndex < supervisors.length - 1 ? "border-b border-slate-100" : ""}`}
                       >
                         <input
                           type="radio"
@@ -1266,17 +1255,17 @@ export default function AddEmployeeModal({
                             supervisor.job_title ||
                             supervisor.sub_unit ||
                             supervisor.email) && (
-                            <div className="text-xs text-slate-500">
-                              {[
-                                supervisor.job_title,
-                                supervisor.sub_unit ||
+                              <div className="text-xs text-slate-500">
+                                {[
+                                  supervisor.job_title,
+                                  supervisor.sub_unit ||
                                   subUnitMatch?.sub_unit_name,
-                                supervisor.email,
-                              ]
-                                .filter(Boolean)
-                                .join(" - ")}
-                            </div>
-                          )}
+                                  supervisor.email,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" - ")}
+                              </div>
+                            )}
                         </div>
                         {checked && (
                           <span className="text-xs font-semibold text-teal-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
@@ -1353,11 +1342,10 @@ export default function AddEmployeeModal({
                 type="button"
                 onClick={handleNext}
                 disabled={step === 4 && checkingEmail[WORK_EMAIL_FIELD]}
-                className={`px-7 py-2 rounded-full border-0 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-bold transition ${
-                  step === 4 && checkingEmail[WORK_EMAIL_FIELD]
-                    ? "opacity-65 cursor-not-allowed"
-                    : "cursor-pointer hover:shadow-lg"
-                }`}
+                className={`px-7 py-2 rounded-full border-0 bg-gradient-to-r from-blue-900 to-teal-600 text-white text-sm font-bold transition ${step === 4 && checkingEmail[WORK_EMAIL_FIELD]
+                  ? "opacity-65 cursor-not-allowed"
+                  : "cursor-pointer hover:shadow-lg"
+                  }`}
               >
                 {step === 4 && checkingEmail[WORK_EMAIL_FIELD]
                   ? "Checking..."

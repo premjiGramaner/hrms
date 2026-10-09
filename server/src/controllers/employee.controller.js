@@ -3,8 +3,8 @@ import { success, created, error } from "../utils/response.js";
 import { writeAuditLog } from "../services/audit.service.js";
 import { deleteExistingProfileImage } from "../services/fileDelete.service.js";
 import { sendWelcomeEmail } from "../../email.service.js";
-import { clientBaseUrl } from "../config/env.js";
 import { logInfo, logError } from "../utils/logger.js";
+import { getClientUrl } from "../utils/getClientUrl.js";
 import { ROLES } from "../constants/roles.js";
 import fs from "fs/promises";
 import path from "path";
@@ -13,15 +13,6 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROFILE_UPLOAD_DIR = path.join(__dirname, "../../uploads/profile");
-
-function getClientUrl(req) {
-  if (clientBaseUrl) return clientBaseUrl.replace(/\/$/, "");
-  const host = req.get("origin") || `${req.protocol}://${req.get("host")}`;
-  return host
-    .replace(/\/$/, "")
-    .replace(/:5000$/, ":5173")
-    .replace(/:5001$/, ":5173");
-}
 
 const listEmployees = async (req, res, next) => {
   try {

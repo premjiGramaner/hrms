@@ -1,5 +1,4 @@
 export const VALIDATION_PATTERNS = {
-  EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   PHONE: /^\d{10}$/,
   LICENSE_NUMBER: /^[A-Z0-9]{15,16}$/,
   EMPLOYEE_ID: /^[A-Z0-9-]+$/i,
@@ -22,5 +21,3 @@ export const VALIDATION_MESSAGES = {
   FIELD_REQUIRED: "This field is required",
   PASSWORD_MIN_LENGTH: `Password must be at least ${FIELD_LENGTHS.PASSWORD_MIN} characters`,
 } as const;
-
-export const EMAIL_REGEX  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

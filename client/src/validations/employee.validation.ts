@@ -7,8 +7,6 @@ export const validateEmail = (email: string): boolean => {
   return EMAIL_PATTERN.test(email);
 };
 
-export { EMAIL_PATTERN as EMAIL_REGEX };
-
 const NAME_REGEX = /^[A-Za-z\s'\-]+$/;
 
 const LICENSE_REGEX = /^[A-Z]{2}\d{2}\d{4}\d{7}$/;

@@ -3,8 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 import { jwtSecret, jwtExpiresIn, rememberMeDuration } from "../config/env.js";
-import { clientBaseUrl } from "../config/env.js";
 import { success, error } from "../utils/response.js";
+import { getClientUrl } from "../utils/getClientUrl.js";
 import {
   sendPasswordResetEmail,
   sendPasswordExpiredEmail,
@@ -41,7 +41,6 @@ const parseDuration = (duration) => {
       return 30 * 24 * 60 * 60 * 1000;
   }
 };
-let authSchemaPromise = null;
 
 function validatePasswordPolicy(password) {
   if (!password || password.length < PASSWORD_CONFIG.MIN_LENGTH) {
@@ -62,27 +61,6 @@ function validatePasswordPolicy(password) {
   return "";
 }
 
-async function ensureAuthSchema() {
-  if (authSchemaPromise) return authSchemaPromise;
-  authSchemaPromise = (async () => {
-    await pool.query(
-      "ALTER TABLE tbl_appusers ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMPTZ",
-    );
-    await pool.query(
-      "ALTER TABLE tbl_appusers ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR(64)",
-    );
-    await pool.query(
-      "ALTER TABLE tbl_appusers ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false",
-    );
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_appusers_password_reset_token
-       ON tbl_appusers (password_reset_token)
-       WHERE password_reset_token IS NOT NULL`,
-    );
-  })();
-  return authSchemaPromise;
-}
-
 function createPlainResetToken() {
   return crypto.randomBytes(32).toString("hex");
 }
@@ -92,7 +70,6 @@ function hashResetToken(token) {
 }
 
 async function issuePasswordToken(userId) {
-  await ensureAuthSchema();
   const token = createPlainResetToken();
   const tokenHash = hashResetToken(token);
   await pool.query(
@@ -104,15 +81,6 @@ async function issuePasswordToken(userId) {
     [tokenHash, userId],
   );
   return token;
-}
-
-function getClientUrl(req) {
-  if (clientBaseUrl) return clientBaseUrl.replace(/\/$/, "");
-  const host = req.get("origin") || `${req.protocol}://${req.get("host")}`;
-  return host
-    .replace(/\/$/, "")
-    .replace(/:5000$/, ":5173")
-    .replace(/:5001$/, ":5173");
 }
 
 const timingSafeCompare = (a, b) => {
@@ -193,13 +161,13 @@ const login = async (req, res, next) => {
     const passwordAge = user.password_changed_at
       ? PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
         ? Math.floor(
-            (Date.now() - new Date(user.password_changed_at).getTime()) /
-              (1000 * 60),
-          )
+          (Date.now() - new Date(user.password_changed_at).getTime()) /
+          (1000 * 60),
+        )
         : Math.floor(
-            (Date.now() - new Date(user.password_changed_at).getTime()) /
-              (1000 * 60 * 60 * 24),
-          )
+          (Date.now() - new Date(user.password_changed_at).getTime()) /
+          (1000 * 60 * 60 * 24),
+        )
       : null;
 
     const expiryThreshold = PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
@@ -301,8 +269,8 @@ const login = async (req, res, next) => {
         ? PASSWORD_CONFIG.USE_MINUTES_FOR_TESTING
           ? Math.floor((Date.now() - lastReminder.getTime()) / (1000 * 60))
           : Math.floor(
-              (Date.now() - lastReminder.getTime()) / (1000 * 60 * 60 * 24),
-            )
+            (Date.now() - lastReminder.getTime()) / (1000 * 60 * 60 * 24),
+          )
         : 999;
 
       if (
@@ -423,7 +391,6 @@ const self = async (req, res, next) => {
 
 const forgotPassword = async (req, res, next) => {
   try {
-    await ensureAuthSchema();
     const emailAddress = String(req.body.email || "")
       .trim()
       .toLowerCase();
@@ -505,7 +472,6 @@ async function completePasswordReset(
   confirmPassword,
   oldPassword = null,
 ) {
-  await ensureAuthSchema();
   if (!token)
     return {
       errorMessage: AUTH_MESSAGES.TOKEN_INVALID,
