@@ -119,7 +119,6 @@ async function findAllEmployees(page, limit = 10, search = "") {
       }
     }
 
-    // Map results back to each employee without any further DB calls
     const employeesWithSupervisors = rows.map((employee) => {
       const stored = employee.supervisor_names_stored || [];
       let supervisorIds = [];
@@ -472,13 +471,9 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
   const realDob =
     normalizeNullableDate(data.real_dob) || normalizeNullableDate(data.dob);
 
-  // Three states:
-  //   undefined  → supervisors field was not sent; preserve existing DB value via COALESCE
-  //   "[]"       → explicit clear; write "[]" to DB
-  //   <ids>      → valid supervisor list; write the resolved IDs
   let supervisorIds;
   if (data.supervisors === undefined) {
-    supervisorIds = undefined; // not sent — COALESCE will preserve existing value
+    supervisorIds = undefined;
   } else if (!data.supervisors || data.supervisors === "[]") {
     supervisorIds = "[]"; // explicit clear
   } else {
