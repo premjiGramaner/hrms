@@ -318,7 +318,7 @@ export default function EmployeeListPage() {
         onPageSizeChange={handlePageSizeChange}
         itemLabel="employees"
         searchQuery={search}
-        searchPlaceholder="Search by name, ID, email"
+        searchPlaceholder="Search by name, ID, email,"
         onSearchChange={(value) => dispatch(setSearch(value))}
         addLabel="Add Employee"
         onAdd={() => {
