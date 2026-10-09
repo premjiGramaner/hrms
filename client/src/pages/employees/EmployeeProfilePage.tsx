@@ -132,7 +132,9 @@ export default function EmployeeProfilePage() {
     );
 
     if (!hasCurrentSupervisor && currentSupervisorId) {
+      const numericId = Number(currentSupervisorId);
       if (
+        !isNaN(numericId) &&
         employee &&
         employee.supervisor_names &&
         employee.supervisor_names.length > 0
@@ -140,7 +142,7 @@ export default function EmployeeProfilePage() {
         const currentSupervisorName = employee.supervisor_names[0];
         return [
           ...supervisorOptions,
-          { id: parseInt(currentSupervisorId), name: currentSupervisorName },
+          { id: numericId, name: currentSupervisorName },
         ];
       }
     }
@@ -833,11 +835,10 @@ export default function EmployeeProfilePage() {
     <Layout title="Employee Profile" tabs={TABS} activeTab="Employee List">
       {actionMessage && (
         <div
-          className={`mb-3.5 p-2.5 border-l-4 rounded text-sm ${
-            actionMessage.toLowerCase().includes("failed")
+          className={`mb-3.5 p-2.5 border-l-4 rounded text-sm ${actionMessage.toLowerCase().includes("failed")
               ? "bg-red-50 border-red-400 text-red-800"
               : "bg-green-50 border-green-400 text-green-900"
-          }`}
+            }`}
         >
           {actionMessage}
         </div>
@@ -848,11 +849,10 @@ export default function EmployeeProfilePage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tabIndex)}
-            className={`px-6 py-2 text-sm font-medium whitespace-nowrap rounded-full transition ${
-              activeTab === tabIndex
+            className={`px-6 py-2 text-sm font-medium whitespace-nowrap rounded-full transition ${activeTab === tabIndex
                 ? "bg-[#fff3e0] text-[#ff9800]"
                 : "text-[#757575] hover:bg-gray-50"
-            }`}
+              }`}
           >
             {tab}
           </button>

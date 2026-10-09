@@ -184,15 +184,7 @@ export default function EmployeeProfileCard({
 
   const avatarUrl = getAvatarSrc(employee.avatar);
 
-  const getSupervisorNames = () => {
-    if (
-      employee.supervisor_names &&
-      Array.isArray(employee.supervisor_names) &&
-      employee.supervisor_names.length > 0
-    ) {
-      return employee.supervisor_names.filter((name) => name).join(", ");
-    }
-
+  const getSupervisorNames = (): string => {
     let supervisorsData: unknown = employee.supervisors;
 
     if (typeof supervisorsData === "string") {
@@ -204,7 +196,7 @@ export default function EmployeeProfileCard({
     }
 
     if (Array.isArray(supervisorsData) && supervisorsData.length > 0) {
-      return supervisorsData
+      const names = supervisorsData
         .map((supervisor: string | number | Supervisor) => {
           if (typeof supervisor === "number") {
             return (
@@ -218,13 +210,18 @@ export default function EmployeeProfileCard({
           }
           return supervisor.name || "";
         })
-        .filter((name) => name)
-        .join(", ");
+        .filter((name) => name);
+
+      if (names.length > 0) return names.join(", ");
+    }
+
+    if (Array.isArray(employee.supervisor_names)) {
+      const names = employee.supervisor_names.filter(Boolean);
+      if (names.length > 0) return names.join(", ");
     }
 
     return "N/A";
   };
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-base font-semibold text-slate-800 mb-4">About</h2>
@@ -321,9 +318,9 @@ export default function EmployeeProfileCard({
                 value={
                   employee.dob
                     ? new Date(employee.dob).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })
+                      month: "short",
+                      day: "numeric",
+                    })
                     : "N/A"
                 }
               />
@@ -340,13 +337,13 @@ export default function EmployeeProfileCard({
                 value={
                   employee.joined_date
                     ? new Date(employee.joined_date).toLocaleDateString(
-                        "en-US",
-                        {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        },
-                      )
+                      "en-US",
+                      {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      },
+                    )
                     : "N/A"
                 }
               />

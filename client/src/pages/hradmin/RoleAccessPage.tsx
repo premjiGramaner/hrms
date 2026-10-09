@@ -18,6 +18,7 @@ import {
   IconUsers,
   IconUser,
   IconSettings,
+  IconChevronDown,
 } from "../../components/Icons";
 
 const TABS: TabItem[] = [
@@ -112,29 +113,39 @@ function RoleDropdown({
     }
   };
 
-  const getBorderClass = (role: string) => {
-    if (role === "employee") return "border-[#bbf7d0]";
-    if (role === "supervisor") return "border-[#bae6fd]";
-    if (role === "hradmin") return "border-[#c4b5fd]";
-    return "border-slate-200";
-  };
-
-  const getBgClass = (role: string) => {
-    if (role === "employee") return "bg-[#dcfce7]";
-    if (role === "supervisor") return "bg-[#e0f2fe]";
-    if (role === "hradmin") return "bg-[#ede9fe]";
-    return "bg-slate-100";
-  };
-
-  const getTextClass = (role: string) => {
-    if (role === "employee") return "text-[#16a34a]";
-    if (role === "supervisor") return "text-[#075985]";
-    if (role === "hradmin") return "text-[#7c3aed]";
-    return "text-slate-600";
+  const getRoleClasses = (role: string) => {
+    switch (role) {
+      case "employee":
+        return {
+          border: "border-[#bbf7d0]",
+          bg: "bg-[#dcfce7]",
+          text: "text-[#16a34a]",
+        };
+      case "supervisor":
+        return {
+          border: "border-[#bae6fd]",
+          bg: "bg-[#e0f2fe]",
+          text: "text-[#075985]",
+        };
+      case "hradmin":
+        return {
+          border: "border-[#c4b5fd]",
+          bg: "bg-[#ede9fe]",
+          text: "text-[#7c3aed]",
+        };
+      default:
+        return {
+          border: "border-slate-200",
+          bg: "bg-slate-100",
+          text: "text-slate-600",
+        };
+    }
   };
 
   const isDisabled =
     saving || confirmationPending || (isAnyUserUpdating && !isThisUserUpdating);
+
+  const { border, bg, text } = getRoleClasses(selectedRole);
 
   return (
     <div className="relative inline-block">
@@ -142,9 +153,8 @@ function RoleDropdown({
         value={selectedRole}
         onChange={handleChange}
         disabled={isDisabled}
-        className={`py-1 pr-7 pl-2.5 rounded-lg text-xs font-bold outline-none appearance-none transition-all border-[1.5px] ${getBorderClass(selectedRole)} ${getBgClass(selectedRole)} ${getTextClass(selectedRole)} ${
-          isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-        }`}
+        className={`py-1 pr-7 pl-2.5 rounded-lg text-xs font-bold outline-none appearance-none transition-all border-[1.5px] ${border} ${bg} ${text} ${isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+          }`}
       >
         {ROLE_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -153,9 +163,9 @@ function RoleDropdown({
         ))}
       </select>
       <span
-        className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] ${getTextClass(selectedRole)}`}
+        className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${text}`}
       >
-        {isDisabled ? "…" : "▼"}
+        {isDisabled ? "…" : <IconChevronDown size={12} color="currentColor" />}
       </span>
     </div>
   );
@@ -416,16 +426,14 @@ export default function RoleAccessPage() {
       width: 110,
       render: (row) => (
         <span
-          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-            row.is_active
-              ? "bg-green-100 text-green-600 border-green-200"
-              : "bg-slate-100 text-slate-400 border-slate-200"
-          }`}
+          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${row.is_active
+            ? "bg-green-100 text-green-600 border-green-200"
+            : "bg-slate-100 text-slate-400 border-slate-200"
+            }`}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-              row.is_active ? "bg-green-500" : "bg-slate-300"
-            }`}
+            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${row.is_active ? "bg-green-500" : "bg-slate-300"
+              }`}
           />
           {row.is_active ? "Active" : "Inactive"}
         </span>

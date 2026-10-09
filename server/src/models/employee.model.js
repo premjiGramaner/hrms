@@ -68,54 +68,86 @@ async function findAllEmployees(page, limit = 10, search = "") {
       values,
     );
 
-    const employeesWithSupervisors = await Promise.all(
-      rows.map(async (employee) => {
-        const supervisorNamesStored = employee.supervisor_names_stored || [];
-        let supervisorIds = [];
-        let supervisorNames = [];
+    // --- Batch supervisor resolution (2 queries max for the whole page) ---
 
-        if (
-          Array.isArray(supervisorNamesStored) &&
-          supervisorNamesStored.length > 0
-        ) {
-          const firstItem = supervisorNamesStored[0];
-          const isNumericId =
-            !isNaN(firstItem) && Number.isInteger(Number(firstItem));
+    // Separate employees into two buckets: those with numeric IDs and those with name strings
+    const numericIdSet = new Set();
+    const nameSet = new Set();
 
-          if (isNumericId) {
-            supervisorIds = supervisorNamesStored.map((id) => Number(id));
-          } else {
-            const { rows: supervisorRows } = await pool.query(
-              `SELECT id::int 
-               FROM tbl_appusers 
-               WHERE name = ANY($1::text[]) 
-                 AND is_deleted = false 
-                 AND role = ANY($2::text[])`,
-              [supervisorNamesStored, [...BASIC_SUPERVISOR_ROLES]],
-            );
-            supervisorIds = supervisorRows.map((row) => row.id);
-          }
+    for (const employee of rows) {
+      const stored = employee.supervisor_names_stored || [];
+      if (!Array.isArray(stored) || stored.length === 0) continue;
+      const isNumericId =
+        !isNaN(stored[0]) && Number.isInteger(Number(stored[0]));
+      if (isNumericId) {
+        stored.forEach((id) => numericIdSet.add(Number(id)));
+      } else {
+        stored.forEach((name) => nameSet.add(name));
+      }
+    }
 
-          if (supervisorIds.length > 0) {
-            const { rows: currentNameRows } = await pool.query(
-              `SELECT name 
-               FROM tbl_appusers 
-               WHERE id = ANY($1::int[]) 
-                 AND is_deleted = false
-               ORDER BY name ASC`,
-              [supervisorIds],
-            );
-            supervisorNames = currentNameRows.map((row) => row.name);
-          }
+    // Query 1: resolve name-stored supervisors → ids (only if any names exist)
+    const nameToIdMap = new Map();
+    if (nameSet.size > 0) {
+      const { rows: resolvedByName } = await pool.query(
+        `SELECT id::int, name
+         FROM tbl_appusers
+         WHERE name = ANY($1::text[])
+           AND is_deleted = false
+           AND role = ANY($2::text[])`,
+        [[...nameSet], [...BASIC_SUPERVISOR_ROLES]],
+      );
+      for (const row of resolvedByName) {
+        nameToIdMap.set(row.name, row.id);
+        numericIdSet.add(row.id);
+      }
+    }
+
+    // Query 2: resolve all collected IDs → current names (only if any IDs exist)
+    const idToNameMap = new Map();
+    if (numericIdSet.size > 0) {
+      const { rows: resolvedById } = await pool.query(
+        `SELECT id::int, name
+         FROM tbl_appusers
+         WHERE id = ANY($1::int[])
+           AND is_deleted = false
+         ORDER BY name ASC`,
+        [[...numericIdSet]],
+      );
+      for (const row of resolvedById) {
+        idToNameMap.set(row.id, row.name);
+      }
+    }
+
+    // Map results back to each employee without any further DB calls
+    const employeesWithSupervisors = rows.map((employee) => {
+      const stored = employee.supervisor_names_stored || [];
+      let supervisorIds = [];
+      let supervisorNames = [];
+
+      if (Array.isArray(stored) && stored.length > 0) {
+        const isNumericId =
+          !isNaN(stored[0]) && Number.isInteger(Number(stored[0]));
+
+        if (isNumericId) {
+          supervisorIds = stored.map((id) => Number(id));
+        } else {
+          supervisorIds = stored
+            .map((name) => nameToIdMap.get(name))
+            .filter(Boolean);
         }
 
-        return {
-          ...employee,
-          supervisors: supervisorIds,
-          supervisor_names: supervisorNames,
-        };
-      }),
-    );
+        supervisorNames = supervisorIds
+          .map((id) => idToNameMap.get(id))
+          .filter(Boolean);
+      }
+
+      return {
+        ...employee,
+        supervisors: supervisorIds,
+        supervisor_names: supervisorNames,
+      };
+    });
 
     const countValues = searchTerm ? [searchTerm] : [];
     const { rows: countRows } = await pool.query(
@@ -440,16 +472,17 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
   const realDob =
     normalizeNullableDate(data.real_dob) || normalizeNullableDate(data.dob);
 
+  // Three states:
+  //   undefined  → supervisors field was not sent; preserve existing DB value via COALESCE
+  //   "[]"       → explicit clear; write "[]" to DB
+  //   <ids>      → valid supervisor list; write the resolved IDs
   let supervisorIds;
-  if (
-    data.supervisors !== undefined &&
-    data.supervisors !== null &&
-    data.supervisors !== "" &&
-    data.supervisors !== "[]"
-  ) {
-    supervisorIds = await validateAndStoreSupervisorIds(data.supervisors, id);
+  if (data.supervisors === undefined) {
+    supervisorIds = undefined; // not sent — COALESCE will preserve existing value
+  } else if (!data.supervisors || data.supervisors === "[]") {
+    supervisorIds = "[]"; // explicit clear
   } else {
-    supervisorIds = undefined;
+    supervisorIds = await validateAndStoreSupervisorIds(data.supervisors, id);
   }
 
   const result = await pool.query(
@@ -492,7 +525,7 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
       contract_start_date  = $36::date,
       contract_end_date    = $37::date,
       comments          = $38,
-      supervisors       = COALESCE($39::text, supervisors),
+      supervisors       = CASE WHEN $39::text IS NOT NULL THEN $39::text ELSE supervisors END,
       updated_by        = $40,
       updated_at        = NOW()
      WHERE id = $41::bigint AND is_deleted = false`,

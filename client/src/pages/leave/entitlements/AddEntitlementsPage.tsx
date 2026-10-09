@@ -12,6 +12,12 @@ import Toast, { useToast } from "../../../components/Toast";
 import EntitlementsLayout from "./EntitlementsLayout";
 import { PAGE_PATHS } from "../../../config/roles";
 import { ChevronDown, X } from "lucide-react";
+import {
+  ERROR_MESSAGES,
+  EMPTY_STATE_MESSAGES,
+  PLACEHOLDER_TEXT,
+  VALIDATION_MESSAGES,
+} from "../../../constants/messages";
 
 function buildPeriods(): { label: string; start: string; end: string }[] {
   const periods = [];
@@ -113,7 +119,7 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onFocus={() => query && setOpen(true)}
-            placeholder="Type employee name or ID…"
+            placeholder={PLACEHOLDER_TEXT.SEARCH_EMPLOYEE_NAME_OR_ID}
             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white transition pr-8"
           />
           {loading && (
@@ -178,7 +184,7 @@ function EmployeeSearch({ selected, multi, onAdd, onRemove }: EmpSearchProps) {
       )}
       {open && !loading && options.length === 0 && query.trim() && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 px-4 py-3 text-sm text-slate-400">
-          No employees found
+          {EMPTY_STATE_MESSAGES.NO_EMPLOYEES_FOUND}
         </div>
       )}
     </div>
@@ -205,7 +211,7 @@ export default function AddEntitlementsPage() {
   useEffect(() => {
     getEntitlementLeaveTypes()
       .then(setLeaveTypes)
-      .catch(() => addToast("Failed to load leave types.", "error"))
+      .catch(() => addToast(ERROR_MESSAGES.LOAD_LEAVE_TYPES_FAILED, "error"))
       .finally(() => setLoadingTypes(false));
   }, []);
 
@@ -232,14 +238,14 @@ export default function AddEntitlementsPage() {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (selectedEmployees.length === 0)
-      newErrors.employee = "At least one employee is required.";
-    if (!leaveTypeId) newErrors.leaveType = "Leave type is required.";
-    if (!periodStart) newErrors.period = "Leave period is required.";
+      newErrors.employee = VALIDATION_MESSAGES.EMPLOYEE_REQUIRED;
+    if (!leaveTypeId) newErrors.leaveType = VALIDATION_MESSAGES.LEAVE_TYPE_REQUIRED;
+    if (!periodStart) newErrors.period = VALIDATION_MESSAGES.LEAVE_PERIOD_REQUIRED;
     const days = parseFloat(entitlementDays);
     if (!entitlementDays || isNaN(days) || days <= 0)
-      newErrors.days = "Entitlement days must be > 0.";
+      newErrors.days = VALIDATION_MESSAGES.ENTITLEMENT_DAYS_INVALID;
     else if (days > 50)
-      newErrors.days = "Entitlement days cannot exceed 50.";
+      newErrors.days = VALIDATION_MESSAGES.ENTITLEMENT_DAYS_MAX;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -251,21 +257,21 @@ export default function AddEntitlementsPage() {
     try {
       const payload = multiMode
         ? {
-            employee_ids: selectedEmployees.map((emp) => emp.id),
-            leave_type_id: parseInt(leaveTypeId),
-            leave_period_start: periodStart,
-            entitlement_days: parseFloat(entitlementDays),
-            comments: comments || undefined,
-            description: description || undefined,
-          }
+          employee_ids: selectedEmployees.map((emp) => emp.id),
+          leave_type_id: parseInt(leaveTypeId),
+          leave_period_start: periodStart,
+          entitlement_days: parseFloat(entitlementDays),
+          comments: comments || undefined,
+          description: description || undefined,
+        }
         : {
-            employee_id: selectedEmployees[0].id,
-            leave_type_id: parseInt(leaveTypeId),
-            leave_period_start: periodStart,
-            entitlement_days: parseFloat(entitlementDays),
-            comments: comments || undefined,
-            description: description || undefined,
-          };
+          employee_id: selectedEmployees[0].id,
+          leave_type_id: parseInt(leaveTypeId),
+          leave_period_start: periodStart,
+          entitlement_days: parseFloat(entitlementDays),
+          comments: comments || undefined,
+          description: description || undefined,
+        };
 
       const result = await createEntitlements(payload);
       addToast(result.message, "success");
@@ -276,7 +282,7 @@ export default function AddEntitlementsPage() {
       setComments("");
       setDescription("");
     } catch (err) {
-      addToast(getApiErrorMessage(err, "Failed to save entitlement."), "error");
+      addToast(getApiErrorMessage(err, ERROR_MESSAGES.SAVE_ENTITLEMENT_FAILED), "error");
     } finally {
       setSubmitting(false);
     }
@@ -418,7 +424,7 @@ export default function AddEntitlementsPage() {
                     setEntitlementDays(event.target.value);
                     setErrors((prevErrors) => ({ ...prevErrors, days: "" }));
                   }}
-                  placeholder="e.g. 12 (max 50)"
+                  placeholder={PLACEHOLDER_TEXT.ENTITLEMENT_DAYS}
                   className={inputCls(!!errors.days)}
                 />
                 {errors.days && (
@@ -444,7 +450,7 @@ export default function AddEntitlementsPage() {
                   onChange={(event) => setDescription(event.target.value)}
                   rows={3}
                   maxLength={300}
-                  placeholder="Optional description…"
+                  placeholder={PLACEHOLDER_TEXT.OPTIONAL_DESCRIPTION}
                   className={`${inputCls()} resize-none`}
                 />
               </div>

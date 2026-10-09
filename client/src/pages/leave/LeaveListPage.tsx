@@ -16,7 +16,7 @@ import {
   exportDetailExcel,
 } from "../../api/leave.api";
 import { LeaveType, LeaveRequest, LeaveFilters } from "../../types";
-import { getApiErrorMessage } from "../../utils/errors";
+import { getApiErrorMessage, ApiErrorResponse } from "../../utils/errors";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
@@ -463,14 +463,15 @@ export default function LeaveListPage() {
 
       setConfirmationTarget(null);
       dispatch(fetchLeaves({ ...filters }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const fallbackMessage =
         action === ConfirmationAction.Approve
           ? "Failed to approve."
           : "Failed to cancel.";
 
       addToast(getApiErrorMessage(error, fallbackMessage), "error");
-      if (error?.response?.status === 409) {
+      const apiError = error as ApiErrorResponse;
+      if (apiError?.response?.status === 409) {
         dispatch(fetchLeaves({ ...filters }));
       }
     } finally {
@@ -487,9 +488,10 @@ export default function LeaveListPage() {
         await rejectLeave(rejectTarget, reason);
         addToast("Leave rejected.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (event: any) {
+      } catch (event: unknown) {
         addToast(getApiErrorMessage(event, "Failed to reject."), "error");
-        if (event?.response?.status === 409) {
+        const apiError = event as ApiErrorResponse;
+        if (apiError?.response?.status === 409) {
           dispatch(fetchLeaves({ ...filters }));
         }
       } finally {

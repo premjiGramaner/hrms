@@ -31,20 +31,11 @@ import {
   showPerformanceError,
 } from "./performanceNotifications";
 import EditCycleModal, { CycleFormData } from "./EditCycleModal";
-
-const HTTP_STATUS = {
-  CONFLICT: 409,
-} as const;
-
-const ERROR_MESSAGES = {
-  RATINGS_SUBMITTED:
-    "Cannot edit cycle. Ratings have already been submitted by supervisors or employees.",
-  UPDATE_FAILED: "Unable to update cycle.",
-} as const;
-
-const SUCCESS_MESSAGES = {
-  CYCLE_UPDATED: "Cycle updated successfully.",
-} as const;
+import {
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  HTTP_STATUS,
+} from "../../constants/messages";
 
 export default function AppraisalCycleDetails() {
   const { id: cycleId } = useParams();
@@ -161,8 +152,8 @@ export default function AppraisalCycleDetails() {
     setSelectedEmployeeIds((currentSelectedIds) =>
       currentSelectedIds.includes(employeeId)
         ? currentSelectedIds.filter(
-            (selectedEmployeeId) => selectedEmployeeId !== employeeId,
-          )
+          (selectedEmployeeId) => selectedEmployeeId !== employeeId,
+        )
         : [...currentSelectedIds, employeeId],
     );
   };
@@ -255,8 +246,8 @@ export default function AppraisalCycleDetails() {
       const isConflictError =
         axiosError?.response?.status === HTTP_STATUS.CONFLICT;
       const errorMessage = isConflictError
-        ? ERROR_MESSAGES.RATINGS_SUBMITTED
-        : ERROR_MESSAGES.UPDATE_FAILED;
+        ? ERROR_MESSAGES.CYCLE_RATINGS_SUBMITTED
+        : ERROR_MESSAGES.CYCLE_UPDATE_FAILED;
 
       if (isConflictError) {
         Toast.error(errorMessage);
@@ -393,11 +384,11 @@ export default function AppraisalCycleDetails() {
               isCycleClosed
                 ? undefined
                 : () =>
-                    setSelectedEmployeeIds(
-                      selectedEmployeeIds.length === filteredEmployees.length
-                        ? []
-                        : filteredEmployees.map((row) => row.id),
-                    )
+                  setSelectedEmployeeIds(
+                    selectedEmployeeIds.length === filteredEmployees.length
+                      ? []
+                      : filteredEmployees.map((row) => row.id),
+                  )
             }
             actions={(row) => (
               <IconButton

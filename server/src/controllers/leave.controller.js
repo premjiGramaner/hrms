@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import pool from "../config/db.js";
 import * as LeaveModel from "../models/leave.model.js";
 import { resetExpiredEntitlements } from "../models/entitlement.model.js";
 import { success, created, error } from "../utils/response.js";
@@ -20,7 +21,7 @@ const getLeaveBalance = async (req, res, next) => {
   try {
     // Reset used_days for any entitlement periods that have already ended so
     // the balance cards on /leave/apply always show 0 for expired periods.
-    await resetExpiredEntitlements().catch(() => {});
+    await resetExpiredEntitlements().catch(() => { });
     const employeeId = req.query.employee_id || req.user.id;
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const balance = await LeaveModel.getLeaveBalance(employeeId, year);
@@ -80,9 +81,9 @@ const listLeaves = async (req, res, next) => {
       filters.statuses = Array.isArray(rawStatuses)
         ? rawStatuses
         : String(rawStatuses)
-            .split(",")
-            .map((string) => string.trim())
-            .filter(Boolean);
+          .split(",")
+          .map((string) => string.trim())
+          .filter(Boolean);
     }
 
     if (role === "employee") {
@@ -376,22 +377,36 @@ const cancelLeave = async (req, res, next) => {
         ? starting_date.getFullYear() + 1
         : starting_date.getFullYear();
 
-    const cancelled = await LeaveModel.cancelLeave(id, actorId, originalStatus);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
 
-    if (!cancelled) {
-      return error(
-        res,
-        "This leave request status was just changed by another user. Please refresh and try again.",
-        409,
+      const cancelled = await LeaveModel.cancelLeave(id, actorId, originalStatus, client);
+
+      if (!cancelled) {
+        await client.query("ROLLBACK");
+        return error(
+          res,
+          "This leave request status was just changed by another user. Please refresh and try again.",
+          409,
+        );
+      }
+
+      await LeaveModel.restoreLeaveBalance(
+        leave.employee_id,
+        leave.leave_type_id,
+        year,
+        leave.requested_days,
+        client,
       );
-    }
 
-    await LeaveModel.restoreLeaveBalance(
-      leave.employee_id,
-      leave.leave_type_id,
-      year,
-      leave.requested_days,
-    );
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK");
+      throw txErr;
+    } finally {
+      client.release();
+    }
 
     return success(res, { message: "Leave cancelled successfully" });
   } catch (err) {
@@ -416,9 +431,9 @@ function buildExportFilters(query, userId, role) {
     filters.statuses = Array.isArray(query.statuses)
       ? query.statuses
       : String(query.statuses)
-          .split(",")
-          .map((string) => string.trim())
-          .filter(Boolean);
+        .split(",")
+        .map((string) => string.trim())
+        .filter(Boolean);
   }
   if (role === "employee") filters.own_employee_id = userId;
   return filters;
