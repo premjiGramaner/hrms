@@ -17,6 +17,8 @@ import migrationRoutes from "./routes/migration.routes.js";
 import { initializeReportNotificationScheduler } from "./jobs/reportNotificationScheduler.js";
 import { runMigrations } from "../run_migration.js";
 import { logInfo, logError } from "./utils/logger.js";
+import holidayRoutes from "./routes/holiday.routes.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,6 +46,8 @@ app.use("/api/leaves", leaveRoutes);
 app.use("/api/leave/entitlements", entitlementRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/migration", migrationRoutes);
+app.use("/api/holidays", holidayRoutes);
+
 
 app.get("/api/health", (_req, res) =>
   res.json({ success: true, data: { status: "ok" } }),
