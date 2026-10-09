@@ -68,9 +68,6 @@ async function findAllEmployees(page, limit = 10, search = "") {
       values,
     );
 
-    // --- Batch supervisor resolution (2 queries max for the whole page) ---
-
-    // Separate employees into two buckets: those with numeric IDs and those with name strings
     const numericIdSet = new Set();
     const nameSet = new Set();
 
@@ -86,7 +83,6 @@ async function findAllEmployees(page, limit = 10, search = "") {
       }
     }
 
-    // Query 1: resolve name-stored supervisors → ids (only if any names exist)
     const nameToIdMap = new Map();
     if (nameSet.size > 0) {
       const { rows: resolvedByName } = await pool.query(
@@ -103,7 +99,6 @@ async function findAllEmployees(page, limit = 10, search = "") {
       }
     }
 
-    // Query 2: resolve all collected IDs → current names (only if any IDs exist)
     const idToNameMap = new Map();
     if (numericIdSet.size > 0) {
       const { rows: resolvedById } = await pool.query(
@@ -475,7 +470,7 @@ async function updateEmployee(id, data, avatarPath, updatedBy) {
   if (data.supervisors === undefined) {
     supervisorIds = undefined;
   } else if (!data.supervisors || data.supervisors === "[]") {
-    supervisorIds = "[]"; // explicit clear
+    supervisorIds = "[]";
   } else {
     supervisorIds = await validateAndStoreSupervisorIds(data.supervisors, id);
   }
