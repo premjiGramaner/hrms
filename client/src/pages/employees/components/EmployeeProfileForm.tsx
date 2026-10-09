@@ -9,6 +9,7 @@ interface EditableProfileFieldProps {
   label: string;
   name: keyof EditableEmployeeProfileForm;
   value: string;
+  displayValue?: string;
   onChange: (event: ProfileFieldChangeEvent) => void;
   type?: string;
   options?: readonly string[];
@@ -33,6 +34,7 @@ export function EditableProfileField({
   label,
   name,
   value,
+  displayValue: providedDisplayValue,
   onChange,
   type = "text",
   options,
@@ -46,7 +48,12 @@ export function EditableProfileField({
   maxLength,
   minLength,
 }: EditableProfileFieldProps) {
-  const displayValue = value || "Not Assigned";
+  const displayValue =
+    providedDisplayValue !== undefined
+      ? providedDisplayValue || "Not Assigned"
+      : optionLabels && value
+        ? optionLabels.get(value) || value || "Not Assigned"
+        : value || "Not Assigned";
   const controlClass = `min-h-[2.75rem] w-full rounded-lg border ${error ? "border-red-300" : "border-slate-200"} ${disabled || readOnly ? "bg-slate-50 cursor-not-allowed text-slate-500" : "bg-white"} px-3 py-2.5 text-sm font-medium ${disabled || readOnly ? "text-slate-500" : "text-slate-700"} outline-none transition ${disabled || readOnly ? "" : "focus:border-blue-300 focus:ring-2 focus:ring-blue-50"}`;
 
   if (readOnly) {
@@ -86,6 +93,9 @@ export function EditableProfileField({
           className={controlClass}
         >
           <option value="">-- Select --</option>
+          {value && !options?.includes(value) && (
+            <option value={value}>{optionLabels?.get(value) || value}</option>
+          )}
           {options?.map((option) => (
             <option key={option} value={option}>
               {optionLabels?.get(option) || option}

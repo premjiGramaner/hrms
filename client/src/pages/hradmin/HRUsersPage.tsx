@@ -15,6 +15,7 @@ import { EMAIL_PATTERN } from "../../constants/validationPatterns";
 import Button, { ActionButton } from "../../components/common/Button";
 import { PAGE_PATHS, ROLES } from "../../config/roles";
 import { IconAlertCircle, IconEdit, IconX } from "../../components/Icons";
+import { dispatchSupervisorUpdated } from "../../utils/supervisorEvents";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
 const DEFAULT_PAGE_SIZE = 10;
@@ -110,6 +111,7 @@ export default function HRUsersPage() {
     setShowAddModal(false);
     setUserToEdit(null);
     fetchUsers(currentPage, pageSize, searchQuery);
+    dispatchSupervisorUpdated();
   };
   const firstRowIndex =
     totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -243,9 +245,8 @@ export default function HRUsersPage() {
               userList.map((user, rowIndex) => (
                 <tr
                   key={user.id}
-                  className={`border-b border-slate-50 transition-colors hover:bg-sky-50 ${
-                    rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafbff]"
-                  }`}
+                  className={`border-b border-slate-50 transition-colors hover:bg-sky-50 ${rowIndex % 2 === 0 ? "bg-white" : "bg-[#fafbff]"
+                    }`}
                 >
                   <td className="p-3 px-4">
                     <input
@@ -439,12 +440,11 @@ function NavBtn({
       className={`
         min-w-[32px] h-8 px-[7px] rounded-md inline-flex items-center justify-center
         text-[13px] leading-none transition-all
-        ${
-          active
-            ? "border-[1.5px] border-[#1b2a6b] bg-[#1b2a6b] text-white font-bold"
-            : disabled
-              ? "border-[1.5px] border-slate-200 bg-transparent text-gray-300 cursor-not-allowed"
-              : "border-[1.5px] border-slate-200 bg-white text-gray-700 cursor-pointer hover:border-slate-400 hover:text-[#1b2a6b]"
+        ${active
+          ? "border-[1.5px] border-[#1b2a6b] bg-[#1b2a6b] text-white font-bold"
+          : disabled
+            ? "border-[1.5px] border-slate-200 bg-transparent text-gray-300 cursor-not-allowed"
+            : "border-[1.5px] border-slate-200 bg-white text-gray-700 cursor-pointer hover:border-slate-400 hover:text-[#1b2a6b]"
         }
       `}
     >

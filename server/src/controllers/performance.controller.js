@@ -289,6 +289,7 @@ const updateCycle = async (req, res, next) => {
     const cycleId = req.params.id;
     const cycle = await PerformanceModel.findCycle(cycleId);
     if (!cycle) return error(res, "Cycle not found", 404);
+    if (isClosedCycle(cycle)) return error(res, closedCycleMessage, 409);
 
     const hasRatings = await PerformanceModel.checkCycleHasRatings(cycleId);
     if (hasRatings) {
@@ -300,6 +301,39 @@ const updateCycle = async (req, res, next) => {
     }
 
     const { templateId, fromDate, toDate, dueDate } = req.body;
+
+    // Validate required fields
+    if (!templateId || !fromDate || !toDate || !dueDate) {
+      return error(
+        res,
+        "templateId, fromDate, toDate, and dueDate are all required.",
+        422,
+      );
+    }
+
+    // Validate date formats and chronological order
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    const due = new Date(dueDate);
+
+    if (isNaN(from.getTime()) || isNaN(to.getTime()) || isNaN(due.getTime())) {
+      return error(res, "One or more dates are invalid.", 422);
+    }
+
+    if (from > to) {
+      return error(res, "fromDate must be on or before toDate.", 422);
+    }
+
+    if (to > due) {
+      return error(res, "toDate must be on or before dueDate.", 422);
+    }
+
+    // Validate template exists
+    const template = await PerformanceModel.findTemplateById(templateId);
+    if (!template) {
+      return error(res, "Template not found.", 422);
+    }
+
     const updatedCycle = await PerformanceModel.updateCycle(cycleId, {
       templateId,
       fromDate,
@@ -337,9 +371,9 @@ const listAppraisals = async (req, res, next) => {
     const rows = isPerformanceAdmin
       ? await PerformanceModel.listAppraisals(filters)
       : await PerformanceModel.listSupervisorAppraisals({
-          userId: req.user?.id,
-          ...filters,
-        });
+        userId: req.user?.id,
+        ...filters,
+      });
 
     return success(res, rows);
   } catch (err) {
