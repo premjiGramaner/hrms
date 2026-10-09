@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { AxiosError } from "axios";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getHRUsers,
@@ -508,9 +509,10 @@ function UserFormModal({
         await updateHRUser(user.id, payload);
       }
       onSaved();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ message?: string }>;
       const message =
-        err?.response?.data?.message ||
+        axiosError?.response?.data?.message ||
         `Failed to ${mode === "add" ? "create" : "update"} user. Please try again.`;
       setFormError(message);
       onError(message);
