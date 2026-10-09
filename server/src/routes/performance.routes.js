@@ -25,6 +25,7 @@ import {
   removeEmployeeFromCycle,
   saveAppraisalRatings,
   submitAppraisalReview,
+  updateCycle,
   updateCycleStatus,
   updateTemplate,
   updateTemplateKpi,
@@ -49,6 +50,7 @@ router.get("/cycles", listCycles);
 router.post("/cycles", createCycle);
 router.get("/cycles/:id/download", downloadCycleAppraisalsZip);
 router.get("/cycles/:id", getCycle);
+router.put("/cycles/:id", updateCycle);
 router.patch("/cycles/:id/status", updateCycleStatus);
 router.delete("/cycles/:id", deleteCycle);
 router.post("/cycles/:id/employees", addEmployeesToCycle);

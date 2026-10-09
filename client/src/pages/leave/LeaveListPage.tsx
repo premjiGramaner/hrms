@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { AxiosError } from "axios";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { fetchLeaves, setFilters } from "../../store/leaveSlice";
 import { ChevronDown } from "lucide-react";
@@ -472,6 +473,10 @@ export default function LeaveListPage() {
           : "Failed to cancel.";
 
       addToast(getApiErrorMessage(error, fallbackMessage), "error");
+      const axiosError = error as AxiosError;
+      if (axiosError?.response?.status === 409) {
+        dispatch(fetchLeaves({ ...filters }));
+      }
     } finally {
       setActionLoading(null);
     }
@@ -486,8 +491,12 @@ export default function LeaveListPage() {
         await rejectLeave(rejectTarget, reason);
         addToast("Leave rejected.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (event) {
+      } catch (event: unknown) {
         addToast(getApiErrorMessage(event, "Failed to reject."), "error");
+        const axiosError = event as AxiosError;
+        if (axiosError?.response?.status === 409) {
+          dispatch(fetchLeaves({ ...filters }));
+        }
       } finally {
         setActionLoading(null);
       }

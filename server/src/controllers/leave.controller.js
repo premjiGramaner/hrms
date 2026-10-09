@@ -4,8 +4,46 @@ import { resetExpiredEntitlements } from "../models/entitlement.model.js";
 import { success, created, error } from "../utils/response.js";
 import { ADMIN_ROLES, SUPERVISOR_ROLES } from "../constants/roles.js";
 
-// Roles that can approve, reject, and manage leave requests on behalf of employees.
 const PRIVILEGED_LEAVE_ROLES = [...ADMIN_ROLES, ...SUPERVISOR_ROLES];
+
+const LEAVE_STATUSES = {
+  PENDING: "Pending Approval",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  CANCELLED: "Cancelled",
+};
+
+const FINAL_STATUSES = [
+  LEAVE_STATUSES.REJECTED,
+  LEAVE_STATUSES.APPROVED,
+  LEAVE_STATUSES.CANCELLED,
+];
+
+const PROCESSED_STATUSES = [LEAVE_STATUSES.REJECTED, LEAVE_STATUSES.APPROVED];
+
+const LEAVE_STATUS_MESSAGES = {
+  ALREADY_CANCELLED: "This leave has already been cancelled",
+  ALREADY_PROCESSED: (status) =>
+    `This leave request has already been ${status.toLowerCase()} by another user. Current status: ${status}`,
+  ALREADY_PROCESSED_CANNOT_CANCEL:
+    "This leave request has already been processed and cannot be cancelled.",
+  CONCURRENT_MODIFICATION:
+    "This leave request status was just changed by another user. Please refresh and try again.",
+};
+
+function validateLeaveStatus(res, currentStatus, blockedStatuses, action) {
+  if (action === "cancel" && currentStatus === LEAVE_STATUSES.CANCELLED) {
+    error(res, LEAVE_STATUS_MESSAGES.ALREADY_CANCELLED, 409);
+    return false;
+  }
+
+  if (blockedStatuses.includes(currentStatus)) {
+    error(res, LEAVE_STATUS_MESSAGES.ALREADY_PROCESSED(currentStatus), 409);
+    return false;
+  }
+
+  return true;
+}
 
 const getLeaveTypes = async (req, res, next) => {
   try {
@@ -80,9 +118,9 @@ const listLeaves = async (req, res, next) => {
       filters.statuses = Array.isArray(rawStatuses)
         ? rawStatuses
         : String(rawStatuses)
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
+            .split(",")
+            .map((string) => string.trim())
+            .filter(Boolean);
     }
 
     if (role === "employee") {
@@ -253,11 +291,20 @@ const approveLeave = async (req, res, next) => {
       );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot approve your own leave request", 403);
-    if (leave.status === "Cancelled")
-      return error(res, "Cannot approve a cancelled leave", 400);
 
-    const approved = await LeaveModel.approveLeave(id, actorId);
-    if (!approved) return error(res, "Failed to approve leave", 500);
+    if (leave.status !== LEAVE_STATUSES.PENDING) {
+      return error(
+        res,
+        LEAVE_STATUS_MESSAGES.ALREADY_PROCESSED(leave.status),
+        409,
+      );
+    }
+
+    const approved = await LeaveModel.approveLeave(id, actorId, leave.status);
+
+    if (!approved) {
+      return error(res, LEAVE_STATUS_MESSAGES.CONCURRENT_MODIFICATION, 409);
+    }
 
     return success(res, { message: "Leave approved successfully" });
   } catch (err) {
@@ -278,20 +325,27 @@ const rejectLeave = async (req, res, next) => {
     if (!PRIVILEGED_LEAVE_ROLES.includes(actorRole))
       return error(
         res,
-        "You do not have permission to approve leave requests",
+        "You do not have permission to reject leave requests",
         403,
       );
     if (actorId > 0 && String(leave.employee_id) === String(actorId))
       return error(res, "You cannot reject your own leave request", 403);
-    if (["Cancelled", "Rejected"].includes(leave.status)) {
-      return error(
-        res,
-        `Cannot reject a leave that is already ${leave.status.toLowerCase()}`,
-        400,
-      );
+
+    if (!validateLeaveStatus(res, leave.status, FINAL_STATUSES, "reject")) {
+      return;
     }
 
-    await LeaveModel.rejectLeave(id, actorId, rejection_reason);
+    const rejected = await LeaveModel.rejectLeave(
+      id,
+      actorId,
+      rejection_reason,
+      leave.status,
+    );
+
+    if (!rejected) {
+      return error(res, LEAVE_STATUS_MESSAGES.CONCURRENT_MODIFICATION, 409);
+    }
+
     return success(res, { message: "Leave rejected successfully" });
   } catch (err) {
     next(err);
@@ -313,14 +367,18 @@ const cancelLeave = async (req, res, next) => {
       return error(res, "Forbidden", 403);
     }
 
-    if (leave.status === "Cancelled") {
-      return error(res, "Leave is already cancelled", 400);
+    const originalStatus = leave.status;
+
+    if (
+      !validateLeaveStatus(res, originalStatus, PROCESSED_STATUSES, "cancel")
+    ) {
+      return;
     }
 
-    if (isOwner && !isPrivileged && leave.status !== "Pending Approval") {
+    if (isOwner && !isPrivileged && originalStatus !== LEAVE_STATUSES.PENDING) {
       return error(
         res,
-        "This leave request has already been processed and cannot be cancelled.",
+        LEAVE_STATUS_MESSAGES.ALREADY_PROCESSED_CANNOT_CANCEL,
         400,
       );
     }
@@ -330,15 +388,19 @@ const cancelLeave = async (req, res, next) => {
       starting_date.getMonth() >= 3
         ? starting_date.getFullYear() + 1
         : starting_date.getFullYear();
+
+    const cancelled = await LeaveModel.cancelLeave(id, actorId, originalStatus);
+
+    if (!cancelled) {
+      return error(res, LEAVE_STATUS_MESSAGES.CONCURRENT_MODIFICATION, 409);
+    }
+
     await LeaveModel.restoreLeaveBalance(
       leave.employee_id,
       leave.leave_type_id,
       year,
       leave.requested_days,
     );
-
-    const cancelled = await LeaveModel.cancelLeave(id, actorId);
-    if (!cancelled) return error(res, "Failed to cancel leave", 500);
 
     return success(res, { message: "Leave cancelled successfully" });
   } catch (err) {
@@ -363,9 +425,9 @@ function buildExportFilters(query, userId, role) {
     filters.statuses = Array.isArray(query.statuses)
       ? query.statuses
       : String(query.statuses)
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+          .split(",")
+          .map((string) => string.trim())
+          .filter(Boolean);
   }
   if (role === "employee") filters.own_employee_id = userId;
   return filters;

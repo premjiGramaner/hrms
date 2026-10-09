@@ -284,6 +284,35 @@ const updateCycleStatus = async (req, res, next) => {
   }
 };
 
+const updateCycle = async (req, res, next) => {
+  try {
+    const cycleId = req.params.id;
+    const cycle = await PerformanceModel.findCycle(cycleId);
+    if (!cycle) return error(res, "Cycle not found", 404);
+
+    const hasRatings = await PerformanceModel.checkCycleHasRatings(cycleId);
+    if (hasRatings) {
+      return error(
+        res,
+        "Cannot edit cycle. Ratings have already been submitted by supervisors or employees.",
+        409,
+      );
+    }
+
+    const { templateId, fromDate, toDate, dueDate } = req.body;
+    const updatedCycle = await PerformanceModel.updateCycle(cycleId, {
+      templateId,
+      fromDate,
+      toDate,
+      dueDate,
+    });
+
+    return success(res, updatedCycle);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const createAppraisalsForCycle = async (req, res, next) => {
   try {
     const cycle = await PerformanceModel.findCycle(req.params.id);
@@ -495,6 +524,7 @@ export {
   removeEmployeeFromCycle,
   saveAppraisalRatings,
   submitAppraisalReview,
+  updateCycle,
   updateCycleStatus,
   updateTemplate,
   updateTemplateKpi,
