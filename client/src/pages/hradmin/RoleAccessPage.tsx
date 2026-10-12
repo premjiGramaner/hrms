@@ -18,6 +18,7 @@ import {
   IconUsers,
   IconUser,
   IconSettings,
+  IconChevronDown,
 } from "../../components/Icons";
 
 const TABS: TabItem[] = [
@@ -46,22 +47,42 @@ function getInitials(name: string): string {
 function RoleDropdown({
   user,
   onRoleChange,
+  onUpdateStart,
+  onUpdateCancel,
+  isAnyUserUpdating,
+  isThisUserUpdating,
 }: {
   user: RoleAccessUser;
   onRoleChange: (userId: number, newRole: string) => void;
+  onUpdateStart: (userId: number) => void;
+  onUpdateCancel: () => void;
+  isAnyUserUpdating: boolean;
+  isThisUserUpdating: boolean;
 }) {
   const [saving, setSaving] = useState(false);
+  const [confirmationPending, setConfirmationPending] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(roleValue(user.role));
+  useEffect(() => {
+    setSelectedRole(roleValue(user.role));
+  }, [user.role]);
 
-  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRole = e.target.value;
-    if (newRole === user.role) return;
+  const handleChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newRole = event.target.value;
+    const currentRoleValue = roleValue(user.role);
+    if (newRole === currentRoleValue) return;
+
+    if (confirmationPending || saving || isAnyUserUpdating) {
+      return;
+    }
 
     const newRoleLabel =
       ROLE_OPTIONS.find((role) => role.value === newRole)?.label || newRole;
     const currentRoleLabel =
-      ROLE_OPTIONS.find((role) => role.value === roleValue(user.role))?.label ||
+      ROLE_OPTIONS.find((role) => role.value === currentRoleValue)?.label ||
       user.role;
 
+    onUpdateStart(user.id);
+    setConfirmationPending(true);
     const confirmed = await Alert.confirm({
       title: "Change User Role",
       message: `Are you sure you want to change ${user.name}'s role from ${currentRoleLabel} to ${newRoleLabel}?`,
@@ -69,61 +90,71 @@ function RoleDropdown({
       cancelText: "Cancel",
       type: "warning",
     });
+    setConfirmationPending(false);
 
     if (!confirmed) {
-      e.target.value = roleValue(user.role);
+      setSelectedRole(currentRoleValue);
+      onUpdateCancel();
       return;
     }
 
     setSaving(true);
+    setSelectedRole(newRole);
     try {
       await updateUserRole(user.id, newRole);
       onRoleChange(user.id, newRole);
       Toast.success(`Role updated to ${newRoleLabel}`);
     } catch {
       Toast.error("Failed to update user role");
-      e.target.value = roleValue(user.role);
+      setSelectedRole(currentRoleValue);
+      onUpdateCancel();
     } finally {
       setSaving(false);
     }
   };
 
-  // Get border color class based on role
-  const getBorderClass = (role: string) => {
-    const val = roleValue(role);
-    if (val === "employee") return "border-[#bbf7d0]";
-    if (val === "supervisor") return "border-[#bae6fd]";
-    if (val === "hradmin") return "border-[#c4b5fd]";
-    return "border-slate-200";
+  const getRoleClasses = (role: string) => {
+    switch (role) {
+      case "employee":
+        return {
+          border: "border-[#bbf7d0]",
+          bg: "bg-[#dcfce7]",
+          text: "text-[#16a34a]",
+        };
+      case "supervisor":
+        return {
+          border: "border-[#bae6fd]",
+          bg: "bg-[#e0f2fe]",
+          text: "text-[#075985]",
+        };
+      case "hradmin":
+        return {
+          border: "border-[#c4b5fd]",
+          bg: "bg-[#ede9fe]",
+          text: "text-[#7c3aed]",
+        };
+      default:
+        return {
+          border: "border-slate-200",
+          bg: "bg-slate-100",
+          text: "text-slate-600",
+        };
+    }
   };
 
-  // Get background color class based on role
-  const getBgClass = (role: string) => {
-    const val = roleValue(role);
-    if (val === "employee") return "bg-[#dcfce7]";
-    if (val === "supervisor") return "bg-[#e0f2fe]";
-    if (val === "hradmin") return "bg-[#ede9fe]";
-    return "bg-slate-100";
-  };
+  const isDisabled =
+    saving || confirmationPending || (isAnyUserUpdating && !isThisUserUpdating);
 
-  // Get text color class based on role
-  const getTextClass = (role: string) => {
-    const val = roleValue(role);
-    if (val === "employee") return "text-[#16a34a]";
-    if (val === "supervisor") return "text-[#075985]";
-    if (val === "hradmin") return "text-[#7c3aed]";
-    return "text-slate-600";
-  };
+  const { border, bg, text } = getRoleClasses(selectedRole);
 
   return (
     <div className="relative inline-block">
       <select
-        value={roleValue(user.role)}
+        value={selectedRole}
         onChange={handleChange}
-        disabled={saving}
-        className={`py-1 pr-7 pl-2.5 rounded-lg text-xs font-bold outline-none appearance-none transition-all border-[1.5px] ${getBorderClass(user.role)} ${getBgClass(user.role)} ${getTextClass(user.role)} ${
-          saving ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-        }`}
+        disabled={isDisabled}
+        className={`py-1 pr-7 pl-2.5 rounded-lg text-xs font-bold outline-none appearance-none transition-all border-[1.5px] ${border} ${bg} ${text} ${isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+          }`}
       >
         {ROLE_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -132,9 +163,9 @@ function RoleDropdown({
         ))}
       </select>
       <span
-        className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] ${getTextClass(user.role)}`}
+        className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${text}`}
       >
-        {saving ? "…" : "▼"}
+        {isDisabled ? "…" : <IconChevronDown size={12} color="currentColor" />}
       </span>
     </div>
   );
@@ -148,7 +179,7 @@ function FilterSelect({
   minWidth = 130,
 }: {
   value: string;
-  onChange: (v: string) => void;
+  onChange: (value: string) => void;
   options: { value: string; label: string }[];
   placeholder: string;
   minWidth?: number;
@@ -164,7 +195,7 @@ function FilterSelect({
     <div className="relative">
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         className={`py-2.5 pr-8 pl-3 border-[1.5px] border-slate-200 rounded-[10px] text-[13px] outline-none appearance-none bg-white cursor-pointer shadow-sm ${widthClass}`}
       >
         <option value="">{placeholder}</option>
@@ -189,6 +220,7 @@ export default function RoleAccessPage() {
   const [pageSize, setPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState("");
+  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -266,6 +298,15 @@ export default function RoleAccessPage() {
         user.id === userId ? { ...user, role: newRole } : user,
       ),
     );
+    setUpdatingUserId(null);
+  };
+
+  const handleRoleUpdateStart = (userId: number) => {
+    setUpdatingUserId(userId);
+  };
+
+  const handleRoleUpdateCancel = () => {
+    setUpdatingUserId(null);
   };
 
   const clearFilters = () => {
@@ -385,16 +426,14 @@ export default function RoleAccessPage() {
       width: 110,
       render: (row) => (
         <span
-          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-            row.is_active
-              ? "bg-green-100 text-green-600 border-green-200"
-              : "bg-slate-100 text-slate-400 border-slate-200"
-          }`}
+          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${row.is_active
+            ? "bg-green-100 text-green-600 border-green-200"
+            : "bg-slate-100 text-slate-400 border-slate-200"
+            }`}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-              row.is_active ? "bg-green-500" : "bg-slate-300"
-            }`}
+            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${row.is_active ? "bg-green-500" : "bg-slate-300"
+              }`}
           />
           {row.is_active ? "Active" : "Inactive"}
         </span>
@@ -405,7 +444,14 @@ export default function RoleAccessPage() {
       header: "Role",
       width: 160,
       render: (row) => (
-        <RoleDropdown user={row} onRoleChange={handleRoleChange} />
+        <RoleDropdown
+          user={row}
+          onRoleChange={handleRoleChange}
+          onUpdateStart={handleRoleUpdateStart}
+          onUpdateCancel={handleRoleUpdateCancel}
+          isAnyUserUpdating={updatingUserId !== null}
+          isThisUserUpdating={updatingUserId === row.id}
+        />
       ),
     },
   ];
@@ -476,13 +522,13 @@ export default function RoleAccessPage() {
       <DataTable<RoleAccessUser>
         title="Role Access Management"
         subtitle="View and manage user roles across the system"
-        icon="🛡️"
+        icon={<IconUsers size={20} />}
         rows={users}
         isLoading={isLoading}
         columns={columns}
         actions={[]}
         getKey={(row) => row.id}
-        emptyIcon="👥"
+        emptyIcon={<IconUsers size={20} />}
         emptyTitle={
           hasFilters ? "No users match the current filters" : "No users found"
         }

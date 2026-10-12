@@ -44,6 +44,10 @@ const createEntitlements = async (req, res, next) => {
       return error(res, "Entitlement days must be greater than 0", 422);
     }
 
+    if (days > 50) {
+      return error(res, "Entitlement days cannot exceed 50 days", 422);
+    }
+
     if (!leave_type_id) {
       return error(res, "Leave type is required", 422);
     }

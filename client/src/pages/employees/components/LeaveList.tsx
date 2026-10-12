@@ -72,7 +72,28 @@ export default function LeaveList({ employee }: LeaveListProps) {
     navigate(PAGE_PATHS.leaveList);
   };
 
-  const groupedLeaves = leaves.reduce(
+  const getMostRecentDate = (leave: LeaveRequest): Date => {
+    const dates = [
+      leave.applied_on,
+      leave.approved_on,
+      leave.rejected_on,
+      leave.cancelled_on,
+    ].filter((date): date is string => !!date);
+
+    if (dates.length === 0) {
+      return new Date(leave.start_date);
+    }
+
+    return new Date(Math.max(...dates.map((date) => new Date(date).getTime())));
+  };
+
+  const last10Leaves = [...leaves]
+    .sort(
+      (a, b) => getMostRecentDate(b).getTime() - getMostRecentDate(a).getTime(),
+    )
+    .slice(0, 10);
+
+  const groupedLeaves = last10Leaves.reduce(
     (groups: Record<string, LeaveRequest[]>, leave) => {
       const date = formatDate(leave.start_date);
       const monthKey = date.month;
@@ -86,13 +107,16 @@ export default function LeaveList({ employee }: LeaveListProps) {
   );
 
   const sortedGroupedLeaves = Object.entries(groupedLeaves)
-    .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
-    .slice(0, 3)
+    .sort(([monthA], [monthB]) => {
+      const dateA = new Date(monthA);
+      const dateB = new Date(monthB);
+      return dateB.getTime() - dateA.getTime();
+    })
     .map(([month, monthLeaves]) => ({
       month,
       monthLeaves: [...monthLeaves].sort(
         (a, b) =>
-          new Date(b.start_date).getTime() - new Date(a.start_date).getTime(),
+          getMostRecentDate(b).getTime() - getMostRecentDate(a).getTime(),
       ),
     }));
 

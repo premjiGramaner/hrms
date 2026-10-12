@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { AxiosError } from "axios";
 import Layout, { TabItem } from "../../components/Layout";
 import {
   getHRUsers,
@@ -14,6 +15,7 @@ import { EMAIL_PATTERN } from "../../constants/validationPatterns";
 import Button, { ActionButton } from "../../components/common/Button";
 import { PAGE_PATHS, ROLES } from "../../config/roles";
 import { IconAlertCircle, IconEdit, IconX } from "../../components/Icons";
+import { dispatchSupervisorUpdated } from "../../utils/supervisorEvents";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const;
 const DEFAULT_PAGE_SIZE = 10;
@@ -109,6 +111,7 @@ export default function HRUsersPage() {
     setShowAddModal(false);
     setUserToEdit(null);
     fetchUsers(currentPage, pageSize, searchQuery);
+    dispatchSupervisorUpdated();
   };
   const firstRowIndex =
     totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -506,9 +509,10 @@ function UserFormModal({
         await updateHRUser(user.id, payload);
       }
       onSaved();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ message?: string }>;
       const message =
-        err?.response?.data?.message ||
+        axiosError?.response?.data?.message ||
         `Failed to ${mode === "add" ? "create" : "update"} user. Please try again.`;
       setFormError(message);
       onError(message);

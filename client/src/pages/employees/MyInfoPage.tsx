@@ -50,6 +50,10 @@ import { getNumericValue } from "./components/inputHelpers";
 import Toast from "../../utils/toast";
 import { PAGE_PATHS, ROLES, isAdminRole } from "../../config/roles";
 import { toSupervisorOptions } from "../../utils/employeeOptions";
+import {
+  onSupervisorUpdated,
+  dispatchSupervisorUpdated,
+} from "../../utils/supervisorEvents";
 import UpcomingHolidays from "./components/UpcomingHolidays";
 
 const ADMIN_TABS: TabItem[] = [
@@ -90,6 +94,20 @@ export default function MyInfoPage() {
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
 
   useEffect(() => {
+    const fetchSupervisors = () => {
+      getSupervisors()
+        .then((response) => {
+          const allOptions = toSupervisorOptions(response.data || []);
+          const filteredOptions = allOptions.filter(
+            (supervisor) => String(supervisor.id) !== String(user?.id),
+          );
+          setSupervisorOptions(filteredOptions);
+        })
+        .catch((error) =>
+          setError(getApiErrorMessage(error, "Failed to load supervisors.")),
+        );
+    };
+
     if (isAdmin) {
       getJobTitles()
         .then((response) =>
@@ -140,17 +158,14 @@ export default function MyInfoPage() {
         );
     }
 
-    getSupervisors()
-      .then((response) =>
-        setSupervisorOptions(
-          toSupervisorOptions(response.data || []).filter(
-            (supervisor) => String(supervisor.id) !== String(user?.id),
-          ),
-        ),
-      )
-      .catch((error) =>
-        setError(getApiErrorMessage(error, "Failed to load supervisors.")),
-      );
+    fetchSupervisors();
+    const unsubscribe = onSupervisorUpdated(() => {
+      fetchSupervisors();
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [isAdmin, user?.id]);
 
   const loadProfile = async () => {
@@ -267,6 +282,8 @@ export default function MyInfoPage() {
       formData.append("supervisors", JSON.stringify(supervisorsArray));
 
       await updateEmployee(employee.id, formData);
+
+      dispatchSupervisorUpdated();
 
       const { data: updatedEmployee } = await getMyInfo();
       setEmployee(updatedEmployee);
@@ -388,16 +405,18 @@ export default function MyInfoPage() {
     [jobCategoryOptions],
   );
 
-  const supervisorIds = useMemo(
-    () => supervisorOptions.map((supervisor) => supervisor.id.toString()),
-    [supervisorOptions],
-  );
+  const supervisorIds = useMemo(() => {
+    const ids = supervisorOptions.map((supervisor) =>
+      String(supervisor.id).trim(),
+    );
+    return ids;
+  }, [supervisorOptions]);
 
   const supervisorLabels = useMemo(
     () =>
       new Map(
         supervisorOptions.map((supervisor) => [
-          supervisor.id.toString(),
+          String(supervisor.id).trim(),
           supervisor.name,
         ]),
       ),
@@ -570,7 +589,13 @@ export default function MyInfoPage() {
           <EditableProfileField
             label="Supervisor"
             name="supervisor_id"
-            value={form.supervisor_id}
+            value={form.supervisor_id ? String(form.supervisor_id).trim() : ""}
+            displayValue={
+              form.supervisor_id
+                ? supervisorLabels.get(String(form.supervisor_id).trim()) ||
+                  String(form.supervisor_id).trim()
+                : ""
+            }
             onChange={handleFieldChange}
             options={supervisorIds}
             optionLabels={supervisorLabels}

@@ -12,6 +12,7 @@ import {
   fetchReportFilterOptions,
 } from "../../api/report.api";
 import { IconAward } from "../../components/Icons";
+import { Award } from "lucide-react";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
 import { MONTH_OPTIONS, YEARS_OF_SERVICE_OPTIONS } from "../../config/uiConstants";
@@ -21,7 +22,6 @@ const REPORT_CONFIG = {
   SUBTITLE: "View employee work anniversaries and tenure information",
   SEARCH_PLACEHOLDER: "Search by employee name...",
   ITEM_LABEL: "employees",
-  EMPTY_ICON_TEXT: "🎊",
   EMPTY_TITLE: "No Work Anniversaries Found",
   EMPTY_SUBTITLE: "No employee work anniversaries match your current filters",
   EXPORT_BUTTON_LABEL: "Export Excel",
@@ -305,7 +305,7 @@ export default function WorkAnniversaryReportPage() {
           onSearchChange={setSearchQuery}
           extraToolbar={filterToolbar}
           itemLabel={REPORT_CONFIG.ITEM_LABEL}
-          emptyIcon={REPORT_CONFIG.EMPTY_ICON_TEXT}
+          emptyIcon={<Award size={48} className="text-slate-400" />}
           emptyTitle={REPORT_CONFIG.EMPTY_TITLE}
           emptySubtitle={REPORT_CONFIG.EMPTY_SUBTITLE}
         />

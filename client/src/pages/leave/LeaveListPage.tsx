@@ -16,7 +16,7 @@ import {
   exportDetailExcel,
 } from "../../api/leave.api";
 import { LeaveType, LeaveRequest, LeaveFilters } from "../../types";
-import { getApiErrorMessage } from "../../utils/errors";
+import { getApiErrorMessage, ApiErrorResponse } from "../../utils/errors";
 import LeaveLayout from "./LeaveLayout";
 import Toast, { useToast } from "../../components/Toast";
 import EmployeeLeaveFilter from "./components/EmployeeLeaveFilter";
@@ -87,8 +87,6 @@ const EMPTY_FORM: LeaveFilters = {
   employment_status: "",
   job_category: "",
   attachment_status: "",
-  include_past: false,
-  only_subordinates: false,
   statuses: [],
   page: 1,
   limit: 10,
@@ -472,6 +470,10 @@ export default function LeaveListPage() {
           : "Failed to cancel.";
 
       addToast(getApiErrorMessage(error, fallbackMessage), "error");
+      const apiError = error as ApiErrorResponse;
+      if (apiError?.response?.status === 409) {
+        dispatch(fetchLeaves({ ...filters }));
+      }
     } finally {
       setActionLoading(null);
     }
@@ -486,8 +488,12 @@ export default function LeaveListPage() {
         await rejectLeave(rejectTarget, reason);
         addToast("Leave rejected.", "success");
         dispatch(fetchLeaves({ ...filters }));
-      } catch (event) {
+      } catch (event: unknown) {
         addToast(getApiErrorMessage(event, "Failed to reject."), "error");
+        const apiError = event as ApiErrorResponse;
+        if (apiError?.response?.status === 409) {
+          dispatch(fetchLeaves({ ...filters }));
+        }
       } finally {
         setActionLoading(null);
       }
@@ -639,24 +645,6 @@ export default function LeaveListPage() {
       allStatusesCheckboxRef.current.indeterminate = isSomeChecked;
     }
   }, [isSomeChecked]);
-
-  const handleIncludePastChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setForm((previousForm) => ({
-      ...previousForm,
-      include_past: event.target.checked,
-    }));
-  };
-
-  const handleOnlySubordinatesChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setForm((previousForm) => ({
-      ...previousForm,
-      only_subordinates: event.target.checked,
-    }));
-  };
 
   const handleStatusOptionChange = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -1005,26 +993,6 @@ export default function LeaveListPage() {
                     />
                   </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-5 mb-4">
-                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.include_past || false}
-                    onChange={handleIncludePastChange}
-                    className="w-4 h-4 accent-blue-900"
-                  />
-                  Include Past Employees
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.only_subordinates || false}
-                    onChange={handleOnlySubordinatesChange}
-                    className="w-4 h-4 accent-blue-900"
-                  />
-                  Only Show My Subordinate's Leave
-                </label>
               </div>
               <div className="mb-5">
                 <p className="text-xs font-semibold text-slate-700 mb-2">
