@@ -278,13 +278,13 @@ function HolidayOverlay({
             <table className="w-full text-sm border-collapse">
               <thead className="sticky top-0 bg-white z-10">
                 <tr className="border-b border-slate-100">
-                  <th className="text-left py-3 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <th className="text-left py-3 px-5 text-[11px] font-semibold text-slate-400  tracking-wide">
                     Holiday
                   </th>
-                  <th className="text-left py-3 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <th className="text-left py-3 px-3 text-[11px] font-semibold text-slate-400  tracking-wide">
                     Date
                   </th>
-                  <th className="text-left py-3 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <th className="text-left py-3 px-3 text-[11px] font-semibold text-slate-400  tracking-wide">
                     Day
                   </th>
                   {!isFiltered && (
@@ -307,13 +307,12 @@ function HolidayOverlay({
                   const { day, month, year, weekday, isWeekend } = parseDate(
                     h.holiday_date,
                   );
-                  const isMyHoliday = isHolidayForLocation(h, employeeLocation);
                   return (
                     <tr
                       key={h.id ?? idx}
                       className={`transition-colors hover:bg-slate-50/60 ${
                         isWeekend ? "bg-orange-50/60" : ""
-                      } ${!isMyHoliday && !isFiltered ? "opacity-50" : ""}`}
+                      } `}
                     >
                       <td className="py-3 px-5 font-medium text-slate-800">
                         {h.title}
@@ -554,13 +553,13 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
             <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left py-2 pr-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-[38%]">
+                  <th className="text-left py-2 pr-2 text-[11px] font-semibold text-slate-400  tracking-wide w-[38%]">
                     Holiday
                   </th>
-                  <th className="text-left py-2 pr-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-[22%]">
+                  <th className="text-left py-2 pr-3 text-[11px] font-semibold text-slate-400  tracking-wide w-[22%]">
                     Date
                   </th>
-                  <th className="text-center py-2 px-1 text-[11px] font-semibold text-blue-400 uppercase tracking-wide w-[13%]">
+                  <th className="text-center py-2 px-1 text-[11px] font-semibold text-blue-400  tracking-wide w-[13%]">
                     BLR
                   </th>
                   <th className="text-center py-2 px-1 text-[11px] font-semibold text-purple-400 uppercase tracking-wide w-[13%]">
@@ -576,11 +575,10 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
                   const { day, month, weekday, isWeekend } = parseDate(
                     h.holiday_date,
                   );
-                  const isMyHoliday = isHolidayForLocation(h, location);
                   return (
                     <tr
                       key={h.id ?? idx}
-                      className={`transition-colors hover:bg-slate-50/60 ${isWeekend ? "bg-red-50/40" : ""} ${!isMyHoliday ? "opacity-40" : ""}`}
+                      className={`transition-colors hover:bg-slate-50/60 ${isWeekend ? "bg-red-50/40" : ""} `}
                     >
                       <td className="py-2.5 pr-2 font-medium text-slate-800 leading-tight">
                         {h.title}
