@@ -11,7 +11,7 @@ export interface Holiday {
   is_hyderabad: boolean;
 }
 
-export type OfficeLocation = "ALL" | "BANGALORE" | "COIMBATORE" | "HYDERABAD";
+// export type OfficeLocation = "ALL" | "BANGALORE" | "COIMBATORE" | "HYDERABAD";
 
 export interface HolidayFilters {
   year?: number;
@@ -26,4 +26,12 @@ export interface UploadHolidayResponse {
   success: boolean;
   message: string;
   data: Holiday[];
+}
+
+
+export enum OfficeLocation {
+  ALL = "ALL",
+  BANGALORE = "BANGALORE",
+  COIMBATORE = "COIMBATORE",
+  HYDERABAD = "HYDERABAD",
 }

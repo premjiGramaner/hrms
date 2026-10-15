@@ -16,6 +16,7 @@ import {
   IconCheck,
   IconChevronRight,
 } from "../../../components/Icons";
+import {KeyboardKey} from "../../../types/index"
 
 interface UpcomingHolidaysProps {
   location?: string | null;
@@ -35,26 +36,38 @@ function parseDate(dateStr: string): {
   isWeekend: boolean;
 } {
   const [year, month, day] = toDateOnly(dateStr).split("-").map(Number);
-  const d = new Date(year, month - 1, day);
-  const dow = d.getDay();
+  const date = new Date(year, month - 1, day);
+  const dayOfWeek = date.getDay();
+
   return {
-    day: String(d.getDate()).padStart(2, "0"),
-    month: d.toLocaleString("en-IN", { month: "short" }),
+    day: String(date.getDate()).padStart(2, "0"),
+    month: date.toLocaleString("en-IN", { month: "short" }),
     year: String(year),
-    weekday: d.toLocaleString("en-IN", { weekday: "long" }),
-    isWeekend: dow === 0 || dow === 6,
+    weekday: date.toLocaleString("en-IN", { weekday: "long" }),
+    isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
   };
 }
 
-function applyFilter(holidays: Holiday[], filter: FilterKey): Holiday[] {
-  if (filter === "ALL") return holidays;
-  if (filter === "BANGALORE")
-    return holidays.filter((holiday) => holiday.is_bangalore);
-  if (filter === "COIMBATORE")
-    return holidays.filter((holiday) => holiday.is_coimbatore);
-  if (filter === "HYDERABAD")
-    return holidays.filter((holiday) => holiday.is_hyderabad);
-  return holidays;
+function applyFilter(
+  holidays: Holiday[],
+  filter: FilterKey,
+): Holiday[] {
+  switch (filter) {
+    case OfficeLocation.ALL:
+      return holidays;
+
+    case OfficeLocation.BANGALORE:
+      return holidays.filter((holiday) => holiday.is_bangalore);
+
+    case OfficeLocation.COIMBATORE:
+      return holidays.filter((holiday) => holiday.is_coimbatore);
+
+    case OfficeLocation.HYDERABAD:
+      return holidays.filter((holiday) => holiday.is_hyderabad);
+
+    default:
+      return holidays;
+  }
 }
 
 function HolidayOverlay({
@@ -69,7 +82,7 @@ function HolidayOverlay({
   onClose: () => void;
   onUploadSuccess: () => void;
 }) {
-  const [filter, setFilter] = useState<FilterKey>("ALL");
+  const [filter, setFilter] = useState<FilterKey>(OfficeLocation.ALL);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<{
     type: "success" | "error";
@@ -80,10 +93,10 @@ function HolidayOverlay({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === KeyboardKey.Escape) onClose();
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener(KeyboardKey.keydown, handler);
+    return () => window.removeEventListener(KeyboardKey.keydown, handler);
   }, [onClose]);
 
   const handleBackdrop = (e: React.MouseEvent) => {
@@ -142,7 +155,7 @@ function HolidayOverlay({
   };
 
   const filtered = applyFilter(allHolidays, filter);
-  const isFiltered = filter !== "ALL";
+  const isFiltered = filter !== OfficeLocation.ALL;
 
   // Derive year label from actual data rather than hardcoding
   const years = [
@@ -160,33 +173,41 @@ function HolidayOverlay({
         : `${years[0]}–${years[years.length - 1]}`;
 
   const HOLIDAY_FILTERS: { value: FilterKey; label: string }[] = [
-    { value: "ALL", label: "All" },
-    { value: "BANGALORE", label: "Bangalore" },
-    { value: "COIMBATORE", label: "Coimbatore" },
-    { value: "HYDERABAD", label: "Hyderabad" },
+    { value: OfficeLocation.ALL, label: "All" },
+    { value: OfficeLocation.BANGALORE, label: "Bangalore" },
+    { value: OfficeLocation.COIMBATORE, label: "Coimbatore" },
+    { value: OfficeLocation.HYDERABAD, label: "Hyderabad" },
   ];
 
-  function getFilterButtonClass(
-    filter: FilterKey,
-    selectedFilter: FilterKey,
-  ): string {
-    const isSelected = filter === selectedFilter;
 
-    if (!isSelected) {
-      return "bg-slate-100 text-slate-500 hover:bg-slate-200";
-    }
+function getFilterButtonClass(
+  filter: FilterKey,
+  selectedFilter: FilterKey,
+): string {
+  const isSelected = filter === selectedFilter;
 
-    switch (filter) {
-      case "ALL":
-        return "bg-slate-800 text-white";
-      case "BANGALORE":
-        return "bg-blue-600 text-white";
-      case "COIMBATORE":
-        return "bg-purple-600 text-white";
-      case "HYDERABAD":
-        return "bg-amber-500 text-white";
-    }
+  if (!isSelected) {
+    return "bg-slate-100 text-slate-500 hover:bg-slate-200";
   }
+
+  switch (filter) {
+    case OfficeLocation.ALL:
+      return "bg-slate-800 text-white";
+
+    case OfficeLocation.BANGALORE:
+      return "bg-blue-600 text-white";
+
+    case OfficeLocation.COIMBATORE:
+      return "bg-purple-600 text-white";
+
+    case OfficeLocation.HYDERABAD:
+      return "bg-amber-500 text-white";
+
+    default:
+      return "bg-slate-100 text-slate-500";
+  }
+}
+
 
   return createPortal(
     <div
@@ -317,13 +338,13 @@ function HolidayOverlay({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filtered.map((holiday, idx) => {
+                {filtered.map((holiday, index) => {
                   const { day, month, year, weekday, isWeekend } = parseDate(
                     holiday.holiday_date,
                   );
                   return (
                     <tr
-                      key={holiday.id ?? idx}
+                      key={holiday.id ?? index}
                       className={`transition-colors hover:bg-slate-50/60 ${
                         isWeekend ? "bg-orange-50/60" : ""
                       } `}
