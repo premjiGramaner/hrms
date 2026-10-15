@@ -881,3 +881,91 @@ export function IconChevronLeft({
     </svg>
   );
 }
+interface FileUploadProps {
+  size?: number;
+  color?: string;
+  className?: string;
+}
+export function FileUpload({
+  size = 16,
+  color = "currentColor",
+  className = "",
+}: FileUploadProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1" />
+      <path d="m16 6-4-4-4 4" />
+      <path d="M12 2v12" />
+    </svg>
+  );
+}
+interface LoadingSpinnerProps {
+  size?: number;
+  className?: string;
+}
+export function LoadingSpinner({
+  size = 14,
+  className = "",
+}: LoadingSpinnerProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={`animate-spin ${className}`}
+      aria-hidden="true"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+        className="opacity-25"
+      />
+      <path
+        fill="currentColor"
+        className="opacity-75"
+        d="M4 12a8 8 0 018-8v8H4z"
+      />
+    </svg>
+  );
+}
+export function IconChevronRight({
+  size = 14,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill={color}
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}

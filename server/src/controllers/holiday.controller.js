@@ -5,10 +5,23 @@ import { logError } from "../utils/logger.js";
 // ── Advisory lock key — prevents concurrent uploads from racing each other
 const UPLOAD_LOCK_KEY = 20261025; // arbitrary stable bigint for pg_try_advisory_xact_lock
 
+
 const MONTH_MAP = {
-  jan: 1, feb: 2, mar: 3, apr: 4, april: 4, may: 5,
-  jun: 6, june: 6, jul: 7, july: 7, aug: 8,
-  sep: 9, oct: 10, nov: 11, dec: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  april: 4,
+  may: 5,
+  jun: 6,
+  june: 6,
+  jul: 7,
+  july: 7,
+  aug: 8,
+  sep: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
 };
 
 /**
@@ -46,17 +59,23 @@ export const uploadHolidayPdf = async (req, res, next) => {
     client = await pool.connect();
 
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "No PDF file uploaded" });
-    }
+      const response = {
+        success: false,
+        message: "No PDF file uploaded",
+      };
 
+      return res.status(400).json(response);
+    }
     const pdfData = await pdfParse(req.file.buffer);
     const rawText = pdfData.text || "";
 
     if (!rawText.trim()) {
-      return res.status(422).json({
+      const response = {
         success: false,
         message: "PDF text extraction yielded empty content.",
-      });
+      };
+
+      return res.status(422).json(response);
     }
 
     // Normalize: strip pipes, join split dates like "June\n2, 2026"
@@ -112,9 +131,9 @@ export const uploadHolidayPdf = async (req, res, next) => {
         (m) => m[0].toUpperCase(),
       );
 
-      const isBangalore  = flags[0] === "YES" || flags[0] === "Y";
+      const isBangalore = flags[0] === "YES" || flags[0] === "Y";
       const isCoimbatore = flags[1] === "YES" || flags[1] === "Y";
-      const isHyderabad  = flags[2] === "YES" || flags[2] === "Y";
+      const isHyderabad = flags[2] === "YES" || flags[2] === "Y";
 
       const formattedDate = parseDateToYMD(rawDateStr);
 
@@ -123,9 +142,9 @@ export const uploadHolidayPdf = async (req, res, next) => {
           title,
           holiday_date: formattedDate, // normalised to Holiday field name
           day_name: dayName,
-          is_bangalore:  isBangalore,
+          is_bangalore: isBangalore,
           is_coimbatore: isCoimbatore,
-          is_hyderabad:  isHyderabad,
+          is_hyderabad: isHyderabad,
         });
       } else {
         // Track lines that had a date but couldn't be fully parsed
@@ -134,12 +153,13 @@ export const uploadHolidayPdf = async (req, res, next) => {
     }
 
     if (parsedHolidays.length === 0) {
-      return res.status(422).json({
+      const response = {
         success: false,
         message: "Failed to extract holiday rows from the PDF structure.",
-      });
-    }
+      };
 
+      return res.status(422).json(response);
+    }
     // Reject partial parses — if we skipped lines that looked like holidays,
     // the existing matrix is safer than a truncated replacement.
     if (skippedLines.length > 0) {
@@ -149,12 +169,13 @@ export const uploadHolidayPdf = async (req, res, next) => {
         skippedSample: skippedLines.slice(0, 5),
         uploadedBy: req.user?.id,
       });
-      return res.status(422).json({
+      const response = {
         success: false,
         message: `Upload rejected: ${skippedLines.length} row(s) could not be parsed. The existing calendar was not changed. Please check the PDF format.`,
-      });
-    }
+      };
 
+      return res.status(422).json(response);
+    }
     await client.query("BEGIN");
 
     // Advisory transaction lock — only one upload can modify the table at a time.
@@ -166,10 +187,13 @@ export const uploadHolidayPdf = async (req, res, next) => {
     );
     if (!lockRows[0].pg_try_advisory_xact_lock) {
       await client.query("ROLLBACK");
-      return res.status(409).json({
+      const response = {
         success: false,
-        message: "Another upload is already in progress. Please try again in a moment.",
-      });
+        message:
+          "Another upload is already in progress. Please try again in a moment.",
+      };
+
+      return res.status(409).json(response);
     }
 
     await client.query("TRUNCATE TABLE tbl_holiday_matrix");
@@ -200,8 +224,6 @@ export const uploadHolidayPdf = async (req, res, next) => {
     });
   } catch (error) {
     if (client) await client.query("ROLLBACK").catch(() => {});
-    // Always log in every environment — production failures must be visible
-    logError("Holiday upload failed", error, { uploadedBy: req.user?.id });
     next(error);
   } finally {
     if (client) client.release();

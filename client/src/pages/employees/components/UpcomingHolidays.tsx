@@ -7,6 +7,15 @@ import {
 import { Holiday, OfficeLocation } from "../../../types/holiday.types";
 import { isAdminRole } from "../../../config/roles";
 import { useAppSelector } from "../../../app/hooks";
+import {
+  FileUpload,
+  LoadingSpinner,
+  IconX,
+  IconUpload,
+  IconCalendar,
+  IconCheck,
+  IconChevronRight,
+} from "../../../components/Icons";
 
 interface UpcomingHolidaysProps {
   location?: string | null;
@@ -37,28 +46,19 @@ function parseDate(dateStr: string): {
   };
 }
 
-function isHolidayForLocation(
-  h: Holiday,
-  loc: string | null | undefined,
-): boolean {
-  const upper = loc?.toUpperCase();
-  if (upper === "BANGALORE") return h.is_bangalore;
-  if (upper === "COIMBATORE") return h.is_coimbatore;
-  if (upper === "HYDERABAD") return h.is_hyderabad;
-  return h.is_bangalore || h.is_coimbatore || h.is_hyderabad;
-}
-
 function applyFilter(holidays: Holiday[], filter: FilterKey): Holiday[] {
   if (filter === "ALL") return holidays;
-  if (filter === "BANGALORE") return holidays.filter((h) => h.is_bangalore);
-  if (filter === "COIMBATORE") return holidays.filter((h) => h.is_coimbatore);
-  if (filter === "HYDERABAD") return holidays.filter((h) => h.is_hyderabad);
+  if (filter === "BANGALORE")
+    return holidays.filter((holiday) => holiday.is_bangalore);
+  if (filter === "COIMBATORE")
+    return holidays.filter((holiday) => holiday.is_coimbatore);
+  if (filter === "HYDERABAD")
+    return holidays.filter((holiday) => holiday.is_hyderabad);
   return holidays;
 }
 
 function HolidayOverlay({
   allHolidays,
-  employeeLocation,
   isAdmin,
   onClose,
   onUploadSuccess,
@@ -92,21 +92,49 @@ function HolidayOverlay({
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+
     if (!file) return;
-    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
     setUploading(true);
     setUploadMsg(null);
+
     try {
-      const res = await uploadHolidayMatrixPdf(file);
-      setUploadMsg({
-        type: "success",
-        text: `Updated — ${res.data?.length ?? 0} holidays loaded.`,
-      });
-      onUploadSuccess();
-    } catch (err: any) {
+      const response = await uploadHolidayMatrixPdf(file);
+
+      if (
+        response.success === true &&
+        typeof response.message === "string" &&
+        response.message.trim() !== ""
+      ) {
+        setUploadMsg({
+          type: "success",
+          text: response.message,
+        });
+
+        onUploadSuccess();
+      } else {
+        setUploadMsg({
+          type: "error",
+          text:
+            response.message || "The server did not confirm upload success.",
+        });
+      }
+    } catch (err: unknown) {
+      const error = err as {
+        response?: {
+          data?: {
+            message?: string;
+          };
+        };
+      };
+
       setUploadMsg({
         type: "error",
-        text: err.response?.data?.message || "Upload failed.",
+        text: error.response?.data?.message || "Upload failed.",
       });
     } finally {
       setUploading(false);
@@ -117,8 +145,48 @@ function HolidayOverlay({
   const isFiltered = filter !== "ALL";
 
   // Derive year label from actual data rather than hardcoding
-  const years = [...new Set(allHolidays.map((h) => toDateOnly(h.holiday_date).slice(0, 4)))].sort();
-  const yearLabel = years.length === 0 ? "" : years.length === 1 ? years[0] : `${years[0]}–${years[years.length - 1]}`;
+  const years = [
+    ...new Set(
+      allHolidays.map((holiday) =>
+        toDateOnly(holiday.holiday_date).slice(0, 4),
+      ),
+    ),
+  ].sort();
+  const yearLabel =
+    years.length === 0
+      ? ""
+      : years.length === 1
+        ? years[0]
+        : `${years[0]}–${years[years.length - 1]}`;
+
+  const HOLIDAY_FILTERS: { value: FilterKey; label: string }[] = [
+    { value: "ALL", label: "All" },
+    { value: "BANGALORE", label: "Bangalore" },
+    { value: "COIMBATORE", label: "Coimbatore" },
+    { value: "HYDERABAD", label: "Hyderabad" },
+  ];
+
+  function getFilterButtonClass(
+    filter: FilterKey,
+    selectedFilter: FilterKey,
+  ): string {
+    const isSelected = filter === selectedFilter;
+
+    if (!isSelected) {
+      return "bg-slate-100 text-slate-500 hover:bg-slate-200";
+    }
+
+    switch (filter) {
+      case "ALL":
+        return "bg-slate-800 text-white";
+      case "BANGALORE":
+        return "bg-blue-600 text-white";
+      case "COIMBATORE":
+        return "bg-purple-600 text-white";
+      case "HYDERABAD":
+        return "bg-amber-500 text-white";
+    }
+  }
 
   return createPortal(
     <div
@@ -131,14 +199,14 @@ function HolidayOverlay({
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <div>
+          <>
             <h2 className="text-base font-semibold text-slate-800">
               Holiday Calendar {yearLabel}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               All company holidays across locations
             </p>
-          </div>
+          </>
           <div className="flex items-center gap-2">
             {isAdmin && (
               <>
@@ -153,41 +221,9 @@ function HolidayOverlay({
                   }`}
                 >
                   {uploading ? (
-                    <svg
-                      className="animate-spin h-3.5 w-3.5"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8H4z"
-                      />
-                    </svg>
+                    <LoadingSpinner size={14} />
                   ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3.5 w-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                      />
-                    </svg>
+                    <FileUpload size={14} />
                   )}
                   {uploading ? "Uploading…" : "Upload PDF"}
                 </button>
@@ -206,18 +242,7 @@ function HolidayOverlay({
               className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors"
               aria-label="Close"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <IconX size={20} />
             </button>
           </div>
         </div>
@@ -236,34 +261,23 @@ function HolidayOverlay({
               onClick={() => setUploadMsg(null)}
               className="opacity-60 hover:opacity-100 text-base leading-none"
             >
-              ×
+              <IconX />
             </button>
           </div>
         )}
 
         <div className="px-5 py-3 flex items-center gap-2 border-b border-slate-100">
-          {(["ALL", "BANGALORE", "COIMBATORE", "HYDERABAD"] as const).map(
-            (f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                  filter === f
-                    ? f === "ALL"
-                      ? "bg-slate-800 text-white"
-                      : f === "BANGALORE"
-                        ? "bg-blue-600 text-white"
-                        : f === "COIMBATORE"
-                          ? "bg-purple-600 text-white"
-                          : "bg-amber-500 text-white"
-                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                }`}
-              >
-                {f === "ALL" ? "All" : f.charAt(0) + f.slice(1).toLowerCase()}
-              </button>
-            ),
-          )}
+          {HOLIDAY_FILTERS.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setFilter(value)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${getFilterButtonClass(value, filter)}`}
+            >
+              {label}
+            </button>
+          ))}
+
           <span className="ml-auto text-[11px] text-slate-400">
             {filtered.length} holiday{filtered.length !== 1 ? "s" : ""}
           </span>
@@ -303,19 +317,19 @@ function HolidayOverlay({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filtered.map((h, idx) => {
+                {filtered.map((holiday, idx) => {
                   const { day, month, year, weekday, isWeekend } = parseDate(
-                    h.holiday_date,
+                    holiday.holiday_date,
                   );
                   return (
                     <tr
-                      key={h.id ?? idx}
+                      key={holiday.id ?? idx}
                       className={`transition-colors hover:bg-slate-50/60 ${
                         isWeekend ? "bg-orange-50/60" : ""
                       } `}
                     >
                       <td className="py-3 px-5 font-medium text-slate-800">
-                        {h.title}
+                        {holiday.title}
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
                         <span
@@ -338,17 +352,20 @@ function HolidayOverlay({
                       {!isFiltered && (
                         <>
                           <td className="py-3 px-2 text-center">
-                            <LocationDot active={h.is_bangalore} color="blue" />
+                            <LocationDot
+                              active={holiday.is_bangalore}
+                              color="blue"
+                            />
                           </td>
                           <td className="py-3 px-2 text-center">
                             <LocationDot
-                              active={h.is_coimbatore}
+                              active={holiday.is_coimbatore}
                               color="purple"
                             />
                           </td>
                           <td className="py-3 px-2 text-center pr-5">
                             <LocationDot
-                              active={h.is_hyderabad}
+                              active={holiday.is_hyderabad}
                               color="amber"
                             />
                           </td>
@@ -385,15 +402,7 @@ function LocationDot({
       <span
         className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${cls}`}
       >
-        <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-          <path
-            d="M2 6l3 3 5-5"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <IconCheck size={12} />
       </span>
     );
   }
@@ -429,7 +438,9 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
           String(today.getDate()).padStart(2, "0"),
         ].join("-");
         setUpcoming(
-          data.filter((h) => toDateOnly(h.holiday_date) >= todayStr).slice(0, 6),
+          data
+            .filter((holiday) => toDateOnly(holiday.holiday_date) >= todayStr)
+            .slice(0, 6),
         );
         setError(false);
       })
@@ -477,18 +488,7 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
               className="flex items-center gap-0.5 text-xs text-[#007bff] hover:underline font-medium"
             >
               View All
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-3.5 w-3.5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <IconChevronRight size={14} />
             </button>
           )}
 
@@ -498,20 +498,7 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
               onClick={() => setOverlayOpen(true)}
               className="flex items-center gap-1 text-xs text-teal-600 hover:underline font-medium"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-3.5 w-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                />
-              </svg>
+              <IconUpload size={14} />
               Upload PDF
             </button>
           )}
@@ -525,20 +512,7 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
 
         {isEmpty && (
           <div className="text-center py-8 px-4 text-slate-400">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="mx-auto h-8 w-8 mb-2 text-slate-200"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
+            <IconCalendar />
             <p className="text-sm font-medium">No upcoming holidays</p>
             {isAdmin && (
               <p className="text-xs mt-1 text-slate-400">
@@ -571,17 +545,17 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {upcoming.map((h, idx) => {
+                {upcoming.map((holiday, idx) => {
                   const { day, month, weekday, isWeekend } = parseDate(
-                    h.holiday_date,
+                    holiday.holiday_date,
                   );
                   return (
                     <tr
-                      key={h.id ?? idx}
+                      key={holiday.id ?? idx}
                       className={`transition-colors hover:bg-slate-50/60 ${isWeekend ? "bg-red-50/40" : ""} `}
                     >
                       <td className="py-2.5 pr-2 font-medium text-slate-800 leading-tight">
-                        {h.title}
+                        {holiday.title}
                       </td>
                       <td className="py-2.5 pr-3 whitespace-nowrap">
                         <span
@@ -596,13 +570,22 @@ export default function UpcomingHolidays({ location }: UpcomingHolidaysProps) {
                         </span>
                       </td>
                       <td className="py-2.5 px-1 text-center">
-                        <LocationDot active={h.is_bangalore} color="blue" />
+                        <LocationDot
+                          active={holiday.is_bangalore}
+                          color="blue"
+                        />
                       </td>
                       <td className="py-2.5 px-1 text-center">
-                        <LocationDot active={h.is_coimbatore} color="purple" />
+                        <LocationDot
+                          active={holiday.is_coimbatore}
+                          color="purple"
+                        />
                       </td>
                       <td className="py-2.5 px-1 text-center">
-                        <LocationDot active={h.is_hyderabad} color="amber" />
+                        <LocationDot
+                          active={holiday.is_hyderabad}
+                          color="amber"
+                        />
                       </td>
                     </tr>
                   );
