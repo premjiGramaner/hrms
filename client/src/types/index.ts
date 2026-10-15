@@ -158,6 +158,7 @@ export enum KeyboardKey {
   ArrowUp = "ArrowUp",
   Enter = "Enter",
   Escape = "Escape",
+  keydown = "keydown",
 }
 
 export interface TerminationReportRecord {
