@@ -1,5 +1,12 @@
 import nodemailer from "nodemailer";
-import { smtpUser, smtpPass, mailFrom } from "./src/config/env.js";
+import {
+  smtpUser,
+  smtpPass,
+  smtpHost,
+  smtpPort,
+  smtpSecure,
+  mailFrom,
+} from "./src/config/env.js";
 import { logError } from "./src/utils/logger.js";
 import {
   EMAIL_ICONS,
@@ -10,13 +17,24 @@ import {
 
 const transporter =
   smtpUser && smtpPass
-    ? nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      })
+    ? smtpHost
+      ? // Custom SMTP host (corporate/internal relay)
+        nodemailer.createTransport({
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpSecure,   // true = implicit TLS (port 465)
+          auth: { user: smtpUser, pass: smtpPass },
+          // For STARTTLS (port 587): require upgrade — reject if relay suppresses it
+          // so credentials never travel over plaintext
+          requireTLS: !smtpSecure,
+          tls: { rejectUnauthorized: false }, // accept internal/self-signed CA certs
+        })
+      : // Gmail — implicit TLS on port 465, no STARTTLS risk
+        nodemailer.createTransport({
+          service: "gmail",
+          auth: { user: smtpUser, pass: smtpPass },
+          tls: { rejectUnauthorized: false }, // tolerate corporate TLS inspection
+        })
     : null;
 
 async function sendMail(options) {

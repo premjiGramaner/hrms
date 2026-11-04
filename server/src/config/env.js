@@ -27,6 +27,9 @@ export const corsOrigins = (process.env.CORS_ORIGINS ?? "")
   .filter(Boolean);
 export const smtpUser = process.env.SMTP_USER || "";
 export const smtpPass = process.env.SMTP_PASS || "";
+export const smtpHost = process.env.SMTP_HOST || "";
+export const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
+export const smtpSecure = process.env.SMTP_SECURE === "true";
 export const mailFrom =
   process.env.MAIL_FROM || process.env.SMTP_USER || "noreply@hrms.com";
 
@@ -38,6 +41,9 @@ export default {
   corsOrigins,
   smtpUser,
   smtpPass,
+  smtpHost,
+  smtpPort,
+  smtpSecure,
   mailFrom,
 };
 

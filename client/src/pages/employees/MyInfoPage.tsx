@@ -54,6 +54,7 @@ import {
   onSupervisorUpdated,
   dispatchSupervisorUpdated,
 } from "../../utils/supervisorEvents";
+import UpcomingHolidays from "./components/UpcomingHolidays";
 
 const ADMIN_TABS: TabItem[] = [
   { label: "Employee List", path: PAGE_PATHS.employees },
@@ -762,6 +763,7 @@ export default function MyInfoPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6">
           <QuickAccess />
+          <UpcomingHolidays location={employee.location} />
           <LeaveBalance employee={employee} />
         </div>
 
