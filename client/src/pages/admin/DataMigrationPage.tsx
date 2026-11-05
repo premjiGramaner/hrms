@@ -430,7 +430,6 @@ export default function DataMigrationPage() {
             </div>
             <Button
               icon={<Database size={16} />}
-              disabled={!canStart || starting}
               onClick={() => setShowConfirmation(true)}
             >
               Start Database Insertion

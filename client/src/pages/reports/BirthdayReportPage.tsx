@@ -7,7 +7,7 @@ import {
   downloadBirthdayReportExcel,
 } from "../../api/report.api";
 import { IconGift } from "../../components/Icons";
-import { Gift } from "lucide-react";
+import { Cake, Gift } from "lucide-react";
 import Toast from "../../utils/toast";
 import { getApiErrorMessage } from "../../utils/errors";
 import { MONTH_OPTIONS } from "../../config/uiConstants";
