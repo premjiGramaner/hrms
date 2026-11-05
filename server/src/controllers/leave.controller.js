@@ -441,6 +441,8 @@ function buildExportFilters(query, userId, role) {
     job_category: query.job_category || null,
     attachment_status: query.attachment_status || null,
     include_past: query.include_past === "true",
+    only_subordinates: query.only_subordinates === "true",
+    supervisor_id: userId,
   };
   if (query.statuses) {
     filters.statuses = Array.isArray(query.statuses)
