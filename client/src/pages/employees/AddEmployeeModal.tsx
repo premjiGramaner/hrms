@@ -1026,13 +1026,6 @@ export default function AddEmployeeModal({
                       Max 5MB
                     </span>
                   )}
-                  <input
-                    ref={avatarRef}
-                    type="file"
-                    accept={SUPPORTED_IMAGE_EXTENSIONS.join(",")}
-                    className="hidden"
-                    onChange={handleAvatarChange}
-                  />
                 </div>
                 <div className="flex-1 ">
                   <TwoColumnGrid>
@@ -1383,6 +1376,14 @@ export default function AddEmployeeModal({
             </Section>
           )}
         </form>
+
+        <input
+          ref={avatarRef}
+          type="file"
+          accept={SUPPORTED_IMAGE_EXTENSIONS.join(",")}
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
 
         <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
           <span className="text-xs text-slate-400">

@@ -413,7 +413,12 @@ export const MIGRATION_MAPPINGS = Object.freeze({
     operation: "terminate",
     createEmployee: true,
     syntheticEmailForMissing: true,
-    sheetNames: ["terminated employee list", "terminated employees"],
+    sheetNames: [
+      "terminated employee list",
+      "terminated employees",
+      "exit employee list",
+      "exit employees",
+    ],
     table: "tbl_appusers",
     priority: 190,
     keyColumn: "employee_id",
